@@ -1,0 +1,21 @@
+\nnode:internal/tls/secure-context:70
+    context.setCert(cert);
+            ^
+
+Error: error:0480006C:PEM routines::no start line
+    at node:internal/tls/secure-context:70:13
+    at Array.forEach (<anonymous>)
+    at setCerts (node:internal/tls/secure-context:68:3)
+    at configSecureContext (node:internal/tls/secure-context:191:5)
+    at Object.createSecureContext (node:internal/tls/common:113:3)
+    at Server.setSecureContext (node:internal/tls/wrap:1507:27)
+    at Server (node:internal/tls/wrap:1371:8)
+    at new Server (node:https:93:3)
+    at Object.createServer (node:https:148:10)
+    at Object.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\server.js:43:20) {
+  library: 'PEM routines',
+  reason: 'no start line',
+  code: 'ERR_OSSL_PEM_NO_START_LINE'
+}
+
+Node.js v24.13.1

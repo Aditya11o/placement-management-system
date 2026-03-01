@@ -1,0 +1,120 @@
+const request = require('supertest');
+const mongoose = require('mongoose');
+const { app } = require('../server');
+const Admin = require('../src/models/Admin');
+const Student = require('../src/models/Student');
+const Log = require('../src/models/Log');
+
+const TEST_MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/pms_test_db';
+
+let adminToken, adminId;
+let studentToken, studentId;
+
+beforeAll(async () => {
+    await mongoose.connect(TEST_MONGO_URI);
+    await Admin.deleteMany({});
+    await Student.deleteMany({});
+    await Log.deleteMany({});
+
+    // 1. Create an Admin
+    const admin = await Admin.create({
+        name: 'Audit Admin',
+        email: 'audit_admin@example.com',
+        password: 'password123',
+    });
+    adminId = admin._id;
+
+    const adminLogin = await request(app).post('/api/v1/auth/login').send({
+        email: admin.email, password: 'password123', role: 'ADMIN'
+    });
+    adminToken = adminLogin.body.token;
+
+    // 2. Create a Student (to verify authorization fails for non-admins)
+    const student = await Student.create({
+        name: 'Audit Student',
+        email: 'audit_student@example.com',
+        password: 'password123',
+        branch: 'CSE', cgpa: 8.5, graduation_year: 2025, phone: '1234567890',
+        marks_10th: 90, marks_12th: 92, gender: 'MALE', status: 'APPROVED'
+    });
+    studentId = student._id;
+
+    const studentLogin = await request(app).post('/api/v1/auth/login').send({
+        email: student.email, password: 'password123', role: 'STUDENT'
+    });
+    studentToken = studentLogin.body.token;
+
+    // 3. Seed some dummy logs
+    await Log.create([
+        {
+            user_id: adminId,
+            user_role: 'ADMIN',
+            action: 'UPDATE_STATUS',
+            description: 'Approved student account'
+        },
+        {
+            user_id: studentId,
+            user_role: 'STUDENT',
+            action: 'APPLY_JOB',
+            description: 'Applied for SDE role'
+        },
+        {
+            user_id: studentId,
+            user_role: 'STUDENT',
+            action: 'LOGIN',
+            description: 'User logged in'
+        }
+    ]);
+});
+
+afterAll(async () => {
+    await Admin.deleteMany({});
+    await Student.deleteMany({});
+    await Log.deleteMany({});
+    await mongoose.connection.close();
+});
+
+describe('Audit Trail / Logs API', () => {
+
+    it('should block non-admins from fetching logs', async () => {
+        const res = await request(app)
+            .get('/api/v1/admin/logs')
+            .set('Authorization', `Bearer ${studentToken}`);
+
+        expect(res.statusCode).toBe(403);
+    });
+
+    it('should return paginated logs for admins', async () => {
+        const res = await request(app)
+            .get('/api/v1/admin/logs')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.count).toBe(3);
+        expect(res.body.data.length).toBe(3);
+    });
+
+    it('should successfully filter logs by user_role via advancedResults', async () => {
+        const res = await request(app)
+            .get('/api/v1/admin/logs?user_role=STUDENT')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.count).toBe(2);
+        expect(res.body.data.every(log => log.user_role === 'STUDENT')).toBe(true);
+    });
+
+    it('should successfully filter logs by action via advancedResults', async () => {
+        const res = await request(app)
+            .get('/api/v1/admin/logs?action=UPDATE_STATUS')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.count).toBe(1);
+        expect(res.body.data[0].action).toBe('UPDATE_STATUS');
+    });
+
+});
