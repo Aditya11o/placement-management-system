@@ -15,8 +15,8 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const { app } = require('../../server');
-const Student = require('../src/models/Student');
-const Admin = require('../src/models/Admin');
+const Student = require('../../src/models/Student');
+const Admin = require('../../src/models/Admin');
 
 let mongoServer;
 let superAdminToken, coordinatorToken, studentToken;
@@ -27,12 +27,15 @@ const loginAdmin = async (email, password) => {
     const res = await request(app)
         .post('/api/v1/auth/login')
         .send({ email, password, role: 'ADMIN' });
-    return res.body.accessToken;
+    return res.body.token;
 };
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
+    if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+    }
     await mongoose.connect(mongoServer.getUri());
 
     // Seed a SUPER_ADMIN directly in DB (no public register route for admins)
@@ -75,7 +78,7 @@ beforeAll(async () => {
     });
     const sLogin = await request(app).post('/api/v1/auth/login')
         .send({ email: 'approved.admin.test@test.com', password: 'Pass1234!', role: 'STUDENT' });
-    studentToken = sLogin.body.accessToken;
+    studentToken = sLogin.body.token;
 });
 
 afterAll(async () => {
@@ -128,7 +131,7 @@ describe('Admin — User Management', () => {
             .post('/api/v1/auth/login')
             .send({ email: 'pending.student@test.com', password: 'Pass1234!', role: 'STUDENT' });
         expect(loginRes.statusCode).toBe(200);
-        expect(loginRes.body.accessToken).toBeDefined();
+        expect(loginRes.body.token).toBeDefined();
     });
 
     it('PUT /api/v1/admin/users/status — admin blocks a student', async () => {
@@ -178,7 +181,7 @@ describe('Admin — RBAC Granular Permissions', () => {
 
         expect(res.statusCode).toBe(201);
         expect(res.body.success).toBe(true);
-        expect(res.body.data.rawKey).toBeDefined();
+        expect(res.body.data.raw_api_key).toBeDefined();
     });
 
     it('GET /api/v1/rbac/me — coordinator can see their own permissions', async () => {

@@ -14,9 +14,9 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const { app } = require('../../server');
-const Student = require('../src/models/Student');
-const Recruiter = require('../src/models/Recruiter');
-const Job = require('../src/models/Job');
+const Student = require('../../src/models/Student');
+const Recruiter = require('../../src/models/Recruiter');
+const Job = require('../../src/models/Job');
 
 let mongoServer;
 let recruiterToken, studentToken, ineligibleStudentToken;
@@ -33,7 +33,7 @@ const seedRecruiter = async () => {
 
     const login = await request(app).post('/api/v1/auth/login')
         .send({ email: 'recruiter.jobs@test.com', password: 'Pass1234!', role: 'RECRUITER' });
-    return login.body.accessToken;
+    return login.body.token;
 };
 
 const seedStudent = async (overrides = {}, email = 'student.jobs@test.com') => {
@@ -45,12 +45,15 @@ const seedStudent = async (overrides = {}, email = 'student.jobs@test.com') => {
     });
     const login = await request(app).post('/api/v1/auth/login')
         .send({ email, password: 'Pass1234!', role: 'STUDENT' });
-    return login.body.accessToken;
+    return login.body.token;
 };
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
+    if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+    }
     await mongoose.connect(mongoServer.getUri());
 
     // Seed users
@@ -78,11 +81,10 @@ describe('Jobs — Create Job (Recruiter)', () => {
                 title: 'Software Engineer Intern',
                 description: 'Build cool stuff.',
                 location: 'Bangalore',
-                package_lpa: 12,
-                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
                 min_cgpa: 7.0,
-                allowed_branches: ['CSE', 'IT'],
-                graduation_year: 2026
+                eligible_branch: 'CSE',
+                graduation_year: 2026,
+                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
             });
 
         expect(res.statusCode).toBe(201);

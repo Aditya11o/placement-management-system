@@ -70,7 +70,9 @@ router.post('/resume', authorize('STUDENT'), upload.single('resume'), uploadResu
  *     tags: [Uploads]
  *     security:
  *       - bearerAuth: []
- *     description: Returns all stored resume versions sorted newest-first. The active version is marked with `is_active: true`.
+ *     description: |
+ *       Returns all stored resume versions sorted newest-first.
+ *       The active version is marked with is_active: true.
  *     responses:
  *       200:
  *         description: List of resume versions

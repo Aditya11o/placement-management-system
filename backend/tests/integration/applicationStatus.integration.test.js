@@ -14,10 +14,10 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const { app } = require('../../server');
-const Student = require('../src/models/Student');
-const Recruiter = require('../src/models/Recruiter');
-const Job = require('../src/models/Job');
-const Application = require('../src/models/Application');
+const Student = require('../../src/models/Student');
+const Recruiter = require('../../src/models/Recruiter');
+const Job = require('../../src/models/Job');
+const Application = require('../../src/models/Application');
 
 let mongoServer;
 let recruiterToken, otherRecruiterToken, studentToken;
@@ -28,12 +28,15 @@ const loginAs = async (email, password, role) => {
     const res = await request(app)
         .post('/api/v1/auth/login')
         .send({ email, password, role });
-    return res.body.accessToken;
+    return res.body.token;
 };
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
+    if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+    }
     await mongoose.connect(mongoServer.getUri());
 
     // Seed a recruiter
@@ -69,11 +72,10 @@ beforeAll(async () => {
             title: 'SDE Role',
             description: 'Great role!',
             location: 'Hyderabad',
-            package_lpa: 15,
-            deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
             min_cgpa: 7.0,
-            allowed_branches: ['CSE'],
-            graduation_year: 2026
+            eligible_branch: 'CSE',
+            graduation_year: 2026,
+            deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
         });
     jobId = jobRes.body.data?._id;
 

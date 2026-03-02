@@ -8,6 +8,7 @@ module.exports = {
             displayName: 'unit',
             testEnvironment: 'node',
             testMatch: ['**/tests/**/*.test.js'],          // *.test.js only
+            testPathIgnorePatterns: ['/node_modules/', '/tests/integration/'],
             testTimeout: 10000,
             forceExit: true
         },

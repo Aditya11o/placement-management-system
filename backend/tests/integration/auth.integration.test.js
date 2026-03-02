@@ -15,8 +15,8 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const { app } = require('../../server');
-const Student = require('../src/models/Student');
-const Admin = require('../src/models/Admin');
+const Student = require('../../src/models/Student');
+const Admin = require('../../src/models/Admin');
 
 let mongoServer;
 
@@ -45,6 +45,11 @@ const RECRUITER = {
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
+    // Disconnect from any previously-open connection (e.g. from another test suite
+    // or from server.js being required with a stale Mongoose singleton)
+    if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+    }
     await mongoose.connect(mongoServer.getUri());
 });
 
@@ -148,8 +153,8 @@ describe('Auth — Login', () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body.success).toBe(true);
-        expect(res.body.accessToken).toBeDefined();
-        expect(res.body.accessToken).toMatch(/^[\w-]+\.[\w-]+\.[\w-]+$/); // JWT shape
+        expect(res.body.token).toBeDefined();
+        expect(res.body.token).toMatch(/^[\w-]+\.[\w-]+\.[\w-]+$/); // JWT shape
     });
 
     it('POST /api/v1/auth/login — rejects BLOCKED user', async () => {
@@ -178,7 +183,7 @@ describe('Auth — Protected Routes', () => {
             .post('/api/v1/auth/login')
             .send({ email: STUDENT.email, password: STUDENT.password, role: 'STUDENT' });
 
-        const token = loginRes.body.accessToken;
+        const token = loginRes.body.token;
 
         const meRes = await request(app)
             .get('/api/v1/auth/me')

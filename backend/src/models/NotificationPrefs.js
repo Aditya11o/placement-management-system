@@ -18,9 +18,12 @@ const mongoose = require('mongoose');
  *   - weekly_digest              → weekly placement summary email (cron-driven)
  */
 const prefSchema = new mongoose.Schema({
-    push: { type: Boolean, default: true },
+    push:  { type: Boolean, default: true },
     email: { type: Boolean, default: true }
 }, { _id: false });
+
+// Helper to embed prefSchema as a nested sub-document with defaults
+const prefField = () => ({ type: prefSchema, default: () => ({}) });
 
 const notificationPrefsSchema = new mongoose.Schema({
     userId: {
@@ -37,9 +40,9 @@ const notificationPrefsSchema = new mongoose.Schema({
     },
 
     // ── Student-specific events ───────────────────────────────────────────────
-    application_status_update: { ...prefSchema.obj, default: undefined },
-    interview_scheduled: { ...prefSchema.obj, default: undefined },
-    interview_canceled: { ...prefSchema.obj, default: undefined },
+    application_status_update: prefField(),
+    interview_scheduled:        prefField(),
+    interview_canceled:         prefField(),
     new_job_posted: { type: Boolean, default: true },       // push-only
     new_announcement: { type: Boolean, default: true },       // push-only
 
