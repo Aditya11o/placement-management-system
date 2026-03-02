@@ -11,6 +11,7 @@ const logSchema = new mongoose.Schema({
         type: String,
         enum: ['STUDENT', 'RECRUITER', 'ADMIN'],
         required: true,
+        index: true
     },
     action: {
         type: String,
@@ -18,6 +19,7 @@ const logSchema = new mongoose.Schema({
     },
     target_id: {
         type: mongoose.Schema.Types.ObjectId,
+        index: true
     },
     description: {
         type: String,
@@ -28,5 +30,8 @@ const logSchema = new mongoose.Schema({
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }
 });
+
+logSchema.index({ user_id: 1, created_at: -1 });
+logSchema.index({ action: 1 });
 
 module.exports = mongoose.model('Log', logSchema);

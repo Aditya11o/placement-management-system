@@ -29,7 +29,6 @@ exports.createAnnouncement = async (req, res) => {
             target_id: announcement._id
         });
 
-        const { clearCache } = require('../middlewares/cacheMiddleware');
         await clearCache('/api/v1/announcements');
 
         // 📢 Broadcast to ALL connected users instantly (Students, Recruiters, Admins see the toast)

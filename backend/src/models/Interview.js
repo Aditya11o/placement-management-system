@@ -1,29 +1,35 @@
 const mongoose = require('mongoose');
+const softDeletePlugin = require('./plugins/softDelete');
 
 const interviewSchema = new mongoose.Schema({
     application_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Application',
-        required: true
+        required: true,
+        index: true
     },
     student_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Student',
-        required: true
+        required: true,
+        index: true
     },
     recruiter_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Recruiter',
-        required: true
+        required: true,
+        index: true
     },
     job_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Job',
-        required: true
+        required: true,
+        index: true
     },
     scheduled_at: {
         type: Date,
-        required: [true, 'Please provide the interview date and time']
+        required: [true, 'Please provide the interview date and time'],
+        index: true
     },
     location_type: {
         type: String,
@@ -37,7 +43,8 @@ const interviewSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ['PROPOSED', 'CONFIRMED', 'REJECTED', 'COMPLETED', 'CANCELED'],
-        default: 'PROPOSED'
+        default: 'PROPOSED',
+        index: true
     },
     notes: {
         type: String,
@@ -46,5 +53,7 @@ const interviewSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+interviewSchema.plugin(softDeletePlugin);
 
 module.exports = mongoose.model('Interview', interviewSchema);

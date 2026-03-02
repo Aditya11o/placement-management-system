@@ -8,6 +8,8 @@ const logger = require('./logger');
 
 const IORedis = require('ioredis');
 
+const config = require('../config/config');
+
 const redisOptions = {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
@@ -23,18 +25,12 @@ const redisOptions = {
     }
 };
 
-const connection = process.env.REDIS_URL
-    ? new IORedis(process.env.REDIS_URL, redisOptions)
-    : new IORedis({
-        host: process.env.REDIS_HOST || '127.0.0.1',
-        port: process.env.REDIS_PORT || 6379,
-        ...redisOptions
-    });
+const connection = new IORedis(config.get('redis.url'), redisOptions);
 
 let dataExportQueue;
 let dataExportWorker;
 
-if (process.env.NODE_ENV !== 'test') {
+if (config.get('env') !== 'test') {
     dataExportQueue = new Queue('data-export-queue', { connection });
 
     dataExportWorker = new Worker('data-export-queue', async (job) => {
@@ -181,4 +177,3 @@ if (process.env.NODE_ENV !== 'test') {
     };
 }
 
-module.exports = { dataExportQueue };

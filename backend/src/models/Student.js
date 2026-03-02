@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const softDeletePlugin = require('./plugins/softDelete');
+const config = require('../config/config');
 
 const studentSchema = new mongoose.Schema({
     name: {
@@ -10,8 +11,12 @@ const studentSchema = new mongoose.Schema({
     },
     email: {
         type: String,
-        required: true,
+        required: [true, 'Please add an email'],
         unique: true,
+        match: [
+            /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+            'Please add a valid email'
+        ]
     },
     password: {
         type: String,
@@ -21,14 +26,18 @@ const studentSchema = new mongoose.Schema({
     branch: {
         type: String,
         required: true,
+        index: true,
     },
     cgpa: {
         type: Number,
-        required: true,
+        required: [true, 'Please add CGPA'],
+        min: [0, 'CGPA cannot be negative'],
+        max: [10, 'CGPA cannot exceed 10']
     },
     graduation_year: {
         type: Number,
         required: true,
+        index: true,
     },
     phone: {
         type: String,
@@ -37,14 +46,19 @@ const studentSchema = new mongoose.Schema({
     backlogs_active: {
         type: Number,
         default: 0,
+        min: [0, 'Backlogs cannot be negative']
     },
     marks_10th: {
         type: Number,
-        required: true,
+        required: [true, 'Please add 10th marks'],
+        min: 0,
+        max: 100
     },
     marks_12th: {
         type: Number,
-        required: true,
+        required: [true, 'Please add 12th marks'],
+        min: 0,
+        max: 100
     },
     gender: {
         type: String,
@@ -60,8 +74,8 @@ const studentSchema = new mongoose.Schema({
         is_active: { type: Boolean, default: false },         // Which version recruiters see
         uploaded_at: { type: Date, default: Date.now }
     }],
-    skills: [{ type: String }],
-    status: { type: String, enum: ['PENDING', 'APPROVED', 'BLOCKED'], default: 'PENDING' },
+    skills: [{ type: String, index: true }],
+    status: { type: String, enum: ['PENDING', 'APPROVED', 'BLOCKED'], default: 'PENDING', index: true },
     resetPasswordToken: String,
     resetPasswordExpire: Date
 }, {
@@ -90,7 +104,7 @@ studentSchema.plugin(softDeletePlugin);
 
 studentSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
-    const salt = await bcrypt.genSalt(Number(process.env.SALT_ROUNDS) || 10);
+    const salt = await bcrypt.genSalt(config.get('salt_rounds'));
     this.password = await bcrypt.hash(this.password, salt);
 });
 

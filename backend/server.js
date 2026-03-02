@@ -1,10 +1,10 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const connectDB = require('./src/config/db');
 const morganMiddleware = require('./src/middlewares/morganMiddleware');
 const logger = require('./src/utils/logger');
+const config = require('./src/config/config');
 
 const helmet = require('helmet');
 
@@ -19,11 +19,8 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-// Load env variables
-dotenv.config();
-
 // Connect to Database
-if (process.env.NODE_ENV !== 'test') {
+if (config.get('env') !== 'test') {
     connectDB();
 }
 
@@ -35,7 +32,7 @@ const app = express();
 let server;
 
 // Mount HTTP or HTTPS Server based on Environment
-if (process.env.HTTPS === 'true') {
+if (config.get('https')) {
     const sslOptions = {
         key: fs.readFileSync(path.join(__dirname, 'ssl', 'key.pem')),
         cert: fs.readFileSync(path.join(__dirname, 'ssl', 'cert.pem'))
@@ -79,10 +76,10 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // Setup CORS whitelist
-const whitelist = process.env.CORS_WHITELIST ? process.env.CORS_WHITELIST.split(',') : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'];
+const whitelist = config.get('cors.whitelist');
 const corsOptions = {
     origin: function (origin, callback) {
-        if (!origin || whitelist.indexOf(origin) !== -1 || process.env.NODE_ENV === 'test') { // allow requests with no origin (like mobile apps or curl requests) and testing
+        if (!origin || whitelist.indexOf(origin) !== -1 || config.get('env') === 'test') { // allow requests with no origin (like mobile apps or curl requests) and testing
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
@@ -147,12 +144,12 @@ swaggerDocs(app);
 const errorHandler = require('./src/middlewares/errorMiddleware');
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = config.get('port');
 
 // Only start the server if not running tests
-if (process.env.NODE_ENV !== 'test') {
+if (config.get('env') !== 'test') {
     const listener = server.listen(PORT, () => {
-        logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+        logger.info(`Server running in ${config.get('env')} mode on port ${PORT}`);
         // Initialize background scheduled workers
         initCronJobs();
     });
@@ -181,8 +178,71 @@ if (process.env.NODE_ENV !== 'test') {
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (err, promise) => {
         logger.error(`Error: ${err.message}`);
-        listener.close(() => process.exit(1));
+        server.close(() => process.exit(1));
     });
+
+    // ==========================================
+    // Graceful Shutdown Implementation
+    // ==========================================
+
+    const { emailWorker } = require('./src/utils/emailQueue');
+    const { bulkWorker } = require('./src/utils/bulkQueue');
+    const { dataExportWorker } = require('./src/utils/dataExportQueue');
+    const { webhookWorker } = require('./src/utils/webhookQueue');
+
+    const gracefulShutdown = async (signal) => {
+        logger.info(`[SHUTDOWN] Signal received: ${signal}. Starting graceful shutdown...`);
+
+        // 1. Force exit after 10 seconds to prevent hanging
+        const forceExitTimeout = setTimeout(() => {
+            logger.error('[SHUTDOWN] Forcefully exiting after timeout.');
+            process.exit(1);
+        }, 10000);
+
+        try {
+            // 2. Stop accepting new HTTP requests
+            if (server) {
+                server.close(() => {
+                    logger.info('[SHUTDOWN] HTTP server closed.');
+                });
+            }
+
+            // 3. Close BullMQ Workers (Pause processing and wait for current jobs)
+            const workers = [emailWorker, bulkWorker, dataExportWorker, webhookWorker];
+            for (const worker of workers) {
+                if (worker) {
+                    await worker.close();
+                    logger.info(`[SHUTDOWN] Worker for ${worker.name} closed.`);
+                }
+            }
+
+            // 4. Close Redis handles (if applicable)
+            const { getRedisClient } = require('./src/config/redis');
+            const redisClient = getRedisClient();
+            if (redisClient) {
+                await redisClient.quit();
+                logger.info('[SHUTDOWN] Redis connection closed.');
+            }
+
+            // 5. Close MongoDB Connection
+            if (mongoose.connection.readyState !== 0) {
+                await mongoose.connection.close();
+                logger.info('[SHUTDOWN] MongoDB connection closed.');
+            }
+
+            clearTimeout(forceExitTimeout);
+            logger.info('[SHUTDOWN] All resources released. Goodbye!');
+            process.exit(0);
+
+        } catch (err) {
+            logger.error(`[SHUTDOWN] Error during shutdown: ${err.message}`);
+            process.exit(1);
+        }
+    };
+
+    // Register listeners
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 module.exports = { app, server };

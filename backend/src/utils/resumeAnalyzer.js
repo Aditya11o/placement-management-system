@@ -1,6 +1,7 @@
 const { GoogleGenAI } = require('@google/genai');
 const pdfParse = require('pdf-parse');
 const logger = require('./logger');
+const config = require('../config/config');
 
 /**
  * Parses a PDF buffer, extracts raw text, and queries Gemini to return an array of professional skills.
@@ -9,8 +10,8 @@ const logger = require('./logger');
  */
 exports.extractSkillsFromResume = async (pdfBuffer) => {
     try {
-        if (!process.env.GEMINI_API_KEY) {
-            logger.warn('Skipping Resume Parsing: GEMINI_API_KEY is not configured in .env');
+        if (!config.get('gemini.api_key')) {
+            logger.warn('Skipping Resume Parsing: GEMINI_API_KEY is not configured in configuration');
             return [];
         }
 

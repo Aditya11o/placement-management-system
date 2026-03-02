@@ -1,5 +1,6 @@
 const winston = require('winston');
 const path = require('path');
+const config = require('../config/config');
 
 const logLevels = {
     error: 0,
@@ -10,7 +11,7 @@ const logLevels = {
 };
 
 const level = () => {
-    const env = process.env.NODE_ENV || 'development';
+    const env = config.get('env');
     const isDevelopment = env === 'development';
     return isDevelopment ? 'debug' : 'warn';
 };

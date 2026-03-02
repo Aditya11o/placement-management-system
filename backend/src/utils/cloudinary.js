@@ -1,13 +1,14 @@
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
 const logger = require('./logger');
+const config = require('../config/config');
 
 // These credentials should realistically come from .env
 // We'll configure it to use env vars when instantiated
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+    cloud_name: config.get('cloudinary.cloud_name'),
+    api_key: config.get('cloudinary.api_key'),
+    api_secret: config.get('cloudinary.api_secret')
 });
 
 exports.uploadToCloudinary = (fileBuffer, folder, resourceType = 'auto', publicId = null) => {

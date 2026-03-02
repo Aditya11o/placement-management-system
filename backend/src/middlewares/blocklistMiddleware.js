@@ -1,14 +1,15 @@
 const { getRedisClient } = require('../config/redis');
 const logger = require('../utils/logger');
+const config = require('../config/config');
 
 /**
  * Global Middleware to intercept incoming IPs and deny access if they exist in the Redis Blocklist
  */
 const checkBlocklist = async (req, res, next) => {
-    if (process.env.NODE_ENV === 'test') { return next(); }
+    if (config.get('env') === 'test') { return next(); }
 
     const redisClient = getRedisClient();
-    if (!redisClient || !redisClient.isReady) {
+    if (!redisClient || !redisClient.isOpen) {
         return next(); // Fail gracefully if Redis is offline
     }
 
@@ -41,10 +42,10 @@ const checkBlocklist = async (req, res, next) => {
  * @param {string} reason - The reason for logging
  */
 const banIp = async (ip, durationHours = 24, reason = 'Not specified') => {
-    if (process.env.NODE_ENV === 'test') { return; }
+    if (config.get('env') === 'test') { return; }
 
     const redisClient = getRedisClient();
-    if (!redisClient || !redisClient.isReady) return;
+    if (!redisClient || !redisClient.isOpen) return;
 
     const blockKey = `blocklist:${ip}`;
     const seconds = durationHours * 3600;

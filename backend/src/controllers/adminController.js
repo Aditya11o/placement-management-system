@@ -5,6 +5,7 @@ const Application = require('../models/Application');
 const Log = require('../models/Log');
 const { emailQueue } = require('../utils/emailQueue');
 const { dataExportQueue } = require('../utils/dataExportQueue');
+const config = require('../config/config');
 
 exports.getUsers = async (req, res, next) => {
     try {
@@ -57,7 +58,7 @@ exports.updateUserStatus = async (req, res) => {
                         message: emailMessage,
                         cta: {
                             text: 'Login to Dashboard',
-                            url: `${process.env.FRONTEND_URL}/login`
+                            url: `${config.get('frontend_url')}/login`
                         }
                     }
                 });
@@ -324,7 +325,7 @@ exports.bulkOperations = async (req, res) => {
 exports.getBulkJobStatus = async (req, res) => {
     try {
         // Since BulkQueue returns standard BullMQ Job shapes, we can read straight from Cache
-        if (process.env.NODE_ENV === 'test') { return res.status(200).json({ success: true, data: { status: 'completed' } }); } // Mock trap
+        if (config.get('env') === 'test') { return res.status(200).json({ success: true, data: { status: 'completed' } }); } // Mock trap
 
         const job = await bulkQueue.getJob(req.params.jobId);
 

@@ -1,8 +1,8 @@
 const { Queue, Worker } = require('bullmq');
 const axios = require('axios');
 const logger = require('./logger');
-
 const IORedis = require('ioredis');
+const config = require('../config/config');
 
 // Setup Redis connection options for BullMQ
 const redisOptions = {
@@ -20,19 +20,13 @@ const redisOptions = {
     }
 };
 
-const connection = process.env.REDIS_URL
-    ? new IORedis(process.env.REDIS_URL, redisOptions)
-    : new IORedis({
-        host: process.env.REDIS_HOST || '127.0.0.1',
-        port: process.env.REDIS_PORT || 6379,
-        ...redisOptions
-    });
+const connection = new IORedis(config.get('redis.url'), redisOptions);
 
 let webhookQueue;
 let webhookWorker;
 
 // Only instantiate real queues and workers if we are not running tests
-if (process.env.NODE_ENV !== 'test') {
+if (config.get('env') !== 'test') {
     // Create the Queue
     webhookQueue = new Queue('webhook-queue', {
         connection,

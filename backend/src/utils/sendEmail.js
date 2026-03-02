@@ -1,29 +1,27 @@
 const nodemailer = require('nodemailer');
-const logger = require('./logger');
+const config = require('../config/config');
 
 const sendEmail = async (options) => {
-    // Create a transporter
     const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT,
+        host: config.get('smtp.host'),
+        port: config.get('smtp.port'),
         auth: {
-            user: process.env.SMTP_EMAIL,
-            pass: process.env.SMTP_PASSWORD,
+            user: config.get('smtp.email'),
+            pass: config.get('smtp.password'),
         },
     });
 
-    // Message object
     const message = {
-        from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`,
+        from: `${config.get('from.name')} <${config.get('from.email')}>`,
         to: options.email,
         subject: options.subject,
+        text: options.message,
         html: options.html,
-        text: options.message, // Plain text fallback
     };
 
     const info = await transporter.sendMail(message);
 
-    logger.info(`Message sent: ${info.messageId}`);
+    console.log('Message sent: %s', info.messageId);
 };
 
 module.exports = sendEmail;

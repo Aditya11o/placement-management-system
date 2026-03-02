@@ -8,6 +8,8 @@ const Application = require('../models/Application');
 const IORedis = require('ioredis');
 
 // Setup Redis connection options
+const config = require('../config/config');
+
 const redisOptions = {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
@@ -23,18 +25,12 @@ const redisOptions = {
     }
 };
 
-const connection = process.env.REDIS_URL
-    ? new IORedis(process.env.REDIS_URL, redisOptions)
-    : new IORedis({
-        host: process.env.REDIS_HOST || '127.0.0.1',
-        port: process.env.REDIS_PORT || 6379,
-        ...redisOptions
-    });
+const connection = new IORedis(config.get('redis.url'), redisOptions);
 
 let bulkQueue;
 let bulkWorker;
 
-if (process.env.NODE_ENV !== 'test') {
+if (config.get('env') !== 'test') {
     // 1. Create the high-throughput queue
     bulkQueue = new Queue('bulk-ops-queue', {
         connection,

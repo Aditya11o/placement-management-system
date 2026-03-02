@@ -5,6 +5,8 @@ const {
 } = require('../controllers/uploadController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
+const { check } = require('express-validator');
+const { validate } = require('../middlewares/validate');
 
 const router = express.Router();
 router.use(protect);
@@ -104,7 +106,7 @@ router.get('/resume/history', authorize('STUDENT'), getResumeHistory);
  *       404:
  *         description: Version not found
  */
-router.put('/resume/history/:versionId/activate', authorize('STUDENT'), activateResumeVersion);
+router.put('/resume/history/:versionId/activate', authorize('STUDENT'), check('versionId', 'Valid version ID is required').isMongoId(), validate, activateResumeVersion);
 
 /**
  * @swagger
@@ -127,7 +129,7 @@ router.put('/resume/history/:versionId/activate', authorize('STUDENT'), activate
  *       400:
  *         description: Cannot delete the currently active version
  */
-router.delete('/resume/history/:versionId', authorize('STUDENT'), deleteResumeVersion);
+router.delete('/resume/history/:versionId', authorize('STUDENT'), check('versionId', 'Valid version ID is required').isMongoId(), validate, deleteResumeVersion);
 
 /**
  * @swagger

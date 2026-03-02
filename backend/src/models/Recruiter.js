@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const config = require('../config/config');
 
 const recruiterSchema = new mongoose.Schema({
     company_name: {
@@ -13,8 +14,12 @@ const recruiterSchema = new mongoose.Schema({
     },
     email: {
         type: String,
-        required: true,
+        required: [true, 'Please add an email'],
         unique: true,
+        match: [
+            /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+            'Please add a valid email'
+        ]
     },
     password: {
         type: String,
@@ -23,7 +28,7 @@ const recruiterSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        required: true,
+        required: [true, 'Please add a phone number'],
     },
     logo_url: {
         type: String,
@@ -39,6 +44,7 @@ const recruiterSchema = new mongoose.Schema({
         type: String,
         enum: ['PENDING', 'APPROVED', 'BLOCKED'],
         default: 'PENDING',
+        index: true,
     },
     twofa_secret: {
         type: String,
@@ -56,7 +62,7 @@ const recruiterSchema = new mongoose.Schema({
 
 recruiterSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
-    const salt = await bcrypt.genSalt(Number(process.env.SALT_ROUNDS) || 10);
+    const salt = await bcrypt.genSalt(config.get('salt_rounds'));
     this.password = await bcrypt.hash(this.password, salt);
 });
 

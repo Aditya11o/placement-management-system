@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const config = require('../config/config');
 
 // ── Grant registry — canonical list of all available permissions ──────────────
 const ALL_PERMISSIONS = [
@@ -18,7 +19,15 @@ const ALL_PERMISSIONS = [
 
 const adminSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: {
+        type: String,
+        required: [true, 'Please add an email'],
+        unique: true,
+        match: [
+            /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+            'Please add a valid email'
+        ]
+    },
     password: { type: String, required: true, select: false },
 
     // ── RBAC sub-role ──────────────────────────────────────────────────────────
@@ -54,7 +63,7 @@ const adminSchema = new mongoose.Schema({
 
 adminSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
-    const salt = await bcrypt.genSalt(Number(process.env.SALT_ROUNDS) || 10);
+    const salt = await bcrypt.genSalt(config.get('salt_rounds'));
     this.password = await bcrypt.hash(this.password, salt);
 });
 

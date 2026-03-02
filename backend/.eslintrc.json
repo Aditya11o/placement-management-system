@@ -9,7 +9,27 @@
         "ecmaVersion": "latest"
     },
     "rules": {
-        "no-unused-vars": "warn",
-        "no-undef": "error"
+        "no-unused-vars": "error",
+        "no-undef": "error",
+        "no-duplicate-imports": "error",
+        "no-console": [
+            "warn",
+            {
+                "allow": [
+                    "warn",
+                    "error"
+                ]
+            }
+        ],
+        "semi": [
+            "error",
+            "always"
+        ],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "curly": "error",
+        "eqeqeq": "error"
     }
 }

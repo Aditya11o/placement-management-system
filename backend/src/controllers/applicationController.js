@@ -5,6 +5,7 @@ const { emailQueue } = require('../utils/emailQueue');
 const { dispatchToUser, dispatchToRole } = require('../services/notifyDispatcher');
 const { generateOfferLetter } = require('../services/offerLetterService');
 const { checkEligibility } = require('../services/eligibilityService');
+const config = require('../config/config');
 
 exports.applyToJob = async (req, res) => {
     try {
@@ -136,7 +137,7 @@ exports.updateApplicationStatus = async (req, res) => {
                     message: `Your application for ${application.job_id.title} at ${application.job_id.company_name} has been updated to: ${status}`,
                     cta: {
                         text: 'View Application',
-                        url: `${process.env.FRONTEND_URL}/applications`
+                        url: `${config.get('frontend_url')}/applications`
                     }
                 }
             });

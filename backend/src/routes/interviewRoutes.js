@@ -6,6 +6,8 @@ const {
     getMyInterviews
 } = require('../controllers/interviewController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
+const { validate } = require('../middlewares/validate');
+const { validateInterviewScheduling, validateInterviewResponse, validateInterviewStatusUpdate } = require('../validations/interviewValidator');
 
 const router = express.Router();
 
@@ -33,7 +35,7 @@ router.route('/').get(getMyInterviews);
  *     summary: Schedule a new interview (Recruiter only)
  *     tags: [Interviews]
  */
-router.route('/').post(authorize('RECRUITER'), scheduleInterview);
+router.route('/').post(authorize('RECRUITER'), validateInterviewScheduling, validate, scheduleInterview);
 
 /**
  * @swagger
@@ -42,7 +44,7 @@ router.route('/').post(authorize('RECRUITER'), scheduleInterview);
  *     summary: Student responds CONFIRMED or REJECTED
  *     tags: [Interviews]
  */
-router.route('/:id/respond').put(authorize('STUDENT'), respondToInterview);
+router.route('/:id/respond').put(authorize('STUDENT'), validateInterviewResponse, validate, respondToInterview);
 
 /**
  * @swagger
@@ -51,6 +53,6 @@ router.route('/:id/respond').put(authorize('STUDENT'), respondToInterview);
  *     summary: Recruiter updates status to COMPLETED or CANCELED
  *     tags: [Interviews]
  */
-router.route('/:id/status').put(authorize('RECRUITER'), updateInterviewStatus);
+router.route('/:id/status').put(authorize('RECRUITER'), validateInterviewStatusUpdate, validate, updateInterviewStatus);
 
 module.exports = router;

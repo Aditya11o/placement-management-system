@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const logger = require('./logger');
+const config = require('../config/config');
 
 let io;
 
@@ -9,14 +10,12 @@ let io;
 const connectedUsers = new Map();
 
 function initializeSocket(httpServer) {
-    if (process.env.NODE_ENV === 'test') {
+    if (config.get('env') === 'test') {
         logger.info('[TEST MOCK] Socket.io bypassed for testing');
         return;
     }
 
-    const whitelist = process.env.CORS_WHITELIST
-        ? process.env.CORS_WHITELIST.split(',')
-        : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173'];
+    const whitelist = config.get('cors.whitelist');
 
     io = new Server(httpServer, {
         cors: {
@@ -35,7 +34,7 @@ function initializeSocket(httpServer) {
 
         try {
             const actualToken = token.startsWith('Bearer ') ? token.slice(7) : token;
-            const decoded = jwt.verify(actualToken, process.env.JWT_SECRET);
+            const decoded = jwt.verify(actualToken, config.get('jwt.secret'));
             socket.user = decoded;
             next();
         } catch (err) {
@@ -86,7 +85,7 @@ function initializeSocket(httpServer) {
 
 // ── Targeted Push: deliver to ALL sockets of a specific user ─────────────────
 const notifyUser = (userId, eventName, payload) => {
-    if (process.env.NODE_ENV === 'test') {
+    if (config.get('env') === 'test') {
         logger.info(`[TEST MOCK] notifyUser → ${eventName} → ${userId}`);
         return;
     }
@@ -103,7 +102,7 @@ const notifyUser = (userId, eventName, payload) => {
 
 // ── Role Broadcast: deliver to all users in a role room ──────────────────────
 const notifyRole = (role, eventName, payload) => {
-    if (process.env.NODE_ENV === 'test') {
+    if (config.get('env') === 'test') {
         logger.info(`[TEST MOCK] notifyRole → ${eventName} → role_${role}`);
         return;
     }
@@ -115,7 +114,7 @@ const notifyRole = (role, eventName, payload) => {
 
 // ── Global Broadcast: deliver to every connected socket ──────────────────────
 const notifyAll = (eventName, payload) => {
-    if (process.env.NODE_ENV === 'test') {
+    if (config.get('env') === 'test') {
         logger.info(`[TEST MOCK] notifyAll → ${eventName}`);
         return;
     }

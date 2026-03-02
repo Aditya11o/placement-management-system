@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const Admin = require('../models/Admin');
+const logger = require('../utils/logger');
 
 const apiKeyAuth = async (req, res, next) => {
     let rawKey;
@@ -36,7 +37,7 @@ const apiKeyAuth = async (req, res, next) => {
 
         next();
     } catch (err) {
-        console.error('API Key validation failed:', err);
+        logger.error(`API Key validation failed: ${err.message}`);
         return res.status(500).json({ success: false, message: 'Internal Server Error during Key Authentication' });
     }
 };

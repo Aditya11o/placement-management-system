@@ -6,6 +6,8 @@ const {
 } = require('../controllers/rbacController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const checkPermission = require('../middlewares/checkPermission');
+const { validate } = require('../middlewares/validate');
+const { validatePermissionChange, validateSubRoleUpdate } = require('../validations/rbacValidator');
 
 const router = express.Router();
 router.use(protect);
@@ -127,8 +129,8 @@ router.get('/admins', checkPermission('manage_admins'), listAdmins);
  *       403:
  *         description: Cannot alter SUPER_ADMIN or own permissions
  */
-router.post('/admins/:id/permissions', checkPermission('manage_admins'), grantPermissions);
-router.delete('/admins/:id/permissions', checkPermission('manage_admins'), revokePermissions);
+router.post('/admins/:id/permissions', checkPermission('manage_admins'), validatePermissionChange, validate, grantPermissions);
+router.delete('/admins/:id/permissions', checkPermission('manage_admins'), validatePermissionChange, validate, revokePermissions);
 
 /**
  * @swagger
@@ -163,6 +165,6 @@ router.delete('/admins/:id/permissions', checkPermission('manage_admins'), revok
  *       403:
  *         description: Cannot change your own sub-role
  */
-router.put('/admins/:id/sub-role', checkPermission('manage_admins'), setSubRole);
+router.put('/admins/:id/sub-role', checkPermission('manage_admins'), validateSubRoleUpdate, validate, setSubRole);
 
 module.exports = router;

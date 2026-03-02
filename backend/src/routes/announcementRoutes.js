@@ -2,6 +2,8 @@ const express = require('express');
 const { getAnnouncements, createAnnouncement } = require('../controllers/announcementController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { cache } = require('../middlewares/cacheMiddleware');
+const { validate } = require('../middlewares/validate');
+const { validateAnnouncementCreation } = require('../validations/announcementValidator');
 
 const router = express.Router();
 
@@ -49,6 +51,6 @@ router.get('/', cache(300), getAnnouncements);
  *       201:
  *         description: Announcement created successfully
  */
-router.post('/', authorize('ADMIN'), createAnnouncement);
+router.post('/', authorize('ADMIN'), validateAnnouncementCreation, validate, createAnnouncement);
 
 module.exports = router;

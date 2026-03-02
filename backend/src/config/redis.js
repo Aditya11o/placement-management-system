@@ -1,12 +1,13 @@
 const redis = require('redis');
 const logger = require('../utils/logger');
+const config = require('./config');
 
 let redisClient;
 
 const connectRedis = async () => {
     try {
         redisClient = redis.createClient({
-            url: process.env.REDIS_URL || 'redis://localhost:6379',
+            url: config.get('redis.url'),
             socket: {
                 reconnectStrategy: (retries) => {
                     // Stop trying to reconnect after 5 attempts

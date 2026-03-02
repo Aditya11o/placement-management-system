@@ -3,6 +3,8 @@ const { getUsers, updateUserStatus, getDashboardStats, exportData, generateApiKe
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
 const checkPermission = require('../middlewares/checkPermission');
+const { validate } = require('../middlewares/validate');
+const { validateUserStatusUpdate, validateExportRequest, validateApiKeyGeneration } = require('../validations/adminValidator');
 
 const router = express.Router();
 
@@ -86,7 +88,7 @@ router.get('/users', checkPermission('manage_students'), usersAdvancedResults, g
  *       200:
  *         description: Status updated successfully
  */
-router.put('/users/status', checkPermission('manage_students'), updateUserStatus);
+router.put('/users/status', checkPermission('manage_students'), validateUserStatusUpdate, validate, updateUserStatus);
 
 /**
  * @swagger
@@ -112,7 +114,7 @@ router.put('/users/status', checkPermission('manage_students'), updateUserStatus
  *       202:
  *         description: Export request accepted and queued
  */
-router.post('/export', checkPermission('export_data'), exportData);
+router.post('/export', checkPermission('export_data'), validateExportRequest, validate, exportData);
 
 router.get('/dashboard', getDashboardStats);
 
@@ -179,7 +181,7 @@ const ensureNotApiKey = (req, res, next) => {
  *       200:
  *         description: Array of keys mapped by ID and Name
  */
-router.post('/api-keys', ensureNotApiKey, checkPermission('manage_api_keys'), generateApiKey);
+router.post('/api-keys', ensureNotApiKey, checkPermission('manage_api_keys'), validateApiKeyGeneration, validate, generateApiKey);
 router.get('/api-keys', ensureNotApiKey, checkPermission('manage_api_keys'), listApiKeys);
 
 /**

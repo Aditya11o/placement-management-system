@@ -1,11 +1,12 @@
 const rateLimit = require('express-rate-limit');
+const config = require('../config/config');
 
 // In test environment bypass all rate limiting so integration tests
 // don't get blocked by the IP-based counter.
 const passThru = (_req, _res, next) => next();
 
 // Rate limiting for login routes (10 requests per 15 minutes)
-exports.loginLimiter = process.env.NODE_ENV === 'test'
+exports.loginLimiter = config.get('env') === 'test'
     ? passThru
     : rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
@@ -17,7 +18,7 @@ exports.loginLimiter = process.env.NODE_ENV === 'test'
     });
 
 // Rate limiting for registration routes (5 requests per 15 minutes)
-exports.registerLimiter = process.env.NODE_ENV === 'test'
+exports.registerLimiter = config.get('env') === 'test'
     ? passThru
     : rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes

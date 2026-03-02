@@ -9,6 +9,15 @@ const path = require('path');
 
 // Setup Redis connection options for BullMQ
 // Requires ioredis compatible format with maxRetriesPerRequest set to null
+const cloudinary = require('cloudinary').v2;
+const config = require('../config/config');
+
+cloudinary.config({
+    cloud_name: config.get('cloudinary.cloud_name'),
+    api_key: config.get('cloudinary.api_key'),
+    api_secret: config.get('cloudinary.api_secret'),
+});
+
 const redisOptions = {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
@@ -24,19 +33,13 @@ const redisOptions = {
     }
 };
 
-const connection = process.env.REDIS_URL
-    ? new IORedis(process.env.REDIS_URL, redisOptions)
-    : new IORedis({
-        host: process.env.REDIS_HOST || '127.0.0.1',
-        port: process.env.REDIS_PORT || 6379,
-        ...redisOptions
-    });
+const connection = new IORedis(config.get('redis.url'), redisOptions);
 
 let emailQueue;
 let emailWorker;
 
 // Only instantiate real queues and workers if we are not running tests
-if (process.env.NODE_ENV !== 'test') {
+if (config.get('env') !== 'test') {
     // Create the Queue
     emailQueue = new Queue('email-queue', {
         connection,

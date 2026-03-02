@@ -3,6 +3,7 @@ const Application = require('../models/Application');
 const Log = require('../models/Log');
 const { emailQueue } = require('../utils/emailQueue');
 const { dispatchToUser } = require('../services/notifyDispatcher');
+const config = require('../config/config');
 
 /**
  * @desc    Schedule a new interview
@@ -64,7 +65,7 @@ exports.scheduleInterview = async (req, res) => {
                     date: new Date(scheduled_at).toLocaleString(),
                     type: location_type,
                     location: location_details,
-                    loginUrl: `${process.env.FRONTEND_URL}/applications`
+                    loginUrl: `${config.get('frontend_url')}/applications`
                 }
             });
         } catch (e) {
