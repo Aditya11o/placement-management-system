@@ -52,7 +52,8 @@ const calculateAcademicScore = (student, job) => {
  * @returns {Number} 0 or 100
  */
 const calculateBranchScore = (student, job) => {
-    if (job.eligible_branch === 'ALL' || student.branch === job.eligible_branch) {
+    const allowedBranches = job.eligible_branch.split(',').map(b => b.trim().toUpperCase());
+    if (allowedBranches.includes('ALL') || allowedBranches.includes(student.branch.toUpperCase())) {
         return 100;
     }
     return 0; // Hard disqualification for branch usually

@@ -14,12 +14,14 @@ const initWeeklyDigestCron = () => {
             lastWeek.setDate(lastWeek.getDate() - 7);
 
             // 1. Gather stats
-            const newStudents = await Student.countDocuments({ createdAt: { $gte: lastWeek } });
+            const newStudents = await Student.countDocuments({ created_at: { $gte: lastWeek } });
             const newJobs = await Job.countDocuments({ created_at: { $gte: lastWeek } });
             const newPlacements = await Application.countDocuments({
                 status: 'SELECTED',
-                updatedAt: { $gte: lastWeek }
+                offer_letter_generated_at: { $gte: lastWeek }
             });
+
+            const activeJobsCount = await Job.countDocuments({ status: 'ACTIVE' });
 
             // 2. Format Email
             const digestMessage = `

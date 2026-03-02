@@ -213,7 +213,7 @@ exports.forgotPassword = async (req, res, next) => {
                 subject: 'Password Reset Request',
                 template: 'passwordReset',
                 context: {
-                    name: user.name,
+                    name: user.name || user.contact_person,
                     resetToken: resetToken
                 }
             });

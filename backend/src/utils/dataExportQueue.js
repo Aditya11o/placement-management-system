@@ -117,7 +117,7 @@ if (process.env.NODE_ENV !== 'test') {
                         jobTitle: doc.job_id?.title || 'N/A',
                         company: doc.job_id?.company_name || 'N/A',
                         status: doc.status,
-                        appliedOn: new Date(doc.created_at).toLocaleDateString()
+                        appliedOn: new Date(doc.applied_at).toLocaleDateString()
                     });
                 }
             }

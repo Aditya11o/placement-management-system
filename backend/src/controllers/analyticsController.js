@@ -10,10 +10,10 @@ const Application = require('../models/Application');
  *
  * @param {string} from - ISO date string (e.g. "2026-01-01")
  * @param {string} to   - ISO date string (e.g. "2026-03-01")
- * @param {string} [field='createdAt'] - The document field to filter on
+ * @param {string} [field='created_at'] - The document field to filter on
  * @returns {Object} MongoDB $gte / $lte filter object, or {} if no params
  */
-function buildDateFilter(from, to, field = 'createdAt') {
+function buildDateFilter(from, to, field = 'created_at') {
     const filter = {};
     if (from || to) {
         filter[field] = {};
@@ -37,13 +37,14 @@ function buildDateFilter(from, to, field = 'createdAt') {
  */
 exports.getOverviewStats = async (req, res) => {
     try {
-        const dateFilter = buildDateFilter(req.query.from, req.query.to);
+        const dateFilter = buildDateFilter(req.query.from, req.query.to); // Defaults to created_at
+        const appDateFilter = buildDateFilter(req.query.from, req.query.to, 'applied_at');
 
         const [totalStudents, totalRecruiters, activeJobs, totalApplications] = await Promise.all([
             Student.countDocuments({ status: 'APPROVED', ...dateFilter }),
             Recruiter.countDocuments({ status: 'APPROVED', ...dateFilter }),
-            Job.countDocuments({ status: 'ACTIVE', ...buildDateFilter(req.query.from, req.query.to) }),
-            Application.countDocuments(dateFilter)
+            Job.countDocuments({ status: 'ACTIVE', ...dateFilter }),
+            Application.countDocuments(appDateFilter)
         ]);
 
         res.status(200).json({
@@ -64,9 +65,10 @@ exports.getOverviewStats = async (req, res) => {
 exports.getPlacementStats = async (req, res) => {
     try {
         const dateFilter = buildDateFilter(req.query.from, req.query.to);
+        const appDateFilter = buildDateFilter(req.query.from, req.query.to, 'applied_at');
 
         const [placedStudents, totalApprovedStudents] = await Promise.all([
-            Application.distinct('student_id', { status: 'SELECTED', ...dateFilter }),
+            Application.distinct('student_id', { status: 'SELECTED', ...appDateFilter }),
             Student.countDocuments({ status: 'APPROVED', ...dateFilter })
         ]);
 
@@ -147,11 +149,11 @@ exports.getBranchPlacementStats = async (req, res) => {
  */
 exports.getTopCompanies = async (req, res) => {
     try {
-        const dateFilter = buildDateFilter(req.query.from, req.query.to);
+        const appDateFilter = buildDateFilter(req.query.from, req.query.to, 'applied_at');
         const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
 
         const topCompanies = await Application.aggregate([
-            { $match: { status: 'SELECTED', ...dateFilter } },
+            { $match: { status: 'SELECTED', ...appDateFilter } },
             { $lookup: { from: 'jobs', localField: 'job_id', foreignField: '_id', as: 'jobDetails' } },
             { $unwind: '$jobDetails' },
             { $group: { _id: '$jobDetails.company_name', totalHires: { $sum: 1 } } },
@@ -185,16 +187,17 @@ exports.getTrends = async (req, res) => {
             ? new Date(req.query.from)
             : new Date(new Date().setFullYear(new Date().getFullYear() - 1));
 
-        const dateMatch = { createdAt: { $gte: from, $lte: to } };
+        const dateMatch = { created_at: { $gte: from, $lte: to } };
+        const appDateMatch = { applied_at: { $gte: from, $lte: to } };
 
         // Run both aggregations in parallel
         const [applicationTrend, placementTrend, jobTrend, registrationTrend] = await Promise.all([
             // Applications submitted per month
             Application.aggregate([
-                { $match: dateMatch },
+                { $match: appDateMatch },
                 {
                     $group: {
-                        _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+                        _id: { year: { $year: '$applied_at' }, month: { $month: '$applied_at' } },
                         count: { $sum: 1 }
                     }
                 },
@@ -203,10 +206,10 @@ exports.getTrends = async (req, res) => {
 
             // Placements (SELECTED status) per month
             Application.aggregate([
-                { $match: { status: 'SELECTED', ...dateMatch } },
+                { $match: { status: 'SELECTED', ...appDateMatch } },
                 {
                     $group: {
-                        _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+                        _id: { year: { $year: '$applied_at' }, month: { $month: '$applied_at' } },
                         count: { $sum: 1 }
                     }
                 },
@@ -218,7 +221,7 @@ exports.getTrends = async (req, res) => {
                 { $match: dateMatch },
                 {
                     $group: {
-                        _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+                        _id: { year: { $year: '$created_at' }, month: { $month: '$created_at' } },
                         count: { $sum: 1 }
                     }
                 },
@@ -230,7 +233,7 @@ exports.getTrends = async (req, res) => {
                 { $match: dateMatch },
                 {
                     $group: {
-                        _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+                        _id: { year: { $year: '$created_at' }, month: { $month: '$created_at' } },
                         count: { $sum: 1 }
                     }
                 },
@@ -272,10 +275,10 @@ exports.getTrends = async (req, res) => {
  */
 exports.getFunnel = async (req, res) => {
     try {
-        const dateFilter = buildDateFilter(req.query.from, req.query.to);
+        const appDateFilter = buildDateFilter(req.query.from, req.query.to, 'applied_at');
 
         const statusCounts = await Application.aggregate([
-            { $match: dateFilter },
+            { $match: appDateFilter },
             { $group: { _id: '$status', count: { $sum: 1 } } }
         ]);
 

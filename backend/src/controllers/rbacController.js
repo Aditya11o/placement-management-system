@@ -81,7 +81,7 @@ exports.grantPermissions = async (req, res) => {
         await target.save();
 
         await Log.create({
-            user_id: req.user.id,
+            user_id: req.user._id,
             user_role: 'ADMIN',
             action: 'GRANT_PERMISSIONS',
             target_id: target._id,
@@ -130,7 +130,7 @@ exports.revokePermissions = async (req, res) => {
         await target.save();
 
         await Log.create({
-            user_id: req.user.id,
+            user_id: req.user._id,
             user_role: 'ADMIN',
             action: 'REVOKE_PERMISSIONS',
             target_id: target._id,
@@ -185,7 +185,7 @@ exports.setSubRole = async (req, res) => {
         if (!target) return res.status(404).json({ success: false, message: 'Admin not found' });
 
         await Log.create({
-            user_id: req.user.id,
+            user_id: req.user._id,
             user_role: 'ADMIN',
             action: 'SET_SUB_ROLE',
             target_id: target._id,

@@ -56,6 +56,10 @@ const { checkBlocklist, banIp } = require('./src/middlewares/blocklistMiddleware
 app.use(checkBlocklist); // Instantly drop banned IPs connection
 app.use(morganMiddleware);
 
+// Health Check (Exempt from Rate Limiting for monitoring)
+const healthRoutes = require('./src/routes/healthRoutes');
+app.use('/api/v1/health', healthRoutes);
+
 // Global Rate Limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -126,7 +130,7 @@ app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/interviews', interviewRoutes);
-app.use('/api/v1/health', healthRoutes);
+// app.use('/api/v1/health', healthRoutes); // Moved up to exempt from rate limiting
 app.use('/api/v1/notification-prefs', notificationPrefsRoutes);
 app.use('/api/v1/rbac', rbacRoutes);
 app.use('/api/v1/logs', logRoutes);

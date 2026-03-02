@@ -24,11 +24,7 @@ exports.generateOfferLetter = async ({ student, job, applicationId }) => {
         const pdfBuffer = await buildOfferLetterPDF({ student, job });
 
         // ── Step 2: Upload PDF buffer to Cloudinary ─────────────────────────────
-        const uploadResult = await uploadToCloudinary(pdfBuffer, 'offer-letters', {
-            resource_type: 'raw',         // Non-image binary file
-            format: 'pdf',
-            public_id: `offer_${applicationId}`
-        });
+        const uploadResult = await uploadToCloudinary(pdfBuffer, 'offer-letters', 'raw', `offer_${applicationId}`);
 
         const pdfUrl = uploadResult.secure_url;
         logger.info(`[OfferLetter] Generated for app ${applicationId}: ${pdfUrl}`);

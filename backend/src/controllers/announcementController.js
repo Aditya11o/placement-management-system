@@ -37,7 +37,7 @@ exports.createAnnouncement = async (req, res) => {
             _id: announcement._id,
             title: announcement.title,
             message: announcement.message,
-            createdAt: announcement.createdAt
+            created_at: announcement.created_at
         });
 
         res.status(201).json({ success: true, data: announcement });

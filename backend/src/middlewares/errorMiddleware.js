@@ -4,6 +4,14 @@ const errorHandler = (err, req, res, next) => {
     let error = { ...err };
     error.message = err.message;
 
+    // Intercept Soft Delete "Aborted" success message from plugin
+    if (err.message === 'SOFT_DELETE_TRIGGERED_SUCCESSFULLY') {
+        return res.status(200).json({
+            success: true,
+            message: 'Resource deleted and moved to archive successfully'
+        });
+    }
+
     // Log for dev using Winston
     logger.error(`${err.name}: ${err.message}`);
 

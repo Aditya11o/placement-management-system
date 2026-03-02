@@ -46,8 +46,8 @@ exports.scheduleInterview = async (req, res) => {
             recipientId: application.student_id._id,
             recipientModel: 'Student',
             eventName: 'interview_scheduled',
-            title,
-            message,
+            title: 'Interview Scheduled',
+            message: `You have been scheduled for an interview for ${application.job_id.title} at ${application.job_id.company_name}.`,
             type: 'INFO',
             link: `/interviews/${interview._id}`
         });
@@ -113,6 +113,8 @@ exports.respondToInterview = async (req, res) => {
 
         interview.status = status;
         await interview.save();
+
+        const studentName = interview.student_id.name;
 
         // 🚀 Persist notification + push live event to the recruiter
         await dispatchToUser({

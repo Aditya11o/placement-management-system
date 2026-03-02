@@ -8,8 +8,8 @@ const logger = require('../utils/logger');
 // Run every day at 03:00 AM
 const dbBackupCron = cron.schedule('0 3 * * *', async () => {
     logger.info('[CRON] Initiating automated database BSON backup...');
-    
-    const DB_URI = process.env.MONGODB_URI;
+
+    const DB_URI = process.env.MONGO_URI;
     if (!DB_URI) {
         logger.error('[CRON BACKUP] Failed: MONGODB_URI is not defined.');
         return;
@@ -17,7 +17,7 @@ const dbBackupCron = cron.schedule('0 3 * * *', async () => {
 
     try {
         const backupsDir = path.join(__dirname, '..', '..', 'backups');
-        
+
         // Ensure backups directory exists
         if (!fs.existsSync(backupsDir)) {
             fs.mkdirSync(backupsDir, { recursive: true });
@@ -26,7 +26,7 @@ const dbBackupCron = cron.schedule('0 3 * * *', async () => {
         const dateStr = new Date().toISOString().replace(/:/g, '-').split('.')[0];
         const archiveName = `pms-backup-${dateStr}.zip`;
         const archivePath = path.join(backupsDir, archiveName);
-        
+
         // Temporary folder for mongodump raw BSON
         const tempDumpPath = path.join(backupsDir, `temp-dump-${dateStr}`);
 
@@ -68,7 +68,7 @@ const dbBackupCron = cron.schedule('0 3 * * *', async () => {
             archive.on('error', (err) => reject(err));
 
             archive.pipe(output);
-            
+
             // Append files from our temp dump directory into the zip root
             archive.directory(tempDumpPath, false);
             archive.finalize();
@@ -88,7 +88,7 @@ const dbBackupCron = cron.schedule('0 3 * * *', async () => {
             if (file.endsWith('.zip')) {
                 const filePath = path.join(backupsDir, file);
                 const stats = fs.statSync(filePath);
-                
+
                 // If file is older than the max age, obliterate it
                 if (now - stats.mtimeMs > MAX_AGE_MS) {
                     fs.unlinkSync(filePath);
