@@ -115,7 +115,6 @@ const uploadRoutes = require('./src/routes/uploadRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const interviewRoutes = require('./src/routes/interviewRoutes');
-const healthRoutes = require('./src/routes/healthRoutes');
 const notificationPrefsRoutes = require('./src/routes/notificationPrefsRoutes');
 const rbacRoutes = require('./src/routes/rbacRoutes');
 const logRoutes = require('./src/routes/logRoutes');
