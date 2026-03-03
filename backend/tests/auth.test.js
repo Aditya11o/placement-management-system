@@ -2,21 +2,22 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 const { app } = require('../server'); // The exported express app
 const Student = require('../src/models/Student');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
-const TEST_MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/pms_test_db';
+let mongoServer;
 
-// Connect to a new in-memory database or test database before running
+// Connect to a new in-memory database before running
 beforeAll(async () => {
-    await mongoose.connect(TEST_MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    });
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
 });
 
 // Clean up DB
 afterAll(async () => {
     await Student.deleteMany({});
-    await mongoose.connection.close();
+    await mongoose.disconnect();
+    await mongoServer.stop();
 });
 
 describe('Authentication API', () => {

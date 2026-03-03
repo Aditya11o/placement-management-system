@@ -3,14 +3,17 @@ const mongoose = require('mongoose');
 const { app } = require('../server');
 const Admin = require('../src/models/Admin');
 
-const TEST_MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/pms_test_db';
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
+let mongoServer;
 let adminToken, adminId;
 let rawApiKey;
 let apiKeyId;
 
 beforeAll(async () => {
-    await mongoose.connect(TEST_MONGO_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
     await Admin.deleteMany({});
 
     // Create an Admin to own the keys
@@ -30,7 +33,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await Admin.deleteMany({});
-    await mongoose.connection.close();
+    await mongoose.disconnect();
+    await mongoServer.stop();
 });
 
 describe('API Key Authentication Lifecycle', () => {

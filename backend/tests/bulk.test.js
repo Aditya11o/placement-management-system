@@ -5,12 +5,15 @@ const { app } = require('../server');
 const Admin = require('../src/models/Admin');
 const { bulkQueue } = require('../src/utils/bulkQueue'); // Gets the mocked version 
 
-const TEST_MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/pms_test_db';
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
+let mongoServer;
 let adminToken, adminId;
 
 beforeAll(async () => {
-    await mongoose.connect(TEST_MONGO_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
     await Admin.deleteMany({});
 
     const admin = await Admin.create({
@@ -32,7 +35,8 @@ beforeAll(async () => {
 afterAll(async () => {
     await Admin.deleteMany({});
     bulkQueue.add.mockRestore();
-    await mongoose.connection.close();
+    await mongoose.disconnect();
+    await mongoServer.stop();
 });
 
 describe('Bulk Operations CSV API', () => {

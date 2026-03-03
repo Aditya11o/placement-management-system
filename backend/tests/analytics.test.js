@@ -7,13 +7,16 @@ const Job = require('../src/models/Job');
 const Application = require('../src/models/Application');
 const Recruiter = require('../src/models/Recruiter');
 
-const TEST_MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/pms_test_db';
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
+let mongoServer;
 let adminToken;
 let studentToken;
 
 beforeAll(async () => {
-    await mongoose.connect(TEST_MONGO_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
 
     await mongoose.connection.collection('admins').deleteMany({});
     await mongoose.connection.collection('students').deleteMany({});
@@ -93,7 +96,8 @@ afterAll(async () => {
     await Recruiter.deleteMany({});
     await Job.deleteMany({});
     await Application.deleteMany({});
-    await mongoose.connection.close();
+    await mongoose.disconnect();
+    await mongoServer.stop();
 });
 
 describe('Analytics & Reporting API', () => {

@@ -5,13 +5,16 @@ const Admin = require('../src/models/Admin');
 const Student = require('../src/models/Student');
 const Log = require('../src/models/Log');
 
-const TEST_MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/pms_test_db';
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
+let mongoServer;
 let adminToken, adminId;
 let studentToken, studentId;
 
 beforeAll(async () => {
-    await mongoose.connect(TEST_MONGO_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
     await Admin.deleteMany({});
     await Student.deleteMany({});
     await Log.deleteMany({});
@@ -74,7 +77,8 @@ afterAll(async () => {
     await Admin.deleteMany({});
     await Student.deleteMany({});
     await Log.deleteMany({});
-    await mongoose.connection.close();
+    await mongoose.disconnect();
+    await mongoServer.stop();
 });
 
 describe('Audit Trail / Logs API', () => {

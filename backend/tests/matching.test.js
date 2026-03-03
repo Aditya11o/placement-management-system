@@ -1,5 +1,14 @@
 const { calculateMatchScore } = require('../src/services/matchingService');
 
+jest.mock('@google/genai', () => ({
+    GoogleGenAI: jest.fn().mockImplementation(() => ({
+        models: {
+            generateContent: jest.fn().mockResolvedValue({
+                text: '100' // Mock semantic skill match to always return 100
+            })
+        }
+    }))
+}));
 describe('AI Job Matching Score Service', () => {
 
     const baseStudent = {

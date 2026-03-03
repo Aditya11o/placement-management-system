@@ -1,7 +1,6 @@
 module.exports = {
     testEnvironment: 'node',
     verbose: true,
-    forceExit: true,
     projects: [
         // ── Unit / existing tests ─────────────────────────────────────────────
         {
@@ -9,8 +8,7 @@ module.exports = {
             testEnvironment: 'node',
             testMatch: ['**/tests/**/*.test.js'],          // *.test.js only
             testPathIgnorePatterns: ['/node_modules/', '/tests/integration/'],
-            testTimeout: 10000,
-            forceExit: true
+            testTimeout: 10000
         },
         // ── Integration tests ─────────────────────────────────────────────────
         {
@@ -18,7 +16,6 @@ module.exports = {
             testEnvironment: 'node',
             testMatch: ['**/tests/integration/**/*.integration.test.js'],
             testTimeout: 30000,
-            forceExit: true,
             // Runs mocks BEFORE each test file's module graph is resolved
             setupFilesAfterEnv: ['<rootDir>/tests/integration/setup.js']
         }

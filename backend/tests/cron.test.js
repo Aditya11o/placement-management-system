@@ -16,14 +16,19 @@ jest.mock('node-cron', () => {
 
 const cron = require('node-cron');
 
-const TEST_MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/pms_test_db';
+const { MongoMemoryServer } = require('mongodb-memory-server');
+
+let mongoServer;
 
 beforeAll(async () => {
-    await mongoose.connect(TEST_MONGO_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
 });
 
 afterAll(async () => {
-    await mongoose.connection.close();
+    await mongoose.disconnect();
+    await mongoServer.stop();
 });
 
 describe('Scheduled Cron Workers Logic', () => {

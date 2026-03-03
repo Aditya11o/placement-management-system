@@ -8,15 +8,18 @@ const Application = require('../src/models/Application');
 const Interview = require('../src/models/Interview');
 const Notification = require('../src/models/Notification');
 
-const TEST_MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/pms_test_db';
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
+let mongoServer;
 let studentToken, studentId;
 let recruiterToken, recruiterId;
 let otherRecruiterToken, otherRecruiterId;
 let jobId, applicationId;
 
 beforeAll(async () => {
-    await mongoose.connect(TEST_MONGO_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
 
     // 1. Create a Student
     const student = await Student.create({
@@ -87,7 +90,8 @@ afterAll(async () => {
     await Application.deleteMany({});
     await Interview.deleteMany({});
     await Notification.deleteMany({});
-    await mongoose.connection.close();
+    await mongoose.disconnect();
+    await mongoServer.stop();
 });
 
 describe('Interview Scheduling API', () => {

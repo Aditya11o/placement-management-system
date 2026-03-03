@@ -6,18 +6,20 @@ const Student = require('../src/models/Student');
 const Job = require('../src/models/Job');
 const Application = require('../src/models/Application');
 
-const TEST_MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/pms_test_db';
+const { MongoMemoryServer } = require('mongodb-memory-server');
 
-// Extract the Mocked web hook queue from the instantiated file
 const { webhookQueue } = require('../src/utils/webhookQueue');
 
+let mongoServer;
 let recruiterToken, recruiterId;
 let studentToken, studentId;
 let jobId;
 let applicationId;
 
 beforeAll(async () => {
-    await mongoose.connect(TEST_MONGO_URI);
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
 
     // Setup Mock Spy on the Queue Add method
     jest.spyOn(webhookQueue, 'add');
@@ -69,7 +71,8 @@ afterAll(async () => {
     await Job.deleteMany({});
     await Application.deleteMany({});
     webhookQueue.add.mockRestore(); // Restore mock
-    await mongoose.connection.close();
+    await mongoose.disconnect();
+    await mongoServer.stop();
 });
 
 describe('Webhook Support Features', () => {
