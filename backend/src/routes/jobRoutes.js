@@ -11,6 +11,9 @@ const router = express.Router();
 
 router.use(protect);
 
+// Shared / Common root routes
+router.get('/', authorize('STUDENT'), cache(300), advancedResults(Job), getEligibleJobs);
+
 // Recruiter routes
 /**
  * @swagger

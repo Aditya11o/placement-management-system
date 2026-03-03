@@ -11,6 +11,9 @@ const { validate } = require('../middlewares/validate');
 const router = express.Router();
 router.use(protect);
 
+// Alias for frontend compatibility
+router.get('/resumes', authorize('STUDENT'), getResumeHistory);
+
 /**
  * @swagger
  * /api/v1/upload/resume:

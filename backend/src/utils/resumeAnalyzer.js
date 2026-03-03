@@ -27,7 +27,7 @@ exports.extractSkillsFromResume = async (pdfBuffer) => {
 
         let parseFunc = pdfParse;
         if (typeof pdfParse !== 'function') {
-            parseFunc = pdfParse.default || pdfParse.pdf;
+            parseFunc = pdfParse.default || pdfParse.pdf || pdfParse.PDFParse;
         }
 
         if (typeof parseFunc !== 'function') {

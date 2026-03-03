@@ -110,6 +110,7 @@ app.use(hpp());
 // Routes
 const authRoutes = require('./src/routes/authRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
+const studentRoutes = require('./src/routes/studentRoutes');
 const jobRoutes = require('./src/routes/jobRoutes');
 const applicationRoutes = require('./src/routes/applicationRoutes');
 const announcementRoutes = require('./src/routes/announcementRoutes');
@@ -124,6 +125,7 @@ const initCronJobs = require('./src/jobs/index');
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/students', studentRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/applications', applicationRoutes);
 app.use('/api/v1/announcements', announcementRoutes);

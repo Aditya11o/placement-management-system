@@ -1,5 +1,5 @@
 const express = require('express');
-const { applyToJob, getMyApplications, getJobApplicants, updateApplicationStatus } = require('../controllers/applicationController');
+const { applyToJob, getMyApplications, getJobApplicants, getRecruiterApplications, updateApplicationStatus } = require('../controllers/applicationController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { validate } = require('../middlewares/validate');
 const { validateApplicationApply, validateApplicationStatusUpdate } = require('../validations/applicationValidator');
@@ -10,6 +10,10 @@ const idempotency = require('../middlewares/idempotencyMiddleware');
 const router = express.Router();
 
 router.use(protect);
+
+// Aliases for frontend compatibility
+router.post('/', authorize('STUDENT'), idempotency, validateApplicationApply, validate, applyToJob);
+router.get('/student', authorize('STUDENT'), advancedResults(Application, { path: 'job_id', select: 'title company_name status deadline' }), getMyApplications);
 
 /**
  * @swagger
@@ -63,6 +67,8 @@ router.post('/apply', authorize('STUDENT'), idempotency, validateApplicationAppl
 router.get('/my-applications', authorize('STUDENT'), advancedResults(Application, { path: 'job_id', select: 'title company_name status deadline' }), getMyApplications);
 
 // Recruiter routes
+router.get('/recruiter', authorize('RECRUITER'), getRecruiterApplications);
+
 /**
  * @swagger
  * /api/v1/applications/job/{job_id}:

@@ -15,6 +15,12 @@ const checkBlocklist = async (req, res, next) => {
 
     // Get the true client IP (accounting for proxies/load balancers)
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+
+    // Whitelist local IP addresses to prevent lockouts during development
+    if (clientIp === '::1' || clientIp === '127.0.0.1' || clientIp === '::ffff:127.0.0.1') {
+        return next();
+    }
+
     const blockKey = `blocklist:${clientIp}`;
 
     try {
@@ -46,6 +52,12 @@ const banIp = async (ip, durationHours = 24, reason = 'Not specified') => {
 
     const redisClient = getRedisClient();
     if (!redisClient || !redisClient.isOpen) return;
+
+    // Never ban local development addresses
+    if (ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1') {
+        logger.info(`🛡️  SECURITY: Prevented banning local IP ${ip}. Reason: ${reason}`);
+        return;
+    }
 
     const blockKey = `blocklist:${ip}`;
     const seconds = durationHours * 3600;
