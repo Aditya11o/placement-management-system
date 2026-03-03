@@ -10,10 +10,7 @@ const initCronJobs = () => {
     initJobDeadlineCron();
     initSessionCleanupCron();
     initWeeklyDigestCron();
-
-    // Note: The backup job internally binds itself as a node-cron task
-    // Since we exported the task itself, we call start()
-    initDbBackupCron.start();
+    initDbBackupCron(); // Factory function: creates and starts the cron task internally
 
     console.log('[CRON] All workers successfully scheduled in the background.');
 };

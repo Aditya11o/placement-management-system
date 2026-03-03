@@ -1,5 +1,4 @@
 const { GoogleGenAI } = require('@google/genai');
-const pdfParse = require('pdf-parse');
 const logger = require('./logger');
 const config = require('../config/config');
 
@@ -17,6 +16,10 @@ exports.extractSkillsFromResume = async (pdfBuffer) => {
 
         // Initialize Gemini SDK lazily, only if key exists
         const ai = new GoogleGenAI({});
+
+        // Lazy-load pdf-parse to avoid its native module (@napi-rs/canvas) registering
+        // a GC finalizer at import time, which would keep Jest test processes open.
+        const pdfParse = require('pdf-parse');
 
         // 1. Extract raw text from PDF
         logger.info(`pdfParse runtime type: ${typeof pdfParse}`);
