@@ -2,6 +2,9 @@ const mongoose = require('mongoose');
 const os = require('os');
 const { getRedisClient } = require('../config/redis');
 const { getConnectedCount } = require('../utils/socketManager');
+const nodemailer = require('nodemailer');
+const cloudinary = require('cloudinary').v2;
+const config = require('../config/config');
 
 /**
  * @desc    System Health & Metrics Dashboard
@@ -47,6 +50,44 @@ exports.getHealth = async (req, res) => {
     } catch {
         redisStatus = 'DOWN';
     }
+
+    // ── External Services Health (Deep Dashboard) ──────────────────────────────
+    let smtpStatus = 'DOWN';
+    let smtpLatencyMs = null;
+    try {
+        const smtpStart = Date.now();
+        const transporter = nodemailer.createTransport({
+            host: config.get('smtp.host'),
+            port: config.get('smtp.port'),
+            auth: {
+                user: config.get('smtp.email'),
+                pass: config.get('smtp.password'),
+            },
+        });
+        await transporter.verify();
+        smtpLatencyMs = Date.now() - smtpStart;
+        smtpStatus = 'UP';
+    } catch {
+        // SMTP verification might fail if real credentials aren't set down
+        smtpStatus = 'DOWN';
+    }
+
+    let cloudinaryStatus = 'DOWN';
+    let cloudinaryLatencyMs = null;
+    try {
+        const cldStart = Date.now();
+        cloudinary.config({
+            cloud_name: config.get('cloudinary.cloud_name'),
+            api_key: config.get('cloudinary.api_key'),
+            api_secret: config.get('cloudinary.api_secret'),
+        });
+        await cloudinary.api.ping();
+        cloudinaryLatencyMs = Date.now() - cldStart;
+        cloudinaryStatus = 'UP';
+    } catch {
+        cloudinaryStatus = 'DOWN';
+    }
+
 
     // ── Node.js Process Metrics ────────────────────────────────────────────────
     const memUsage = process.memoryUsage();
@@ -116,6 +157,14 @@ exports.getHealth = async (req, res) => {
                 status: redisStatus,
                 latencyMs: redisLatencyMs,
                 memoryUsed: redisMemoryUsage
+            },
+            smtp: {
+                status: smtpStatus,
+                latencyMs: smtpLatencyMs
+            },
+            cloudinary: {
+                status: cloudinaryStatus,
+                latencyMs: cloudinaryLatencyMs
             }
         },
         process: nodeMetrics,

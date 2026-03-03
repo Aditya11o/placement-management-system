@@ -110,7 +110,7 @@ exports.getJobById = async (req, res) => {
 
         let matchScore = null;
         if (req.user && req.user.role === 'STUDENT') {
-            matchScore = calculateMatchScore(req.user, job);
+            matchScore = await calculateMatchScore(req.user, job);
         }
 
         res.json({ success: true, matchScore, data: job });
@@ -129,13 +129,13 @@ exports.getRecommendedJobs = async (req, res) => {
         const student = req.user;
         const activeJobs = await Job.find({ status: 'ACTIVE' });
 
-        const scoredJobs = activeJobs.map(job => {
-            const score = calculateMatchScore(student, job);
+        const scoredJobs = await Promise.all(activeJobs.map(async job => {
+            const score = await calculateMatchScore(student, job);
             return {
                 ...job.toObject(),
                 matchScore: score
             };
-        });
+        }));
 
         // Sort descending by score
         scoredJobs.sort((a, b) => b.matchScore - a.matchScore);

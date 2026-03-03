@@ -53,6 +53,10 @@ const { checkBlocklist, banIp } = require('./src/middlewares/blocklistMiddleware
 app.use(checkBlocklist); // Instantly drop banned IPs connection
 app.use(morganMiddleware);
 
+const performanceObserver = require('./src/middlewares/performanceMiddleware');
+// Log requests taking longer than 500ms for semantic observability
+app.use(performanceObserver(500));
+
 // Health Check (Exempt from Rate Limiting for monitoring)
 const healthRoutes = require('./src/routes/healthRoutes');
 app.use('/api/v1/health', healthRoutes);
