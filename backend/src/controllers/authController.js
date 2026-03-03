@@ -9,6 +9,7 @@ const UAParser = require('ua-parser-js');
 const { emailQueue } = require('../utils/emailQueue');
 const config = require('../config/config');
 const { generate2FASecret, verify2FAToken } = require('../utils/totp');
+const logger = require('../utils/logger');
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, config.get('jwt.secret'), {
@@ -118,7 +119,7 @@ exports.login = async (req, res) => {
         // Proceed with normal login if 2FA is not enabled
         await completeLogin(user, role, req, res);
     } catch (err) {
-        console.error("Login Error:", err);
+        logger.error(`Login Error: ${err.message}`);
         res.status(500).json({ success: false, message: err.message });
     }
 };
@@ -205,8 +206,8 @@ exports.forgotPassword = async (req, res, next) => {
 
         const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/resetpassword/${resetToken}`;
 
-        // Print to console for easy local testing without needing to check Mailtrap
-        console.log(`\n\n[DEV MODE] Password Reset URL generated:\n${resetUrl}\n\n`);
+        // Print to log for easy local testing without needing to check Mailtrap
+        logger.info(`[DEV MODE] Password Reset URL generated: ${resetUrl}`);
 
         try {
             await emailQueue.add('password-reset', {

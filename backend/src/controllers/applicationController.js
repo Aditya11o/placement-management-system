@@ -6,6 +6,7 @@ const { dispatchToUser, dispatchToRole } = require('../services/notifyDispatcher
 const { generateOfferLetter } = require('../services/offerLetterService');
 const { checkEligibility } = require('../services/eligibilityService');
 const config = require('../config/config');
+const logger = require('../utils/logger');
 
 exports.applyToJob = async (req, res) => {
     try {
@@ -142,7 +143,7 @@ exports.updateApplicationStatus = async (req, res) => {
                 }
             });
         } catch (emailError) {
-            console.error('Email queue failed for application update:', emailError.message);
+            logger.warn(`Email queue failed for application update: ${emailError.message}`);
         }
 
         // 🚀 Dispatch persistent DB notification + instant WebSocket push in one call
@@ -185,7 +186,7 @@ exports.updateApplicationStatus = async (req, res) => {
                 });
             }
         } catch (webhookErr) {
-            console.error('Webhook queuing failed:', webhookErr.message);
+            logger.warn(`Webhook queuing failed: ${webhookErr.message}`);
         }
 
         // Notification already persisted + pushed via dispatchToUser above

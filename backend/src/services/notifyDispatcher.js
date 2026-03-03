@@ -28,7 +28,7 @@ const dispatchToUser = async ({ recipientId, recipientModel, eventName, title, m
             // If prefs lookup fails, default to sending everything
         }
 
-        const shouldPersist = !prefs || prefs.allowsEmail(eventName);
+        const shouldPersist = !prefs || prefs.allowsEmail(eventName) || prefs.allowsPush(eventName);
         const shouldPush = !prefs || prefs.allowsPush(eventName);
 
         // If both channels are off, skip entirely

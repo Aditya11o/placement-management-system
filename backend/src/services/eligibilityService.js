@@ -12,7 +12,8 @@ exports.checkEligibility = (student, job) => {
     }
 
     // 3. Branch Check
-    const allowedBranches = job.eligible_branch.split(',').map(b => b.trim().toUpperCase());
+    const branchField = job.eligible_branch || 'ALL';
+    const allowedBranches = branchField.split(',').map(b => b.trim().toUpperCase());
     if (!allowedBranches.includes('ALL') && !allowedBranches.includes(student.branch.toUpperCase())) {
         reasons.push(`Your branch (${student.branch}) is not eligible for this job`);
     }

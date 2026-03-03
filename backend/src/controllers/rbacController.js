@@ -122,7 +122,7 @@ exports.revokePermissions = async (req, res) => {
         }
 
         // Prevent an admin from revoking their own permissions
-        if (target._id.toString() === req.user.id) {
+        if (target._id.toString() === req.user._id.toString()) {
             return res.status(403).json({ success: false, message: 'Cannot revoke your own permissions' });
         }
 
@@ -161,7 +161,7 @@ exports.setSubRole = async (req, res) => {
             return res.status(400).json({ success: false, message: `sub_role must be one of: ${validRoles.join(', ')}` });
         }
 
-        if (req.params.id === req.user.id) {
+        if (req.params.id === req.user._id.toString()) {
             return res.status(403).json({ success: false, message: 'Cannot change your own sub_role' });
         }
 
@@ -205,7 +205,7 @@ exports.setSubRole = async (req, res) => {
  */
 exports.getMyPermissions = async (req, res) => {
     try {
-        const admin = await Admin.findById(req.user.id).select('name email sub_role permissions');
+        const admin = await Admin.findById(req.user._id).select('name email sub_role permissions');
         if (!admin) return res.status(404).json({ success: false, message: 'Not found' });
 
         res.status(200).json({

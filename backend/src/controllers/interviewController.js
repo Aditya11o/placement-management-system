@@ -4,6 +4,7 @@ const Log = require('../models/Log');
 const { emailQueue } = require('../utils/emailQueue');
 const { dispatchToUser } = require('../services/notifyDispatcher');
 const config = require('../config/config');
+const logger = require('../utils/logger');
 
 /**
  * @desc    Schedule a new interview
@@ -69,7 +70,7 @@ exports.scheduleInterview = async (req, res) => {
                 }
             });
         } catch (e) {
-            console.error('Email queue failed:', e);
+            logger.warn(`Interview email queue failed: ${e.message}`);
         }
 
         await Log.create({
@@ -121,7 +122,7 @@ exports.respondToInterview = async (req, res) => {
         await dispatchToUser({
             recipientId: interview.recruiter_id,
             recipientModel: 'Recruiter',
-            eventName: 'new_application_received',
+            eventName: 'interview_scheduled',
             title: `Interview ${status}: ${studentName}`,
             message: `${studentName} has ${status.toLowerCase()} the interview for ${interview.job_id.title}.`,
             type: status === 'REJECTED' ? 'WARNING' : 'SUCCESS',

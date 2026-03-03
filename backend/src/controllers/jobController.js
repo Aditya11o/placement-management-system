@@ -127,7 +127,8 @@ exports.getJobById = async (req, res) => {
 exports.getRecommendedJobs = async (req, res) => {
     try {
         const student = req.user;
-        const activeJobs = await Job.find({ status: 'ACTIVE' });
+        // Cap job pool to 200 most recent active jobs to avoid memory/API pressure
+        const activeJobs = await Job.find({ status: 'ACTIVE' }).sort({ created_at: -1 }).limit(200);
 
         const scoredJobs = await Promise.all(activeJobs.map(async job => {
             const score = await calculateMatchScore(student, job);

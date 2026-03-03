@@ -6,6 +6,7 @@ const Log = require('../models/Log');
 const { emailQueue } = require('../utils/emailQueue');
 const { dataExportQueue } = require('../utils/dataExportQueue');
 const config = require('../config/config');
+const logger = require('../utils/logger');
 
 exports.getUsers = async (req, res, next) => {
     try {
@@ -64,7 +65,7 @@ exports.updateUserStatus = async (req, res) => {
                 });
             } catch (emailError) {
                 // Log the error but don't fail the request
-                console.error('Email queue failed:', emailError.message);
+                logger.warn(`Email queue failed for approval notification: ${emailError.message}`);
             }
         }
 
