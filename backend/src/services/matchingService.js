@@ -113,12 +113,12 @@ const calculateSkillScoreBase = (student, job) => {
  */
 const calculateSkillScoreSemantic = async (student, job) => {
     if (!student.skills || student.skills.length === 0) return 0;
-    
+
     // Fallback immediately if AI is not configured
     if (!aiClient) return calculateSkillScoreBase(student, job);
 
-    const cacheKey = `${student._id.toString()}|${job._id.toString()}|${student.skills.join(',')}`;
-    
+    const cacheKey = `${student._id?.toString() || 'no-std'}|${job._id?.toString() || 'no-job'}|${student.skills?.join(',')}`;
+
     if (semanticCache.has(cacheKey)) {
         return semanticCache.get(cacheKey);
     }

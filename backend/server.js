@@ -29,6 +29,7 @@ const { connectRedis } = require('./src/config/redis');
 connectRedis();
 
 const app = express();
+app.set('trust proxy', 1); // Enable trusting proxy for rate limiting (e.g., behind Nginx/Render/Heroku)
 let server;
 
 // Mount HTTP or HTTPS Server based on Environment

@@ -19,6 +19,13 @@ jest.mock('../src/utils/cloudinary');
 jest.mock('../src/utils/emailQueue', () => ({
     emailQueue: { add: jest.fn() }
 }));
+jest.mock('../src/config/config', () => ({
+    get: jest.fn((key) => {
+        if (key === 'env') return 'development';
+        if (key === 'redis.url') return 'redis://localhost:6379';
+        return null;
+    })
+}));
 
 describe('Data Export Queue (ExcelJS Worker)', () => {
     let workerCallback;
@@ -77,11 +84,6 @@ describe('Data Export Queue (ExcelJS Worker)', () => {
             })
         });
 
-        // The file defines dataExportWorker under `process.env.NODE_ENV !== 'test'`
-        // To test it, we temporary switch NODE_ENV
-        const originalEnv = process.env.NODE_ENV;
-        process.env.NODE_ENV = 'development';
-
         // Require the file so Worker gets instantiated
         const { dataExportQueue } = require('../src/utils/dataExportQueue');
 
@@ -89,9 +91,6 @@ describe('Data Export Queue (ExcelJS Worker)', () => {
         const WorkerMock = Worker;
         expect(WorkerMock).toHaveBeenCalled();
         workerCallback = WorkerMock.mock.calls[0][1];
-
-        // Restore environment
-        process.env.NODE_ENV = originalEnv;
     });
 
     beforeEach(() => {
@@ -102,7 +101,7 @@ describe('Data Export Queue (ExcelJS Worker)', () => {
     it('should generate a valid Student Excel file with calculated CGPA and upload it', async () => {
         const job = {
             id: 'job-123',
-            data: { adminId: 'admin-1', email: 'admin@test.com', entity: 'students', format: 'xlsx' }
+            data: { adminEmail: 'admin@test.com', exportType: 'students' }
         };
 
         await workerCallback(job);
@@ -119,7 +118,7 @@ describe('Data Export Queue (ExcelJS Worker)', () => {
         // 2. Verify Email Dispatch
         expect(emailQueue.add).toHaveBeenCalledWith('export-ready-email', expect.objectContaining({
             email: 'admin@test.com',
-            subject: 'Your STUDENTS Excel Report is Ready'
+            subject: 'Your STUDENTS Report is Ready'
         }));
 
         // 3. Verify Excel Buffer Integrity
@@ -148,10 +147,8 @@ describe('Data Export Queue (ExcelJS Worker)', () => {
         const job = {
             id: 'job-123',
             data: {
-                adminId: 'admin-1',
-                email: 'admin@test.com',
-                entity: 'student',
-                format: 'xlsx'
+                adminEmail: 'admin@test.com',
+                exportType: 'applications'
             },
             progress: jest.fn()
         };
@@ -174,7 +171,7 @@ describe('Data Export Queue (ExcelJS Worker)', () => {
     it('should throw an error for unsupported export types', async () => {
         const job = {
             id: 'job-789',
-            data: { adminId: 'admin-1', email: 'admin@test.com', entity: 'invalid_type', format: 'xlsx' }
+            data: { adminEmail: 'admin@test.com', exportType: 'invalid_type' }
         };
 
         await expect(workerCallback(job)).rejects.toThrow('Unknown export type');

@@ -8,6 +8,7 @@ const Session = require('../models/Session');
 const UAParser = require('ua-parser-js');
 const { emailQueue } = require('../utils/emailQueue');
 const config = require('../config/config');
+const { generate2FASecret, verify2FAToken } = require('../utils/totp');
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, config.get('jwt.secret'), {
@@ -490,8 +491,6 @@ exports.configureWebhook = async (req, res) => {
         const { webhook_url } = req.body;
 
         const recruiter = await Recruiter.findById(req.user._id);
-        if (config.get('env') === 'test') { return res.status(200).json({ success: true, data: { status: 'completed' } }); } // Mock trap
-
 
         recruiter.webhook_url = webhook_url || ''; // Empty string lets them clear it
         await recruiter.save({ validateModifiedOnly: true });

@@ -12,6 +12,13 @@ describe('Golden Flow E2E: From Registration to Application', () => {
 
     beforeAll(async () => {
         // Wait for server to be fully ready if needed
+        if (mongoose.connection.readyState === 0) {
+            await mongoose.connect(process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/pms_test_db');
+        }
+        await mongoose.connection.collection('students').deleteMany({});
+        await mongoose.connection.collection('recruiters').deleteMany({});
+        await mongoose.connection.collection('jobs').deleteMany({});
+        await mongoose.connection.collection('applications').deleteMany({});
     });
 
     afterAll(async () => {
@@ -24,7 +31,7 @@ describe('Golden Flow E2E: From Registration to Application', () => {
 
     it('1. [Student] Registration', async () => {
         const res = await request(app)
-            .post('/api/v1/auth/register-student')
+            .post('/api/v1/auth/register/student')
             .send({
                 name: 'Golden Student',
                 email: 'golden.student@example.com',
@@ -41,7 +48,18 @@ describe('Golden Flow E2E: From Registration to Application', () => {
         // Handling both 201 (Created) or 400 (if email already exists from previous test runs) gracefully
         // For a pristine DB, this should be 201.
         if (res.statusCode === 201) {
-            studentToken = res.body.token;
+            await mongoose.connection.collection('students').updateOne(
+                { email: 'golden.student@example.com' },
+                { $set: { status: 'APPROVED' } }
+            );
+            const loginRes = await request(app)
+                .post('/api/v1/auth/login')
+                .send({
+                    email: 'golden.student@example.com',
+                    password: 'password123',
+                    role: 'STUDENT'
+                });
+            studentToken = loginRes.body.token;
             expect(studentToken).toBeDefined();
         } else if (res.statusCode === 400 && res.body.message.includes('already exists')) {
             // Fallback login if DB wasn't cleared
@@ -61,7 +79,7 @@ describe('Golden Flow E2E: From Registration to Application', () => {
 
     it('2. [Recruiter] Registration', async () => {
         const res = await request(app)
-            .post('/api/v1/auth/register-recruiter')
+            .post('/api/v1/auth/register/recruiter')
             .send({
                 company_name: 'Golden Corp',
                 contact_person: 'Jane Doe',
@@ -71,7 +89,18 @@ describe('Golden Flow E2E: From Registration to Application', () => {
             });
 
         if (res.statusCode === 201) {
-            recruiterToken = res.body.token;
+            await mongoose.connection.collection('recruiters').updateOne(
+                { email: 'jane.doe@goldencorp.com' },
+                { $set: { status: 'APPROVED' } }
+            );
+            const loginRes = await request(app)
+                .post('/api/v1/auth/login')
+                .send({
+                    email: 'jane.doe@goldencorp.com',
+                    password: 'password123',
+                    role: 'RECRUITER'
+                });
+            recruiterToken = loginRes.body.token;
         } else if (res.statusCode === 400 && res.body.message.includes('already exists')) {
             const loginRes = await request(app)
                 .post('/api/v1/auth/login')
@@ -125,8 +154,9 @@ describe('Golden Flow E2E: From Registration to Application', () => {
         // We expect a 400 for 'no active resume' OR a 201 if successful.
         // Doing a soft assert here as we are testing the endpoint logic exists and responds predictably.
         const res = await request(app)
-            .post(`/api/v1/applications/apply/${jobId}`)
+            .post(`/api/v1/applications/apply`)
             .set('Authorization', `Bearer ${studentToken}`)
+            .send({ job_id: jobId })
             // Adding an idempotency key to test that middleware
             .set('x-idempotency-key', `golden-flow-${Date.now()}`);
 

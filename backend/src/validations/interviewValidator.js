@@ -1,11 +1,11 @@
 const { check } = require('express-validator');
 
 exports.validateInterviewScheduling = [
-    check('job_id', 'Valid Job ID is required').isMongoId(),
-    check('student_id', 'Valid Student ID is required').isMongoId(),
-    check('date', 'Valid date is required (YYYY-MM-DD)').isISO8601().toDate(),
-    check('time', 'Time is required').not().isEmpty().trim().escape(),
-    check('location', 'Location is required').not().isEmpty().trim().escape()
+    check('application_id', 'Valid Application ID is required').isMongoId(),
+    check('scheduled_at', 'Valid ISO 8601 date is required').isISO8601(),
+    check('location_type', 'Location type must be VIRTUAL, IN_PERSON, or PHONE').isIn(['VIRTUAL', 'IN_PERSON', 'PHONE']),
+    check('location_details', 'Location details are required').not().isEmpty().trim().escape(),
+    check('notes', 'Notes must be a string').optional().isString()
 ];
 
 exports.validateInterviewResponse = [

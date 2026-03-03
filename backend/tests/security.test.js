@@ -2,6 +2,7 @@ const request = require('supertest');
 const { app } = require('../server');
 const Student = require('../src/models/Student');
 const mongoose = require('mongoose');
+const config = require('../src/config/config');
 
 // We need an actual Express server instance to test rate limiting effectively,
 // but to ensure we don't accidentally leave dangling Redis handles during testing
@@ -11,6 +12,7 @@ let mockRedisStorage = {};
 jest.mock('../src/config/redis', () => ({
     getRedisClient: () => ({
         isReady: true,
+        isOpen: true,
         get: jest.fn(key => mockRedisStorage[key]),
         setEx: jest.fn((key, ttl, value) => { mockRedisStorage[key] = value; }),
         incr: jest.fn(key => {
@@ -69,11 +71,11 @@ describe('Adaptive IP Blocklisting (Anti-DDoS)', () => {
         });
 
         // Set environment back to development to trigger the real middleware behaviors
-        process.env.NODE_ENV = 'development';
+        config.set('env', 'development');
     });
 
     afterAll(async () => {
-        process.env.NODE_ENV = 'test';
+        config.set('env', 'test');
         await mongoose.disconnect();
     });
 

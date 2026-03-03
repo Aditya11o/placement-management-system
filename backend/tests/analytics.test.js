@@ -15,6 +15,12 @@ let studentToken;
 beforeAll(async () => {
     await mongoose.connect(TEST_MONGO_URI);
 
+    await mongoose.connection.collection('admins').deleteMany({});
+    await mongoose.connection.collection('students').deleteMany({});
+    await mongoose.connection.collection('recruiters').deleteMany({});
+    await mongoose.connection.collection('jobs').deleteMany({});
+    await mongoose.connection.collection('applications').deleteMany({});
+
     // 1. Create an Admin
     await Admin.create({
         name: 'Analytics Admin',

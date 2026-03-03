@@ -18,6 +18,7 @@ beforeAll(async () => {
         name: 'API Key Admin',
         email: 'api_admin@example.com',
         password: 'password123',
+        sub_role: 'SUPER_ADMIN'
     });
     adminId = admin._id;
 

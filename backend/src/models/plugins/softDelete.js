@@ -15,30 +15,27 @@ module.exports = function softDeletePlugin(schema) {
         }
     });
 
-    // 2. Intercept document-level soft deletes (e.g. document.deleteOne())
-    schema.pre('deleteOne', { document: true, query: false }, async function (next) {
-        this.deletedAt = new Date();
-        await this.save();
-
-        // Throw an error to stop the Mongoose document deletion pipeline, 
-        // which prevents the physical removal of the document
-        next(new Error('SOFT_DELETE_TRIGGERED_SUCCESSFULLY'));
-    });
-
-    // 3. Intercept query-level soft deletes (e.g. Model.deleteOne({ _id: id }))
-    const softDeleteQuery = async function (next) {
-        // Run the physical update natively against the Mongo driver collection 
-        // to bypass Mongoose's internal recursive middleware traps
-        await this.model.collection.updateMany(this.getQuery(), { $set: { deletedAt: new Date() } });
-
-        // Throw an explicit abort sequence to immediately kill the Mongoose `delete` pipeline
-        next(new Error('SOFT_DELETE_TRIGGERED_SUCCESSFULLY'));
+    // 2. Override physical delete operations
+    schema.statics.deleteOne = function (conditions, options) {
+        return this.updateMany(conditions, { $set: { deletedAt: new Date() } }, options);
     };
 
-    schema.pre('deleteOne', { document: false, query: true }, softDeleteQuery);
-    schema.pre('deleteMany', { document: false, query: true }, softDeleteQuery);
-    schema.pre('findOneAndDelete', { document: false, query: true }, softDeleteQuery);
-    schema.pre('findOneAndRemove', { document: false, query: true }, softDeleteQuery);
+    schema.statics.deleteMany = function (conditions, options) {
+        return this.updateMany(conditions, { $set: { deletedAt: new Date() } }, options);
+    };
+
+    schema.statics.findOneAndDelete = function (conditions, options) {
+        return this.findOneAndUpdate(conditions, { $set: { deletedAt: new Date() } }, options);
+    };
+
+    schema.statics.findByIdAndDelete = function (id, options) {
+        return this.findOneAndUpdate({ _id: id }, { $set: { deletedAt: new Date() } }, options);
+    };
+
+    schema.methods.deleteOne = async function () {
+        this.deletedAt = new Date();
+        return await this.save();
+    };
 
     // 4. Intercept REST Read Queries (e.g. Model.find())
     // Exclude documents where `deletedAt` is not null by default.

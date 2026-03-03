@@ -145,12 +145,12 @@ if (config.get('env') !== 'test') {
 
             // Add an email to the queue to send the download link to the admin
             await emailQueue.add('export-ready-email', {
-                email: job.data.email,
-                subject: `Your ${job.data.format.toUpperCase()} Report is Ready`,
+                email: adminEmail,
+                subject: `Your ${exportType.toUpperCase()} Report is Ready`,
                 template: 'dataExport',
                 context: {
                     name: 'Admin',
-                    format: job.data.format,
+                    format: exportType,
                     downloadLink: uploadResult.secure_url
                 }
             });

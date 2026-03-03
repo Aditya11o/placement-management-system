@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Student = require('../src/models/Student');
 const fs = require('fs');
 const path = require('path');
+const config = require('../src/config/config');
 
 // Mocks
 jest.mock('../src/config/redis', () => ({
@@ -42,8 +43,8 @@ describe('HTTPS & Secure Cookies', () => {
     });
 
     it('should drop a regular cookie when HTTPS is false in development', async () => {
-        process.env.HTTPS = 'false';
-        process.env.NODE_ENV = 'development';
+        config.set('https', false);
+        config.set('env', 'development');
 
         const res = await request(app)
             .post('/api/v1/auth/login')
@@ -57,8 +58,8 @@ describe('HTTPS & Secure Cookies', () => {
     });
 
     it('should drop a STRICT Secure cookie when HTTPS is toggled True locally', async () => {
-        process.env.HTTPS = 'true';
-        process.env.NODE_ENV = 'development';
+        config.set('https', true);
+        config.set('env', 'development');
 
         const res = await request(app)
             .post('/api/v1/auth/login')
