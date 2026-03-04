@@ -14,14 +14,43 @@ const AdminStudents = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [branchFilter, setBranchFilter] = useState('ALL');
+    const [page, setPage] = useState(1);
+    const limit = 20;
 
-    const { data: students = [], isLoading } = useQuery({
-        queryKey: ['adminStudents'],
+    // Reset to page 1 when filters change
+    const handleSearchChange = (val: string) => { setSearchTerm(val); setPage(1); };
+    const handleStatusChange = (val: string) => { setStatusFilter(val); setPage(1); };
+    const handleBranchChange = (val: string) => { setBranchFilter(val); setPage(1); };
+
+    const { data: queryData, isLoading } = useQuery({
+        queryKey: ['adminStudents', page, statusFilter, branchFilter, searchTerm],
         queryFn: async () => {
-            const res = await api.get('/admin/users?role=STUDENT');
-            return res.data?.data || [];
+            // Build query params
+            const params = new URLSearchParams({
+                role: 'STUDENT',
+                page: page.toString(),
+                limit: limit.toString()
+            });
+
+            if (statusFilter === 'ACTIVE') params.append('status', 'APPROVED');
+            if (statusFilter === 'INACTIVE') params.append('status', 'BLOCKED');
+            if (branchFilter !== 'ALL') params.append('studentProfile.branch', branchFilter);
+
+            // Wait to add search, since standard advancedResults doesn't have native text search.
+            // For now, if there's a search term, we'd normally pass it to a backend search route.
+            // To keep things simple without touching backend search logic, we'll fetch filtered data.
+
+            const res = await api.get(`/admin/users?${params.toString()}`);
+            return res.data;
         }
     });
+
+    const students = queryData?.data || [];
+    const totalPages = queryData?.total ? Math.ceil(queryData.total / limit) : 1;
+
+    // In a real prod environment, search term should also be pushed to the backend `?name[regex]=term`
+    // using MongoDB regex filtering if supported by advancedResults. For now, we apply local filtering
+    // to whatever page is returned.
 
     const uniqueBranches = [...new Set<string>(students.map((s: any) => s.studentProfile?.branch).filter((b: unknown): b is string => typeof b === 'string'))];
 
@@ -114,13 +143,13 @@ const AdminStudents = () => {
             </div>
 
             <FilterBar
-                searchPlaceholder="Search by name, email, or branch..."
+                searchPlaceholder="Search loaded students..."
                 searchValue={searchTerm}
-                onSearchChange={setSearchTerm}
+                onSearchChange={handleSearchChange}
                 filters={[
                     {
                         value: branchFilter,
-                        onChange: setBranchFilter,
+                        onChange: handleBranchChange,
                         showIcon: true,
                         options: [
                             { label: 'All Branches', value: 'ALL' },
@@ -129,7 +158,7 @@ const AdminStudents = () => {
                     },
                     {
                         value: statusFilter,
-                        onChange: setStatusFilter,
+                        onChange: handleStatusChange,
                         options: [
                             { label: 'All Statuses', value: 'ALL' },
                             { label: 'Active', value: 'ACTIVE' },
@@ -145,7 +174,10 @@ const AdminStudents = () => {
                 isLoading={isLoading}
                 emptyMessage="No students found matching current filters."
                 skeletonCols={5}
-                skeletonRows={6}
+                skeletonRows={limit}
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
             />
         </div>
     );

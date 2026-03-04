@@ -1,6 +1,6 @@
 const express = require('express');
 const {
-    uploadResume, uploadLogo,
+    uploadResume, uploadLogo, uploadProfilePhoto,
     getResumeHistory, activateResumeVersion, deleteResumeVersion
 } = require('../controllers/uploadController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
@@ -157,5 +157,29 @@ router.delete('/resume/history/:versionId', authorize('STUDENT'), check('version
  *         description: Logo uploaded successfully
  */
 router.post('/logo', authorize('RECRUITER'), upload.single('logo'), uploadLogo);
+
+/**
+ * @swagger
+ * /api/v1/upload/profile-photo:
+ *   post:
+ *     summary: Upload student profile photo (images only)
+ *     tags: [Uploads]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               photo:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile photo uploaded successfully
+ */
+router.post('/profile-photo', authorize('STUDENT'), upload.single('photo'), uploadProfilePhoto);
 
 module.exports = router;

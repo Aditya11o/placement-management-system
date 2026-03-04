@@ -70,6 +70,7 @@ const advancedResults = (model, populate) => async (req, res, next) => {
     res.advancedResults = {
         success: true,
         count: results.length,
+        total,
         pagination,
         data: results
     };

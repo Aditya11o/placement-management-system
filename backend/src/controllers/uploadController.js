@@ -231,3 +231,39 @@ exports.uploadLogo = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
+/**
+ * @desc    Upload student profile photo
+ * @route   POST /api/v1/upload/profile-photo
+ * @access  Private/Student
+ */
+exports.uploadProfilePhoto = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Please upload an image file' });
+        }
+
+        const student = await Student.findById(req.user._id);
+        if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
+
+        const result = await uploadToCloudinary(req.file.buffer, 'avatars');
+
+        student.profile_image_url = result.secure_url;
+        await student.save();
+
+        await Log.create({
+            user_id: student._id,
+            user_role: 'STUDENT',
+            action: 'UPLOAD_PROFILE_PHOTO',
+            description: 'Student uploaded a new profile photo'
+        });
+
+        res.json({
+            success: true,
+            message: 'Profile photo uploaded successfully',
+            data: student.profile_image_url
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};

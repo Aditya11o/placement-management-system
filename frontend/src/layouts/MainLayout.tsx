@@ -7,6 +7,7 @@ import {
     FileText, Users, Settings, LogOut, Building, LucideIcon
 } from 'lucide-react';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
+import ThemeToggle from '../components/ThemeToggle/ThemeToggle';
 
 interface NavItem {
     label: string;
@@ -63,7 +64,7 @@ const MainLayout: React.FC = () => {
     const navItems = getNavItems();
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-slate-50">
+        <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
 
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
@@ -74,10 +75,10 @@ const MainLayout: React.FC = () => {
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed lg:relative w-[260px] h-screen flex flex-col z-50 transition-transform duration-300 bg-white/80 backdrop-blur-xl border-r border-slate-200 shadow-xl lg:shadow-none lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                <div className="h-[70px] flex items-center justify-between px-6 border-b border-slate-200 shrink-0">
-                    <h2 className="text-indigo-600 m-0 text-2xl font-bold tracking-tight">Nexus</h2>
-                    <button className="lg:hidden text-slate-500 hover:text-slate-800" onClick={toggleSidebar}>
+            <aside className={`fixed lg:relative w-[260px] h-screen flex flex-col z-50 transition-transform duration-300 bg-white/80 dark:bg-slate-800/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-700/50 shadow-xl lg:shadow-none lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="h-[70px] flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700/50 shrink-0">
+                    <h2 className="text-indigo-600 dark:text-indigo-400 m-0 text-2xl font-bold tracking-tight">Nexus</h2>
+                    <button className="lg:hidden text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" onClick={toggleSidebar}>
                         <X size={20} />
                     </button>
                 </div>
@@ -87,8 +88,8 @@ const MainLayout: React.FC = () => {
                         {user?.name?.charAt(0) || 'U'}
                     </div>
                     <div className="flex flex-col truncate">
-                        <span className="font-semibold truncate">{user?.name || 'User'}</span>
-                        <span className="text-xs uppercase opacity-80 mt-0.5 truncate">{user?.role}</span>
+                        <span className="font-semibold truncate text-white">{user?.name || 'User'}</span>
+                        <span className="text-xs uppercase opacity-80 mt-0.5 truncate text-indigo-100">{user?.role}</span>
                     </div>
                 </div>
 
@@ -99,7 +100,7 @@ const MainLayout: React.FC = () => {
                                 <NavLink
                                     to={item.path}
                                     className={({ isActive }) =>
-                                        `flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium transition-all duration-200 ${isActive ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'hover:bg-slate-100 hover:text-indigo-600'}`
+                                        `flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-300 font-medium transition-all duration-200 ${isActive ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-indigo-600 dark:hover:text-indigo-400'}`
                                     }
                                     onClick={() => window.innerWidth <= 1024 && setSidebarOpen(false)}
                                 >
@@ -111,9 +112,9 @@ const MainLayout: React.FC = () => {
                     </ul>
                 </nav>
 
-                <div className="p-4 border-t border-slate-200 shrink-0">
+                <div className="p-4 border-t border-slate-200 dark:border-slate-700/50 shrink-0">
                     <button
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 text-red-500 hover:bg-red-50 hover:text-red-600"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300"
                         onClick={handleLogout}
                     >
                         <LogOut size={18} className="shrink-0" />
@@ -125,22 +126,23 @@ const MainLayout: React.FC = () => {
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
                 {/* Top Header */}
-                <header className="h-[70px] flex items-center justify-between px-6 bg-white/80 backdrop-blur-xl border-b border-slate-200 z-30 shrink-0 shadow-sm">
+                <header className="h-[70px] flex items-center justify-between px-6 bg-white/80 dark:bg-slate-800/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-700/50 z-30 shrink-0 shadow-sm transition-colors duration-300">
                     <div className="flex items-center gap-4">
-                        <button className="lg:hidden p-2 -ml-2 rounded-md text-slate-600 hover:bg-slate-100" onClick={toggleSidebar}>
+                        <button className="lg:hidden p-2 -ml-2 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" onClick={toggleSidebar}>
                             <Menu size={24} />
                         </button>
-                        <h1 className="font-semibold text-slate-800 text-lg sm:text-xl m-0 truncate hidden sm:block">Placement Management System</h1>
-                        <h1 className="font-semibold text-slate-800 text-lg m-0 truncate sm:hidden">Nexus Portal</h1>
+                        <h1 className="font-semibold text-slate-800 dark:text-slate-100 text-lg sm:text-xl m-0 truncate hidden sm:block transition-colors">Placement Management System</h1>
+                        <h1 className="font-semibold text-slate-800 dark:text-slate-100 text-lg m-0 truncate sm:hidden transition-colors">Nexus Portal</h1>
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <ThemeToggle />
                         <NotificationPanel />
                     </div>
                 </header>
 
                 {/* Dynamic Route Content */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/50 relative">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/50 dark:bg-slate-900/50 relative transition-colors duration-300">
                     <Outlet />
                 </div>
             </main>

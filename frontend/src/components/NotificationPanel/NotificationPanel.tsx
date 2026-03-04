@@ -28,7 +28,7 @@ const NotificationPanel = () => {
         queryKey: ['notifications'],
         queryFn: fetchNotifications,
         enabled: !!user,
-        refetchInterval: 30_000, // Poll every 30s for new notifications
+        refetchInterval: 300_000, // Passive fallback. WebSockets handle instant invalidation.
     });
 
     const unreadCount = notifications.filter((n) => !n.is_read).length;

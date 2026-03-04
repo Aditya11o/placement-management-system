@@ -51,7 +51,7 @@ export interface Job {
     eligible_branch?: string;
     applicationCount?: number;
     skills_required: string[];
-    status: 'OPEN' | 'CLOSED';
+    status: 'ACTIVE' | 'CLOSED';
     deadline: string;
     createdAt?: string;
     updatedAt?: string;
@@ -61,7 +61,7 @@ export interface Application {
     _id: string;
     student: string | User;
     job: string | Job;
-    status: 'PENDING' | 'REVIEWING' | 'SHORTLISTED' | 'ACCEPTED' | 'REJECTED' | 'HIRED';
+    status: 'SUBMITTED' | 'REVIEWED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED';
     resume_url: string;
     notes?: string;
     createdAt?: string;

@@ -13,14 +13,35 @@ const AdminRecruiters = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [verificationFilter, setVerificationFilter] = useState('ALL');
+    const [page, setPage] = useState(1);
+    const limit = 20;
 
-    const { data: recruiters = [], isLoading } = useQuery({
-        queryKey: ['adminRecruiters'],
+    // Reset to page 1 when filters change
+    const handleSearchChange = (val: string) => { setSearchTerm(val); setPage(1); };
+    const handleStatusChange = (val: string) => { setStatusFilter(val); setPage(1); };
+    const handleVerificationChange = (val: string) => { setVerificationFilter(val); setPage(1); };
+
+    const { data: queryData, isLoading } = useQuery({
+        queryKey: ['adminRecruiters', page, statusFilter, verificationFilter, searchTerm],
         queryFn: async () => {
-            const res = await api.get('/admin/users?role=RECRUITER');
-            return res.data?.data || [];
+            const params = new URLSearchParams({
+                role: 'RECRUITER',
+                page: page.toString(),
+                limit: limit.toString()
+            });
+
+            if (statusFilter === 'ACTIVE') params.append('status', 'APPROVED');
+            if (statusFilter === 'INACTIVE') params.append('status', 'BLOCKED');
+            if (verificationFilter === 'VERIFIED') params.append('status', 'APPROVED');
+            if (verificationFilter === 'PENDING') params.append('status', 'PENDING');
+
+            const res = await api.get(`/admin/users?${params.toString()}`);
+            return res.data;
         }
     });
+
+    const recruiters = queryData?.data || [];
+    const totalPages = queryData?.total ? Math.ceil(queryData.total / limit) : 1;
 
     const statusMutation = useMutation({
         mutationFn: async ({ userId, newStatus }: { userId: string; newStatus: boolean }) =>
@@ -142,13 +163,13 @@ const AdminRecruiters = () => {
             </div>
 
             <FilterBar
-                searchPlaceholder="Search by name, email, or company..."
+                searchPlaceholder="Search loaded recruiters..."
                 searchValue={searchTerm}
-                onSearchChange={setSearchTerm}
+                onSearchChange={handleSearchChange}
                 filters={[
                     {
                         value: verificationFilter,
-                        onChange: setVerificationFilter,
+                        onChange: handleVerificationChange,
                         showIcon: true,
                         options: [
                             { label: 'All Approvals', value: 'ALL' },
@@ -158,7 +179,7 @@ const AdminRecruiters = () => {
                     },
                     {
                         value: statusFilter,
-                        onChange: setStatusFilter,
+                        onChange: handleStatusChange,
                         options: [
                             { label: 'All Statuses', value: 'ALL' },
                             { label: 'Active (Can Login)', value: 'ACTIVE' },
@@ -174,7 +195,10 @@ const AdminRecruiters = () => {
                 isLoading={isLoading}
                 emptyMessage="No recruiters found matching current filters."
                 skeletonCols={6}
-                skeletonRows={6}
+                skeletonRows={limit}
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
             />
         </div>
     );

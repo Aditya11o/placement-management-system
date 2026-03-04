@@ -5,11 +5,13 @@ import Card from '../../components/Card/Card';
 import Input from '../../components/Input/Input';
 import Button from '../../components/Button/Button';
 import SkeletonProfileForm from '../../components/Skeleton/SkeletonProfileForm';
-import { User, BookOpen, Edit2, Code, Plus, X } from 'lucide-react';
+import { User, BookOpen, Edit2, Code, Plus, X, Image as ImageIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import api from '../../services/api';
+import { useMutation } from '@tanstack/react-query';
+import FileUpload from '../../components/FileUpload/FileUpload';
 
 const profileSchema = z.object({
     branch: z.string().min(2, 'Branch is required'),
@@ -32,6 +34,39 @@ const StudentProfile: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSaving, setIsSaving] = useState<boolean>(false);
     const [newSkill, setNewSkill] = useState<string>('');
+
+    // Mutations for uploads
+    const uploadPhotoMutation = useMutation({
+        mutationFn: async (file: File) => {
+            const formData = new FormData();
+            formData.append('photo', file);
+            const res = await api.post('/upload/profile-photo', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            return res.data;
+        },
+        onSuccess: () => {
+            addToast('Profile photo updated', 'success');
+            fetchProfile(); // refresh data
+        },
+        onError: (err: any) => addToast(err.response?.data?.message || 'Upload failed', 'error')
+    });
+
+    const uploadResumeMutation = useMutation({
+        mutationFn: async (file: File) => {
+            const formData = new FormData();
+            formData.append('resume', file);
+            const res = await api.post('/upload/resume', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            return res.data;
+        },
+        onSuccess: () => {
+            addToast('Resume uploaded successfully', 'success');
+            fetchProfile(); // refresh data
+        },
+        onError: (err: any) => addToast(err.response?.data?.message || 'Upload failed', 'error')
+    });
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm({
         resolver: zodResolver(profileSchema),
@@ -148,6 +183,32 @@ const StudentProfile: React.FC = () => {
                             <label className="text-slate-500 text-sm block mb-1">Email Address</label>
                             <p className="font-semibold text-slate-800 text-base mb-4 mt-0">{user?.email}</p>
                         </div>
+                    </div>
+                </Card>
+
+                {/* Uploads Section */}
+                <Card className="col-span-1 lg:col-span-2">
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
+                        <ImageIcon className="text-pink-500" size={24} />
+                        <h2 className="text-lg m-0 font-bold">Documents & Media</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <FileUpload
+                            label="Profile Photo (Avatar)"
+                            accept="image/jpeg,image/png,image/webp"
+                            description="JPEG, PNG or WebP up to 5MB"
+                            currentFileUrl={originalProfile?.profile_image_url}
+                            isUploading={uploadPhotoMutation.isPending}
+                            onUpload={async (file) => uploadPhotoMutation.mutateAsync(file)}
+                        />
+                        <FileUpload
+                            label="Professional Resume"
+                            accept="application/pdf"
+                            description="PDF only up to 10MB. We extract skills automatically."
+                            currentFileUrl={originalProfile?.activeResume?.url || originalProfile?.resume_url}
+                            isUploading={uploadResumeMutation.isPending}
+                            onUpload={async (file) => uploadResumeMutation.mutateAsync(file)}
+                        />
                     </div>
                 </Card>
 

@@ -65,6 +65,10 @@ const studentSchema = new mongoose.Schema({
         enum: ['MALE', 'FEMALE', 'OTHER'],
         required: true,
     },
+    profile_image_url: {
+        type: String,
+        default: null
+    },
     resume_versions: [{
         version: { type: Number, required: true },          // 1, 2, 3 …
         url: { type: String, required: true },               // Cloudinary secure URL

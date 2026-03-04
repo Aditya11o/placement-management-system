@@ -9,6 +9,9 @@ import { Users, Building, Activity, ShieldAlert, CheckCircle, XCircle } from 'lu
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
+import TrendsChart from '../../components/Charts/TrendsChart';
+import FunnelChart from '../../components/Charts/FunnelChart';
+
 const AdminDashboard = () => {
     const { addToast } = useToast();
     const navigate = useNavigate();
@@ -35,6 +38,24 @@ const AdminDashboard = () => {
         queryFn: async () => {
             const res = await api.get('/admin/users?role=RECRUITER&status=PENDING');
             return res.data?.data || [];
+        }
+    });
+
+    // Fetch Analytics Trends
+    const { data: trendsData, isLoading: isTrendsLoading } = useQuery({
+        queryKey: ['adminTrends'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/trends');
+            return res.data.data;
+        }
+    });
+
+    // Fetch Analytics Funnel
+    const { data: funnelData, isLoading: isFunnelLoading } = useQuery({
+        queryKey: ['adminFunnel'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/funnel');
+            return res.data.data;
         }
     });
 
@@ -121,7 +142,13 @@ const AdminDashboard = () => {
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 mt-8">
+            {/* Interactive Analytics Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
+                <TrendsChart data={trendsData} isLoading={isTrendsLoading} />
+                <FunnelChart data={funnelData} isLoading={isFunnelLoading} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 mt-2">
 
                 {/* Pending Actions / Approvals */}
                 <div>

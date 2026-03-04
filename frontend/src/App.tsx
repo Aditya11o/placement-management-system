@@ -2,7 +2,9 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { SocketProvider } from './context/SocketContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute, RoleRoute } from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import MainLayout from './layouts/MainLayout';
@@ -46,60 +48,64 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <ToastProvider>
-          <AuthProvider>
-            <AxiosSetup />
-            <ErrorBoundary>
-              <Suspense fallback={<Loader />}>
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<Navigate to="/login" replace />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
-                  <Route path="/unauthorized" element={<Unauthorized />} />
+      <ThemeProvider>
+        <Router>
+          <ToastProvider>
+            <AuthProvider>
+              <SocketProvider>
+                <AxiosSetup />
+                <ErrorBoundary>
+                  <Suspense fallback={<Loader />}>
+                    <Routes>
+                      {/* Public Routes */}
+                      <Route path="/" element={<Navigate to="/login" replace />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
+                      <Route path="/unauthorized" element={<Unauthorized />} />
 
-                  {/* Protected Routes (Must be logged in) */}
-                  <Route element={<ProtectedRoute />}>
-                    <Route element={<MainLayout />}>
+                      {/* Protected Routes (Must be logged in) */}
+                      <Route element={<ProtectedRoute />}>
+                        <Route element={<MainLayout />}>
 
-                      {/* Student Routes */}
-                      <Route element={<RoleRoute allowedRoles={['STUDENT']} />}>
-                        <Route path="/student/dashboard" element={<StudentDashboard />} />
-                        <Route path="/student/profile" element={<StudentProfile />} />
-                        <Route path="/student/resumes" element={<Resumes />} />
-                        <Route path="/student/jobs" element={<JobBoard />} />
-                        <Route path="/student/applications" element={<StudentApplications />} />
+                          {/* Student Routes */}
+                          <Route element={<RoleRoute allowedRoles={['STUDENT']} />}>
+                            <Route path="/student/dashboard" element={<StudentDashboard />} />
+                            <Route path="/student/profile" element={<StudentProfile />} />
+                            <Route path="/student/resumes" element={<Resumes />} />
+                            <Route path="/student/jobs" element={<JobBoard />} />
+                            <Route path="/student/applications" element={<StudentApplications />} />
+                          </Route>
+
+                          {/* Recruiter Routes */}
+                          <Route element={<RoleRoute allowedRoles={['RECRUITER']} />}>
+                            <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
+                            <Route path="/recruiter/profile" element={<RecruiterProfile />} />
+                            <Route path="/recruiter/jobs" element={<RecruiterJobs />} />
+                            <Route path="/recruiter/applicants" element={<ApplicantReview />} />
+                          </Route>
+
+                          {/* Admin Routes */}
+                          <Route element={<RoleRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']} />}>
+                            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                            <Route path="/admin/students" element={<AdminStudents />} />
+                            <Route path="/admin/recruiters" element={<AdminRecruiters />} />
+                          </Route>
+
+                        </Route>
                       </Route>
 
-                      {/* Recruiter Routes */}
-                      <Route element={<RoleRoute allowedRoles={['RECRUITER']} />}>
-                        <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
-                        <Route path="/recruiter/profile" element={<RecruiterProfile />} />
-                        <Route path="/recruiter/jobs" element={<RecruiterJobs />} />
-                        <Route path="/recruiter/applicants" element={<ApplicantReview />} />
-                      </Route>
-
-                      {/* Admin Routes */}
-                      <Route element={<RoleRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']} />}>
-                        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                        <Route path="/admin/students" element={<AdminStudents />} />
-                        <Route path="/admin/recruiters" element={<AdminRecruiters />} />
-                      </Route>
-
-                    </Route>
-                  </Route>
-
-                  {/* Fallback */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </ErrorBoundary>
-          </AuthProvider>
-        </ToastProvider>
-      </Router>
+                      {/* Fallback */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
+                </ErrorBoundary>
+              </SocketProvider>
+            </AuthProvider>
+          </ToastProvider>
+        </Router>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
