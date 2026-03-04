@@ -66,6 +66,10 @@ app.use('/api/v1/health', healthRoutes);
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs
+    skip: (req, res) => {
+        const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+        return clientIp === '::1' || clientIp === '127.0.0.1' || clientIp === '::ffff:127.0.0.1';
+    },
     message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes.' },
     handler: async (req, res, next, options) => {
         const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
