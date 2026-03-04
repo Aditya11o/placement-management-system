@@ -5,15 +5,20 @@ import api from '../../services/api';
 import DataTable, { Column } from '../../components/DataTable/DataTable';
 import FilterBar from '../../components/FilterBar/FilterBar';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
+import CompanyDetailsDrawer from '../../components/CompanyDetailsDrawer/CompanyDetailsDrawer';
+import BulkActionBar from '../../components/BulkActionBar/BulkActionBar';
 
 const AdminRecruiters = () => {
     const { addToast } = useToast();
     const queryClient = useQueryClient();
 
+    const [selectedRecruiter, setSelectedRecruiter] = useState<any | null>(null);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [verificationFilter, setVerificationFilter] = useState('ALL');
     const [page, setPage] = useState(1);
+    const [selectedKeys, setSelectedKeys] = useState<(string | number)[]>([]);
     const limit = 20;
 
     // Reset to page 1 when filters change
@@ -51,8 +56,27 @@ const AdminRecruiters = () => {
             queryClient.invalidateQueries({ queryKey: ['adminRecruiters'] });
             queryClient.invalidateQueries({ queryKey: ['adminStats'] });
             queryClient.invalidateQueries({ queryKey: ['adminPendingRecruiters'] });
+            if (selectedRecruiter) {
+                setSelectedRecruiter({ ...selectedRecruiter, status: newStatus ? 'APPROVED' : 'BLOCKED' });
+            }
         },
         onError: () => addToast('Failed to change account status', 'error'),
+    });
+
+    const bulkMutation = useMutation({
+        mutationFn: async ({ userIds, newStatus }: { userIds: string[]; newStatus: boolean }) => {
+            const status = newStatus ? 'APPROVED' : 'BLOCKED';
+            const promises = userIds.map(id => api.put('/admin/users/status', { id, role: 'RECRUITER', status }));
+            return await Promise.all(promises);
+        },
+        onSuccess: (_, { newStatus, userIds }) => {
+            addToast(`${userIds.length} recruiters ${newStatus ? 'approved' : 'blocked'}`, 'success');
+            queryClient.invalidateQueries({ queryKey: ['adminRecruiters'] });
+            queryClient.invalidateQueries({ queryKey: ['adminStats'] });
+            queryClient.invalidateQueries({ queryKey: ['adminPendingRecruiters'] });
+            setSelectedKeys([]);
+        },
+        onError: () => addToast('Failed to process bulk action', 'error'),
     });
 
     const verificationMutation = useMutation({
@@ -190,6 +214,9 @@ const AdminRecruiters = () => {
             />
 
             <DataTable
+                selectable
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
                 columns={columns}
                 data={filteredRecruiters}
                 isLoading={isLoading}
@@ -199,6 +226,23 @@ const AdminRecruiters = () => {
                 page={page}
                 totalPages={totalPages}
                 onPageChange={setPage}
+                onRowClick={(rec) => setSelectedRecruiter(rec)}
+            />
+
+            <CompanyDetailsDrawer
+                isOpen={!!selectedRecruiter}
+                onClose={() => setSelectedRecruiter(null)}
+                recruiter={selectedRecruiter}
+                onStatusChange={(id, newStatus) => statusMutation.mutate({ userId: id, newStatus })}
+                isUpdating={statusMutation.isPending}
+            />
+
+            <BulkActionBar
+                selectedCount={selectedKeys.length}
+                onClearSelection={() => setSelectedKeys([])}
+                onApprove={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: true })}
+                onReject={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: false })}
+                isProcessing={bulkMutation.isPending}
             />
         </div>
     );

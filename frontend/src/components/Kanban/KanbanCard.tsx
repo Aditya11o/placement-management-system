@@ -5,16 +5,30 @@ import { FileText, GripVertical } from 'lucide-react';
 import { Application } from '../../types';
 
 export interface UIApplicant extends Omit<Application, 'student' | 'job'> {
-    student?: { name: string; email: string; resume_url?: string };
+    student?: {
+        name: string;
+        email: string;
+        resume_url?: string;
+        phone?: string;
+        branch?: string;
+        graduation_year?: number;
+        cgpa?: number;
+        marks_10th?: number;
+        marks_12th?: number;
+        backlogs_active?: number;
+        skills?: string[];
+        profile_image_url?: string;
+    };
     job?: { _id: string; title: string };
     matchScore?: number;
 }
 
 interface KanbanCardProps {
     app: UIApplicant;
+    onViewProfile?: (app: UIApplicant) => void;
 }
 
-const KanbanCard: React.FC<KanbanCardProps> = ({ app }) => {
+const KanbanCard: React.FC<KanbanCardProps> = ({ app, onViewProfile }) => {
     const {
         attributes,
         listeners,
@@ -46,11 +60,23 @@ const KanbanCard: React.FC<KanbanCardProps> = ({ app }) => {
         <div
             ref={setNodeRef}
             style={style}
-            className={`group flex flex-col p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing w-full gap-3 ${isDragging ? 'opacity-0' : ''}`}
+            className={`group flex flex-col p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 rounded-lg shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all cursor-grab active:cursor-grabbing w-full gap-3 relative ${isDragging ? 'opacity-0' : ''}`}
             {...attributes}
             {...listeners}
+            onClick={(e) => {
+                // Ignore clicks on links or buttons inside the card
+                if (e.defaultPrevented || (e.target as HTMLElement).closest('a, button')) return;
+                onViewProfile?.(app);
+            }}
         >
-            <div className="flex justify-between items-start">
+            {/* View Profile Overlay Hint */}
+            <div className="absolute inset-0 bg-indigo-50/0 group-hover:bg-indigo-50/50 dark:group-hover:bg-indigo-900/10 pointer-events-none rounded-lg transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-white/80 dark:bg-slate-800/80 px-3 py-1 rounded-full shadow-sm backdrop-blur-sm transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                    View Profile
+                </span>
+            </div>
+
+            <div className="flex justify-between items-start relative z-10">
                 <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center text-lg font-bold shrink-0">
                         {app.student?.name?.charAt(0) || 'U'}

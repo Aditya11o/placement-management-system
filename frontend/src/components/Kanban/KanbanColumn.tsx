@@ -7,6 +7,7 @@ interface KanbanColumnProps {
     id: string; // The status (e.g., 'SUBMITTED', 'REVIEWED')
     title: string;
     applications: UIApplicant[];
+    onViewProfile?: (app: UIApplicant) => void;
 }
 
 const uiColors: Record<string, string> = {
@@ -17,7 +18,7 @@ const uiColors: Record<string, string> = {
     'REJECTED': 'border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-300',
 };
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, applications }) => {
+const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, applications, onViewProfile }) => {
     const { setNodeRef, isOver } = useDroppable({
         id,
         data: { type: 'Column', status: id }
@@ -42,7 +43,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, title, applications }) 
             >
                 <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
                     {applications.map(app => (
-                        <KanbanCard key={app._id} app={app} />
+                        <KanbanCard key={app._id} app={app} onViewProfile={onViewProfile} />
                     ))}
                     {applications.length === 0 && (
                         <div className="h-full min-h-[100px] flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700/50 rounded-lg text-slate-400 text-sm font-medium">

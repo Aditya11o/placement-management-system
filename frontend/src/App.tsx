@@ -31,6 +31,8 @@ const RecruiterProfile = lazy(() => import('./pages/recruiter/RecruiterProfile')
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminStudents = lazy(() => import('./pages/admin/AdminStudents'));
 const AdminRecruiters = lazy(() => import('./pages/admin/AdminRecruiters'));
+const AdminApprovals = lazy(() => import('./pages/admin/AdminApprovals'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 
 // Provisional Page imports
 const Unauthorized = () => <div style={{ padding: '2rem' }}><h1>403 - Unauthorized Access</h1></div>;
@@ -91,6 +93,8 @@ const App = () => {
                             <Route path="/admin/dashboard" element={<AdminDashboard />} />
                             <Route path="/admin/students" element={<AdminStudents />} />
                             <Route path="/admin/recruiters" element={<AdminRecruiters />} />
+                            <Route path="/admin/approvals" element={<AdminApprovals />} />
+                            <Route path="/admin/settings" element={<AdminSettings />} />
                           </Route>
 
                         </Route>

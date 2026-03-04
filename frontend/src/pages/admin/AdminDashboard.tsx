@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useToast } from '../../context/ToastContext';
@@ -5,17 +6,20 @@ import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import SkeletonCard from '../../components/Skeleton/SkeletonCard';
 import SkeletonTable from '../../components/Skeleton/SkeletonTable';
-import { Users, Building, Activity, ShieldAlert, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Building, Activity, ShieldAlert, CheckCircle, XCircle, DownloadCloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 import TrendsChart from '../../components/Charts/TrendsChart';
 import FunnelChart from '../../components/Charts/FunnelChart';
+import ExportReportsModal from '../../components/ExportReportsModal/ExportReportsModal';
 
 const AdminDashboard = () => {
     const { addToast } = useToast();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
     // Fetch Dashboard Stats
     const { data: stats, isLoading: isStatsLoading } = useQuery({
@@ -26,8 +30,8 @@ const AdminDashboard = () => {
                 totalStudents: res.data.data.studentCount,
                 totalRecruiters: res.data.data.recruiterCount,
                 totalJobs: res.data.data.activeJobs,
-                placedStudents: 0,
-                placementRate: 'N/A'
+                placedStudents: res.data.data.placedStudents,
+                placementRate: res.data.data.placementRate
             } : null;
         }
     });
@@ -82,6 +86,22 @@ const AdminDashboard = () => {
     const handleRecruiterApproval = (id: string, action: string) => {
         approvalMutation.mutate({ id, action });
     };
+
+    // Mutation for Exporting Data
+    const exportMutation = useMutation({
+        mutationFn: async (type: 'students' | 'applications') => {
+            const res = await api.post('/admin/export', { type });
+            return res.data;
+        },
+        onSuccess: (data) => {
+            addToast(data.message || 'Export queued successfully. You will receive an email shortly.', 'success');
+            setIsExportModalOpen(false);
+        },
+        onError: (err: any) => {
+            addToast(err.response?.data?.message || 'Failed to generate export report.', 'error');
+            setIsExportModalOpen(false);
+        }
+    });
 
     const isLoading = isStatsLoading || isRecruitersLoading;
 
@@ -154,10 +174,18 @@ const AdminDashboard = () => {
                 <div>
                     <Card className="flex flex-col p-6 lg:p-8 h-full">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-indigo-700 m-0">Pending Recruiter Approvals</h2>
-                            {pendingRecruiters.length > 0 && (
-                                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-600">{pendingRecruiters.length} Pending</span>
-                            )}
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-xl font-bold text-indigo-700 m-0">Pending Approvals</h2>
+                                {pendingRecruiters.length > 0 && (
+                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-600">{pendingRecruiters.length} Pending</span>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => navigate('/admin/approvals')}
+                                className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                            >
+                                View All &rarr;
+                            </button>
                         </div>
 
                         <div className="flex flex-col gap-4">
@@ -197,12 +225,26 @@ const AdminDashboard = () => {
                             <Button isFullWidth variant="secondary" icon={Building} onClick={() => navigate('/admin/recruiters')}>Manage Companies</Button>
                             <div className="h-px bg-slate-200 my-2"></div>
                             {/* Future links for reports could go here */}
-                            <Button isFullWidth variant="ghost" disabled>Export Reports</Button>
+                            <Button
+                                isFullWidth
+                                variant="primary"
+                                icon={DownloadCloud}
+                                onClick={() => setIsExportModalOpen(true)}
+                            >
+                                Export Reports
+                            </Button>
                         </div>
                     </Card>
                 </div>
 
             </div>
+
+            <ExportReportsModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                isExporting={exportMutation.isPending}
+                onExport={(type) => exportMutation.mutate(type)}
+            />
         </div>
     );
 };

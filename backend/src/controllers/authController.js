@@ -10,6 +10,7 @@ const { emailQueue } = require('../utils/emailQueue');
 const config = require('../config/config');
 const { generate2FASecret, verify2FAToken } = require('../utils/totp');
 const logger = require('../utils/logger');
+const GlobalSettings = require('../models/GlobalSettings');
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, config.get('jwt.secret'), {
@@ -23,6 +24,11 @@ const generateRefreshToken = () => {
 
 exports.registerStudent = async (req, res) => {
     try {
+        const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+        if (settings && !settings.allowStudentRegistration) {
+            return res.status(403).json({ success: false, message: 'Student registration is currently disabled by the administrator.' });
+        }
+
         const { name, email, password, branch, cgpa, graduation_year, phone, backlogs_active, marks_10th, marks_12th, gender } = req.body;
         const exists = await Student.findOne({ email });
         if (exists) return res.status(400).json({ success: false, message: 'Student with this email already exists' });
@@ -43,6 +49,11 @@ exports.registerStudent = async (req, res) => {
 
 exports.registerRecruiter = async (req, res) => {
     try {
+        const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+        if (settings && !settings.allowRecruiterRegistration) {
+            return res.status(403).json({ success: false, message: 'Recruiter registration is currently disabled by the administrator.' });
+        }
+
         const { company_name, contact_person, email, password, phone } = req.body;
         const exists = await Recruiter.findOne({ email });
         if (exists) return res.status(400).json({ success: false, message: 'Recruiter with this email already exists' });

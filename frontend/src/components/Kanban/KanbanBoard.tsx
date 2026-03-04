@@ -29,9 +29,10 @@ const COLUMNS = [
 interface KanbanBoardProps {
     applications: UIApplicant[];
     onStatusChange: (appId: string, newStatus: string) => void;
+    onViewProfile?: (app: UIApplicant) => void;
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ applications: initialData, onStatusChange }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ applications: initialData, onStatusChange, onViewProfile }) => {
     // Local state for optimistic updates during drag
     const [items, setItems] = useState<UIApplicant[]>(initialData);
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -136,6 +137,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ applications: initialData, on
                             id={col.id}
                             title={col.title}
                             applications={items.filter(app => app.status === col.id)}
+                            onViewProfile={onViewProfile}
                         />
                     </div>
                 ))}

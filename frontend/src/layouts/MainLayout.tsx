@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import {
     Menu, X, LayoutDashboard, User, Briefcase,
-    FileText, Users, Settings, LogOut, Building, LucideIcon
+    FileText, Users, Settings, LogOut, Building, LucideIcon, ShieldCheck
 } from 'lucide-react';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
 import ThemeToggle from '../components/ThemeToggle/ThemeToggle';
@@ -52,6 +52,7 @@ const MainLayout: React.FC = () => {
             case 'SUPER_ADMIN':
                 return [
                     { label: 'Analytics Console', path: '/admin/dashboard', icon: LayoutDashboard },
+                    { label: 'Approval Center', path: '/admin/approvals', icon: ShieldCheck },
                     { label: 'Manage Students', path: '/admin/students', icon: Users },
                     { label: 'Manage Recruiters', path: '/admin/recruiters', icon: Briefcase },
                     { label: 'System Settings', path: '/admin/settings', icon: Settings },

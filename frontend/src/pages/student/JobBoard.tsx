@@ -4,9 +4,12 @@ import { useToast } from '../../context/ToastContext';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import Loader from '../../components/Loader/Loader';
+import SkeletonJobCard from '../../components/Skeleton/SkeletonJobCard';
 import { Search, MapPin, Building, Calendar, DollarSign, Send, CheckCircle, ChevronLeft, ChevronRight, Filter, Briefcase } from 'lucide-react';
 import api from '../../services/api';
 import JobModal, { UIJob } from '../../components/JobModal/JobModal';
+import PageTransition from '../../components/Transitions/PageTransition';
+import { motion, Variants } from 'framer-motion';
 
 const JOB_TYPES = ['Full-time', 'Part-time', 'Internship', 'Contract'];
 
@@ -85,8 +88,21 @@ const JobBoard: React.FC = () => {
         }
     };
 
+    const containerVariants: Variants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    };
+
+    const itemVariants: Variants = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+    };
+
     return (
-        <div className="flex flex-col gap-6 animate-fade-in relative">
+        <PageTransition className="flex flex-col gap-6 relative">
             <div>
                 <h1 className="text-3xl font-bold text-indigo-700 dark:text-indigo-400 mb-1">Job Discovery Board</h1>
                 <p className="text-slate-500 dark:text-slate-400 text-base m-0">Find and apply to the latest placement opportunities.</p>
@@ -227,82 +243,89 @@ const JobBoard: React.FC = () => {
                     )}
 
                     {isLoading ? (
-                        <div className="mt-12"><Loader /></div>
+                        <SkeletonJobCard count={6} />
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <motion.div
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="show"
+                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+                        >
                             {jobs.length === 0 ? (
-                                <div className="col-span-1 md:col-span-2 xl:col-span-3 flex flex-col items-center justify-center text-center p-12 bg-white dark:bg-slate-800/50 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700/50">
+                                <motion.div variants={itemVariants} className="col-span-1 md:col-span-2 xl:col-span-3 flex flex-col items-center justify-center text-center p-12 bg-white dark:bg-slate-800/50 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700/50">
                                     <Briefcase size={48} className="text-slate-300 dark:text-slate-600 mb-4" />
                                     <h3 className="text-xl font-semibold mb-2 text-slate-700 dark:text-slate-200">No matching jobs found</h3>
                                     <p className="text-slate-500 dark:text-slate-400">Try adjusting your filters, location, or search terms to find more opportunities.</p>
                                     <Button variant="secondary" className="mt-6" onClick={() => {
                                         setSelectedTypes([]); setMinSalary(0); setLocationSearch(''); setSearchTerm(''); setPage(1);
                                     }}>Clear All Filters</Button>
-                                </div>
+                                </motion.div>
                             ) : (
                                 jobs.map(job => (
-                                    <Card key={job._id} className="flex flex-col h-full p-6 hover:-translate-y-1 hover:shadow-xl hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all duration-300 group bg-white dark:bg-slate-800/90 border-slate-200 dark:border-slate-700/60">
-                                        <div className="flex items-start gap-4 mb-5 relative">
-                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-500/20 dark:to-slate-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl font-bold shrink-0 border border-slate-100 dark:border-indigo-500/20 shadow-sm group-hover:scale-105 transition-transform duration-300">
-                                                {job.company?.company_name?.charAt(0) || 'C'}
-                                            </div>
-                                            <div className="grow pr-16 min-w-0">
-                                                <h3 className="text-[17px] mb-1 text-slate-900 dark:text-slate-50 leading-snug font-bold truncate" title={job.title}>{job.title}</h3>
-                                                <span className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                                    <Building size={14} className="text-slate-400 dark:text-slate-500" />
-                                                    <span className="truncate max-w-[120px]" title={job.company?.company_name}>{job.company?.company_name || 'Unknown'}</span>
-                                                </span>
-                                            </div>
-                                            {job.status === 'ACTIVE' ? (
-                                                <span className="absolute top-0 right-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 tracking-wider">Open</span>
-                                            ) : (
-                                                <span className="absolute top-0 right-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400 tracking-wider">Closed</span>
-                                            )}
-                                        </div>
-
-                                        <div className="flex flex-col gap-2.5 mb-5 pb-5 border-b border-slate-100 dark:border-slate-700/50">
-                                            <div className="flex items-center justify-between text-slate-600 dark:text-slate-300 text-[14px]">
-                                                <div className="flex items-center gap-2 max-w-[50%]">
-                                                    <MapPin size={16} className="text-slate-400 shrink-0" />
-                                                    <span className="truncate">{job.location}</span>
+                                    <motion.div variants={itemVariants} key={job._id}>
+                                        <Card className="flex flex-col h-full p-6 hover:-translate-y-1 hover:shadow-xl hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all duration-300 group bg-white dark:bg-slate-800/90 border-slate-200 dark:border-slate-700/60">
+                                            <div className="flex items-start gap-4 mb-5 relative">
+                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-500/20 dark:to-slate-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl font-bold shrink-0 border border-slate-100 dark:border-indigo-500/20 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                                                    {job.company?.company_name?.charAt(0) || 'C'}
                                                 </div>
-                                                <div className="flex items-center gap-2 font-semibold text-indigo-700 dark:text-indigo-400">
-                                                    <DollarSign size={16} className="shrink-0" />
-                                                    <span>₹{job.salary_package} LPA</span>
+                                                <div className="grow pr-16 min-w-0">
+                                                    <h3 className="text-[17px] mb-1 text-slate-900 dark:text-slate-50 leading-snug font-bold truncate" title={job.title}>{job.title}</h3>
+                                                    <span className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 font-medium">
+                                                        <Building size={14} className="text-slate-400 dark:text-slate-500" />
+                                                        <span className="truncate max-w-[120px]" title={job.company?.company_name}>{job.company?.company_name || 'Unknown'}</span>
+                                                    </span>
+                                                </div>
+                                                {job.status === 'ACTIVE' ? (
+                                                    <span className="absolute top-0 right-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 tracking-wider">Open</span>
+                                                ) : (
+                                                    <span className="absolute top-0 right-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400 tracking-wider">Closed</span>
+                                                )}
+                                            </div>
+
+                                            <div className="flex flex-col gap-2.5 mb-5 pb-5 border-b border-slate-100 dark:border-slate-700/50">
+                                                <div className="flex items-center justify-between text-slate-600 dark:text-slate-300 text-[14px]">
+                                                    <div className="flex items-center gap-2 max-w-[50%]">
+                                                        <MapPin size={16} className="text-slate-400 shrink-0" />
+                                                        <span className="truncate">{job.location}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 font-semibold text-indigo-700 dark:text-indigo-400">
+                                                        <DollarSign size={16} className="shrink-0" />
+                                                        <span>₹{job.salary_package} LPA</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[13px] mt-1">
+                                                    <Calendar size={14} className="shrink-0" />
+                                                    <span>Apply Before: <span className="font-medium text-slate-700 dark:text-slate-300">{new Date(job.deadline).toLocaleDateString()}</span></span>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[13px] mt-1">
-                                                <Calendar size={14} className="shrink-0" />
-                                                <span>Apply Before: <span className="font-medium text-slate-700 dark:text-slate-300">{new Date(job.deadline).toLocaleDateString()}</span></span>
-                                            </div>
-                                        </div>
 
-                                        <div className="flex flex-wrap gap-2 mb-6 grow content-start">
-                                            <div className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-semibold text-slate-600 dark:text-slate-300">Min CGPA: {job.min_cgpa}</div>
-                                            <div className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-semibold text-slate-600 dark:text-slate-300">{job.type}</div>
-                                        </div>
-
-                                        <div className="flex gap-3 mt-auto">
-                                            <div className="flex-1"><Button isFullWidth variant="ghost" size="sm" onClick={() => setSelectedJob(job)}>Details</Button></div>
-                                            <div className="flex-1">
-                                                <Button
-                                                    isFullWidth
-                                                    variant={job.hasApplied ? 'secondary' : 'primary'}
-                                                    size="sm"
-                                                    onClick={() => handleApply(job._id)}
-                                                    disabled={job.status !== 'ACTIVE' || applyingTo === job._id || job.hasApplied}
-                                                    isLoading={applyingTo === job._id}
-                                                    icon={job.hasApplied ? CheckCircle : Send}
-                                                    className="shadow-sm"
-                                                >
-                                                    {job.hasApplied ? 'Applied' : 'Apply'}
-                                                </Button>
+                                            <div className="flex flex-wrap gap-2 mb-6 grow content-start">
+                                                <div className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-semibold text-slate-600 dark:text-slate-300">Min CGPA: {job.min_cgpa}</div>
+                                                <div className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs font-semibold text-slate-600 dark:text-slate-300">{job.type}</div>
                                             </div>
-                                        </div>
-                                    </Card>
+
+                                            <div className="flex gap-3 mt-auto">
+                                                <div className="flex-1"><Button isFullWidth variant="ghost" size="sm" onClick={() => setSelectedJob(job)}>Details</Button></div>
+                                                <div className="flex-1">
+                                                    <Button
+                                                        isFullWidth
+                                                        variant={job.hasApplied ? 'secondary' : 'primary'}
+                                                        size="sm"
+                                                        onClick={() => handleApply(job._id)}
+                                                        disabled={job.status !== 'ACTIVE' || applyingTo === job._id || job.hasApplied}
+                                                        isLoading={applyingTo === job._id}
+                                                        icon={job.hasApplied ? CheckCircle : Send}
+                                                        className="shadow-sm"
+                                                    >
+                                                        {job.hasApplied ? 'Applied' : 'Apply'}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </motion.div>
                                 ))
                             )}
-                        </div>
+                        </motion.div>
                     )}
 
                     {/* Pagination Controls */}
@@ -340,7 +363,7 @@ const JobBoard: React.FC = () => {
                 onApply={handleApply}
                 isApplying={applyingTo === selectedJob?._id}
             />
-        </div>
+        </PageTransition>
     );
 };
 

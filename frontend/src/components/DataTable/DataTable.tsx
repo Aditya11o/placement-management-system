@@ -25,6 +25,14 @@ interface DataTableProps<T> {
     skeletonCols?: number;
     skeletonRows?: number;
 
+    /** Optional row click handler */
+    onRowClick?: (row: T) => void;
+
+    /** Selection Props */
+    selectable?: boolean;
+    selectedKeys?: (string | number)[];
+    onSelectionChange?: (keys: (string | number)[]) => void;
+
     // Pagination specific props
     page?: number;
     totalPages?: number;
@@ -45,9 +53,41 @@ function DataTable<T>({
     page,
     totalPages,
     onPageChange,
+    onRowClick,
+    selectable = false,
+    selectedKeys = [],
+    onSelectionChange,
 }: DataTableProps<T>) {
-    const cols = skeletonCols ?? columns.length;
+    const cols = selectable ? (skeletonCols ?? columns.length) + 1 : skeletonCols ?? columns.length;
     const hasPagination = page !== undefined && totalPages !== undefined && onPageChange !== undefined;
+
+    const rowKeysOnPage = data.map((row, rowIdx) => rowKey ? rowKey(row) : (row as any)._id ?? rowIdx);
+    const isAllSelected = data.length > 0 && rowKeysOnPage.every(k => selectedKeys.includes(k));
+    const isSomeSelected = data.length > 0 && rowKeysOnPage.some(k => selectedKeys.includes(k)) && !isAllSelected;
+
+    const handleSelectAll = () => {
+        if (!onSelectionChange) return;
+        if (isAllSelected) {
+            // Remove exactly these keys from selectedKeys
+            onSelectionChange(selectedKeys.filter(k => !rowKeysOnPage.includes(k)));
+        } else {
+            // Add any missing keys from this page
+            const newKeys = [...selectedKeys];
+            rowKeysOnPage.forEach(k => {
+                if (!newKeys.includes(k)) newKeys.push(k);
+            });
+            onSelectionChange(newKeys);
+        }
+    };
+
+    const handleSelectRow = (key: string | number) => {
+        if (!onSelectionChange) return;
+        if (selectedKeys.includes(key)) {
+            onSelectionChange(selectedKeys.filter(k => k !== key));
+        } else {
+            onSelectionChange([...selectedKeys, key]);
+        }
+    };
 
     return (
         <Card className="overflow-hidden p-0">
@@ -62,6 +102,19 @@ function DataTable<T>({
                     <table className="w-full border-collapse text-left">
                         <thead>
                             <tr>
+                                {selectable && (
+                                    <th className={`${thClass} w-12 text-center`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isAllSelected}
+                                            ref={input => {
+                                                if (input) input.indeterminate = isSomeSelected;
+                                            }}
+                                            onChange={handleSelectAll}
+                                            className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                        />
+                                    </th>
+                                )}
                                 {columns.map((col, i) => (
                                     <th key={i} className={`${thClass} ${col.className ?? ''}`}>
                                         {col.header}
@@ -75,7 +128,26 @@ function DataTable<T>({
                                     ? rowKey(row)
                                     : (row as any)._id ?? rowIdx;
                                 return (
-                                    <tr key={key} className="hover:bg-slate-50 transition-colors">
+                                    <tr
+                                        key={key}
+                                        className={`transition-colors border-b border-slate-100 last:border-none ${onRowClick ? 'cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-700/50' : 'hover:bg-slate-50 dark:hover:bg-slate-800/80'} ${selectedKeys.includes(key) ? 'bg-indigo-50/40 dark:bg-indigo-900/10' : ''}`}
+                                        onClick={(e) => {
+                                            // Only trigger row click if we're not clicking the checkbox itself
+                                            if ((e.target as HTMLElement).tagName.toLowerCase() !== 'input' && onRowClick) {
+                                                onRowClick(row);
+                                            }
+                                        }}
+                                    >
+                                        {selectable && (
+                                            <td className={`${tdClass} w-12 text-center`} onClick={e => e.stopPropagation()}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedKeys.includes(key)}
+                                                    onChange={() => handleSelectRow(key)}
+                                                    className="w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                                                />
+                                            </td>
+                                        )}
                                         {columns.map((col, colIdx) => (
                                             <td key={colIdx} className={`${tdClass} ${col.className ?? ''}`}>
                                                 {col.cell

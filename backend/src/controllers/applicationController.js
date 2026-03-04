@@ -65,14 +65,22 @@ exports.getRecruiterApplications = async (req, res, next) => {
         const jobs = await Job.find({ recruiter_id: req.user._id }).select('_id');
         const jobIds = jobs.map(job => job._id);
 
-        req.advancedFilter = { job_id: { $in: jobIds } };
+        const applications = await Application.find({ job_id: { $in: jobIds } })
+            .populate({
+                path: 'job_id',
+                select: 'title company_name status deadline'
+            })
+            .populate({
+                path: 'student_id',
+                select: 'name email phone branch graduation_year cgpa marks_10th marks_12th backlogs_active skills profile_image_url resume_versions activeResume resume_url'
+            })
+            .sort('-created_at');
 
-        // Use advancedResults manually since we don't have the middleware injected on this specific raw call if we do it this way, 
-        // OR rely on the route advancedResults(Application). 
-        // Let's assume the route has `advancedResults(Application, { path: 'job_id student_id', select: 'title name email resume_url' })`
-        // We just attach the filter and let the middleware handle it.
-
-        res.status(200).json(res.advancedResults);
+        res.status(200).json({
+            success: true,
+            count: applications.length,
+            data: applications
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '../../context/ToastContext';
 import Card from '../../components/Card/Card';
 // import Button from '../../components/Button/Button';
-import Loader from '../../components/Loader/Loader';
+import SkeletonList from '../../components/Skeleton/SkeletonList';
 import { FileUp, FileText, CheckCircle, Trash2, ExternalLink } from 'lucide-react';
 import api from '../../services/api';
 
@@ -88,7 +88,23 @@ const Resumes: React.FC = () => {
         }
     };
 
-    if (isLoading) return <Loader />;
+    if (isLoading) return (
+        <div className="flex flex-col gap-8 animate-fade-in">
+            <div className="mb-2">
+                <h1 className="text-3xl font-bold text-indigo-700 mb-1">Resume Management</h1>
+                <p className="text-slate-500 text-base m-0">Upload and manage your resume versions.</p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Card className="h-max lg:col-span-1">
+                    <div className="flex flex-col items-center justify-center p-8 bg-slate-50 h-64 rounded-lg animate-pulse border-2 border-dashed border-slate-200"></div>
+                </Card>
+                <div className="lg:col-span-2">
+                    <h2 className="text-xl font-bold mb-4 text-slate-800">Version History</h2>
+                    <SkeletonList count={3} />
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="flex flex-col gap-8 animate-fade-in">

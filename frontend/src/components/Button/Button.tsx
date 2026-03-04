@@ -1,4 +1,5 @@
 import { ButtonHTMLAttributes, ElementType } from 'react';
+import { motion } from 'framer-motion';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -35,11 +36,15 @@ const Button: React.FC<ButtonProps> = ({
 
     const widthClass = isFullWidth ? "w-full" : "";
 
+    const { onAnimationStart, onDrag, ...safeProps } = props;
+
     return (
-        <button
+        <motion.button
             className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
             disabled={isLoading || props.disabled}
-            {...props}
+            whileHover={!(isLoading || props.disabled) ? { scale: 1.02 } : { scale: 1 }}
+            whileTap={!(isLoading || props.disabled) ? { scale: 0.98 } : { scale: 1 }}
+            {...(safeProps as any)}
         >
             {isLoading ? (
                 <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -52,7 +57,7 @@ const Button: React.FC<ButtonProps> = ({
                     {children}
                 </>
             )}
-        </button>
+        </motion.button>
     );
 };
 

@@ -3,7 +3,7 @@ import { useToast } from '../../context/ToastContext';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import Input from '../../components/Input/Input';
-import Loader from '../../components/Loader/Loader';
+import SkeletonList from '../../components/Skeleton/SkeletonList';
 import { Briefcase, Plus, Users, Trash2, X } from 'lucide-react';
 import api from '../../services/api';
 import { Job } from '../../types';
@@ -90,7 +90,7 @@ const RecruiterJobs: React.FC = () => {
 
     const toggleJobStatus = async (id: string, currentStatus: string) => {
         try {
-            const newStatus = currentStatus === 'OPEN' ? 'CLOSED' : 'OPEN';
+            const newStatus = currentStatus === 'ACTIVE' ? 'CLOSED' : 'ACTIVE';
             // Assume endpoint allows patch status or regular update
             await api.put(`/jobs/${id}`, { status: newStatus });
             addToast(`Job marked as ${newStatus}`, 'success');
@@ -122,7 +122,7 @@ const RecruiterJobs: React.FC = () => {
             </div>
 
             {isLoading ? (
-                <Loader />
+                <SkeletonList count={5} />
             ) : (
                 <div className="flex flex-col gap-6">
                     {jobs.length === 0 ? (
@@ -140,7 +140,7 @@ const RecruiterJobs: React.FC = () => {
                                         <h3 className="text-xl font-bold text-indigo-700 mb-1 m-0">{job.title}</h3>
                                         <span className="text-sm text-slate-500">{job.location}</span>
                                     </div>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${job.status === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${job.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                         {job.status}
                                     </span>
                                 </div>
@@ -168,7 +168,7 @@ const RecruiterJobs: React.FC = () => {
                                     </span>
                                     <div className="flex items-center gap-2">
                                         <Button variant="ghost" size="sm" onClick={() => toggleJobStatus(job._id, job.status)}>
-                                            {job.status === 'OPEN' ? 'Close Drive' : 'Re-open'}
+                                            {job.status === 'ACTIVE' ? 'Close Drive' : 'Re-open'}
                                         </Button>
                                         <button className="bg-transparent border-none w-9 h-9 rounded flex items-center justify-center cursor-pointer transition-colors text-slate-400 hover:bg-red-50 hover:text-red-500" onClick={() => deleteJob(job._id)}>
                                             <Trash2 size={18} />

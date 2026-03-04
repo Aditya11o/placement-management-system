@@ -1,5 +1,5 @@
 const express = require('express');
-const { getUsers, updateUserStatus, getDashboardStats, exportData, generateApiKey, listApiKeys, revokeApiKey } = require('../controllers/adminController');
+const { getUsers, updateUserStatus, getDashboardStats, exportData, getSettings, updateSettings, getEmailTemplates, updateEmailTemplate } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
 const checkPermission = require('../middlewares/checkPermission');
@@ -138,71 +138,7 @@ router.get('/logs', checkPermission('view_logs'), (req, res) => {
     });
 });
 
-// ==========================
-// API Key Management Routes
-// ==========================
 
-// Prevent API keys from generating more API keys or revoking themselves
-const ensureNotApiKey = (req, res, next) => {
-    if (req.isApiKeySession) {
-        return res.status(403).json({ success: false, message: 'Forbidden. API Keys cannot manage other API Keys.' });
-    }
-    next();
-};
-
-/**
- * @swagger
- * /api/v1/admin/api-keys:
- *   post:
- *     summary: Generate a new API key
- *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *     responses:
- *       201:
- *         description: Returns raw API key once
- *   get:
- *     summary: List all active API keys
- *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Array of keys mapped by ID and Name
- */
-router.post('/api-keys', ensureNotApiKey, checkPermission('manage_api_keys'), validateApiKeyGeneration, validate, generateApiKey);
-router.get('/api-keys', ensureNotApiKey, checkPermission('manage_api_keys'), listApiKeys);
-
-/**
- * @swagger
- * /api/v1/admin/api-keys/{id}:
- *   delete:
- *     summary: Revoke an API key
- *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: API Key revoked
- */
-router.delete('/api-keys/:id', ensureNotApiKey, checkPermission('manage_api_keys'), revokeApiKey);
 
 // ==========================
 // Bulk CSV Operations
@@ -235,5 +171,20 @@ const upload = multer({
  */
 router.post('/bulk', checkPermission('manage_students'), upload.single('file'), bulkOperations);
 router.get('/bulk/:jobId', getBulkJobStatus);
+
+// ==========================
+// System Settings API
+// ==========================
+
+// Ensure only SUPER_ADMIN or ADMIN can access settings routes
+router.get('/settings', getSettings);
+router.put('/settings', updateSettings);
+
+// ==========================
+// Custom Email Templates API
+// ==========================
+
+router.get('/email-templates', getEmailTemplates);
+router.put('/email-templates/:id', updateEmailTemplate);
 
 module.exports = router;

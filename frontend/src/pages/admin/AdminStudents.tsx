@@ -6,21 +6,28 @@ import api from '../../services/api';
 import DataTable, { Column } from '../../components/DataTable/DataTable';
 import FilterBar from '../../components/FilterBar/FilterBar';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
+import StudentProfileDrawer from '../../components/ProfileViewer/StudentProfileDrawer';
+import BulkActionBar from '../../components/BulkActionBar/BulkActionBar';
 
 const AdminStudents = () => {
     const { addToast } = useToast();
     const queryClient = useQueryClient();
 
+    const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [branchFilter, setBranchFilter] = useState('ALL');
+    const [minCgpaFilter, setMinCgpaFilter] = useState('ALL');
     const [page, setPage] = useState(1);
+    const [selectedKeys, setSelectedKeys] = useState<(string | number)[]>([]);
     const limit = 20;
 
     // Reset to page 1 when filters change
     const handleSearchChange = (val: string) => { setSearchTerm(val); setPage(1); };
     const handleStatusChange = (val: string) => { setStatusFilter(val); setPage(1); };
     const handleBranchChange = (val: string) => { setBranchFilter(val); setPage(1); };
+    const handleCgpaChange = (val: string) => { setMinCgpaFilter(val); setPage(1); };
 
     const { data: queryData, isLoading } = useQuery({
         queryKey: ['adminStudents', page, statusFilter, branchFilter, searchTerm],
@@ -60,8 +67,25 @@ const AdminStudents = () => {
         onSuccess: (_, { newStatus }) => {
             addToast(`Student account ${newStatus ? 'activated' : 'deactivated'}`, 'success');
             queryClient.invalidateQueries({ queryKey: ['adminStudents'] });
+            if (selectedStudent) {
+                setSelectedStudent({ ...selectedStudent, status: newStatus ? 'APPROVED' : 'BLOCKED' });
+            }
         },
         onError: () => addToast('Failed to change account status', 'error'),
+    });
+
+    const bulkMutation = useMutation({
+        mutationFn: async ({ userIds, newStatus }: { userIds: string[]; newStatus: boolean }) => {
+            const status = newStatus ? 'APPROVED' : 'BLOCKED';
+            const promises = userIds.map(id => api.put('/admin/users/status', { id, role: 'STUDENT', status }));
+            return await Promise.all(promises);
+        },
+        onSuccess: (_, { newStatus, userIds }) => {
+            addToast(`${userIds.length} students ${newStatus ? 'approved' : 'blocked'}`, 'success');
+            queryClient.invalidateQueries({ queryKey: ['adminStudents'] });
+            setSelectedKeys([]);
+        },
+        onError: () => addToast('Failed to process bulk action', 'error'),
     });
 
     const filteredStudents = students.filter((student: any) => {
@@ -75,7 +99,8 @@ const AdminStudents = () => {
             (statusFilter === 'ACTIVE' && student.status === 'APPROVED') ||
             (statusFilter === 'INACTIVE' && student.status === 'BLOCKED');
         const matchBranch = branchFilter === 'ALL' || student.studentProfile?.branch === branchFilter;
-        return matchSearch && matchStatus && matchBranch;
+        const matchCgpa = minCgpaFilter === 'ALL' || (student.studentProfile?.cgpa || 0) >= parseFloat(minCgpaFilter);
+        return matchSearch && matchStatus && matchBranch && matchCgpa;
     });
 
     const columns: Column<any>[] = [
@@ -157,6 +182,17 @@ const AdminStudents = () => {
                         ],
                     },
                     {
+                        value: minCgpaFilter,
+                        onChange: handleCgpaChange,
+                        options: [
+                            { label: 'Any CGPA', value: 'ALL' },
+                            { label: '≥ 9.0', value: '9.0' },
+                            { label: '≥ 8.0', value: '8.0' },
+                            { label: '≥ 7.0', value: '7.0' },
+                            { label: '≥ 6.0', value: '6.0' },
+                        ],
+                    },
+                    {
                         value: statusFilter,
                         onChange: handleStatusChange,
                         options: [
@@ -169,6 +205,9 @@ const AdminStudents = () => {
             />
 
             <DataTable
+                selectable
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
                 columns={columns}
                 data={filteredStudents}
                 isLoading={isLoading}
@@ -178,6 +217,42 @@ const AdminStudents = () => {
                 page={page}
                 totalPages={totalPages}
                 onPageChange={setPage}
+                onRowClick={(s) => setSelectedStudent(s)}
+            />
+
+            <StudentProfileDrawer
+                isOpen={!!selectedStudent}
+                onClose={() => setSelectedStudent(null)}
+                applicant={selectedStudent ? {
+                    _id: selectedStudent._id,
+                    job: 'admin-view',
+                    student: {
+                        _id: selectedStudent._id,
+                        name: selectedStudent.name,
+                        email: selectedStudent.email,
+                        phone: selectedStudent.phone,
+                        branch: selectedStudent.studentProfile?.branch,
+                        cgpa: selectedStudent.studentProfile?.cgpa,
+                        graduation_year: selectedStudent.studentProfile?.graduation_year,
+                        skills: selectedStudent.studentProfile?.skills || [],
+                        resume_url: selectedStudent.studentProfile?.resume_url,
+                        profile_image_url: selectedStudent.profile_image_url,
+                        marks_10th: selectedStudent.studentProfile?.marks_10th,
+                        marks_12th: selectedStudent.studentProfile?.marks_12th,
+                        backlogs_active: selectedStudent.studentProfile?.backlogs_active,
+                    },
+                    status: 'PENDING',
+                    resume_url: selectedStudent.studentProfile?.resume_url,
+                    matchScore: 0 // Not relevant for admin view
+                } : null}
+            />
+
+            <BulkActionBar
+                selectedCount={selectedKeys.length}
+                onClearSelection={() => setSelectedKeys([])}
+                onApprove={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: true })}
+                onReject={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: false })}
+                isProcessing={bulkMutation.isPending}
             />
         </div>
     );

@@ -3,8 +3,13 @@ const Recruiter = require('../models/Recruiter');
 const Job = require('../models/Job');
 const Application = require('../models/Application');
 const Log = require('../models/Log');
-const { emailQueue } = require('../utils/emailQueue');
+const crypto = require('crypto');
+const Admin = require('../models/Admin');
 const { dataExportQueue } = require('../utils/dataExportQueue');
+const { bulkQueue } = require('../utils/bulkQueue');
+
+const GlobalSettings = require('../models/GlobalSettings');
+const EmailTemplate = require('../models/EmailTemplate');
 const config = require('../config/config');
 const logger = require('../utils/logger');
 
@@ -94,13 +99,25 @@ exports.getDashboardStats = async (req, res) => {
         const activeJobs = await Job.countDocuments({ status: 'ACTIVE' });
         const totalApplications = await Application.countDocuments();
 
+        // Calculate Placed Students & Placement Rate
+        const placedStudentsArray = await Application.distinct('student_id', { status: 'SELECTED' });
+        const placedStudents = placedStudentsArray.length;
+
+        let placementRateStr = '0%';
+        if (studentCount > 0) {
+            const rate = (placedStudents / studentCount) * 100;
+            placementRateStr = `${rate.toFixed(1)}%`;
+        }
+
         res.json({
             success: true,
             data: {
                 studentCount, pendingStudents,
                 recruiterCount, pendingRecruiters,
                 activeJobs,
-                totalApplications
+                totalApplications,
+                placedStudents,
+                placementRate: placementRateStr
             }
         });
     } catch (err) {
@@ -152,9 +169,6 @@ exports.getLogs = async (req, res) => {
 // ==========================
 // API Key Lifecycle
 // ==========================
-
-const crypto = require('crypto');
-const Admin = require('../models/Admin');
 
 /**
  * @desc    Generate a new API Key for integrations
@@ -251,7 +265,6 @@ exports.revokeApiKey = async (req, res) => {
 // ==========================
 
 const csv = require('fast-csv');
-const { bulkQueue } = require('../utils/bulkQueue');
 const streamifier = require('streamifier');
 
 /**
@@ -351,5 +364,116 @@ exports.getBulkJobStatus = async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+
+/**
+ * @desc    Get system-wide global settings
+ * @route   GET /api/v1/admin/settings
+ * @access  Private/Admin
+ */
+exports.getSettings = async (req, res) => {
+    try {
+        let settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+
+        if (!settings) {
+            settings = await GlobalSettings.create({ singletonId: 'nexus_settings' });
+        }
+
+        res.status(200).json({ success: true, data: settings });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Update system-wide global settings
+ * @route   PUT /api/v1/admin/settings
+ * @access  Private/Admin
+ */
+exports.updateSettings = async (req, res) => {
+    try {
+        const settings = await GlobalSettings.findOneAndUpdate(
+            { singletonId: 'nexus_settings' },
+            req.body,
+            { new: true, runValidators: true, upsert: true }
+        );
+
+        res.status(200).json({ success: true, data: settings });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ==========================
+// Email Template API
+// ==========================
+
+const DEFAULT_TEMPLATES = [
+    {
+        name: 'passwordReset',
+        subject: 'Password Reset Request',
+        description: 'Sent when a user requests a password reset link.',
+        variables: ['{{name}}', '{{resetToken}}'],
+        htmlContent: '<h1>Password Reset</h1><p>Hello {{name}},</p><p>You requested a password reset. Use this token: <strong>{{resetToken}}</strong></p>'
+    },
+    {
+        name: 'accountApproval',
+        subject: 'Your Account Has Been Approved!',
+        description: 'Sent when an administrator manually approves a student or recruiter account.',
+        variables: ['{{name}}', '{{loginUrl}}'],
+        htmlContent: '<h1>Account Approved</h1><p>Hello {{name}},</p><p>Your account limit restrictions have been lifted. You can now login here: <a href="{{loginUrl}}">Login</a></p>'
+    }
+];
+
+/**
+ * @desc    Get all customizable email templates (auto-seeds if empty)
+ * @route   GET /api/v1/admin/email-templates
+ * @access  Private/Admin
+ */
+exports.getEmailTemplates = async (req, res, next) => {
+    try {
+        let templates = await EmailTemplate.find();
+
+        if (templates.length === 0) {
+            // Auto-seed default templates
+            templates = await EmailTemplate.insertMany(DEFAULT_TEMPLATES);
+        }
+
+        res.status(200).json({
+            success: true,
+            count: templates.length,
+            data: templates
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Update a specific email template
+ * @route   PUT /api/v1/admin/email-templates/:id
+ * @access  Private/Admin
+ */
+exports.updateEmailTemplate = async (req, res, next) => {
+    try {
+        let template = await EmailTemplate.findById(req.params.id);
+
+        if (!template) {
+            return res.status(404).json({ success: false, message: 'Template not found' });
+        }
+
+        template = await EmailTemplate.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+            runValidators: true
+        });
+
+        res.status(200).json({
+            success: true,
+            data: template
+        });
+    } catch (err) {
+        next(err);
     }
 };

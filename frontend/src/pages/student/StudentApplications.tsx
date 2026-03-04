@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../context/ToastContext';
 import Card from '../../components/Card/Card';
-import Loader from '../../components/Loader/Loader';
+import SkeletonJobCard from '../../components/Skeleton/SkeletonJobCard';
 import { Briefcase, Calendar, Building, ShieldCheck, XCircle, Clock, LucideIcon } from 'lucide-react';
 import api from '../../services/api';
 import { Application } from '../../types';
@@ -71,7 +71,7 @@ const StudentApplications: React.FC = () => {
             </div>
 
             {isLoading ? (
-                <Loader />
+                <SkeletonJobCard count={4} />
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {applications.length === 0 ? (
