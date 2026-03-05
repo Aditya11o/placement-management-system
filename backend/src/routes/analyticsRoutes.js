@@ -5,7 +5,8 @@ const {
     getBranchPlacementStats,
     getTopCompanies,
     getTrends,
-    getFunnel
+    getFunnel,
+    getSalaryStats
 } = require('../controllers/analyticsController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -203,5 +204,22 @@ router.get('/trends', getTrends);
  *                             example: 18.0
  */
 router.get('/funnel', getFunnel);
+
+/**
+ * @swagger
+ * /api/v1/analytics/salary-stats:
+ *   get:
+ *     summary: Salary distribution statistics by branch
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/fromDate'
+ *       - $ref: '#/components/parameters/toDate'
+ *     responses:
+ *       200:
+ *         description: Salary distribution (Min/Max/Avg) per branch
+ */
+router.get('/salary-stats', getSalaryStats);
 
 module.exports = router;

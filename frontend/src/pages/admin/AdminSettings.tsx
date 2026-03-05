@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Card from '../../components/Card/Card';
-import { ToggleRight, Bell, Shield, Save, AlertTriangle, Loader2, FileText, Edit2, Palette, Image as ImageIcon, History, Clock, User, Lock, Zap } from 'lucide-react';
+import { ToggleRight, Bell, Shield, Save, AlertTriangle, Loader2, FileText, Edit2, Palette, Image as ImageIcon, History, Clock, User, Lock, Zap, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -414,7 +415,13 @@ const AdminSettings = () => {
                             </div>
                             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 m-0">Admin Audit Log</h2>
                         </div>
-                        <span className="text-xs font-medium text-slate-400">Last 50 administrative actions</span>
+                        <Link
+                            to="/admin/audit-logs"
+                            className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:underline transition-all"
+                        >
+                            <ExternalLink size={14} />
+                            View Full Explorer
+                        </Link>
                     </div>
 
                     <div className="overflow-x-auto -mx-1">

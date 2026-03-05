@@ -279,7 +279,7 @@ exports.bulkOperations = async (req, res) => {
         }
 
         const { type } = req.body;
-        const validTypes = ['students', 'applications', 'eligibility'];
+        const validTypes = ['students', 'applications', 'eligibility', 'student_import'];
 
         if (!validTypes.includes(type)) {
             return res.status(400).json({ success: false, message: `Invalid bulk type. Choose from: ${validTypes.join(', ')}` });
@@ -434,10 +434,14 @@ exports.updateSettings = async (req, res) => {
  */
 exports.getAuditLogs = async (req, res) => {
     try {
-        // Fetch logs related to settings updates or specific admin actions
+        if (res.advancedResults) {
+            return res.status(200).json(res.advancedResults);
+        }
+
         const logs = await Log.find({
             action: { $in: ['SETTINGS_UPDATE', 'ADMIN_ACTION', 'BAN_IP', 'UNBAN_IP'] }
         })
+            .populate('user_id', 'name email')
             .sort({ created_at: -1 })
             .limit(100);
 
@@ -552,5 +556,54 @@ exports.updateEmailTemplate = async (req, res, next) => {
         });
     } catch (err) {
         next(err);
+    }
+};
+
+/**
+ * @desc    Get all jobs for admin management
+ * @route   GET /api/v1/admin/jobs
+ * @access  Private/Admin
+ */
+exports.getJobs = async (req, res) => {
+    try {
+        res.status(200).json(res.advancedResults);
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Update job approval and featured status
+ * @route   PUT /api/v1/admin/jobs/:id/status
+ * @access  Private/Admin
+ */
+exports.updateJobStatus = async (req, res) => {
+    try {
+        const { is_approved, is_featured } = req.body;
+
+        const job = await Job.findByIdAndUpdate(
+            req.params.id,
+            { is_approved, is_featured },
+            { new: true, runValidators: true }
+        );
+
+        if (!job) {
+            return res.status(404).json({ success: false, message: 'Job not found' });
+        }
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'UPDATE_JOB_STATUS',
+            target_id: job._id,
+            description: `Job ${job.title} status updated: Approved=${is_approved}, Featured=${is_featured}`
+        });
+
+        const { clearCache } = require('../middlewares/cacheMiddleware');
+        await clearCache('/api/v1/jobs');
+
+        res.status(200).json({ success: true, data: job });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
 };

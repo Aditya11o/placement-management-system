@@ -4,7 +4,7 @@ import { useToast } from '../../context/ToastContext';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import SkeletonCard from '../../components/Skeleton/SkeletonCard';
-import { Briefcase, FileText, CheckCircle, Clock } from 'lucide-react';
+import { Briefcase, FileText, CheckCircle, Clock, Star } from 'lucide-react';
 import api from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
 import { Announcement } from '../../types';
@@ -37,6 +37,16 @@ const fetchStudentStats = async (): Promise<StudentStats> => {
 const StudentDashboard = () => {
     const { user } = useAuth();
     const { addToast } = useToast();
+
+    // Fetch Featured Jobs
+    const { data: featuredJobs = [] } = useQuery({
+        queryKey: ['featuredJobs'],
+        queryFn: async () => {
+            const res = await api.get('/jobs/eligible?is_featured=true&limit=3');
+            return res.data?.data || [];
+        },
+        enabled: !!user,
+    });
 
     const { data: announcements = [], isPending: aLoading, isError: aError } = useQuery({
         queryKey: ['announcements', 'latest'],
@@ -154,6 +164,42 @@ const StudentDashboard = () => {
                             )}
                         </div>
                     </Card>
+
+                    {/* Featured Opportunities */}
+                    {featuredJobs.length > 0 && (
+                        <div className="mt-8">
+                            <h2 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2">
+                                <Star size={20} className="text-amber-500 fill-amber-500" />
+                                Featured Opportunities
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {featuredJobs.map((job: any) => (
+                                    <Card key={job._id} className="p-5 border-indigo-100 bg-indigo-50/30 hover:shadow-md transition-all cursor-pointer group">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="flex flex-col">
+                                                <h4 className="font-bold text-slate-800 m-0 group-hover:text-indigo-600 transition-colors">{job.title}</h4>
+                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-tight">{job.company_name}</p>
+                                            </div>
+                                            <div className="p-1 px-2 rounded bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest">
+                                                Featured
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
+                                            <div className="flex items-center gap-1">
+                                                <span className="font-bold text-indigo-600">₹{job.package_lpa} LPA</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Clock size={12} /> Ends {new Date(job.deadline).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                        <Button isFullWidth size="sm" variant="ghost" className="bg-white border-indigo-100 text-indigo-600 text-xs font-bold">
+                                            Apply Now &rarr;
+                                        </Button>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column: Quick Actions */}

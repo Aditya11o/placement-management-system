@@ -6,7 +6,7 @@ import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import SkeletonCard from '../../components/Skeleton/SkeletonCard';
 import SkeletonTable from '../../components/Skeleton/SkeletonTable';
-import { Users, Building, Activity, ShieldAlert, CheckCircle, XCircle, DownloadCloud, Megaphone } from 'lucide-react';
+import { Users, Building, Activity, ShieldAlert, CheckCircle, XCircle, DownloadCloud, Megaphone, BarChart3, PieChart, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
@@ -164,8 +164,24 @@ const AdminDashboard = () => {
 
             {/* Interactive Analytics Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
-                <TrendsChart data={trendsData} isLoading={isTrendsLoading} />
-                <FunnelChart data={funnelData} isLoading={isFunnelLoading} />
+                <div className="flex flex-col gap-3">
+                    <TrendsChart data={trendsData} isLoading={isTrendsLoading} />
+                    <button
+                        onClick={() => navigate('/admin/analytics')}
+                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 self-end px-2"
+                    >
+                        <Activity size={14} /> View Advanced Trends &rarr;
+                    </button>
+                </div>
+                <div className="flex flex-col gap-3">
+                    <FunnelChart data={funnelData} isLoading={isFunnelLoading} />
+                    <button
+                        onClick={() => navigate('/admin/analytics')}
+                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 self-end px-2"
+                    >
+                        <BarChart3 size={14} /> Deep-Dive Funnel &rarr;
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 mt-2">
@@ -222,8 +238,11 @@ const AdminDashboard = () => {
                         <h2 className="text-xl font-bold text-indigo-700 m-0">Management Links</h2>
                         <div className="flex flex-col gap-4 mt-6">
                             <Button isFullWidth variant="secondary" icon={Users} onClick={() => navigate('/admin/students')}>Manage Students</Button>
+                            <Button isFullWidth variant="secondary" icon={Briefcase} onClick={() => navigate('/admin/jobs')}>Job Quality & Approvals</Button>
                             <Button isFullWidth variant="secondary" icon={Building} onClick={() => navigate('/admin/recruiters')}>Manage Companies</Button>
                             <Button isFullWidth variant="secondary" icon={Megaphone} onClick={() => navigate('/admin/announcements')}>Global Announcements</Button>
+                            <Button isFullWidth variant="secondary" icon={ShieldAlert} onClick={() => navigate('/admin/audit-logs')}>Security Logs</Button>
+                            <Button isFullWidth variant="secondary" icon={PieChart} onClick={() => navigate('/admin/analytics')}>Advanced Analytics</Button>
                             <div className="h-px bg-slate-200 my-2"></div>
                             {/* Future links for reports could go here */}
                             <Button

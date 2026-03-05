@@ -12,7 +12,9 @@ const {
     uploadLogo,
     bulkOperations,
     getBulkJobStatus,
-    getAuditLogs
+    getAuditLogs,
+    getJobs,
+    updateJobStatus
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
@@ -38,6 +40,7 @@ router.use(requireAdminOrApiKey);
 const advancedResults = require('../middlewares/advancedResults');
 const Student = require('../models/Student');
 const Recruiter = require('../models/Recruiter');
+const Job = require('../models/Job');
 const Log = require('../models/Log');
 
 // Wrapper for advancedResults to dynamically choose model
@@ -189,7 +192,7 @@ router.get('/bulk/:jobId', getBulkJobStatus);
 // Ensure only SUPER_ADMIN or ADMIN can access settings routes
 router.get('/settings', getSettings);
 router.put('/settings', updateSettings);
-router.get('/audit-logs', checkPermission('view_logs'), getAuditLogs);
+router.get('/audit-logs', checkPermission('view_logs'), advancedResults(Log, { path: 'user_id', select: 'name email' }), getAuditLogs);
 
 // Configure Multer for Logo specifically (images only)
 const uploadImage = multer({
@@ -212,5 +215,9 @@ router.post('/settings/logo', uploadImage.single('logo'), uploadLogo);
 
 router.get('/email-templates', getEmailTemplates);
 router.put('/email-templates/:id', updateEmailTemplate);
+
+// Job Management
+router.get('/jobs', advancedResults(Job), getJobs);
+router.put('/jobs/:id/status', updateJobStatus);
 
 module.exports = router;

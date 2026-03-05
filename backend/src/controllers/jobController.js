@@ -6,8 +6,12 @@ const { dispatchToRole } = require('../services/notifyDispatcher');
 exports.createJob = async (req, res) => {
     try {
         // Automatically inject recruiter's id and company name from standard token fields
+        const jobData = { ...req.body };
+        delete jobData.is_approved;
+        delete jobData.is_featured;
+
         const job = await Job.create({
-            ...req.body,
+            ...jobData,
             recruiter_id: req.user._id,
             company_name: req.user.company_name
         });
@@ -55,7 +59,11 @@ exports.updateJob = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Not authorized to update this job' });
         }
 
-        job = await Job.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+        const updateData = { ...req.body };
+        delete updateData.is_approved;
+        delete updateData.is_featured;
+
+        job = await Job.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
 
         await Log.create({
             user_id: req.user._id,
@@ -80,8 +88,8 @@ exports.getEligibleJobs = async (req, res, next) => {
     try {
         const student = req.user;
 
-        // We only want to evaluate ACTIVE jobs.
-        req.advancedFilter = { status: 'ACTIVE' };
+        // We only want to evaluate ACTIVE and APPROVED jobs.
+        req.advancedFilter = { status: 'ACTIVE', is_approved: true };
 
         // Extract data passed by advancedResults
         const allJobs = res.advancedResults.data;
@@ -127,8 +135,8 @@ exports.getJobById = async (req, res) => {
 exports.getRecommendedJobs = async (req, res) => {
     try {
         const student = req.user;
-        // Cap job pool to 200 most recent active jobs to avoid memory/API pressure
-        const activeJobs = await Job.find({ status: 'ACTIVE' }).sort({ created_at: -1 }).limit(200);
+        // Cap job pool to 200 most recent active and approved jobs to avoid memory/API pressure
+        const activeJobs = await Job.find({ status: 'ACTIVE', is_approved: true }).sort({ created_at: -1 }).limit(200);
 
         const scoredJobs = await Promise.all(activeJobs.map(async job => {
             const score = await calculateMatchScore(student, job);

@@ -305,6 +305,67 @@ exports.getFunnel = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get salary distribution stats (Min/Max/Avg) grouped by branch
+ * @route   GET /api/v1/analytics/salary-stats?from=&to=
+ * @access  Private/Admin
+ */
+exports.getSalaryStats = async (req, res) => {
+    try {
+        const appDateFilter = buildDateFilter(req.query.from, req.query.to, 'applied_at');
+
+        const salaryStats = await Application.aggregate([
+            { $match: { status: 'SELECTED', ...appDateFilter } },
+            {
+                $lookup: {
+                    from: 'jobs',
+                    localField: 'job_id',
+                    foreignField: '_id',
+                    as: 'job'
+                }
+            },
+            { $unwind: '$job' },
+            {
+                $lookup: {
+                    from: 'students',
+                    localField: 'student_id',
+                    foreignField: '_id',
+                    as: 'student'
+                }
+            },
+            { $unwind: '$student' },
+            {
+                $group: {
+                    _id: '$student.branch',
+                    minSalary: { $min: '$job.package_lpa' },
+                    maxSalary: { $max: '$job.package_lpa' },
+                    avgSalary: { $avg: '$job.package_lpa' },
+                    placedCount: { $sum: 1 }
+                }
+            },
+            {
+                $project: {
+                    branch: '$_id',
+                    _id: 0,
+                    minSalary: { $round: ['$minSalary', 2] },
+                    maxSalary: { $round: ['$maxSalary', 2] },
+                    avgSalary: { $round: ['$avgSalary', 2] },
+                    placedCount: 1
+                }
+            },
+            { $sort: { avgSalary: -1 } }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            dateRange: { from: req.query.from || null, to: req.query.to || null },
+            data: salaryStats
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

@@ -73,6 +73,16 @@ const jobSchema = new mongoose.Schema({
         ref: 'Recruiter',
         required: true,
         index: true,
+    },
+    is_approved: {
+        type: Boolean,
+        default: false,
+        index: true
+    },
+    is_featured: {
+        type: Boolean,
+        default: false,
+        index: true
     }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }

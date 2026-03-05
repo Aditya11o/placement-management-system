@@ -95,6 +95,31 @@ if (config.get('env') !== 'test') {
                     } else {
                         throw new Error(`Row ${row.email} had no updateable metrics provided`);
                     }
+                } else if (type === 'student_import') {
+                    // Pre-create student accounts from master list
+                    const requiredFields = ['name', 'email', 'branch', 'cgpa', 'graduation_year', 'gender', 'phone', 'marks_10th', 'marks_12th'];
+                    for (const field of requiredFields) {
+                        if (!row[field]) throw new Error(`Missing required field: ${field}`);
+                    }
+
+                    // Check if email already exists to provide better error
+                    const exists = await Student.findOne({ email: row.email });
+                    if (exists) throw new Error(`Student with email ${row.email} already exists`);
+
+                    // Create student - pre-save hook handles password hashing "Welcome@123"
+                    await Student.create({
+                        name: row.name,
+                        email: row.email,
+                        password: 'Welcome@123', // Default password
+                        branch: row.branch,
+                        cgpa: Number(row.cgpa),
+                        graduation_year: Number(row.graduation_year),
+                        phone: row.phone,
+                        gender: row.gender.toUpperCase(),
+                        marks_10th: Number(row.marks_10th),
+                        marks_12th: Number(row.marks_12th),
+                        status: 'APPROVED' // Auto-approve bulk imported students
+                    });
                 } else {
                     throw new Error(`Unknown bulk operation type: ${type}`);
                 }

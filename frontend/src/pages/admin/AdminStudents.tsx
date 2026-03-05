@@ -8,6 +8,9 @@ import FilterBar from '../../components/FilterBar/FilterBar';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import StudentProfileDrawer from '../../components/ProfileViewer/StudentProfileDrawer';
 import BulkActionBar from '../../components/BulkActionBar/BulkActionBar';
+import BulkImportModal from '../../components/BulkImportModal/BulkImportModal';
+import Button from '../../components/Button/Button';
+import { UserPlus } from 'lucide-react';
 
 const AdminStudents = () => {
     const { addToast } = useToast();
@@ -20,6 +23,7 @@ const AdminStudents = () => {
     const [branchFilter, setBranchFilter] = useState('ALL');
     const [minCgpaFilter, setMinCgpaFilter] = useState('ALL');
     const [page, setPage] = useState(1);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [selectedKeys, setSelectedKeys] = useState<(string | number)[]>([]);
     const limit = 20;
 
@@ -162,9 +166,19 @@ const AdminStudents = () => {
 
     return (
         <div className="flex flex-col gap-6 animate-fade-in">
-            <div>
-                <h1 className="text-3xl font-bold text-indigo-700 mb-1">Student Directory</h1>
-                <p className="text-slate-500 text-base m-0">Manage all registered students on the platform.</p>
+            <div className="flex justify-between items-start">
+                <div>
+                    <h1 className="text-3xl font-bold text-indigo-700 mb-1">Student Directory</h1>
+                    <p className="text-slate-500 text-base m-0">Manage all registered students on the platform.</p>
+                </div>
+                <Button
+                    variant="primary"
+                    icon={UserPlus}
+                    onClick={() => setIsImportModalOpen(true)}
+                    className="shadow-md shadow-indigo-500/20"
+                >
+                    Import Students (CSV)
+                </Button>
             </div>
 
             <FilterBar
@@ -253,7 +267,13 @@ const AdminStudents = () => {
                 onReject={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: false })}
                 isProcessing={bulkMutation.isPending}
             />
-        </div>
+
+            <BulkImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['adminStudents'] })}
+            />
+        </div >
     );
 };
 
