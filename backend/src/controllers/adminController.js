@@ -406,6 +406,42 @@ exports.updateSettings = async (req, res) => {
     }
 };
 
+
+/**
+ * @desc    Upload Institution Logo to Cloudinary and update Settings
+ * @route   POST /api/v1/admin/settings/logo
+ * @access  Private/Admin
+ */
+const { uploadToCloudinary } = require('../utils/cloudinary');
+
+exports.uploadLogo = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Please provide an image file' });
+        }
+
+        // Upload to Cloudinary, folder: "branding"
+        const result = await uploadToCloudinary(req.file.buffer, 'branding', 'image');
+
+        // Update the GlobalSettings with the new logo URL
+        const settings = await GlobalSettings.findOneAndUpdate(
+            { singletonId: 'nexus_settings' },
+            { logoUrl: result.secure_url },
+            { new: true, upsert: true }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Logo updated successfully',
+            data: {
+                logoUrl: settings.logoUrl
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Logo upload failed: ' + err.message });
+    }
+};
+
 // ==========================
 // Email Template API
 // ==========================

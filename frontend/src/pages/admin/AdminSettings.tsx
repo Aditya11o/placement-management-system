@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Card from '../../components/Card/Card';
-import { ToggleRight, Bell, Shield, Save, AlertTriangle, Loader2, FileText, Edit2 } from 'lucide-react';
+import { ToggleRight, Bell, Shield, Save, AlertTriangle, Loader2, FileText, Edit2, Palette, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -36,7 +36,12 @@ const AdminSettings = () => {
         requireApprovalForRecruiters: true,
         emailNotifications: true,
         maintenanceMode: false,
+        primaryColor: '#4f46e5',
+        logoUrl: ''
     });
+
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
     // Sync remote data to local state when loaded
     useEffect(() => {
@@ -55,14 +60,56 @@ const AdminSettings = () => {
         },
         onSuccess: () => {
             addToast('System settings saved successfully to database.', 'success');
+            // Hard reload after saving settings to immediately apply ThemeContext changes across the whole app
+            setTimeout(() => window.location.reload(), 1000);
         },
         onError: () => {
             addToast('Failed to save settings. Please try again.', 'error');
         }
     });
 
+    const logoMutation = useMutation({
+        mutationFn: async (file: File) => {
+            const formData = new FormData();
+            formData.append('logo', file);
+            return api.post('/admin/settings/logo', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+        },
+        onSuccess: (res) => {
+            setSettings(prev => ({ ...prev, logoUrl: res.data.data.logoUrl }));
+            setLogoFile(null);
+            addToast('Logo uploaded successfully.', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        },
+        onError: () => {
+            addToast('Failed to upload logo. Ensure it is < 5MB.', 'error');
+        }
+    });
+
+    const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                addToast('File too large. Maximum size is 5MB.', 'error');
+                return;
+            }
+            setLogoFile(file);
+            // Create local preview URL
+            const reader = new FileReader();
+            reader.onloadend = () => setLogoPreview(reader.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSave = () => {
         saveMutation.mutate(settings);
+    };
+
+    const handleLogoUpload = () => {
+        if (logoFile) {
+            logoMutation.mutate(logoFile);
+        }
     };
 
     if (settingsLoading || templatesLoading) {
@@ -125,8 +172,88 @@ const AdminSettings = () => {
                     </div>
                 </Card>
 
-                {/* Security & Verification */}
+                {/* Branding & Theming */}
                 <Card className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3 mb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+                                <Palette size={22} />
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 m-0">Branding & Theming</h2>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-6">
+                        {/* Primary Color Picker */}
+                        <div className="flex flex-col gap-2">
+                            <h4 className="font-semibold text-slate-800 dark:text-slate-200">Primary Theme Color</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Select the main accent color that represents your institution.</p>
+                            <div className="flex items-center gap-4 mt-2">
+                                <input
+                                    type="color"
+                                    value={settings.primaryColor}
+                                    onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
+                                    className="w-12 h-12 p-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 cursor-pointer shadow-sm"
+                                />
+                                <div className="text-sm font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700">
+                                    {settings.primaryColor}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Logo Upload */}
+                        <div className="flex flex-col gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <h4 className="font-semibold text-slate-800 dark:text-slate-200">Institution Logo</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Upload a crisp PNG or JPG to appear in the sidebar.</p>
+
+                            <div className="flex items-center gap-6 mt-3">
+                                {/* Current/Preview Logo Frame */}
+                                <div className="w-24 h-24 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800/50 relative overflow-hidden shrink-0">
+                                    {logoPreview || settings.logoUrl ? (
+                                        <img
+                                            src={logoPreview || settings.logoUrl}
+                                            alt="Logo Preview"
+                                            className="w-full h-full object-contain p-2"
+                                        />
+                                    ) : (
+                                        <ImageIcon size={32} className="text-slate-400" />
+                                    )}
+                                </div>
+
+                                {/* Upload Controls */}
+                                <div className="flex flex-col gap-3 flex-1">
+                                    <label className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:border-brand-500 hover:text-brand-600 transition-colors cursor-pointer w-max lg:w-full max-w-[200px] justify-center shadow-sm">
+                                        <ImageIcon size={16} />
+                                        <span>Select Image Image...</span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handleLogoSelect}
+                                        />
+                                    </label>
+
+                                    <div className="flex items-center gap-3">
+                                        {logoFile && (
+                                            <button
+                                                onClick={handleLogoUpload}
+                                                disabled={logoMutation.isPending}
+                                                className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-medium transition-colors shadow-md flex items-center gap-2"
+                                            >
+                                                {logoMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+                                                Upload Now
+                                            </button>
+                                        )}
+                                        {logoFile && <span className="text-xs text-slate-500 truncate max-w-[150px]">{logoFile.name}</span>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Card >
+
+                {/* Security & Verification */}
+                < Card className="flex flex-col gap-4" >
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
                             <Shield size={22} />
@@ -156,10 +283,10 @@ const AdminSettings = () => {
                             </label>
                         </div>
                     </div>
-                </Card>
+                </Card >
 
                 {/* Notifications */}
-                <Card className="flex flex-col gap-4">
+                < Card className="flex flex-col gap-4" >
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
                             <Bell size={22} />
@@ -179,10 +306,10 @@ const AdminSettings = () => {
                             </label>
                         </div>
                     </div>
-                </Card>
+                </Card >
 
                 {/* Email Templates */}
-                <Card className="flex flex-col gap-4 md:col-span-2">
+                < Card className="flex flex-col gap-4 md:col-span-2" >
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
                             <FileText size={22} />
@@ -209,10 +336,10 @@ const AdminSettings = () => {
                             </div>
                         ))}
                     </div>
-                </Card>
+                </Card >
 
                 {/* Danger Zone */}
-                <Card className="flex flex-col gap-4 border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-900/10">
+                < Card className="flex flex-col gap-4 border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-900/10" >
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
                             <AlertTriangle size={22} />
@@ -232,21 +359,23 @@ const AdminSettings = () => {
                             </label>
                         </div>
                     </div>
-                </Card>
+                </Card >
 
-            </div>
+            </div >
 
             {/* Email Template Editor Modal overlay */}
-            {editingTemplate && (
-                <>
-                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onClick={() => setEditingTemplate(null)} />
-                    <EmailTemplateEditor
-                        template={editingTemplate}
-                        onClose={() => setEditingTemplate(null)}
-                    />
-                </>
-            )}
-        </div>
+            {
+                editingTemplate && (
+                    <>
+                        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40" onClick={() => setEditingTemplate(null)} />
+                        <EmailTemplateEditor
+                            template={editingTemplate}
+                            onClose={() => setEditingTemplate(null)}
+                        />
+                    </>
+                )
+            }
+        </div >
     );
 };
 

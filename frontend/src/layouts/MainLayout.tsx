@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
 import ThemeToggle from '../components/ThemeToggle/ThemeToggle';
+import { useTheme } from '../context/ThemeContext';
 
 interface NavItem {
     label: string;
@@ -18,6 +19,7 @@ interface NavItem {
 const MainLayout: React.FC = () => {
     const { user, logout } = useAuth();
     const queryClient = useQueryClient();
+    const { logoUrl } = useTheme();
     const [isSidebarOpen, setSidebarOpen] = useState(false);
 
     const handleLogout = () => {
@@ -78,19 +80,23 @@ const MainLayout: React.FC = () => {
             {/* Sidebar */}
             <aside className={`fixed lg:relative w-[260px] h-screen flex flex-col z-50 transition-transform duration-300 bg-white/80 dark:bg-slate-800/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-700/50 shadow-xl lg:shadow-none lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="h-[70px] flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700/50 shrink-0">
-                    <h2 className="text-indigo-600 dark:text-indigo-400 m-0 text-2xl font-bold tracking-tight">Nexus</h2>
+                    {logoUrl ? (
+                        <img src={logoUrl} alt="Institution Logo" className="h-8 w-auto object-contain" />
+                    ) : (
+                        <h2 className="text-brand-600 dark:text-brand-400 m-0 text-2xl font-bold tracking-tight">Nexus</h2>
+                    )}
                     <button className="lg:hidden text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" onClick={toggleSidebar}>
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="flex items-center gap-4 px-5 py-4 mx-4 mt-6 mb-4 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white shadow-lg shrink-0">
+                <div className="flex items-center gap-4 px-5 py-4 mx-4 mt-6 mb-4 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shrink-0">
                     <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg border border-white/30 shrink-0">
                         {user?.name?.charAt(0) || 'U'}
                     </div>
                     <div className="flex flex-col truncate">
                         <span className="font-semibold truncate text-white">{user?.name || 'User'}</span>
-                        <span className="text-xs uppercase opacity-80 mt-0.5 truncate text-indigo-100">{user?.role}</span>
+                        <span className="text-xs uppercase opacity-80 mt-0.5 truncate text-brand-100">{user?.role}</span>
                     </div>
                 </div>
 
@@ -101,7 +107,7 @@ const MainLayout: React.FC = () => {
                                 <NavLink
                                     to={item.path}
                                     className={({ isActive }) =>
-                                        `flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-300 font-medium transition-all duration-200 ${isActive ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-indigo-600 dark:hover:text-indigo-400'}`
+                                        `flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-300 font-medium transition-all duration-200 ${isActive ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm' : 'hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-brand-600 dark:hover:text-brand-400'}`
                                     }
                                     onClick={() => window.innerWidth <= 1024 && setSidebarOpen(false)}
                                 >

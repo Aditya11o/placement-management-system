@@ -1,5 +1,18 @@
 const express = require('express');
-const { getUsers, updateUserStatus, getDashboardStats, exportData, getSettings, updateSettings, getEmailTemplates, updateEmailTemplate } = require('../controllers/adminController');
+const multer = require('multer');
+const {
+    getUsers,
+    updateUserStatus,
+    getDashboardStats,
+    exportData,
+    getSettings,
+    updateSettings,
+    getEmailTemplates,
+    updateEmailTemplate,
+    uploadLogo,
+    bulkOperations,
+    getBulkJobStatus
+} = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
 const checkPermission = require('../middlewares/checkPermission');
@@ -140,12 +153,8 @@ router.get('/logs', checkPermission('view_logs'), (req, res) => {
 
 
 
-// ==========================
 // Bulk CSV Operations
 // ==========================
-
-const multer = require('multer');
-const { bulkOperations, getBulkJobStatus } = require('../controllers/adminController');
 
 // Configure Multer for in-memory buffer processing
 const upload = multer({
@@ -179,6 +188,21 @@ router.get('/bulk/:jobId', getBulkJobStatus);
 // Ensure only SUPER_ADMIN or ADMIN can access settings routes
 router.get('/settings', getSettings);
 router.put('/settings', updateSettings);
+
+// Configure Multer for Logo specifically (images only)
+const uploadImage = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed.'));
+        }
+    },
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+router.post('/settings/logo', uploadImage.single('logo'), uploadLogo);
 
 // ==========================
 // Custom Email Templates API

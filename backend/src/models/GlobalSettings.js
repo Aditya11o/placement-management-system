@@ -30,6 +30,18 @@ const GlobalSettingsSchema = new mongoose.Schema({
     maintenanceMode: {
         type: Boolean,
         default: false
+    },
+    logoUrl: {
+        type: String,
+        default: ''
+    },
+    primaryColor: {
+        type: String,
+        default: '#4f46e5' // Tailwind indigo-600
+    },
+    institutionName: {
+        type: String,
+        default: 'Nexus'
     }
 }, {
     timestamps: true
