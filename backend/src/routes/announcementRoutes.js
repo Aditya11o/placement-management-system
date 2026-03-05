@@ -1,5 +1,5 @@
 const express = require('express');
-const { getAnnouncements, createAnnouncement } = require('../controllers/announcementController');
+const { getAnnouncements, createAnnouncement, deleteAnnouncement } = require('../controllers/announcementController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { cache } = require('../middlewares/cacheMiddleware');
 const { validate } = require('../middlewares/validate');
@@ -52,5 +52,26 @@ router.get('/', cache(300), getAnnouncements);
  *         description: Announcement created successfully
  */
 router.post('/', authorize('ADMIN'), validateAnnouncementCreation, validate, createAnnouncement);
+
+// Only admins can delete
+/**
+ * @swagger
+ * /api/v1/announcements/{id}:
+ *   delete:
+ *     summary: Delete an announcement (Admin only)
+ *     tags: [Announcements]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Announcement deleted successfully
+ */
+router.delete('/:id', authorize('ADMIN'), deleteAnnouncement);
 
 module.exports = router;

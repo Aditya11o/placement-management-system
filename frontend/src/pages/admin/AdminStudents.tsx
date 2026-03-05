@@ -225,9 +225,8 @@ const AdminStudents = () => {
                 onClose={() => setSelectedStudent(null)}
                 applicant={selectedStudent ? {
                     _id: selectedStudent._id,
-                    job: 'admin-view',
+                    job: { _id: 'admin', title: 'Admin View' },
                     student: {
-                        _id: selectedStudent._id,
                         name: selectedStudent.name,
                         email: selectedStudent.email,
                         phone: selectedStudent.phone,
@@ -241,7 +240,7 @@ const AdminStudents = () => {
                         marks_12th: selectedStudent.studentProfile?.marks_12th,
                         backlogs_active: selectedStudent.studentProfile?.backlogs_active,
                     },
-                    status: 'PENDING',
+                    status: 'SUBMITTED',
                     resume_url: selectedStudent.studentProfile?.resume_url,
                     matchScore: 0 // Not relevant for admin view
                 } : null}

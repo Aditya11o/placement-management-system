@@ -1,0 +1,7 @@
+src/components/ProfileViewer/StudentProfileDrawer.tsx(2,77): error TS6133: 'CheckCircle' is declared but its value is never read.
+src/pages/admin/AdminDashboard.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/pages/admin/AdminStudents.tsx(230,25): error TS2322: Type '{ _id: any; job: string; student: { _id: any; name: any; email: any; phone: any; branch: any; cgpa: any; graduation_year: any; skills: any; resume_url: any; profile_image_url: any; marks_10th: any; marks_12th: any; backlogs_active: any; }; status: "PENDING"; resume_url: any; matchScore: number; } | null' is not assignable to type 'UIApplicant | null'.
+  Type '{ _id: any; job: string; student: { _id: any; name: any; email: any; phone: any; branch: any; cgpa: any; graduation_year: any; skills: any; resume_url: any; profile_image_url: any; marks_10th: any; marks_12th: any; backlogs_active: any; }; status: "PENDING"; resume_url: any; matchScore: number; }' is not assignable to type 'UIApplicant'.
+    Types of property 'student' are incompatible.
+      Object literal may only specify known properties, and '_id' does not exist in type '{ name: string; email: string; resume_url?: string | undefined; phone?: string | undefined; branch?: string | undefined; graduation_year?: number | undefined; cgpa?: number | undefined; ... 4 more ...; profile_image_url?: string | undefined; }'.
+src/pages/recruiter/RecruiterDashboard.tsx(165,143): error TS2367: This comparison appears to be unintentional because the types '"ACTIVE" | "CLOSED"' and '"OPEN"' have no overlap.

@@ -394,13 +394,54 @@ exports.getSettings = async (req, res) => {
  */
 exports.updateSettings = async (req, res) => {
     try {
+        const oldSettings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+
         const settings = await GlobalSettings.findOneAndUpdate(
             { singletonId: 'nexus_settings' },
             req.body,
             { new: true, runValidators: true, upsert: true }
         );
 
+        // --- Audit Logging ---
+        // Identify what exactly changed for the audit log description
+        const changes = [];
+        for (const key in req.body) {
+            if (oldSettings && oldSettings[key] !== undefined && String(oldSettings[key]) !== String(req.body[key])) {
+                changes.push(`${key}: ${oldSettings[key]} -> ${req.body[key]}`);
+            }
+        }
+
+        if (changes.length > 0) {
+            await Log.create({
+                user_id: req.user._id,
+                user_role: req.user.role,
+                action: 'SETTINGS_UPDATE',
+                description: `Admin updated system settings: ${changes.join(', ')}`,
+                ip_address: req.ip
+            });
+        }
+
         res.status(200).json({ success: true, data: settings });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Get administrative audit logs
+ * @route   GET /api/v1/admin/audit-logs
+ * @access  Private/Admin
+ */
+exports.getAuditLogs = async (req, res) => {
+    try {
+        // Fetch logs related to settings updates or specific admin actions
+        const logs = await Log.find({
+            action: { $in: ['SETTINGS_UPDATE', 'ADMIN_ACTION', 'BAN_IP', 'UNBAN_IP'] }
+        })
+            .sort({ created_at: -1 })
+            .limit(100);
+
+        res.status(200).json({ success: true, count: logs.length, data: logs });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

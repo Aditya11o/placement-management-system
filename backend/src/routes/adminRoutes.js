@@ -11,7 +11,8 @@ const {
     updateEmailTemplate,
     uploadLogo,
     bulkOperations,
-    getBulkJobStatus
+    getBulkJobStatus,
+    getAuditLogs
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
@@ -188,6 +189,7 @@ router.get('/bulk/:jobId', getBulkJobStatus);
 // Ensure only SUPER_ADMIN or ADMIN can access settings routes
 router.get('/settings', getSettings);
 router.put('/settings', updateSettings);
+router.get('/audit-logs', checkPermission('view_logs'), getAuditLogs);
 
 // Configure Multer for Logo specifically (images only)
 const uploadImage = multer({

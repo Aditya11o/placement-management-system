@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Briefcase, GraduationCap, Link as LinkIcon, Phone, Mail, Award, CheckCircle } from 'lucide-react';
+import { X, Briefcase, GraduationCap, Link as LinkIcon, Phone, Mail, Award } from 'lucide-react';
 import { UIApplicant } from '../Kanban/KanbanCard';
 
 interface StudentProfileDrawerProps {

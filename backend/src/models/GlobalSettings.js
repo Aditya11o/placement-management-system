@@ -42,6 +42,26 @@ const GlobalSettingsSchema = new mongoose.Schema({
     institutionName: {
         type: String,
         default: 'Nexus'
+    },
+    sessionExpirationHours: {
+        type: Number,
+        default: 168 // 7 days
+    },
+    maxFailedLoginAttempts: {
+        type: Number,
+        default: 5
+    },
+    enforcePasswordComplexity: {
+        type: Boolean,
+        default: true
+    },
+    systemWebhookUrl: {
+        type: String,
+        default: '' // Slack or Discord Webhook URL
+    },
+    tier1SalaryThreshold: {
+        type: Number,
+        default: 1000000 // 10 LPA default
     }
 }, {
     timestamps: true

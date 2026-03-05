@@ -61,6 +61,14 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
         });
 
+        // Event: New Announcement
+        newSocket.on('new_announcement', (data: { title: string, message: string }) => {
+            console.log('Real-time Announcement Received:', data);
+            addToast(`📢 ${data.title}`, 'info', 6000);
+            queryClient.invalidateQueries({ queryKey: ['adminAnnouncements'] });
+            queryClient.invalidateQueries({ queryKey: ['announcements'] });
+        });
+
         // Event: Disconnected
         newSocket.on('disconnect', () => {
             console.log('Socket.io Disconnected');

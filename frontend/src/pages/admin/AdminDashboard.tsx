@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useToast } from '../../context/ToastContext';
@@ -6,7 +6,7 @@ import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import SkeletonCard from '../../components/Skeleton/SkeletonCard';
 import SkeletonTable from '../../components/Skeleton/SkeletonTable';
-import { Users, Building, Activity, ShieldAlert, CheckCircle, XCircle, DownloadCloud } from 'lucide-react';
+import { Users, Building, Activity, ShieldAlert, CheckCircle, XCircle, DownloadCloud, Megaphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
@@ -223,6 +223,7 @@ const AdminDashboard = () => {
                         <div className="flex flex-col gap-4 mt-6">
                             <Button isFullWidth variant="secondary" icon={Users} onClick={() => navigate('/admin/students')}>Manage Students</Button>
                             <Button isFullWidth variant="secondary" icon={Building} onClick={() => navigate('/admin/recruiters')}>Manage Companies</Button>
+                            <Button isFullWidth variant="secondary" icon={Megaphone} onClick={() => navigate('/admin/announcements')}>Global Announcements</Button>
                             <div className="h-px bg-slate-200 my-2"></div>
                             {/* Future links for reports could go here */}
                             <Button

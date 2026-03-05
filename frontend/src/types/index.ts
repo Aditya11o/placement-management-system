@@ -71,8 +71,10 @@ export interface Application {
 export interface Announcement {
     _id: string;
     title: string;
-    content: string;
-    target_audience: 'ALL' | 'STUDENT' | 'RECRUITER';
+    message: string;
+    content?: string; // For backward compatibility if any
+    target_audience?: 'ALL' | 'STUDENT' | 'RECRUITER';
+    created_at: string;
     createdAt?: string;
     updatedAt?: string;
 }

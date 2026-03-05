@@ -5,6 +5,8 @@ const { emailQueue } = require('../utils/emailQueue');
 const { dispatchToUser, dispatchToRole } = require('../services/notifyDispatcher');
 const { generateOfferLetter } = require('../services/offerLetterService');
 const { checkEligibility } = require('../services/eligibilityService');
+const { sendSystemAlert } = require('../utils/webhookHelper');
+const GlobalSettings = require('../models/GlobalSettings');
 const config = require('../config/config');
 const logger = require('../utils/logger');
 
@@ -151,6 +153,29 @@ exports.updateApplicationStatus = async (req, res) => {
                     });
                 }
             }).catch(() => { }); // already logged inside the service
+
+            // 🔌 Check for Tier-1 Placement Celebration Webhook
+            try {
+                const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+                if (settings && settings.systemWebhookUrl) {
+                    const threshold = settings.tier1SalaryThreshold || 1000000;
+                    if (application.job_id.package_lpa >= threshold) {
+                        await sendSystemAlert(
+                            settings.systemWebhookUrl,
+                            `🎉 **Tier-1 Placement Celebration!**`,
+                            {
+                                'Student': application.student_id.name,
+                                'Company': application.job_id.company_name,
+                                'Position': application.job_id.title,
+                                'Package': `₹ ${application.job_id.package_lpa} LPA`,
+                                'Status': 'Hired!'
+                            }
+                        );
+                    }
+                }
+            } catch (webhookErr) {
+                logger.warn(`Tier-1 webhook failed: ${webhookErr.message}`);
+            }
         }
 
         // Dispatch Email Notification to Student asynchronously via queue

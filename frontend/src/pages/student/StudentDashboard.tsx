@@ -139,11 +139,11 @@ const StudentDashboard = () => {
                                 announcements.map((ann) => (
                                     <div key={ann._id} className="flex gap-4 p-4 bg-slate-50 rounded-md border-l-4 border-indigo-500 transition-transform duration-200 hover:translate-x-1 hover:bg-slate-100">
                                         <span className="text-xs font-semibold text-indigo-600 uppercase min-w-[50px] shrink-0 mt-0.5">
-                                            {new Date(ann.createdAt || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            {new Date(ann.created_at || ann.createdAt || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
                                         <div>
                                             <h4 className="mb-1 text-base font-bold text-slate-800">{ann.title}</h4>
-                                            <p className="text-sm text-slate-500 m-0">{ann.content ? ann.content.substring(0, 100) : ''}...</p>
+                                            <p className="text-sm text-slate-500 m-0">{ann.message ? ann.message.substring(0, 100) : ''}...</p>
                                         </div>
                                     </div>
                                 ))

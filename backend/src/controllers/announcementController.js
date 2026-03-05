@@ -44,3 +44,28 @@ exports.createAnnouncement = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
+exports.deleteAnnouncement = async (req, res) => {
+    try {
+        const announcement = await Announcement.findById(req.params.id);
+
+        if (!announcement) {
+            return res.status(404).json({ success: false, message: 'Announcement not found' });
+        }
+
+        await Announcement.deleteOne({ _id: announcement._id });
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'DELETE_ANNOUNCEMENT',
+            target_id: req.params.id
+        });
+
+        await clearCache('/api/v1/announcements');
+
+        res.json({ success: true, data: {} });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};

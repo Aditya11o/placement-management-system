@@ -16,6 +16,11 @@ const jobSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add a company name'],
     },
+    package_lpa: {
+        type: Number,
+        required: [true, 'Please specify the package in LPA'],
+        min: [0, 'Package cannot be negative']
+    },
     min_cgpa: {
         type: Number,
         required: [true, 'Please add minimum CGPA requirement'],

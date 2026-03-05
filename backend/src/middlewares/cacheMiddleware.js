@@ -30,7 +30,7 @@ const cache = (duration = 300) => {
             }
 
             logger.debug(`Cache miss for key: ${key}`);
-            
+
             // Intercept res.json to capture the response body before sending
             const originalJson = res.json;
             res.json = function (body) {
@@ -42,7 +42,7 @@ const cache = (duration = 300) => {
                         logger.error(`Error writing to cache for key ${key}: ${err.message}`);
                     }
                 }
-                
+
                 // Call the original res.json function to send the response
                 originalJson.call(this, body);
             };
@@ -67,28 +67,15 @@ const clearCache = async (pattern) => {
     if (!redisClient || !redisClient.isReady) return;
 
     try {
-        // The pattern is expected to start with the route path. We prefix it with 'cache:'
-        // To use SCAN we can append '*' if it doesn't have it
-        let searchPattern = `cache:${pattern}`;
-        if (!searchPattern.endsWith('*')) {
-            searchPattern += '*';
-        }
+        const searchPattern = `cache:${pattern}*`;
+        const keys = await redisClient.keys(searchPattern);
 
-        let cursor = 0;
-        let keysToDelete = [];
-
-        do {
-            const result = await redisClient.scan(cursor, {
-                MATCH: searchPattern,
-                COUNT: 100
-            });
-            cursor = result.cursor;
-            keysToDelete.push(...result.keys);
-        } while (cursor !== 0);
-
-        if (keysToDelete.length > 0) {
-            await redisClient.del(keysToDelete);
-            logger.info(`Cleared ${keysToDelete.length} cache entries for pattern: ${pattern}`);
+        if (keys && keys.length > 0) {
+            // Delete keys one by one for maximum compatibility across Redis client versions
+            for (const key of keys) {
+                await redisClient.del(key);
+            }
+            logger.info(`Cleared ${keys.length} cache entries for pattern: ${pattern}`);
         }
     } catch (err) {
         logger.error(`Error clearing cache for pattern ${pattern}: ${err.message}`);

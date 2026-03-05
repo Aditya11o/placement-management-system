@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Card from '../../components/Card/Card';
-import { ToggleRight, Bell, Shield, Save, AlertTriangle, Loader2, FileText, Edit2, Palette, Image as ImageIcon } from 'lucide-react';
+import { ToggleRight, Bell, Shield, Save, AlertTriangle, Loader2, FileText, Edit2, Palette, Image as ImageIcon, History, Clock, User, Lock, Zap } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import api from '../../services/api';
@@ -28,6 +28,15 @@ const AdminSettings = () => {
         }
     });
 
+    // Fetch audit logs
+    const { data: auditLogsData, isLoading: auditLogsLoading } = useQuery({
+        queryKey: ['auditLogs'],
+        queryFn: async () => {
+            const res = await api.get('/admin/audit-logs');
+            return res.data;
+        }
+    });
+
     // Local state to mirror DB for optimistic toggling before save
     const [settings, setSettings] = useState({
         allowStudentRegistration: true,
@@ -37,7 +46,12 @@ const AdminSettings = () => {
         emailNotifications: true,
         maintenanceMode: false,
         primaryColor: '#4f46e5',
-        logoUrl: ''
+        logoUrl: '',
+        sessionExpirationHours: 168,
+        maxFailedLoginAttempts: 5,
+        enforcePasswordComplexity: true,
+        systemWebhookUrl: '',
+        tier1SalaryThreshold: 1000000
     });
 
     const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -250,10 +264,10 @@ const AdminSettings = () => {
                             </div>
                         </div>
                     </div>
-                </Card >
+                </Card>
 
                 {/* Security & Verification */}
-                < Card className="flex flex-col gap-4" >
+                <Card className="flex flex-col gap-4" >
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
                             <Shield size={22} />
@@ -283,10 +297,10 @@ const AdminSettings = () => {
                             </label>
                         </div>
                     </div>
-                </Card >
+                </Card>
 
                 {/* Notifications */}
-                < Card className="flex flex-col gap-4" >
+                <Card className="flex flex-col gap-4">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
                             <Bell size={22} />
@@ -306,10 +320,164 @@ const AdminSettings = () => {
                             </label>
                         </div>
                     </div>
-                </Card >
+                </Card>
+
+                {/* Integrations & Webhooks */}
+                <Card className="flex flex-col gap-4">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
+                            <Zap size={22} />
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 m-0">Integrations</h2>
+                    </div>
+
+                    <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">System Webhook URL (Slack/Discord)</label>
+                            <input
+                                type="url"
+                                value={settings.systemWebhookUrl}
+                                onChange={(e) => setSettings({ ...settings, systemWebhookUrl: e.target.value })}
+                                placeholder="https://hooks.slack.com/services/..."
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-mono"
+                            />
+                            <p className="text-xs text-slate-500 italic">Get instant alerts for new companies and high-tier placements.</p>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tier-1 Salary Threshold (LPA)</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                                <input
+                                    type="number"
+                                    value={settings.tier1SalaryThreshold}
+                                    onChange={(e) => setSettings({ ...settings, tier1SalaryThreshold: parseInt(e.target.value) })}
+                                    className="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500">Jobs above this CTC are classified as Tier-1 for celebratory alerts.</p>
+                        </div>
+                    </div>
+                </Card>
+
+                {/* Security & Compliance */}
+                <Card className="flex flex-col gap-4">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <Lock size={22} />
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 m-0">Security & Compliance</h2>
+                    </div>
+
+                    <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Session Timeout (Hours)</label>
+                            <input
+                                type="number"
+                                value={settings.sessionExpirationHours}
+                                onChange={(e) => setSettings({ ...settings, sessionExpirationHours: parseInt(e.target.value) })}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                            />
+                            <p className="text-xs text-slate-500">Force logout after inactivity. Default is 168 hours (7 days).</p>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Max Login Attempts</label>
+                            <input
+                                type="number"
+                                value={settings.maxFailedLoginAttempts}
+                                onChange={(e) => setSettings({ ...settings, maxFailedLoginAttempts: parseInt(e.target.value) })}
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                            />
+                            <p className="text-xs text-slate-500">Number of failed logins before IP is temporarily banned.</p>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                            <div>
+                                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Strong Passwords</h4>
+                                <p className="text-xs text-slate-500">Enforce uppercase, numbers, and symbols</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked={settings.enforcePasswordComplexity} onChange={() => setSettings({ ...settings, enforcePasswordComplexity: !settings.enforcePasswordComplexity })} className="sr-only peer" />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </Card>
+
+                {/* Audit Logs */}
+                <Card className="flex flex-col gap-4 md:col-span-2">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+                                <History size={22} />
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 m-0">Admin Audit Log</h2>
+                        </div>
+                        <span className="text-xs font-medium text-slate-400">Last 50 administrative actions</span>
+                    </div>
+
+                    <div className="overflow-x-auto -mx-1">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-slate-100 dark:border-slate-700">
+                                    <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">Timestamp</th>
+                                    <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">Admin</th>
+                                    <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">Action</th>
+                                    <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">Description</th>
+                                    <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400">IP</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                                {auditLogsLoading ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-4 py-8 text-center">
+                                            <Loader2 className="animate-spin text-slate-400 inline-block" size={20} />
+                                        </td>
+                                    </tr>
+                                ) : auditLogsData?.data?.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-sm">No audit logs found.</td>
+                                    </tr>
+                                ) : (
+                                    auditLogsData?.data?.map((log: any) => (
+                                        <tr key={log._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                            <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                    <Clock size={14} />
+                                                    {new Date(log.created_at).toLocaleString()}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <div className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                                                    <User size={14} className="text-slate-400" />
+                                                    {log.user_id?.name || log.user_role}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${log.action.includes('BAN') ? 'bg-red-100 text-red-600' :
+                                                    log.action.includes('UPDATE') ? 'bg-indigo-100 text-indigo-600' :
+                                                        'bg-slate-100 text-slate-600'
+                                                    }`}>
+                                                    {log.action.replace('_', ' ')}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 max-w-xs truncate" title={log.description}>
+                                                {log.description}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-slate-500 font-mono text-xs">
+                                                {log.ip_address || '---'}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
 
                 {/* Email Templates */}
-                < Card className="flex flex-col gap-4 md:col-span-2" >
+                <Card className="flex flex-col gap-4 md:col-span-2">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
                             <FileText size={22} />
@@ -336,10 +504,10 @@ const AdminSettings = () => {
                             </div>
                         ))}
                     </div>
-                </Card >
+                </Card>
 
                 {/* Danger Zone */}
-                < Card className="flex flex-col gap-4 border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-900/10" >
+                <Card className="flex flex-col gap-4 border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-900/10">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
                             <AlertTriangle size={22} />
@@ -359,9 +527,9 @@ const AdminSettings = () => {
                             </label>
                         </div>
                     </div>
-                </Card >
+                </Card>
 
-            </div >
+            </div>
 
             {/* Email Template Editor Modal overlay */}
             {
@@ -375,7 +543,7 @@ const AdminSettings = () => {
                     </>
                 )
             }
-        </div >
+        </div>
     );
 };
 

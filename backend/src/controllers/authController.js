@@ -9,6 +9,7 @@ const UAParser = require('ua-parser-js');
 const { emailQueue } = require('../utils/emailQueue');
 const config = require('../config/config');
 const { generate2FASecret, verify2FAToken } = require('../utils/totp');
+const { sendSystemAlert } = require('../utils/webhookHelper');
 const logger = require('../utils/logger');
 const GlobalSettings = require('../models/GlobalSettings');
 
@@ -62,6 +63,20 @@ exports.registerRecruiter = async (req, res) => {
 
         await Log.create({ user_id: recruiter._id, user_role: 'RECRUITER', action: 'REGISTER', description: 'Recruiter registered account' });
 
+        // 🔌 Trigger System Webhook if configured
+        if (settings && settings.systemWebhookUrl) {
+            await sendSystemAlert(
+                settings.systemWebhookUrl,
+                `🚀 **New Recruiter Registration!**`,
+                {
+                    'Company': company_name,
+                    'Contact': contact_person,
+                    'Email': email,
+                    'Timestamp': new Date().toLocaleString()
+                }
+            );
+        }
+
         res.status(201).json({ success: true, message: 'Recruiter registered successfully, pending admin approval.' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -90,13 +105,16 @@ exports.login = async (req, res) => {
         else return res.status(400).json({ success: false, message: 'Invalid role specified' });
 
         if (!user || !(await user.matchPassword(password))) {
+            const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+            const maxStrikes = settings?.maxFailedLoginAttempts || 5;
+
             // Track Failed Attempts for Brute-Force Protection
             if (redisClient && redisClient.isReady) {
                 const strikes = await redisClient.incr(strikeKey);
                 if (strikes === 1) {
                     await redisClient.expire(strikeKey, 900); // 15 mins TTL
-                } else if (strikes >= 5) {
-                    await banIp(clientIp, 24, 'Brute-force password guessing detected (5+ failed attempts)');
+                } else if (strikes >= maxStrikes) {
+                    await banIp(clientIp, 24, `Brute-force password guessing detected (${strikes}+ failed attempts)`);
                     await redisClient.del(strikeKey); // reset strikes once banned
                 }
             }
@@ -146,9 +164,12 @@ const completeLogin = async (user, role, req, res) => {
     const parser = new UAParser(req.headers['user-agent']);
     const uaInfo = parser.getResult();
 
-    // Expire in 7 days
+    const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+    const sessionHours = settings?.sessionExpirationHours || 168;
+
+    // Calculate expiry based on settings
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setHours(expiresAt.getHours() + sessionHours);
 
     // Save session
     await Session.create({

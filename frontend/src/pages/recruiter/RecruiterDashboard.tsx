@@ -5,11 +5,11 @@ import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import SkeletonCard from '../../components/Skeleton/SkeletonCard';
 import SkeletonTable from '../../components/Skeleton/SkeletonTable';
-import { Briefcase, Users, CheckCircle, TrendingUp, Plus } from 'lucide-react';
+import { Briefcase, Users, CheckCircle, TrendingUp, Plus, Megaphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useQuery } from '@tanstack/react-query';
-import { Job } from '../../types';
+import { Job, Announcement } from '../../types';
 
 interface RecruiterStats {
     activeJobs: number;
@@ -27,7 +27,7 @@ const fetchRecruiterStats = async (): Promise<RecruiterStats> => {
     const jobs: any[] = jobsRes.data?.data ?? [];
     const apps: any[] = appsRes.data?.data ?? [];
     return {
-        activeJobs: jobs.filter((j) => j.status === 'OPEN' || j.status === 'ACTIVE').length || jobs.length,
+        activeJobs: jobs.filter((j) => j.status === 'ACTIVE').length || jobs.length,
         totalApplicants: apps.length,
         shortlisted: apps.filter((a) => a.status === 'SHORTLISTED').length,
         hired: apps.filter((a) => a.status === 'HIRED' || a.status === 'SELECTED').length,
@@ -37,6 +37,12 @@ const fetchRecruiterStats = async (): Promise<RecruiterStats> => {
 const fetchRecentJobs = async (): Promise<Job[]> => {
     const res = await api.get('/jobs/recruiter');
     return res.data.data.slice(0, 4); // Get top 4
+};
+
+const fetchAnnouncements = async (): Promise<Announcement[]> => {
+    const res = await api.get('/announcements');
+    const data = res.data?.data || [];
+    return Array.isArray(data) ? data.slice(0, 3) : [];
 };
 
 const RecruiterDashboard: React.FC = () => {
@@ -56,12 +62,18 @@ const RecruiterDashboard: React.FC = () => {
         enabled: !!user,
     });
 
+    const { data: announcements = [], isPending: aLoading, isError: aError } = useQuery({
+        queryKey: ['announcements', 'latest'],
+        queryFn: fetchAnnouncements,
+        enabled: !!user,
+    });
+
     // Handle toast error triggering just once if queries fail
     React.useEffect(() => {
-        if (sError || jError) addToast('Failed to load dashboard data', 'error');
-    }, [sError, jError, addToast]);
+        if (sError || jError || aError) addToast('Failed to load dashboard data', 'error');
+    }, [sError, jError, aError, addToast]);
 
-    if (sLoading || jLoading) return (
+    if (sLoading || jLoading || aLoading) return (
         <div className="flex flex-col gap-8">
             <div className="flex justify-between items-start gap-4 animate-pulse">
                 <div className="flex flex-col gap-2">
@@ -162,7 +174,7 @@ const RecruiterDashboard: React.FC = () => {
                                                 <Users size={14} className="text-slate-500" />
                                                 <span>{job.applicationCount || 0}</span>
                                             </div>
-                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${job.status === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${job.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                                                 {job.status}
                                             </span>
                                         </div>
@@ -179,6 +191,28 @@ const RecruiterDashboard: React.FC = () => {
                         <div className="flex flex-col gap-3">
                             <Button isFullWidth variant="secondary" icon={Users} onClick={() => navigate('/recruiter/applicants')}>Review Applicants</Button>
                             <Button isFullWidth variant="ghost" icon={Briefcase} onClick={() => navigate('/recruiter/profile')}>Edit Company Profile</Button>
+                        </div>
+                    </Card>
+
+                    <Card className="mt-6 border-l-4 border-indigo-500">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Megaphone size={20} className="text-indigo-600" />
+                            <h2 className="text-lg font-bold text-slate-800 m-0">Recent Announcements</h2>
+                        </div>
+                        <div className="flex flex-col gap-4">
+                            {announcements.length > 0 ? (
+                                announcements.map((ann) => (
+                                    <div key={ann._id} className="pb-3 border-b border-slate-100 last:border-0">
+                                        <h4 className="text-sm font-bold text-slate-800 mb-1">{ann.title}</h4>
+                                        <p className="text-[13px] text-slate-500 line-clamp-2 my-0">{ann.message}</p>
+                                        <span className="text-[11px] text-slate-400 font-medium">
+                                            {new Date(ann.created_at || (ann as any).createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-slate-500 italic text-center p-4">No recent announcements.</p>
+                            )}
                         </div>
                     </Card>
                 </div>
