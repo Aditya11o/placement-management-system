@@ -14,7 +14,15 @@ const {
     getBulkJobStatus,
     getAuditLogs,
     getJobs,
-    updateJobStatus
+    updateJobStatus,
+    getApplications,
+    updateApplicationStatus,
+    getJobMatches,
+    getLatestPulse,
+    getAllInterviews,
+    getCampaigns,
+    createCampaign,
+    getPredictiveAnalytics
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
@@ -219,5 +227,28 @@ router.put('/email-templates/:id', updateEmailTemplate);
 // Job Management
 router.get('/jobs', advancedResults(Job), getJobs);
 router.put('/jobs/:id/status', updateJobStatus);
+router.get('/jobs/:id/matches', getJobMatches);
+
+// Application Management (Kanban)
+const Application = require('../models/Application');
+router.get('/applications', advancedResults(Application, [{ path: 'student_id', select: 'name email profile_image_url branch resume_url' }, { path: 'job_id', select: 'title' }]), getApplications);
+router.put('/applications/:id/status', updateApplicationStatus);
+
+// Live Command Center (Pulse Feed)
+router.get('/pulse', getLatestPulse);
+
+// Unified Interview Calendar
+const Interview = require('../models/Interview');
+router.get('/interviews', advancedResults(Interview, [
+    { path: 'student_id', select: 'name email branch' },
+    { path: 'recruiter_id', select: 'company_name contact_person' },
+    { path: 'job_id', select: 'title' }
+]), getAllInterviews);
+
+// Outreach Campaigns
+const Campaign = require('../models/Campaign');
+router.route('/campaigns')
+    .get(advancedResults(Campaign, { path: 'created_by', select: 'name' }), getCampaigns)
+    .post(createCampaign);
 
 module.exports = router;

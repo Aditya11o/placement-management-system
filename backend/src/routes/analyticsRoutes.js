@@ -6,7 +6,10 @@ const {
     getTopCompanies,
     getTrends,
     getFunnel,
-    getSalaryStats
+    getSalaryStats,
+    getPredictiveAnalytics,
+    getCohortAnalysis,
+    getEngagementStats
 } = require('../controllers/analyticsController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -221,5 +224,31 @@ router.get('/funnel', getFunnel);
  *         description: Salary distribution (Min/Max/Avg) per branch
  */
 router.get('/salary-stats', getSalaryStats);
+
+/**
+ * @swagger
+ * /api/v1/analytics/predictive:
+ *   get:
+ *     summary: Get predictive analytics (rising skills and branch demand)
+ *     tags: [Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Predictive metrics
+ */
+router.get('/predictive', getPredictiveAnalytics);
+
+/**
+ * @desc    Compare batches (graduation years)
+ * @route   GET /api/v1/analytics/cohorts
+ */
+router.get('/cohorts', getCohortAnalysis);
+
+/**
+ * @desc    Recruiter engagement metrics
+ * @route   GET /api/v1/analytics/engagement
+ */
+router.get('/engagement', getEngagementStats);
 
 module.exports = router;

@@ -366,6 +366,224 @@ exports.getSalaryStats = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get predictive analytics (Rising Skills, Branch Demand)
+ * @route   GET /api/v1/analytics/predictive
+ * @access  Private/Admin
+ */
+exports.getPredictiveAnalytics = async (req, res) => {
+    try {
+        // 1. Rising Skills Aggregation
+        // Unwinds the requirements array, lowercases and trims to avoid duplicates
+        const risingSkillsArray = await Job.aggregate([
+            { $match: { status: 'OPEN' } },
+            { $unwind: { path: "$requirements", preserveNullAndEmptyArrays: false } }, // ignore empty
+            {
+                $group: {
+                    _id: { $toLower: { $trim: { input: "$requirements" } } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 10 }
+        ]);
+
+        const risingSkills = risingSkillsArray.map(skill => ({
+            skill: skill._id,
+            count: skill.count
+        }));
+
+        // 2. Branch Demand Aggregation
+        // Unwinds eligible branches to count demand per branch
+        const branchDemandArray = await Job.aggregate([
+            { $match: { status: 'OPEN' } },
+            { $unwind: { path: "$eligible_branches", preserveNullAndEmptyArrays: false } },
+            {
+                $group: {
+                    _id: "$eligible_branches",
+                    jobCount: { $sum: 1 }
+                }
+            },
+            { $sort: { jobCount: -1 } }
+        ]);
+
+        const branchDemand = branchDemandArray.map(b => ({
+            branch: b._id,
+            jobCount: b.jobCount
+        }));
+
+        // 3. Mock Placement Probability Score
+        // Demand vs Supply ratio = Open Jobs / Approved Students
+        const totalApprovedStudents = await Student.countDocuments({ status: 'APPROVED' });
+        const totalOpenJobs = await Job.countDocuments({ status: 'OPEN' });
+        const demandSupplyRatio = totalApprovedStudents > 0
+            ? (totalOpenJobs / totalApprovedStudents).toFixed(2)
+            : 0;
+
+        res.status(200).json({
+            success: true,
+            data: {
+                risingSkills,
+                branchDemand,
+                metrics: {
+                    demandSupplyRatio: parseFloat(demandSupplyRatio)
+                }
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Compare performance across graduation cohorts
+ * @route   GET /api/v1/analytics/cohorts
+ * @access  Private/Admin
+ */
+exports.getCohortAnalysis = async (req, res) => {
+    try {
+        const cohortStats = await Student.aggregate([
+            { $match: { status: 'APPROVED' } },
+            {
+                $lookup: {
+                    from: 'applications',
+                    localField: '_id',
+                    foreignField: 'student_id',
+                    as: 'apps'
+                }
+            },
+            {
+                $project: {
+                    graduation_year: 1,
+                    isPlaced: { $in: ['SELECTED', '$apps.status'] },
+                    // Get highest package if multiple selected apps exist
+                    package: {
+                        $max: {
+                            $map: {
+                                input: {
+                                    $filter: {
+                                        input: '$apps',
+                                        as: 'app',
+                                        cond: { $eq: ['$$app.status', 'SELECTED'] }
+                                    }
+                                },
+                                as: 'p',
+                                in: '$$p.package_lpa' // Note: actually package_lpa is on Job, so we need extra lookup or assume it was copied to application
+                            }
+                        }
+                    }
+                }
+            },
+            // Since we need Job info for salary, let's do a better join
+            { $unwind: { path: '$apps', preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: 'jobs',
+                    localField: 'apps.job_id',
+                    foreignField: '_id',
+                    as: 'jobInfo'
+                }
+            },
+            { $unwind: { path: '$jobInfo', preserveNullAndEmptyArrays: true } },
+            {
+                $group: {
+                    _id: { studentId: '$_id', year: '$graduation_year' },
+                    isPlaced: { $max: { $cond: [{ $eq: ['$apps.status', 'SELECTED'] }, 1, 0] } },
+                    maxSalary: { $max: { $cond: [{ $eq: ['$apps.status', 'SELECTED'] }, '$jobInfo.package_lpa', 0] } }
+                }
+            },
+            {
+                $group: {
+                    _id: '$_id.year',
+                    totalStudents: { $sum: 1 },
+                    placedStudents: { $sum: '$isPlaced' },
+                    avgSalary: { $avg: { $cond: [{ $gt: ['$maxSalary', 0] }, '$maxSalary', null] } }
+                }
+            },
+            {
+                $project: {
+                    year: '$_id', _id: 0,
+                    totalStudents: 1, placedCount: '$placedStudents',
+                    placementRate: {
+                        $round: [
+                            { $multiply: [{ $divide: ['$placedStudents', '$totalStudents'] }, 100] }, 2
+                        ]
+                    },
+                    avgSalary: { $round: ['$avgSalary', 2] }
+                }
+            },
+            { $sort: { year: 1 } }
+        ]);
+
+        res.status(200).json({ success: true, data: cohortStats });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Analyze recruiter engagement and response behaviors
+ * @route   GET /api/v1/analytics/engagement
+ * @access  Private/Admin
+ */
+exports.getEngagementStats = async (req, res) => {
+    try {
+        const engagement = await Application.aggregate([
+            {
+                $lookup: {
+                    from: 'jobs',
+                    localField: 'job_id',
+                    foreignField: '_id',
+                    as: 'job'
+                }
+            },
+            { $unwind: '$job' },
+            {
+                $group: {
+                    _id: '$job.company_name',
+                    totalApps: { $sum: 1 },
+                    reviewedApps: {
+                        $sum: { $cond: [{ $in: ['$status', ['REVIEWED', 'SHORTLISTED', 'SELECTED', 'REJECTED']] }, 1, 0] }
+                    },
+                    offeredApps: {
+                        $sum: { $cond: [{ $eq: ['$status', 'SELECTED'] }, 1, 0] }
+                    },
+                    shortlistedApps: {
+                        $sum: { $cond: [{ $in: ['$status', ['SHORTLISTED', 'SELECTED']] }, 1, 0] }
+                    }
+                }
+            },
+            {
+                $project: {
+                    company: '$_id', _id: 0,
+                    totalApps: 1,
+                    responseRate: {
+                        $round: [
+                            { $multiply: [{ $divide: ['$reviewedApps', '$totalApps'] }, 100] }, 1
+                        ]
+                    },
+                    offerRatio: {
+                        $round: [
+                            {
+                                $multiply: [
+                                    { $divide: ['$offeredApps', { $cond: [{ $gt: ['$shortlistedApps', 0] }, '$shortlistedApps', 1] }] },
+                                    100
+                                ]
+                            }, 1
+                        ]
+                    }
+                }
+            },
+            { $sort: { totalApps: -1 } },
+            { $limit: 20 }
+        ]);
+
+        res.status(200).json({ success: true, data: engagement });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

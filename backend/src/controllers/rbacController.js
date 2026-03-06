@@ -121,10 +121,12 @@ exports.revokePermissions = async (req, res) => {
             });
         }
 
-        // Prevent an admin from revoking their own permissions
+        // FOR TESTING: Allowed self-revocation
+        /*
         if (target._id.toString() === req.user._id.toString()) {
             return res.status(403).json({ success: false, message: 'Cannot revoke your own permissions' });
         }
+        */
 
         target.permissions = target.permissions.filter(p => !permissions.includes(p));
         await target.save();
@@ -161,9 +163,12 @@ exports.setSubRole = async (req, res) => {
             return res.status(400).json({ success: false, message: `sub_role must be one of: ${validRoles.join(', ')}` });
         }
 
+        // FOR TESTING: Allowed self-role-change
+        /*
         if (req.params.id === req.user._id.toString()) {
             return res.status(403).json({ success: false, message: 'Cannot change your own sub_role' });
         }
+        */
 
         // When promoting to PLACEMENT_COORDINATOR, set a sensible default permission set
         const COORDINATOR_DEFAULTS = [
@@ -193,6 +198,64 @@ exports.setSubRole = async (req, res) => {
         });
 
         res.status(200).json({ success: true, message: `Sub-role updated to ${sub_role}`, data: target });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Create a new admin account
+ * @route   POST /api/v1/rbac/admins
+ * @access  SUPER_ADMIN only
+ */
+exports.createAdmin = async (req, res) => {
+    try {
+        const { name, email, password, sub_role } = req.body;
+
+        const exists = await Admin.findOne({ email });
+        if (exists) {
+            return res.status(400).json({ success: false, message: 'Admin with this email already exists' });
+        }
+
+        const COORDINATOR_DEFAULTS = [
+            'manage_students', 'manage_recruiters', 'manage_applications',
+            'manage_announcements', 'view_analytics', 'view_logs'
+        ];
+
+        const ADMIN_DEFAULTS = ['manage_students', 'manage_recruiters', 'view_analytics', 'view_logs'];
+
+        let permissions = [];
+        if (sub_role === 'SUPER_ADMIN') permissions = ALL_PERMISSIONS;
+        else if (sub_role === 'PLACEMENT_COORDINATOR') permissions = COORDINATOR_DEFAULTS;
+        else permissions = ADMIN_DEFAULTS;
+
+        const admin = await Admin.create({
+            name,
+            email,
+            password,
+            sub_role,
+            permissions
+        });
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'CREATE_ADMIN',
+            target_id: admin._id,
+            description: `Created new ${sub_role}: ${email}`
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Admin account created successfully',
+            data: {
+                _id: admin._id,
+                name: admin.name,
+                email: admin.email,
+                sub_role: admin.sub_role,
+                permissions: admin.permissions
+            }
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

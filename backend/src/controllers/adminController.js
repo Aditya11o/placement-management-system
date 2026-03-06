@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const Admin = require('../models/Admin');
 const { dataExportQueue } = require('../utils/dataExportQueue');
 const { bulkQueue } = require('../utils/bulkQueue');
+const { emailQueue } = require('../utils/emailQueue');
 
 const GlobalSettings = require('../models/GlobalSettings');
 const EmailTemplate = require('../models/EmailTemplate');
@@ -607,3 +608,271 @@ exports.updateJobStatus = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
+/**
+ * @desc    Get all applications for university-wide Kanban
+ * @route   GET /api/v1/admin/applications
+ * @access  Private/Admin
+ */
+exports.getApplications = async (req, res) => {
+    try {
+        res.status(200).json(res.advancedResults);
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Update application status (Kanban drag & drop)
+ * @route   PUT /api/v1/admin/applications/:id/status
+ * @access  Private/Admin
+ */
+exports.updateApplicationStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+
+        // Allowed statuses matching Kanban columns
+        const validStatuses = ['SUBMITTED', 'REVIEWED', 'SHORTLISTED', 'SELECTED', 'REJECTED'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ success: false, message: 'Invalid status' });
+        }
+
+        const Application = require('../models/Application');
+
+        const application = await Application.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true, runValidators: true }
+        ).populate('student_id', 'name').populate('job_id', 'title');
+
+        if (!application) {
+            return res.status(404).json({ success: false, message: 'Application not found' });
+        }
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'UPDATE_APPLICATION_STATUS',
+            target_id: application._id,
+            description: `Moved application for ${application.student_id?.name || 'Unknown'} (${application.job_id?.title || 'Unknown'}) to ${status}`
+        });
+
+        return res.status(200).json({ success: true, data: application });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Get AI ranked candidate matches for a specific job
+ * @route   GET /api/v1/admin/jobs/:id/matches
+ * @access  Private/Admin
+ */
+exports.getJobMatches = async (req, res) => {
+    try {
+        const Job = require('../models/Job');
+        const Student = require('../models/Student');
+        const { rankCandidatesForJob } = require('../utils/aiMatcher');
+
+        const job = await Job.findById(req.params.id);
+        if (!job) {
+            return res.status(404).json({ success: false, message: 'Job not found' });
+        }
+
+        // Pre-filter students to save AI tokens (e.g., must be approved, could filter by branch if job specifies)
+        const students = await Student.find({ status: 'APPROVED' }).select('name email branch cgpa skills profile_image_url resume_url');
+
+        // Get AI Rankings
+        const aiRankings = await rankCandidatesForJob(job, students);
+
+        // Merge AI scores with full student profiles
+        const matchedCandidates = aiRankings.map(ranking => {
+            const studentData = students.find(s => s._id.toString() === ranking.studentId);
+            if (!studentData) return null; // Should not happen if AI is accurate
+
+            return {
+                student: studentData,
+                matchScore: ranking.score,
+                matchReason: ranking.reasoning
+            };
+        }).filter(item => item !== null).sort((a, b) => b.matchScore - a.matchScore); // Sort highest first
+
+        res.status(200).json({
+            success: true,
+            count: matchedCandidates.length,
+            data: matchedCandidates
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Get the latest pulse events for the Live Command Center
+ * @route   GET /api/v1/admin/pulse
+ * @access  Private/Admin
+ */
+exports.getLatestPulse = async (req, res) => {
+    try {
+        // Fetch the 20 most recent non-ADMIN logs to seed the dashboard feed
+        const logs = await Log.find({ user_role: { $ne: 'ADMIN' } })
+            .sort({ created_at: -1 })
+            .limit(20)
+            .lean();
+
+        res.status(200).json({
+            success: true,
+            count: logs.length,
+            data: logs
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Get all system-wide interviews for the Unified Calendar
+ * @route   GET /api/v1/admin/interviews
+ * @access  Private/Admin
+ */
+exports.getAllInterviews = async (req, res) => {
+    try {
+        const Interview = require('../models/Interview');
+
+        // We use advancedResults if possible, otherwise manual fetch
+        // (Assuming advancedResults middleware is attached in the route mapping)
+        res.status(200).json(res.advancedResults);
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Get all email outreach campaigns
+ * @route   GET /api/v1/admin/campaigns
+ * @access  Private/Admin
+ */
+exports.getCampaigns = async (req, res) => {
+    try {
+        const Campaign = require('../models/Campaign');
+        res.status(200).json(res.advancedResults);
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Create and send a new mass email campaign
+ * @route   POST /api/v1/admin/campaigns
+ * @access  Private/Admin
+ */
+exports.createCampaign = async (req, res) => {
+    try {
+        const { title, subject, target_audience, target_filters, channels, html_content } = req.body;
+        const Campaign = require('../models/Campaign');
+        const Student = require('../models/Student');
+        const Recruiter = require('../models/Recruiter');
+
+        // 1. Build Dynamic Filter Query
+        let query = {};
+        let targetModel = Student;
+
+        if (target_audience === 'ALL_STUDENTS') {
+            query = {};
+        } else if (target_audience === 'APPROVED_STUDENTS') {
+            query = { status: 'APPROVED' };
+        } else if (target_audience === 'UNPLACED_STUDENTS') {
+            // In a real system, we'd check an 'is_placed' flag. 
+            // Here we'll simulate by checking students without 'SELECTED' applications.
+            const placedIds = await require('../models/Application').distinct('student_id', { status: 'SELECTED' });
+            query = { status: 'APPROVED', _id: { $nin: placedIds } };
+        } else if (target_audience === 'ALL_RECRUITERS') {
+            targetModel = Recruiter;
+            query = {};
+        } else if (target_audience === 'CUSTOM') {
+            // Apply granular filters
+            if (target_filters.branch) query.branch = target_filters.branch;
+            if (target_filters.graduation_year) query.graduation_year = target_filters.graduation_year;
+            if (target_filters.cgpa_min) query.cgpa = { $gte: Number(target_filters.cgpa_min) };
+            if (target_filters.backlogs_max !== undefined) query.backlogs_active = { $lte: Number(target_filters.backlogs_max) };
+            query.status = 'APPROVED'; // Custom campaigns only target approved users
+        } else {
+            return res.status(400).json({ success: false, message: 'Invalid target audience' });
+        }
+
+        const recipients = await targetModel.find(query).select('email name company_name phone');
+
+        if (recipients.length === 0) {
+            return res.status(400).json({ success: false, message: 'No recipients found for the selected cohort.' });
+        }
+
+        // 2. Create the Campaign Record
+        const campaign = await Campaign.create({
+            title,
+            subject,
+            target_audience,
+            target_filters,
+            channels: channels || ['EMAIL'],
+            html_content,
+            status: 'SENDING',
+            total_recipients: recipients.length,
+            sent_count: 0,
+            created_by: req.user._id
+        });
+
+        // 3. Simulated Multi-channel Dispatch
+        // In production, this would hand off to a background worker (BullMQ) 
+        // that handles rate-limiting and provider-specific retries.
+        setImmediate(async () => {
+            let successCount = 0;
+            const chosenChannels = campaign.channels;
+
+            for (const person of recipients) {
+                try {
+                    const name = person.name || person.company_name;
+
+                    // A. Email Dispatch (Real)
+                    if (chosenChannels.includes('EMAIL')) {
+                        await emailQueue.add('campaign-email', {
+                            email: person.email,
+                            subject: campaign.subject,
+                            template: 'alert',
+                            context: {
+                                title: campaign.title,
+                                name: name,
+                                message: campaign.html_content,
+                                cta: { text: 'View Updates', url: `${config.get('frontend_url')}/dashboard` }
+                            }
+                        });
+                    }
+
+                    // B. Push/SMS Dispatch (Simulated)
+                    // We log these to the system for visibility
+                    if (chosenChannels.includes('PUSH') || chosenChannels.includes('SMS')) {
+                        logger.info(`[CAMPAIGN] Simulated ${chosenChannels.filter(c => c !== 'EMAIL').join('/')} to ${person.email}`);
+                    }
+
+                    successCount++;
+                } catch (err) {
+                    logger.error(`Campaign dispatch error for ${person.email}: ${err.message}`);
+                }
+            }
+
+            // Mark completed
+            campaign.status = 'COMPLETED';
+            campaign.sent_count = successCount;
+            await campaign.save();
+
+            // Notify admin via Socket (if implemented) or just log
+            logger.info(`Campaign ${campaign._id} finished: ${successCount}/${recipients.length} sent.`);
+        });
+
+        res.status(202).json({
+            success: true,
+            data: campaign,
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+

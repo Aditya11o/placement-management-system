@@ -34,4 +34,17 @@ const logSchema = new mongoose.Schema({
 logSchema.index({ user_id: 1, created_at: -1 });
 logSchema.index({ action: 1 });
 
+// Real-time Pulse Feed Broadcast
+logSchema.post('save', function (doc) {
+    try {
+        const { notifyRole } = require('./socketManager');
+        // Only broadcast non-admin actions to avoid self-echoing noise on the dashboard
+        if (doc.user_role !== 'ADMIN') {
+            notifyRole('ADMIN', 'admin_pulse', doc);
+        }
+    } catch (err) {
+        console.error('[Pulse Feed] Failed to emit admin_pulse event:', err.message);
+    }
+});
+
 module.exports = mongoose.model('Log', logSchema);

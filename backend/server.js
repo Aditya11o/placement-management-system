@@ -58,9 +58,19 @@ const performanceObserver = require('./src/middlewares/performanceMiddleware');
 // Log requests taking longer than 500ms for semantic observability
 app.use(performanceObserver(500));
 
-// Health Check (Exempt from Rate Limiting for monitoring)
+// Health Check (Exempt from Rate Limiting for monitoring, but needs CORS)
 const healthRoutes = require('./src/routes/healthRoutes');
-app.use('/api/v1/health', healthRoutes);
+const healthCorsWhitelist = config.get('cors.whitelist');
+const healthCors = cors({
+    origin: function (origin, callback) {
+        if (!origin || healthCorsWhitelist.indexOf(origin) !== -1 || config.get('env') === 'test') {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+});
+app.use('/api/v1/health', healthCors, healthRoutes);
 
 // Global Rate Limiting
 const limiter = rateLimit({

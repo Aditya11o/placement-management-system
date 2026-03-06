@@ -49,6 +49,15 @@ const interviewSchema = new mongoose.Schema({
     notes: {
         type: String,
         maxlength: [500, 'Notes cannot be more than 500 characters']
+    },
+    calendar_provider: {
+        type: String,
+        enum: ['GOOGLE', 'OUTLOOK', 'NONE'],
+        default: 'NONE'
+    },
+    external_event_id: {
+        type: String,
+        default: null
     }
 }, {
     timestamps: true

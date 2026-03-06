@@ -12,11 +12,13 @@ import {
     ChevronRight,
     ArrowLeft,
     RefreshCw,
-    Info
+    Info,
+    Target
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
+import JobMatchesDrawer from '../../components/JobMatchesDrawer/JobMatchesDrawer';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
 
@@ -25,6 +27,10 @@ const AdminJobs = () => {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(1);
     const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
+
+    const [matchesDrawerOpen, setMatchesDrawerOpen] = useState(false);
+    const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+    const [selectedJobTitle, setSelectedJobTitle] = useState<string>('');
 
     const { data: jobData, isLoading, refetch, isFetching } = useQuery({
         queryKey: ['adminJobs', page, activeTab],
@@ -57,6 +63,12 @@ const AdminJobs = () => {
 
     const handleToggleFeatured = (id: string, current: boolean) => {
         statusMutation.mutate({ id, is_featured: !current });
+    };
+
+    const handleOpenMatches = (id: string, title: string) => {
+        setSelectedJobId(id);
+        setSelectedJobTitle(title);
+        setMatchesDrawerOpen(true);
     };
 
     return (
@@ -173,6 +185,14 @@ const AdminJobs = () => {
                                             <Star size={20} fill={job.is_featured ? "currentColor" : "none"} />
                                         </button>
 
+                                        <button
+                                            onClick={() => handleOpenMatches(job._id, job.title)}
+                                            className="p-2.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400 transition-all font-bold group"
+                                            title="Find Candidates using AI"
+                                        >
+                                            <Target size={20} className="group-hover:animate-pulse" />
+                                        </button>
+
                                         <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
 
                                         {activeTab === 'pending' ? (
@@ -244,6 +264,14 @@ const AdminJobs = () => {
                     </p>
                 </div>
             </div>
+
+            {/* AI Candidate Matching Drawer */}
+            <JobMatchesDrawer
+                isOpen={matchesDrawerOpen}
+                onClose={() => setMatchesDrawerOpen(false)}
+                jobId={selectedJobId}
+                jobTitle={selectedJobTitle}
+            />
         </div>
     );
 };

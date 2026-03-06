@@ -39,8 +39,8 @@ interface DataTableProps<T> {
     onPageChange?: (newPage: number) => void;
 }
 
-const thClass = 'p-4 px-6 bg-slate-50 text-slate-500 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 text-left';
-const tdClass = 'p-5 px-6 border-b border-slate-200 align-middle';
+const thClass = 'p-4 px-6 bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 text-left';
+const tdClass = 'p-5 px-6 border-b border-slate-200 dark:border-slate-700/50 align-middle text-slate-700 dark:text-slate-300';
 
 function DataTable<T>({
     columns,
@@ -95,7 +95,7 @@ function DataTable<T>({
                 <SkeletonTable rows={skeletonRows} cols={cols} />
             ) : data.length === 0 ? (
                 <div className="p-16 text-center">
-                    <p className="text-slate-500">{emptyMessage}</p>
+                    <p className="text-slate-500 dark:text-slate-400">{emptyMessage}</p>
                 </div>
             ) : (
                 <div className="overflow-x-auto w-full">
@@ -130,7 +130,7 @@ function DataTable<T>({
                                 return (
                                     <tr
                                         key={key}
-                                        className={`transition-colors border-b border-slate-100 last:border-none ${onRowClick ? 'cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-700/50' : 'hover:bg-slate-50 dark:hover:bg-slate-800/80'} ${selectedKeys.includes(key) ? 'bg-indigo-50/40 dark:bg-indigo-900/10' : ''}`}
+                                        className={`transition-colors border-b border-slate-100 dark:border-slate-700/30 last:border-none ${onRowClick ? 'cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-700/50' : 'hover:bg-slate-50 dark:hover:bg-slate-800/80'} ${selectedKeys.includes(key) ? 'bg-indigo-50/40 dark:bg-indigo-900/20' : ''}`}
                                         onClick={(e) => {
                                             // Only trigger row click if we're not clicking the checkbox itself
                                             if ((e.target as HTMLElement).tagName.toLowerCase() !== 'input' && onRowClick) {
@@ -167,15 +167,15 @@ function DataTable<T>({
 
             {/* Pagination Footer */}
             {hasPagination && totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white">
-                    <span className="text-sm text-slate-500">
-                        Page <span className="font-semibold text-slate-800">{page}</span> of <span className="font-semibold text-slate-800">{totalPages}</span>
+                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
+                        Page <span className="font-semibold text-slate-800 dark:text-slate-200">{page}</span> of <span className="font-semibold text-slate-800 dark:text-slate-200">{totalPages}</span>
                     </span>
                     <div className="flex gap-2">
                         <button
                             onClick={() => onPageChange(page - 1)}
                             disabled={page === 1 || isLoading}
-                            className={`p-2 rounded-lg flex items-center justify-center transition-colors ${page === 1 || isLoading ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'}`}
+                            className={`p-2 rounded-lg flex items-center justify-center transition-colors ${page === 1 || isLoading ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                             aria-label="Previous Page"
                         >
                             <ChevronLeft size={20} />
@@ -183,7 +183,7 @@ function DataTable<T>({
                         <button
                             onClick={() => onPageChange(page + 1)}
                             disabled={page === totalPages || isLoading}
-                            className={`p-2 rounded-lg flex items-center justify-center transition-colors ${page === totalPages || isLoading ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'}`}
+                            className={`p-2 rounded-lg flex items-center justify-center transition-colors ${page === totalPages || isLoading ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                             aria-label="Next Page"
                         >
                             <ChevronRight size={20} />

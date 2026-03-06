@@ -9,11 +9,13 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
-    LineChart,
-    Line,
     AreaChart,
     Area,
-    ComposedChart
+    ComposedChart,
+    RadarChart,
+    Radar,
+    PolarGrid,
+    PolarAngleAxis
 } from 'recharts';
 import {
     TrendingUp,
@@ -29,7 +31,9 @@ import {
     RefreshCw,
     GraduationCap,
     TrendingDown,
-    Target
+    Target,
+    Lightbulb,
+    Radar as RadarIcon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Card from '../../components/Card/Card';
@@ -66,10 +70,20 @@ const AdminAnalytics = () => {
         }
     });
 
+    // Fetch Predictive Stats
+    const { data: predictiveData, isLoading: isPredictiveLoading, refetch: refetchPredictive } = useQuery({
+        queryKey: ['predictiveAnalytics', dateRange],
+        queryFn: async () => {
+            const res = await api.get(`/analytics/predictive?from=${dateRange.from}&to=${dateRange.to}`);
+            return res.data.data;
+        }
+    });
+
     const refreshAll = () => {
         refetchBranch();
         refetchSalary();
         refetchTrends();
+        refetchPredictive();
     };
 
     const CustomTooltip = ({ active, payload, label }: any) => {
@@ -288,7 +302,7 @@ const AdminAnalytics = () => {
                                         fill="#059669"
                                         radius={[0, 4, 4, 0]}
                                         barSize={24}
-                                        label={{ position: 'right', fill: '#059669', fontSize: 12, fontWeight: 'bold', formatter: (v: number) => `${v}%` }}
+                                        label={{ position: 'right', fill: '#059669', fontSize: 12, fontWeight: 'bold', formatter: (v: any) => `${v}%` }}
                                     />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -359,6 +373,78 @@ const AdminAnalytics = () => {
                         )}
                     </div>
                 </Card>
+            </div>
+
+            {/* Predictive Success Analysis */}
+            <div className="flex flex-col gap-6 pt-10 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex flex-col gap-1">
+                    <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white m-0 tracking-tight flex items-center gap-2">
+                        <Lightbulb className="text-amber-500" /> Predictive Success Analysis
+                    </h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm m-0 ml-8">AI-driven insights on rising skills and branch demand to guide training programs.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Rising Skills */}
+                    <Card className="p-8 border-slate-200/60 shadow-sm">
+                        <div className="flex justify-between items-center mb-10">
+                            <div className="flex flex-col gap-1">
+                                <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Rising Skills Demand</h3>
+                                <p className="text-sm text-slate-500 m-0">Top 10 most frequently requested skills in active job postings.</p>
+                            </div>
+                        </div>
+
+                        <div className="h-[350px] w-full">
+                            {isPredictiveLoading ? (
+                                <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Loading Predictive Engine...</div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={predictiveData?.risingSkills} layout="vertical" margin={{ left: -10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} />
+                                        <YAxis dataKey="skill" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 12, fontWeight: 'bold' }} width={100} />
+                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F8FAFC' }} />
+                                        <Bar dataKey="count" name="Job Postings" fill="#8B5CF6" radius={[0, 4, 4, 0]} barSize={24} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+                    </Card>
+
+                    {/* Branch Demand Radar */}
+                    <Card className="p-8 border-slate-200/60 shadow-sm overflow-hidden relative">
+                        <div className="flex justify-between items-start mb-6 relative z-10">
+                            <div className="flex flex-col gap-1">
+                                <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Market Branch Demand</h3>
+                                <p className="text-sm text-slate-500 m-0">Volume of open jobs mapped against eligible branches.</p>
+                            </div>
+                            <div className="flex flex-col items-end text-right">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">Job/Student Ratio</span>
+                                <span className="text-2xl font-black text-brand-600 leading-tight">{predictiveData?.metrics?.demandSupplyRatio || '0.00'}</span>
+                            </div>
+                        </div>
+
+                        <div className="h-[350px] w-full relative z-10">
+                            {isPredictiveLoading ? (
+                                <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Loading Radar...</div>
+                            ) : predictiveData?.branchDemand?.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadarChart data={predictiveData?.branchDemand} outerRadius="70%">
+                                        <PolarGrid stroke="#E2E8F0" />
+                                        <PolarAngleAxis dataKey="branch" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 'bold' }} />
+                                        <Tooltip />
+                                        <Radar name="Jobs Available" dataKey="jobCount" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.4} />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="w-full h-full flex flex-col gap-3 items-center justify-center text-slate-500">
+                                    <RadarIcon size={48} className="text-slate-300 opacity-50" />
+                                    <p className="font-medium text-sm">Not enough active job data to plot radar.</p>
+                                </div>
+                            )}
+                        </div>
+                    </Card>
+                </div>
             </div>
 
             {/* Insight Message */}

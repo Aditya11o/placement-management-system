@@ -2,12 +2,13 @@ const express = require('express');
 const {
     listAdmins, getPermissionManifest,
     grantPermissions, revokePermissions,
-    setSubRole, getMyPermissions
+    setSubRole, getMyPermissions,
+    createAdmin
 } = require('../controllers/rbacController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const checkPermission = require('../middlewares/checkPermission');
 const { validate } = require('../middlewares/validate');
-const { validatePermissionChange, validateSubRoleUpdate } = require('../validations/rbacValidator');
+const { validatePermissionChange, validateSubRoleUpdate, validateAdminCreation } = require('../validations/rbacValidator');
 
 const router = express.Router();
 router.use(protect);
@@ -64,6 +65,7 @@ router.get('/permissions', getPermissionManifest);
  *         description: Insufficient permissions
  */
 router.get('/admins', checkPermission('manage_admins'), listAdmins);
+router.post('/admins', checkPermission('manage_admins'), validateAdminCreation, validate, createAdmin);
 
 /**
  * @swagger

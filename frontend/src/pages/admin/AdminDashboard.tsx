@@ -6,13 +6,18 @@ import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import SkeletonCard from '../../components/Skeleton/SkeletonCard';
 import SkeletonTable from '../../components/Skeleton/SkeletonTable';
-import { Users, Building, Activity, ShieldAlert, CheckCircle, XCircle, DownloadCloud, Megaphone, BarChart3, PieChart, Briefcase } from 'lucide-react';
+import {
+    Users, Building, Activity, ShieldAlert, CheckCircle, XCircle,
+    DownloadCloud, Megaphone, BarChart3, PieChart, Briefcase,
+    LayoutDashboard, TrendingUp, Send, ShieldCheck, Zap
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 import TrendsChart from '../../components/Charts/TrendsChart';
 import FunnelChart from '../../components/Charts/FunnelChart';
 import ExportReportsModal from '../../components/ExportReportsModal/ExportReportsModal';
+import PulseFeed from '../../components/PulseFeed/PulseFeed';
 
 const AdminDashboard = () => {
     const { addToast } = useToast();
@@ -121,10 +126,10 @@ const AdminDashboard = () => {
     }
 
     return (
-        <div className="flex flex-col gap-6 animate-fade-in">
+        <div className="flex flex-col gap-6 animate-fade-in overflow-hidden">
             <div className="flex justify-between items-start mb-2">
                 <div>
-                    <h1 className="text-3xl font-bold text-indigo-700 mb-1">Admin Overview</h1>
+                    <h1 className="text-3xl font-bold text-indigo-700 mb-1">Overview Dashboard</h1>
                     <p className="text-slate-500 text-base m-0">System metrics and pending approval actions.</p>
                 </div>
             </div>
@@ -164,22 +169,22 @@ const AdminDashboard = () => {
 
             {/* Interactive Analytics Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 min-w-0">
                     <TrendsChart data={trendsData} isLoading={isTrendsLoading} />
                     <button
-                        onClick={() => navigate('/admin/analytics')}
+                        onClick={() => navigate('/admin/analytics-deep-dive')}
                         className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 self-end px-2"
                     >
-                        <Activity size={14} /> View Advanced Trends &rarr;
+                        <TrendingUp size={14} /> View Advanced Trends &rarr;
                     </button>
                 </div>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 min-w-0">
                     <FunnelChart data={funnelData} isLoading={isFunnelLoading} />
                     <button
-                        onClick={() => navigate('/admin/analytics')}
+                        onClick={() => navigate('/admin/analytics-deep-dive')}
                         className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 self-end px-2"
                     >
-                        <BarChart3 size={14} /> Deep-Dive Funnel &rarr;
+                        <BarChart3 size={14} /> Deep-Dive Analytics &rarr;
                     </button>
                 </div>
             </div>
@@ -187,7 +192,7 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 mt-2">
 
                 {/* Pending Actions / Approvals */}
-                <div>
+                <div className="min-w-0">
                     <Card className="flex flex-col p-6 lg:p-8 h-full">
                         <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
@@ -213,11 +218,11 @@ const AdminDashboard = () => {
                             ) : (
                                 pendingRecruiters.map((rec: any) => (
                                     <div key={rec._id} className="flex justify-between items-center p-5 bg-slate-50 border border-slate-200 rounded-md">
-                                        <div className="flex flex-col">
-                                            <h4 className="text-[17px] font-semibold text-slate-800 mb-1">{rec.company_name || 'Unknown Company'}</h4>
-                                            <p className="text-sm text-slate-500 m-0">{rec.contact_person} ({rec.email})</p>
+                                        <div className="flex flex-col min-w-0">
+                                            <h4 className="text-[17px] font-semibold text-slate-800 mb-1 truncate">{rec.company_name || 'Unknown Company'}</h4>
+                                            <p className="text-sm text-slate-500 m-0 truncate">{rec.contact_person} ({rec.email})</p>
                                         </div>
-                                        <div className="flex gap-3">
+                                        <div className="flex gap-3 shrink-0">
                                             <button className="bg-green-50 border-none flex items-center justify-center w-10 h-10 rounded-full cursor-pointer transition-all text-green-600 hover:bg-green-200 disabled:opacity-50" onClick={() => handleRecruiterApproval(rec._id, 'approve')} disabled={approvalMutation.isPending}>
                                                 <CheckCircle size={20} />
                                             </button>
@@ -232,31 +237,46 @@ const AdminDashboard = () => {
                     </Card>
                 </div>
 
-                {/* Quick Links */}
-                <div>
-                    <Card className="flex flex-col p-6 lg:p-8 h-full">
-                        <h2 className="text-xl font-bold text-indigo-700 m-0">Management Links</h2>
-                        <div className="flex flex-col gap-4 mt-6">
-                            <Button isFullWidth variant="secondary" icon={Users} onClick={() => navigate('/admin/students')}>Manage Students</Button>
-                            <Button isFullWidth variant="secondary" icon={Briefcase} onClick={() => navigate('/admin/jobs')}>Job Quality & Approvals</Button>
-                            <Button isFullWidth variant="secondary" icon={Building} onClick={() => navigate('/admin/recruiters')}>Manage Companies</Button>
-                            <Button isFullWidth variant="secondary" icon={Megaphone} onClick={() => navigate('/admin/announcements')}>Global Announcements</Button>
-                            <Button isFullWidth variant="secondary" icon={ShieldAlert} onClick={() => navigate('/admin/audit-logs')}>Security Logs</Button>
-                            <Button isFullWidth variant="secondary" icon={PieChart} onClick={() => navigate('/admin/analytics')}>Advanced Analytics</Button>
-                            <div className="h-px bg-slate-200 my-2"></div>
-                            {/* Future links for reports could go here */}
-                            <Button
-                                isFullWidth
-                                variant="primary"
-                                icon={DownloadCloud}
-                                onClick={() => setIsExportModalOpen(true)}
-                            >
-                                Export Reports
-                            </Button>
-                        </div>
-                    </Card>
+                {/* Pulse Feed */}
+                <div className="h-[500px] lg:h-auto min-w-0">
+                    <PulseFeed />
                 </div>
 
+            </div>
+
+            {/* Quick Links - Full Width */}
+            {/* Super Admin Tools & Quick Links */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="flex flex-col p-6 lg:p-8">
+                    <h2 className="text-xl font-bold text-indigo-700 m-0 flex items-center gap-2">
+                        <ShieldCheck size={22} /> Super Admin Tools
+                    </h2>
+                    <p className="text-sm text-slate-400 mt-1 mb-6">Advanced system control and communication modules.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Button isFullWidth variant="secondary" icon={Send} onClick={() => navigate('/admin/communication')}>Communication Center</Button>
+                        <Button isFullWidth variant="secondary" icon={TrendingUp} onClick={() => navigate('/admin/analytics-deep-dive')}>Analytics Deep Dive</Button>
+                        <Button isFullWidth variant="secondary" icon={Zap} onClick={() => navigate('/admin/system-health')}>System Health Monitor</Button>
+                        <Button isFullWidth variant="secondary" icon={ShieldCheck} onClick={() => navigate('/admin/rbac')}>Roles & Permissions</Button>
+                    </div>
+                </Card>
+
+                <Card className="flex flex-col p-6 lg:p-8">
+                    <h2 className="text-xl font-bold text-slate-700 m-0">Management Links</h2>
+                    <p className="text-sm text-slate-400 mt-1 mb-6">Standard operational tools and data export.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Button isFullWidth variant="secondary" icon={Users} onClick={() => navigate('/admin/students')}>Manage Students</Button>
+                        <Button isFullWidth variant="secondary" icon={Building} onClick={() => navigate('/admin/recruiters')}>Manage Companies</Button>
+                        <Button isFullWidth variant="secondary" icon={Megaphone} onClick={() => navigate('/admin/announcements')}>Global Announcements</Button>
+                        <Button
+                            isFullWidth
+                            variant="primary"
+                            icon={DownloadCloud}
+                            onClick={() => setIsExportModalOpen(true)}
+                        >
+                            Export Reports
+                        </Button>
+                    </div>
+                </Card>
             </div>
 
             <ExportReportsModal

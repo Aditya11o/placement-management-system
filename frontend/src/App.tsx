@@ -37,6 +37,15 @@ const AdminAnnouncements = lazy(() => import('./pages/admin/AdminAnnouncements')
 const AdminAuditLogs = lazy(() => import('./pages/admin/AdminAuditLogs'));
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminJobs = lazy(() => import('./pages/admin/AdminJobs'));
+const AdminKanban = lazy(() => import('./pages/admin/AdminKanban'));
+const AdminCalendar = lazy(() => import('./pages/admin/AdminCalendar'));
+const AdminCampaigns = lazy(() => import('./pages/admin/AdminCampaigns'));
+const AdminRBAC = lazy(() => import('./pages/admin/AdminRBAC'));
+const AdminReportBuilder = lazy(() => import('./pages/admin/AdminReportBuilder'));
+const AdminDocVerification = lazy(() => import('./pages/admin/AdminDocVerification'));
+const AdminSystemHealth = lazy(() => import('./pages/admin/AdminSystemHealth'));
+const AdminCommunication = lazy(() => import('./pages/admin/AdminCommunication'));
+const AdminAnalyticsDeepDive = lazy(() => import('./pages/admin/AdminAnalyticsDeepDive'));
 
 // Provisional Page imports
 const Unauthorized = () => <div style={{ padding: '2rem' }}><h1>403 - Unauthorized Access</h1></div>;
@@ -103,6 +112,15 @@ const App = () => {
                             <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
                             <Route path="/admin/analytics" element={<AdminAnalytics />} />
                             <Route path="/admin/jobs" element={<AdminJobs />} />
+                            <Route path="/admin/kanban" element={<AdminKanban />} />
+                            <Route path="/admin/calendar" element={<AdminCalendar />} />
+                            <Route path="/admin/campaigns" element={<AdminCampaigns />} />
+                            <Route path="/admin/rbac" element={<AdminRBAC />} />
+                            <Route path="/admin/report-builder" element={<AdminReportBuilder />} />
+                            <Route path="/admin/doc-verification" element={<AdminDocVerification />} />
+                            <Route path="/admin/system-health" element={<AdminSystemHealth />} />
+                            <Route path="/admin/communication" element={<AdminCommunication />} />
+                            <Route path="/admin/analytics-deep-dive" element={<AdminAnalyticsDeepDive />} />
                           </Route>
 
                         </Route>

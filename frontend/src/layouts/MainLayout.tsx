@@ -4,10 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import {
     Menu, X, LayoutDashboard, User, Briefcase,
-    FileText, Users, Settings, LogOut, Building, LucideIcon, ShieldCheck
+    FileText, Users, Settings, LogOut, Building, LucideIcon, ShieldCheck, Send, Search,
+    Shield, FileCheck, Activity, Calendar, TrendingUp
 } from 'lucide-react';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
 import ThemeToggle from '../components/ThemeToggle/ThemeToggle';
+import CommandPalette from '../components/CommandPalette/CommandPalette';
 import { useTheme } from '../context/ThemeContext';
 
 interface NavItem {
@@ -53,10 +55,17 @@ const MainLayout: React.FC = () => {
             case 'ADMIN':
             case 'SUPER_ADMIN':
                 return [
-                    { label: 'Analytics Console', path: '/admin/dashboard', icon: LayoutDashboard },
+                    { label: 'Overview Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+                    { label: 'Analytics Deep Dive', path: '/admin/analytics-deep-dive', icon: TrendingUp },
                     { label: 'Approval Center', path: '/admin/approvals', icon: ShieldCheck },
                     { label: 'Manage Students', path: '/admin/students', icon: Users },
                     { label: 'Manage Recruiters', path: '/admin/recruiters', icon: Briefcase },
+                    { label: 'Unified Calendar', path: '/admin/calendar', icon: Calendar },
+                    { label: 'Communication Center', path: '/admin/communication', icon: Send },
+                    { label: 'Roles & Permissions', path: '/admin/rbac', icon: Shield },
+                    { label: 'Custom Reports', path: '/admin/report-builder', icon: FileText },
+                    { label: 'Doc Verification', path: '/admin/doc-verification', icon: FileCheck },
+                    { label: 'System Health', path: '/admin/system-health', icon: Activity },
                     { label: 'System Settings', path: '/admin/settings', icon: Settings },
                 ];
             default:
@@ -143,18 +152,30 @@ const MainLayout: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        {/* Command Palette Shortcut Hint */}
+                        <button
+                            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+                            className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 transition-colors text-sm cursor-pointer"
+                        >
+                            <Search size={14} />
+                            <span className="text-xs">Search...</span>
+                            <kbd className="ml-2 text-[10px] font-mono bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600">Ctrl+K</kbd>
+                        </button>
                         <ThemeToggle />
                         <NotificationPanel />
                     </div>
                 </header>
 
                 {/* Dynamic Route Content */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/50 dark:bg-slate-900/50 relative transition-colors duration-300">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 bg-slate-50/50 dark:bg-slate-900/50 relative transition-colors duration-300">
                     <Outlet />
                 </div>
             </main>
 
-        </div>
+            {/* Global Command Palette (Ctrl+K / Cmd+K) */}
+            <CommandPalette />
+
+        </div >
     );
 };
 

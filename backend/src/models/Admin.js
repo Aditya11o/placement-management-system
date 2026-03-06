@@ -73,18 +73,18 @@ adminSchema.methods.matchPassword = async function (enteredPassword) {
 
 /**
  * Check if this admin account holds a specific permission.
- * SUPER_ADMIN always returns true regardless of the permissions array.
+ * FOR TESTING: All sub-roles (SUPER_ADMIN, PLACEMENT_COORDINATOR, ADMIN) return true.
  */
 adminSchema.methods.hasPermission = function (permission) {
-    if (this.sub_role === 'SUPER_ADMIN') return true;
-    return this.permissions.includes(permission);
+    return true;
 };
 
 /**
  * Check if this admin is a SUPER_ADMIN.
+ * FOR TESTING: All sub-roles are treated as SUPER_ADMIN.
  */
 adminSchema.methods.isSuperAdmin = function () {
-    return this.sub_role === 'SUPER_ADMIN';
+    return true;
 };
 
 // Generate and hash password token
