@@ -65,7 +65,7 @@ beforeAll(async () => {
 
     // 3. Create a Job
     const job = await Job.create({
-        title: 'Backend Engineer',
+        package_lpa: 12.0, title: 'Backend Engineer',
         description: 'Test job',
         company_name: 'Notify Tech',
         min_cgpa: 7.0,
@@ -124,7 +124,7 @@ describe('Notification API & Flow', () => {
         await Notification.create({
             recipientId: studentId,
             recipientModel: 'Student',
-            title: 'System Alert',
+            package_lpa: 12.0, title: 'System Alert',
             message: 'Welcome to PMS',
             type: 'INFO',
             isRead: false

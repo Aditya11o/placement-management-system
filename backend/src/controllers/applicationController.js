@@ -253,6 +253,7 @@ exports.updateApplicationStatus = async (req, res) => {
 
         res.json({ success: true, data: application });
     } catch (err) {
+        console.error("APP_CONTROLLER_ERROR:", err.stack || err.message || err);
         res.status(500).json({ success: false, message: err.message });
     }
 };

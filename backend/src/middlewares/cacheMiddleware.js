@@ -68,14 +68,21 @@ const clearCache = async (pattern) => {
 
     try {
         const searchPattern = `cache:${pattern}*`;
-        const keys = await redisClient.keys(searchPattern);
+        let cursor = 0;
+        let keysToDelete = [];
 
-        if (keys && keys.length > 0) {
-            // Delete keys one by one for maximum compatibility across Redis client versions
-            for (const key of keys) {
-                await redisClient.del(key);
+        do {
+            const reply = await redisClient.scan(cursor, { MATCH: searchPattern, COUNT: 100 });
+            cursor = reply.cursor;
+            if (reply.keys && reply.keys.length > 0) {
+                keysToDelete.push(...reply.keys);
             }
-            logger.info(`Cleared ${keys.length} cache entries for pattern: ${pattern}`);
+        } while (cursor !== 0);
+
+        if (keysToDelete.length > 0) {
+            // Delete keys in batch
+            await redisClient.del(keysToDelete);
+            logger.info(`Cleared ${keysToDelete.length} cache entries for pattern: ${pattern}`);
         }
     } catch (err) {
         logger.error(`Error clearing cache for pattern ${pattern}: ${err.message}`);

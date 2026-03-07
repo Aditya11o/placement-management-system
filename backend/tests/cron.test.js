@@ -51,14 +51,14 @@ describe('Scheduled Cron Workers Logic', () => {
 
         // 2. Create an EXPIRED active job
         const expiredJob = await Job.create({
-            title: 'Close Me', company_name: 'Tech', description: 'test',
+            package_lpa: 12.0, title: 'Close Me', company_name: 'Tech', description: 'test',
             min_cgpa: 7, eligible_branch: 'ALL', graduation_year: 2025,
             deadline: yesterday, status: 'ACTIVE', recruiter_id: dummyId
         });
 
         // 3. Create a FUTURE active job (should NOT close)
         const futureJob = await Job.create({
-            title: 'Keep Me', company_name: 'Tech', description: 'test',
+            package_lpa: 12.0, title: 'Keep Me', company_name: 'Tech', description: 'test',
             min_cgpa: 7, eligible_branch: 'ALL', graduation_year: 2025,
             deadline: tomorrow, status: 'ACTIVE', recruiter_id: dummyId
         });

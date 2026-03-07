@@ -58,7 +58,7 @@ describe('Redis Cache Middleware', () => {
     });
 
     it('should return cached JSON immediately on cache hit', async () => {
-        const cachedData = { success: true, data: [{ id: 1, title: 'Job' }] };
+        const cachedData = { success: true, data: [{ id: 1, package_lpa: 12.0, title: 'Job' }] };
         mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(cachedData));
 
         const middleware = cache(300);

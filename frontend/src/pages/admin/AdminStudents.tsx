@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../context/ToastContext';
 import { Shield, Ban } from 'lucide-react';
 import api from '../../services/api';
-import DataTable, { Column } from '../../components/DataTable/DataTable';
+import VirtualizedDataTable from '../../components/DataTable/VirtualizedDataTable';
+import { Column } from '../../components/DataTable/DataTable';
 import FilterBar from '../../components/FilterBar/FilterBar';
 import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import StudentProfileDrawer from '../../components/ProfileViewer/StudentProfileDrawer';
@@ -25,7 +26,10 @@ const AdminStudents = () => {
     const [page, setPage] = useState(1);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [selectedKeys, setSelectedKeys] = useState<(string | number)[]>([]);
-    const limit = 20;
+
+    // Increased the page limit dramatically from 20 to 200 to demonstrate 
+    // the massive performance gains of DOM Virtualization
+    const limit = 200;
 
     // Reset to page 1 when filters change
     const handleSearchChange = (val: string) => { setSearchTerm(val); setPage(1); };
@@ -218,7 +222,7 @@ const AdminStudents = () => {
                 ]}
             />
 
-            <DataTable
+            <VirtualizedDataTable
                 selectable
                 selectedKeys={selectedKeys}
                 onSelectionChange={setSelectedKeys}
@@ -227,11 +231,12 @@ const AdminStudents = () => {
                 isLoading={isLoading}
                 emptyMessage="No students found matching current filters."
                 skeletonCols={5}
-                skeletonRows={limit}
+                skeletonRows={10} // Just show 10 skeletons while loading large chunks
                 page={page}
                 totalPages={totalPages}
                 onPageChange={setPage}
                 onRowClick={(s) => setSelectedStudent(s)}
+                maxHeight="500px" // Restrict height so it physically scrolls within the page
             />
 
             <StudentProfileDrawer

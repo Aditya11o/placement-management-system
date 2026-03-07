@@ -78,7 +78,7 @@ describe('Jobs — Create Job (Recruiter)', () => {
             .post('/api/v1/jobs')
             .set('Authorization', `Bearer ${recruiterToken}`)
             .send({
-                title: 'Software Engineer Intern',
+                package_lpa: 12.0, title: 'Software Engineer Intern',
                 description: 'Build cool stuff.',
                 location: 'Bangalore',
                 min_cgpa: 7.0,
@@ -97,13 +97,13 @@ describe('Jobs — Create Job (Recruiter)', () => {
         const res = await request(app)
             .post('/api/v1/jobs')
             .set('Authorization', `Bearer ${studentToken}`)
-            .send({ title: 'Hack', description: 'nope' });
+            .send({ package_lpa: 12.0, title: 'Hack', description: 'nope' });
 
         expect(res.statusCode).toBe(403);
     });
 
     it('POST /api/v1/jobs — rejects unauthenticated request', async () => {
-        const res = await request(app).post('/api/v1/jobs').send({ title: 'Ghost' });
+        const res = await request(app).post('/api/v1/jobs').send({ package_lpa: 12.0, title: 'Ghost' });
         expect(res.statusCode).toBe(401);
     });
 });

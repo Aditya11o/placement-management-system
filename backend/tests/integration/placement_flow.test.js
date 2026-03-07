@@ -107,7 +107,7 @@ describe('Placement Management System - Core Flow Integration', () => {
             .post('/api/v1/jobs')
             .set('Authorization', `Bearer ${recruiterToken}`)
             .send({
-                title: 'Software Engineer Intern',
+                package_lpa: 12.0, title: 'Software Engineer Intern',
                 description: 'Full stack development role',
                 min_cgpa: 8.0,
                 eligible_branch: 'CSE',

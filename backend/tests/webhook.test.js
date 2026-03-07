@@ -54,7 +54,7 @@ beforeAll(async () => {
 
     // 3. Create Job & Application
     const job = await Job.create({
-        title: 'SDE', company_name: 'Webhook Corp', description: 'test', min_cgpa: 7, eligible_branch: 'ALL',
+        package_lpa: 12.0, title: 'SDE', company_name: 'Webhook Corp', description: 'test', min_cgpa: 7, eligible_branch: 'ALL',
         graduation_year: 2025, deadline: new Date('2030-01-01'), recruiter_id: recruiterId, status: 'ACTIVE'
     });
     jobId = job._id;

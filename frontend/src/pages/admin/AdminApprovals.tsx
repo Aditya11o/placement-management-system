@@ -28,7 +28,7 @@ const AdminApprovals = () => {
         }
     });
 
-    // Approval/Rejection Mutation
+    // Approval/Rejection Mutation with Optimistic Updates
     const approvalMutation = useMutation({
         mutationFn: async ({ id, role, action }: { id: string, role: string, action: string }) => {
             const status = action === 'approve' ? 'APPROVED' : 'BLOCKED';
@@ -38,21 +38,45 @@ const AdminApprovals = () => {
                 status
             });
         },
+        onMutate: async (variables) => {
+            const queryKey = variables.role === 'STUDENT' ? ['adminPendingStudents'] : ['adminPendingRecruiters'];
+
+            // 1. Cancel any outgoing refetches so they don't overwrite our optimistic update
+            await queryClient.cancelQueries({ queryKey });
+
+            // 2. Snapshot the previous value
+            const previousUsers = queryClient.getQueryData<any[]>(queryKey);
+
+            // 3. Optimistically update the cache by removing the user we are approving/rejecting
+            queryClient.setQueryData<any[]>(queryKey, (old) => {
+                if (!old) return [];
+                return old.filter(u => u._id !== variables.id);
+            });
+
+            // Return the contextual snapshot for potential rollback
+            return { previousUsers, queryKey };
+        },
         onSuccess: (_, variables) => {
             const roleName = variables.role === 'STUDENT' ? 'Student' : 'Recruiter';
+            // We only show success toast, the UI already updated instantly!
             addToast(`${roleName} ${variables.action}d successfully.`, 'success');
+        },
+        onError: (_, variables, context) => {
+            const roleName = variables.role === 'STUDENT' ? 'Student' : 'Recruiter';
+            addToast(`Failed to ${variables.action} ${roleName.toLowerCase()}. Rolling back.`, 'error');
 
-            // Invalidate respective queries
-            if (variables.role === 'STUDENT') {
-                queryClient.invalidateQueries({ queryKey: ['adminPendingStudents'] });
-            } else {
-                queryClient.invalidateQueries({ queryKey: ['adminPendingRecruiters'] });
-                queryClient.invalidateQueries({ queryKey: ['adminStats'] }); // Dashboard sync
+            // 4. Rollback to the previous snapshot if the network request failed
+            if (context?.previousUsers) {
+                queryClient.setQueryData(context.queryKey, context.previousUsers);
             }
         },
-        onError: (_, variables) => {
-            const roleName = variables.role === 'STUDENT' ? 'Student' : 'Recruiter';
-            addToast(`Failed to ${variables.action} ${roleName.toLowerCase()}.`, 'error');
+        onSettled: (_, __, variables) => {
+            // 5. Always refetch in the background after error or success to ensure server sync
+            const queryKey = variables.role === 'STUDENT' ? ['adminPendingStudents'] : ['adminPendingRecruiters'];
+            queryClient.invalidateQueries({ queryKey });
+            if (variables.role === 'RECRUITER') {
+                queryClient.invalidateQueries({ queryKey: ['adminStats'] });
+            }
         }
     });
 
@@ -61,7 +85,9 @@ const AdminApprovals = () => {
     };
 
     const currentList = activeTab === 'STUDENT' ? pendingStudents : pendingRecruiters;
-    const isLoading = activeTab === 'STUDENT' ? isStudentsLoading : isRecruitersLoading;
+    // We only show full loading skeleton if there is literally NO data. 
+    // This allows the optimistic UI to prevent flashing skeletons.
+    const isLoading = (activeTab === 'STUDENT' ? isStudentsLoading : isRecruitersLoading) && currentList.length === 0;
 
     return (
         <div className="flex flex-col gap-6 animate-fade-in max-w-5xl mx-auto w-full">
@@ -80,8 +106,8 @@ const AdminApprovals = () => {
                 <button
                     onClick={() => setActiveTab('RECRUITER')}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 ${activeTab === 'RECRUITER'
-                            ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                         }`}
                 >
                     <Building size={18} />
@@ -90,8 +116,8 @@ const AdminApprovals = () => {
                 <button
                     onClick={() => setActiveTab('STUDENT')}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 ${activeTab === 'STUDENT'
-                            ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                        ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                         }`}
                 >
                     <Users size={18} />

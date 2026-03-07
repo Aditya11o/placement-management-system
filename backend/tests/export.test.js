@@ -77,7 +77,7 @@ describe('Data Export Queue (ExcelJS Worker)', () => {
                             status: 'APPLIED',
                             created_at: new Date(),
                             student_id: { name: 'Test Student', email: 'test@student.com' },
-                            job_id: { title: 'SDE 1', company_name: 'Tech Corp' }
+                            job_id: { package_lpa: 12.0, title: 'SDE 1', company_name: 'Tech Corp' }
                         };
                     })()
                 )

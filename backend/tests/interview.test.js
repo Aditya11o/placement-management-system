@@ -66,7 +66,7 @@ beforeAll(async () => {
 
     // 4. Create a Job & Application
     const job = await Job.create({
-        title: 'Backend Engineer',
+        package_lpa: 12.0, title: 'Backend Engineer',
         description: 'Test job for interviews',
         company_name: 'Interview Tech',
         min_cgpa: 7.0, eligible_branch: 'ALL', graduation_year: 2025,

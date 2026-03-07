@@ -18,6 +18,24 @@ import TrendsChart from '../../components/Charts/TrendsChart';
 import FunnelChart from '../../components/Charts/FunnelChart';
 import ExportReportsModal from '../../components/ExportReportsModal/ExportReportsModal';
 import PulseFeed from '../../components/PulseFeed/PulseFeed';
+import AnimatedCounter from '../../components/AnimatedCounter/AnimatedCounter';
+import { motion, Variants } from 'framer-motion';
+
+// Framer Motion Variants for Staggered List Animation
+const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1
+        }
+    }
+};
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 const AdminDashboard = () => {
     const { addToast } = useToast();
@@ -135,40 +153,63 @@ const AdminDashboard = () => {
             </div>
 
             {/* Admin Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="flex flex-col p-6">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 text-blue-600 mb-4">
-                        <Users size={24} />
-                    </div>
-                    <div className="flex flex-col">
-                        <h3 className="text-3xl font-bold text-slate-800 m-0 leading-none">{stats?.totalStudents}</h3>
-                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mt-1">Registered Students</p>
-                    </div>
-                </Card>
+            <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            >
+                <motion.div variants={itemVariants}>
+                    <Card className="flex flex-col p-6 h-full" hoverable>
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-blue-100 text-blue-600 mb-4">
+                            <Users size={24} />
+                        </div>
+                        <div className="flex flex-col">
+                            <h3 className="text-3xl font-bold text-slate-800 m-0 leading-none">
+                                <AnimatedCounter value={stats?.totalStudents || 0} />
+                            </h3>
+                            <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mt-1">Registered Students</p>
+                        </div>
+                    </Card>
+                </motion.div>
 
-                <Card className="flex flex-col p-6">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-purple-100 text-purple-600 mb-4">
-                        <Building size={24} />
-                    </div>
-                    <div className="flex flex-col">
-                        <h3 className="text-3xl font-bold text-slate-800 m-0 leading-none">{stats?.totalRecruiters}</h3>
-                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mt-1">Approved Companies</p>
-                    </div>
-                </Card>
+                <motion.div variants={itemVariants}>
+                    <Card className="flex flex-col p-6 h-full" hoverable>
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-purple-100 text-purple-600 mb-4">
+                            <Building size={24} />
+                        </div>
+                        <div className="flex flex-col">
+                            <h3 className="text-3xl font-bold text-slate-800 m-0 leading-none">
+                                <AnimatedCounter value={stats?.totalRecruiters || 0} />
+                            </h3>
+                            <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mt-1">Approved Companies</p>
+                        </div>
+                    </Card>
+                </motion.div>
 
-                <Card className="flex flex-col p-6">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-orange-100 text-orange-600 mb-4">
-                        <Activity size={24} />
-                    </div>
-                    <div className="flex flex-col">
-                        <h3 className="text-3xl font-bold text-slate-800 m-0 leading-none">{stats?.placementRate}</h3>
-                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mt-1">Platform Placement Rate</p>
-                    </div>
-                </Card>
-            </div>
+                <motion.div variants={itemVariants}>
+                    <Card className="flex flex-col p-6 h-full" hoverable>
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-orange-100 text-orange-600 mb-4">
+                            <Activity size={24} />
+                        </div>
+                        <div className="flex flex-col">
+                            <h3 className="text-3xl font-bold text-slate-800 m-0 leading-none">
+                                {/* Simple text extraction as percentage might have % sign from API or we append it */}
+                                {stats?.placementRate || '0%'}
+                            </h3>
+                            <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mt-1">Platform Placement Rate</p>
+                        </div>
+                    </Card>
+                </motion.div>
+            </motion.div>
 
             {/* Interactive Analytics Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2"
+            >
                 <div className="flex flex-col gap-3 min-w-0">
                     <TrendsChart data={trendsData} isLoading={isTrendsLoading} />
                     <button
@@ -187,13 +228,18 @@ const AdminDashboard = () => {
                         <BarChart3 size={14} /> Deep-Dive Analytics &rarr;
                     </button>
                 </div>
-            </div>
+            </motion.div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 mt-2">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 mt-2"
+            >
 
                 {/* Pending Actions / Approvals */}
                 <div className="min-w-0">
-                    <Card className="flex flex-col p-6 lg:p-8 h-full">
+                    <Card className="flex flex-col p-6 lg:p-8 h-full" hoverable>
                         <div className="flex justify-between items-center mb-6">
                             <div className="flex items-center gap-3">
                                 <h2 className="text-xl font-bold text-indigo-700 m-0">Pending Approvals</h2>
@@ -242,25 +288,38 @@ const AdminDashboard = () => {
                     <PulseFeed />
                 </div>
 
-            </div>
+            </motion.div>
 
             {/* Quick Links - Full Width */}
             {/* Super Admin Tools & Quick Links */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="flex flex-col p-6 lg:p-8">
-                    <h2 className="text-xl font-bold text-indigo-700 m-0 flex items-center gap-2">
-                        <ShieldCheck size={22} /> Super Admin Tools
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            >
+                {/* Premium Super Admin Hub */}
+                <Card
+                    className="flex flex-col p-6 lg:p-8 relative overflow-hidden ring-1 ring-amber-500/20 shadow-[0_0_15px_-3px_rgba(245,158,11,0.1)] transition-all hover:shadow-[0_0_25px_-5px_rgba(245,158,11,0.2)]"
+                    hoverable
+                >
+                    {/* Subtle decorative background pattern */}
+                    <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                    <h2 className="text-xl font-bold text-amber-600 dark:text-amber-500 m-0 flex items-center gap-2 relative z-10">
+                        <ShieldCheck size={22} className="shrink-0" /> Super Admin Tools
                     </h2>
-                    <p className="text-sm text-slate-400 mt-1 mb-6">Advanced system control and communication modules.</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Button isFullWidth variant="secondary" icon={Send} onClick={() => navigate('/admin/communication')}>Communication Center</Button>
-                        <Button isFullWidth variant="secondary" icon={TrendingUp} onClick={() => navigate('/admin/analytics-deep-dive')}>Analytics Deep Dive</Button>
-                        <Button isFullWidth variant="secondary" icon={Zap} onClick={() => navigate('/admin/system-health')}>System Health Monitor</Button>
-                        <Button isFullWidth variant="secondary" icon={ShieldCheck} onClick={() => navigate('/admin/rbac')}>Roles & Permissions</Button>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-6 relative z-10">Advanced system control and communication modules.</p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+                        <Button isFullWidth variant="secondary" icon={Send} onClick={() => navigate('/admin/communication')} className="bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-700/50">Communication Center</Button>
+                        <Button isFullWidth variant="secondary" icon={TrendingUp} onClick={() => navigate('/admin/analytics-deep-dive')} className="bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-700/50">Analytics Deep Dive</Button>
+                        <Button isFullWidth variant="secondary" icon={Zap} onClick={() => navigate('/admin/system-health')} className="bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-700/50">System Health Monitor</Button>
+                        <Button isFullWidth variant="secondary" icon={ShieldCheck} onClick={() => navigate('/admin/rbac')} className="bg-amber-50/50 hover:bg-amber-100/50 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-700/50">Roles & Permissions</Button>
                     </div>
                 </Card>
 
-                <Card className="flex flex-col p-6 lg:p-8">
+                <Card className="flex flex-col p-6 lg:p-8" hoverable>
                     <h2 className="text-xl font-bold text-slate-700 m-0">Management Links</h2>
                     <p className="text-sm text-slate-400 mt-1 mb-6">Standard operational tools and data export.</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -277,7 +336,7 @@ const AdminDashboard = () => {
                         </Button>
                     </div>
                 </Card>
-            </div>
+            </motion.div>
 
             <ExportReportsModal
                 isOpen={isExportModalOpen}

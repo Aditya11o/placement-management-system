@@ -22,7 +22,10 @@ const {
     getAllInterviews,
     getCampaigns,
     createCampaign,
-    getPredictiveAnalytics
+    getPredictiveAnalytics,
+    generateApiKey,
+    listApiKeys,
+    revokeApiKey
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
@@ -139,7 +142,19 @@ router.put('/users/status', checkPermission('manage_students'), validateUserStat
  *       202:
  *         description: Export request accepted and queued
  */
+// Middleware to block API keys from managing API keys (prevent self-escalation)
+const blockApiKeys = (req, res, next) => {
+    if (req.isApiKeySession) {
+        return res.status(403).json({ success: false, message: 'API Keys cannot access API Key management routes' });
+    }
+    next();
+};
+
 router.post('/export', checkPermission('export_data'), validateExportRequest, validate, exportData);
+
+router.post('/api-keys', blockApiKeys, checkPermission('manage_api_keys'), validateApiKeyGeneration, validate, generateApiKey);
+router.get('/api-keys', blockApiKeys, checkPermission('manage_api_keys'), listApiKeys);
+router.delete('/api-keys/:id', blockApiKeys, checkPermission('manage_api_keys'), revokeApiKey);
 
 router.get('/dashboard', getDashboardStats);
 

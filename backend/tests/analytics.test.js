@@ -72,7 +72,7 @@ beforeAll(async () => {
 
     // 4. Create a Job
     const jobObj = await Job.create({
-        title: 'Software Engineer',
+        package_lpa: 12.0, title: 'Software Engineer',
         description: 'Great role',
         company_name: 'Tech Analytics Corp',
         min_cgpa: 7.5,

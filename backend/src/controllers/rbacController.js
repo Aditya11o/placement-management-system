@@ -121,12 +121,9 @@ exports.revokePermissions = async (req, res) => {
             });
         }
 
-        // FOR TESTING: Allowed self-revocation
-        /*
         if (target._id.toString() === req.user._id.toString()) {
             return res.status(403).json({ success: false, message: 'Cannot revoke your own permissions' });
         }
-        */
 
         target.permissions = target.permissions.filter(p => !permissions.includes(p));
         await target.save();
@@ -163,12 +160,9 @@ exports.setSubRole = async (req, res) => {
             return res.status(400).json({ success: false, message: `sub_role must be one of: ${validRoles.join(', ')}` });
         }
 
-        // FOR TESTING: Allowed self-role-change
-        /*
         if (req.params.id === req.user._id.toString()) {
             return res.status(403).json({ success: false, message: 'Cannot change your own sub_role' });
         }
-        */
 
         // When promoting to PLACEMENT_COORDINATOR, set a sensible default permission set
         const COORDINATOR_DEFAULTS = [

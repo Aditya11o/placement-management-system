@@ -70,7 +70,7 @@ describe('Announcement System API', () => {
             .post('/api/v1/announcements')
             .set('Authorization', `Bearer ${adminToken}`)
             .send({
-                title: 'Placement Drive Starting',
+                package_lpa: 12.0, title: 'Placement Drive Starting',
                 message: 'Register by Friday'
             });
 
@@ -101,7 +101,7 @@ describe('Announcement System API', () => {
         const res = await request(app)
             .post('/api/v1/announcements')
             .set('Authorization', `Bearer ${studentToken}`)
-            .send({ title: 'Hack', message: 'Fail' });
+            .send({ package_lpa: 12.0, title: 'Hack', message: 'Fail' });
 
         expect(res.statusCode).toBe(403);
     });

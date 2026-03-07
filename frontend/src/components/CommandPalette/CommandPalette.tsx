@@ -6,6 +6,7 @@ import {
     Search, LayoutDashboard, User, Briefcase, Users, Settings,
     ShieldCheck, Calendar, Send, Moon, Sun, Monitor, X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CommandItem {
     id: string;
@@ -25,7 +26,7 @@ const CommandPalette: React.FC = () => {
 
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { theme, setTheme } = useTheme();
+    const { setTheme } = useTheme();
 
     // Toggle palette via keyboard shortcut
     useEffect(() => {
@@ -145,108 +146,124 @@ const CommandPalette: React.FC = () => {
         }
     }, [selectedIndex, searchQuery]);
 
-    if (!isOpen) return null;
-
     return (
-        <div
-            className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-start justify-center pt-[15vh] p-4"
-            onClick={handleOutsideClick}
-        >
-            <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-
-                {/* Search Input Header */}
-                <div className="flex items-center px-4 border-b border-slate-100 dark:border-slate-800">
-                    <Search className="w-5 h-5 text-slate-400 shrink-0" />
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        placeholder="Type a command or search..."
-                        className="flex-1 h-14 px-4 bg-transparent border-none outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-lg"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            setSelectedIndex(0);
-                        }}
-                        onKeyDown={handleListKeyDown}
-                    />
-                    <div className="flex items-center gap-2">
-                        <kbd className="hidden sm:inline-flex h-6 items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 px-2 font-mono text-[10px] font-medium text-slate-500 border border-slate-200 dark:border-slate-700">
-                            ESC
-                        </kbd>
-                        <button onClick={closePalette} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 transition-colors">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Command List Body */}
-                <div
-                    ref={listRef}
-                    className="max-h-[60vh] overflow-y-auto p-2 scrollbar-thin"
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-start justify-center pt-[15vh] p-4"
+                    onClick={handleOutsideClick}
                 >
-                    {filteredCommands.length === 0 ? (
-                        <div className="py-14 text-center text-sm text-slate-500 dark:text-slate-400">
-                            No results found for "{searchQuery}"
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        transition={{
+                            type: "spring",
+                            damping: 25,
+                            stiffness: 300
+                        }}
+                        className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col"
+                    >
+
+                        {/* Search Input Header */}
+                        <div className="flex items-center px-4 border-b border-slate-100 dark:border-slate-800">
+                            <Search className="w-5 h-5 text-slate-400 shrink-0" />
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                placeholder="Type a command or search..."
+                                className="flex-1 h-14 px-4 bg-transparent border-none outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-lg"
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setSelectedIndex(0);
+                                }}
+                                onKeyDown={handleListKeyDown}
+                            />
+                            <div className="flex items-center gap-2">
+                                <kbd className="hidden sm:inline-flex h-6 items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 px-2 font-mono text-[10px] font-medium text-slate-500 border border-slate-200 dark:border-slate-700">
+                                    ESC
+                                </kbd>
+                                <button onClick={closePalette} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
-                    ) : (
-                        Object.entries(groupedCommands).map(([category, items], groupIndex) => {
-                            // Calculate global index offset for this group
-                            let globalGroupOffset = 0;
-                            const groupCategories = Object.keys(groupedCommands);
-                            for (let i = 0; i < groupIndex; i++) {
-                                globalGroupOffset += groupedCommands[groupCategories[i]].length;
-                            }
 
-                            return (
-                                <div key={category} className="mb-4 last:mb-0">
-                                    <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">
-                                        {category}
-                                    </div>
-                                    <div className="space-y-1">
-                                        {items.map((cmd, itemIndex) => {
-                                            const globalIndex = globalGroupOffset + itemIndex;
-                                            const isSelected = selectedIndex === globalIndex;
-
-                                            return (
-                                                <button
-                                                    key={cmd.id}
-                                                    data-selected={isSelected}
-                                                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-colors text-left
-                                                        ${isSelected
-                                                            ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300'
-                                                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                                                        }`}
-                                                    onClick={() => cmd.action()}
-                                                    onMouseEnter={() => setSelectedIndex(globalIndex)}
-                                                >
-                                                    <cmd.icon className={`w-5 h-5 ${isSelected ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400'}`} />
-                                                    <span className="flex-1 font-medium">{cmd.label}</span>
-                                                    {isSelected && (
-                                                        <kbd className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px] text-brand-600 dark:text-brand-400">
-                                                            Enter
-                                                        </kbd>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                        {/* Command List Body */}
+                        <div
+                            ref={listRef}
+                            className="max-h-[60vh] overflow-y-auto p-2 scrollbar-thin"
+                        >
+                            {filteredCommands.length === 0 ? (
+                                <div className="py-14 text-center text-sm text-slate-500 dark:text-slate-400">
+                                    No results found for "{searchQuery}"
                                 </div>
-                            );
-                        })
-                    )}
-                </div>
+                            ) : (
+                                Object.entries(groupedCommands).map(([category, items], groupIndex) => {
+                                    // Calculate global index offset for this group
+                                    let globalGroupOffset = 0;
+                                    const groupCategories = Object.keys(groupedCommands);
+                                    for (let i = 0; i < groupIndex; i++) {
+                                        globalGroupOffset += groupedCommands[groupCategories[i]].length;
+                                    }
 
-                {/* Footer hints */}
-                <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
-                        <span className="flex items-center gap-1.5"><kbd className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">↑</kbd><kbd className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">↓</kbd> to navigate</span>
-                        <span className="flex items-center gap-1.5"><kbd className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">Enter</kbd> to select</span>
-                    </div>
-                    <span className="text-[10px] font-semibold tracking-widest uppercase text-slate-400">Nexus OS</span>
-                </div>
+                                    return (
+                                        <div key={category} className="mb-4 last:mb-0">
+                                            <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">
+                                                {category}
+                                            </div>
+                                            <div className="space-y-1">
+                                                {items.map((cmd, itemIndex) => {
+                                                    const globalIndex = globalGroupOffset + itemIndex;
+                                                    const isSelected = selectedIndex === globalIndex;
 
-            </div>
-        </div>
+                                                    return (
+                                                        <button
+                                                            key={cmd.id}
+                                                            data-selected={isSelected}
+                                                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-colors text-left
+                                                        ${isSelected
+                                                                    ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300'
+                                                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                                                                }`}
+                                                            onClick={() => cmd.action()}
+                                                            onMouseEnter={() => setSelectedIndex(globalIndex)}
+                                                        >
+                                                            <cmd.icon className={`w-5 h-5 ${isSelected ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400'}`} />
+                                                            <span className="flex-1 font-medium">{cmd.label}</span>
+                                                            {isSelected && (
+                                                                <kbd className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px] text-brand-600 dark:text-brand-400">
+                                                                    Enter
+                                                                </kbd>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Footer hints */}
+                        <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
+                            <div className="flex items-center gap-4 text-xs text-slate-500">
+                                <span className="flex items-center gap-1.5"><kbd className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">↑</kbd><kbd className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">↓</kbd> to navigate</span>
+                                <span className="flex items-center gap-1.5"><kbd className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">Enter</kbd> to select</span>
+                            </div>
+                            <span className="text-[10px] font-semibold tracking-widest uppercase text-slate-400">Nexus OS</span>
+                        </div>
+
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 };
 

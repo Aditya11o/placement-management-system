@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FileSpreadsheet, Filter, Download, Eye, X, Plus, Copy, Check, Loader2, Database, ChevronDown } from 'lucide-react';
+import { FileSpreadsheet, Filter, Download, Eye, X, Plus, Copy, Check, Loader2, Database } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import Card from '../../components/Card/Card';
 import { useToast } from '../../context/ToastContext';
@@ -73,9 +74,8 @@ const downloadCSV = (headers: string[], rows: string[][], filename: string) => {
     URL.revokeObjectURL(link.href);
 };
 
-// ── Component ────────────────────────────────────────────────────────────────
 const AdminReportBuilder: React.FC = () => {
-    const { showToast } = useToast();
+    const { addToast } = useToast();
 
     const [dataSource, setDataSource] = useState<DataSource>('students');
     const [selectedFields, setSelectedFields] = useState<string[]>(['name', 'email', 'branch', 'cgpa']);
@@ -154,7 +154,7 @@ const AdminReportBuilder: React.FC = () => {
     // ── Export ────────────────────────────────────────────────────────────────
     const handleExportCSV = () => {
         if (!previewData || previewData.length === 0) {
-            showToast('No data to export. Run preview first.', 'error');
+            addToast('No data to export. Run preview first.', 'error');
             return;
         }
         const headers = selectedFields.map(f => fields.find(fd => fd.key === f)?.label || f);
@@ -163,7 +163,7 @@ const AdminReportBuilder: React.FC = () => {
             return Array.isArray(val) ? val.join('; ') : String(val ?? '');
         }));
         downloadCSV(headers, rows, `report_${dataSource}_${new Date().toISOString().slice(0, 10)}.csv`);
-        showToast('CSV downloaded!', 'success');
+        addToast('CSV downloaded!', 'success');
     };
 
     const handleCopyClipboard = async () => {
@@ -173,7 +173,7 @@ const AdminReportBuilder: React.FC = () => {
             const val = getNestedValue(row, f);
             return Array.isArray(val) ? val.join('; ') : String(val ?? '');
         }));
-        const text = [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\n');
+        const text = [headers.join('\t'), ...rows.map((r: string[]) => r.join('\t'))].join('\n');
         await navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -210,8 +210,8 @@ const AdminReportBuilder: React.FC = () => {
                                     key={src}
                                     onClick={() => handleDataSourceChange(src)}
                                     className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${dataSource === src
-                                            ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
-                                            : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                                        ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
+                                        : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'
                                         }`}
                                 >
                                     {src === 'students' ? 'Students' : 'Applications'}
@@ -243,54 +243,93 @@ const AdminReportBuilder: React.FC = () => {
 
                     {/* Filters */}
                     <Card className="p-5">
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-4">
                             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                                <Filter size={14} /> Filters
+                                <Filter size={14} /> Query Rules
                             </h3>
                             <button
                                 onClick={addFilter}
-                                className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                                className="text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
                             >
-                                <Plus size={12} /> Add Filter
+                                <Plus size={14} /> Add Rule
                             </button>
                         </div>
-                        {filters.length === 0 ? (
-                            <p className="text-xs text-slate-400 dark:text-slate-500 italic">No filters applied. All records will be included.</p>
-                        ) : (
-                            <div className="flex flex-col gap-2">
-                                {filters.map(f => {
-                                    const fieldDef = fields.find(fd => fd.key === f.field);
-                                    const validOps = Object.entries(OPERATORS).filter(([, op]) => fieldDef && op.types.includes(fieldDef.type));
 
-                                    return (
-                                        <div key={f.id} className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 p-2 rounded-md">
-                                            <select
-                                                value={f.field}
-                                                onChange={e => updateFilter(f.id, { field: e.target.value, operator: 'eq' })}
-                                                className="flex-1 text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-1.5 rounded text-slate-700 dark:text-slate-200"
+                        {filters.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/50">
+                                <Filter size={24} className="text-slate-300 dark:text-slate-600 mb-2" />
+                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 m-0">No active rules</p>
+                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-[200px] text-center">Add a rule to filter and refine the generated data.</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                <AnimatePresence initial={false}>
+                                    {filters.map((f, index) => {
+                                        const fieldDef = fields.find(fd => fd.key === f.field);
+                                        const validOps = Object.entries(OPERATORS).filter(([, op]) => fieldDef && op.types.includes(fieldDef.type));
+
+                                        return (
+                                            <motion.div
+                                                key={f.id}
+                                                initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                                                animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                                                exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                                                transition={{ duration: 0.2, type: 'spring', bounce: 0.3 }}
+                                                className="relative"
                                             >
-                                                {fields.map(fd => <option key={fd.key} value={fd.key}>{fd.label}</option>)}
-                                            </select>
-                                            <select
-                                                value={f.operator}
-                                                onChange={e => updateFilter(f.id, { operator: e.target.value })}
-                                                className="w-12 text-xs text-center bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-1.5 rounded text-slate-700 dark:text-slate-200"
-                                            >
-                                                {validOps.map(([key, op]) => <option key={key} value={key}>{op.label}</option>)}
-                                            </select>
-                                            <input
-                                                type="text"
-                                                value={f.value}
-                                                onChange={e => updateFilter(f.id, { value: e.target.value })}
-                                                placeholder="Value..."
-                                                className="flex-1 text-xs bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-1.5 rounded text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
-                                            />
-                                            <button onClick={() => removeFilter(f.id)} className="text-slate-400 hover:text-red-500 shrink-0 cursor-pointer">
-                                                <X size={14} />
-                                            </button>
-                                        </div>
-                                    );
-                                })}
+                                                {/* Logical Connector Line (Notion style) */}
+                                                {index > 0 && (
+                                                    <div className="absolute -top-3 left-6 w-px h-3 bg-slate-300 dark:bg-slate-700" />
+                                                )}
+
+                                                <div className="flex flex-wrap items-stretch gap-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
+
+                                                    {/* Where / And indicator */}
+                                                    <div className="flex items-center px-3 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-400 dark:text-slate-500 select-none">
+                                                        {index === 0 ? 'Where' : 'And'}
+                                                    </div>
+
+                                                    {/* Field Selector */}
+                                                    <select
+                                                        value={f.field}
+                                                        onChange={e => updateFilter(f.id, { field: e.target.value, operator: 'eq' })}
+                                                        className="flex-1 min-w-[120px] text-sm bg-transparent border-0 border-r border-slate-200 dark:border-slate-700 p-2.5 text-slate-700 dark:text-slate-200 font-medium focus:ring-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                                                    >
+                                                        {fields.map(fd => <option key={fd.key} value={fd.key}>{fd.label}</option>)}
+                                                    </select>
+
+                                                    {/* Operator Selector */}
+                                                    <select
+                                                        value={f.operator}
+                                                        onChange={e => updateFilter(f.id, { operator: e.target.value })}
+                                                        className="w-16 sm:w-20 text-sm text-center bg-indigo-50 dark:bg-indigo-900/20 border-0 border-r border-slate-200 dark:border-slate-700 p-2.5 text-indigo-700 dark:text-indigo-400 font-bold focus:ring-0 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+                                                        title="Operator"
+                                                    >
+                                                        {validOps.map(([key, op]) => <option key={key} value={key}>{op.label}</option>)}
+                                                    </select>
+
+                                                    {/* Value Input */}
+                                                    <input
+                                                        type={fieldDef?.type === 'number' ? "number" : fieldDef?.type === 'date' ? "date" : "text"}
+                                                        value={f.value}
+                                                        onChange={e => updateFilter(f.id, { value: e.target.value })}
+                                                        placeholder="Enter value..."
+                                                        className="flex-[2] min-w-[150px] text-sm bg-transparent border-0 p-2.5 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:ring-0 focus:bg-slate-50 dark:focus:bg-slate-900"
+                                                    />
+
+                                                    {/* Delete Button */}
+                                                    <button
+                                                        onClick={() => removeFilter(f.id)}
+                                                        className="px-3 border-l border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
+                                                        title="Remove Rule"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </AnimatePresence>
                             </div>
                         )}
                     </Card>

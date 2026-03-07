@@ -76,15 +76,15 @@ adminSchema.methods.matchPassword = async function (enteredPassword) {
  * FOR TESTING: All sub-roles (SUPER_ADMIN, PLACEMENT_COORDINATOR, ADMIN) return true.
  */
 adminSchema.methods.hasPermission = function (permission) {
-    return true;
+    if (this.isSuperAdmin()) return true;
+    return this.permissions && this.permissions.includes(permission);
 };
 
 /**
  * Check if this admin is a SUPER_ADMIN.
- * FOR TESTING: All sub-roles are treated as SUPER_ADMIN.
  */
 adminSchema.methods.isSuperAdmin = function () {
-    return true;
+    return this.sub_role === 'SUPER_ADMIN';
 };
 
 // Generate and hash password token

@@ -11,6 +11,11 @@ import NotificationPanel from '../components/NotificationPanel/NotificationPanel
 import ThemeToggle from '../components/ThemeToggle/ThemeToggle';
 import CommandPalette from '../components/CommandPalette/CommandPalette';
 import { useTheme } from '../context/ThemeContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useHotkeys } from 'react-hotkeys-hook';
+import KeyboardShortcutsModal from '../components/KeyboardShortcutsModal/KeyboardShortcutsModal';
+import PresenceAvatars from '../components/PresenceAvatars/PresenceAvatars';
 
 interface NavItem {
     label: string;
@@ -23,6 +28,24 @@ const MainLayout: React.FC = () => {
     const queryClient = useQueryClient();
     const { logoUrl } = useTheme();
     const [isSidebarOpen, setSidebarOpen] = useState(false);
+    const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // ── Global Keyboard Shortcuts ───────────────────────────────────────────
+    // Prevent default browser behavior for shortcuts mapping to navigation
+    // react-hotkeys-hook automatically ignores keypresses inside inputs/textareas
+
+    // Toggle Help Modal
+    useHotkeys('shift+?', () => setIsShortcutsModalOpen(prev => !prev), { preventDefault: true });
+
+    // Admin Navigation Sequences (Pro-mode)
+    const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+    useHotkeys('g d', () => isAdmin && navigate('/admin/dashboard'), { preventDefault: true, enabled: isAdmin });
+    useHotkeys('g a', () => isAdmin && navigate('/admin/approvals'), { preventDefault: true, enabled: isAdmin });
+    useHotkeys('g s', () => isAdmin && navigate('/admin/students'), { preventDefault: true, enabled: isAdmin });
+    useHotkeys('g r', () => isAdmin && navigate('/admin/recruiters'), { preventDefault: true, enabled: isAdmin });
+    useHotkeys('g j', () => isAdmin && navigate('/admin/jobs'), { preventDefault: true, enabled: isAdmin });
 
     const handleLogout = () => {
         // IMPORTANT: Clear all React Query cache FIRST to stop all active queries,
@@ -152,6 +175,9 @@ const MainLayout: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        {/* Multiplayer Presence Avatars */}
+                        {isAdmin && <PresenceAvatars />}
+
                         {/* Command Palette Shortcut Hint */}
                         <button
                             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
@@ -166,14 +192,35 @@ const MainLayout: React.FC = () => {
                     </div>
                 </header>
 
-                {/* Dynamic Route Content */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 bg-slate-50/50 dark:bg-slate-900/50 relative transition-colors duration-300">
-                    <Outlet />
+                {/* Dynamic Route Content with Ambient Background */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 mesh-bg transition-colors duration-300 relative">
+                    {/* Animated Ambient Glows */}
+                    <div className="mesh-glow" />
+                    <div className="mesh-glow" />
+
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={location.pathname}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="relative z-10"
+                        >
+                            <Outlet />
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
             </main>
 
             {/* Global Command Palette (Ctrl+K / Cmd+K) */}
             <CommandPalette />
+
+            {/* Keyboard Shortcuts Help Modal (Press ?) */}
+            <KeyboardShortcutsModal
+                isOpen={isShortcutsModalOpen}
+                onClose={() => setIsShortcutsModalOpen(false)}
+            />
 
         </div >
     );

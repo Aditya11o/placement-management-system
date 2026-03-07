@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useSearchParams, Link } from 'react-router-dom';
 import Card from '../../components/Card/Card';
 import FilterBar from '../../components/FilterBar/FilterBar';
 import KanbanBoard from '../../components/Kanban/KanbanBoard';
 import SkeletonTable from '../../components/Skeleton/SkeletonTable';
 import StudentProfileDrawer from '../../components/ProfileViewer/StudentProfileDrawer';
-import { Filter } from 'lucide-react';
+import { Filter, ArrowLeft } from 'lucide-react';
 import api from '../../services/api';
 import { Application } from '../../types';
 
@@ -26,6 +27,10 @@ const AdminKanban: React.FC = () => {
     const [selectedBranch, setSelectedBranch] = useState('ALL');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedApplicant, setSelectedApplicant] = useState<UIApplicant | null>(null);
+
+    const [searchParams] = useSearchParams();
+    const jobIdParam = searchParams.get('jobId');
+    const jobTitleParam = searchParams.get('jobTitle');
 
     // ── Fetch all applications for Admin ──────────────────────────────────────
     const { data: applications = [], isLoading } = useQuery<UIApplicant[]>({
@@ -57,20 +62,34 @@ const AdminKanban: React.FC = () => {
     const filtered = applications
         .filter((app) => {
             const matchBranch = selectedBranch === 'ALL' || app.student?.branch === selectedBranch;
+            const matchJob = jobIdParam ? app.job?._id === jobIdParam : true;
             const q = searchTerm.toLowerCase();
             const matchSearch =
                 app.student?.name?.toLowerCase().includes(q) ||
                 app.job?.title?.toLowerCase().includes(q) ||
                 app.student?.email?.toLowerCase().includes(q);
-            return matchBranch && matchSearch;
+            return matchBranch && matchSearch && matchJob;
         });
 
     return (
         <>
             <div className="flex flex-col gap-6 animate-fade-in h-[calc(100vh-6rem)]">
-                <div>
-                    <h1 className="text-3xl font-bold text-indigo-700 mb-1">Placement Funnel Tracker</h1>
-                    <p className="text-slate-500 text-base m-0">University-wide view of all student applications and interview stages.</p>
+                <div className="flex flex-col gap-1">
+                    {jobIdParam && (
+                        <div className="flex items-center gap-2 mb-1">
+                            <Link to="/admin/jobs" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
+                                <ArrowLeft size={18} />
+                            </Link>
+                            <h1 className="text-3xl font-bold text-indigo-700 mb-0">Hiring Pipeline</h1>
+                        </div>
+                    )}
+                    {!jobIdParam && <h1 className="text-3xl font-bold text-indigo-700 mb-1">Global Pipeline Tracker</h1>}
+
+                    <p className="text-slate-500 text-base m-0 ml-[jobIdParam ? '36px' : '0']">
+                        {jobTitleParam
+                            ? `Drag-and-drop workflow builder for: ${jobTitleParam}`
+                            : 'University-wide view of all student applications and interview stages.'}
+                    </p>
                 </div>
 
                 <FilterBar

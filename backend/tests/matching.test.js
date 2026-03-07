@@ -20,7 +20,7 @@ describe('AI Job Matching Score Service', () => {
     };
 
     const baseJob = {
-        title: 'Full Stack Developer',
+        package_lpa: 12.0, title: 'Full Stack Developer',
         description: 'Looking for a developer skilled in node.js and React.',
         min_cgpa: 7.0,
         min_marks_10th: 75,

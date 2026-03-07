@@ -69,9 +69,10 @@ beforeAll(async () => {
         .post('/api/v1/jobs')
         .set('Authorization', `Bearer ${recruiterToken}`)
         .send({
-            title: 'SDE Role',
+            package_lpa: 12.0, title: 'SDE Role',
             description: 'Great role!',
             location: 'Hyderabad',
+            package_lpa: 12.0,
             min_cgpa: 7.0,
             eligible_branch: 'CSE',
             graduation_year: 2026,
@@ -84,6 +85,12 @@ beforeAll(async () => {
         .post('/api/v1/applications/apply')
         .set('Authorization', `Bearer ${studentToken}`)
         .send({ job_id: jobId });
+
+    if (!applyRes.body.data) {
+        console.error("JOB_RES:", jobRes.body);
+        console.error("APPLY_RES:", applyRes.body);
+    }
+
     applicationId = applyRes.body.data?._id;
 });
 

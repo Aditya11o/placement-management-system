@@ -42,6 +42,8 @@ function initializeSocket(httpServer) {
         }
     });
 
+    const activePages = new Map(); // pagePath -> Map<socketId, UserDetails>
+
     // ── Connection Lifecycle ──────────────────────────────────────────────────
     io.on('connection', (socket) => {
         const userId = socket.user.id;
@@ -64,6 +66,56 @@ function initializeSocket(httpServer) {
             userId,
             role,
             timestamp: new Date()
+        });
+
+        // ── Real-Time Presence (Multiplayer Cursor/Avatar Tracking) ─────────────
+        socket.on('join_page', (payload) => {
+            try {
+                const { pathname, userDetails } = payload;
+                if (!pathname) return;
+
+                // Leave previous page if any
+                if (socket.currentPage && socket.currentPage !== pathname) {
+                    const prevRoom = `page_${socket.currentPage}`;
+                    socket.leave(prevRoom);
+
+                    if (activePages.has(socket.currentPage)) {
+                        activePages.get(socket.currentPage).delete(socket.id);
+                        const remainingUsers = Array.from(new Map(Array.from(activePages.get(socket.currentPage).values()).map(u => [u.id, u])).values());
+                        io.to(prevRoom).emit('page_presence_update', remainingUsers);
+                    }
+                }
+
+                socket.currentPage = pathname;
+                socket.pageUserDetails = userDetails;
+
+                const newRoom = `page_${pathname}`;
+                socket.join(newRoom);
+
+                if (!activePages.has(pathname)) {
+                    activePages.set(pathname, new Map());
+                }
+                activePages.get(pathname).set(socket.id, userDetails);
+
+                // Deduplicate by userId so multiple tabs from the same user only show one avatar
+                const uniqueUsers = Array.from(new Map(Array.from(activePages.get(pathname).values()).map(u => [u.id, u])).values());
+
+                io.to(newRoom).emit('page_presence_update', uniqueUsers);
+
+            } catch (err) {
+                logger.error('[Socket.io] Error in join_page:', err);
+            }
+        });
+
+        socket.on('disconnecting', () => {
+            if (socket.currentPage) {
+                const room = `page_${socket.currentPage}`;
+                if (activePages.has(socket.currentPage)) {
+                    activePages.get(socket.currentPage).delete(socket.id);
+                    const remainingUsers = Array.from(new Map(Array.from(activePages.get(socket.currentPage).values()).map(u => [u.id, u])).values());
+                    io.to(room).emit('page_presence_update', remainingUsers);
+                }
+            }
         });
 
         socket.on('disconnect', (reason) => {

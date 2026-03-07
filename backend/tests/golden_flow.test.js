@@ -121,7 +121,7 @@ describe('Golden Flow E2E: From Registration to Application', () => {
             .post('/api/v1/jobs')
             .set('Authorization', `Bearer ${recruiterToken}`)
             .send({
-                title: 'Senior Golden Engineer',
+                package_lpa: 12.0, title: 'Senior Golden Engineer',
                 description: 'We are looking for someone to build golden architecture.',
                 job_type: 'FULL_TIME',
                 eligible_branch: 'CSE, IT',

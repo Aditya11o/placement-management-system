@@ -37,10 +37,11 @@ logSchema.index({ action: 1 });
 // Real-time Pulse Feed Broadcast
 logSchema.post('save', function (doc) {
     try {
-        const { notifyRole } = require('./socketManager');
-        // Only broadcast non-admin actions to avoid self-echoing noise on the dashboard
+        const socketManager = require('../utils/socketManager');
         if (doc.user_role !== 'ADMIN') {
-            notifyRole('ADMIN', 'admin_pulse', doc);
+            if (socketManager && typeof socketManager.notifyRole === 'function') {
+                socketManager.notifyRole('ADMIN', 'admin_pulse', doc);
+            }
         }
     } catch (err) {
         console.error('[Pulse Feed] Failed to emit admin_pulse event:', err.message);
