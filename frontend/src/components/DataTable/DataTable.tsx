@@ -39,8 +39,8 @@ interface DataTableProps<T> {
     onPageChange?: (newPage: number) => void;
 }
 
-const thClass = 'p-4 px-6 bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 text-left';
-const tdClass = 'p-5 px-6 border-b border-slate-200 dark:border-slate-700/50 align-middle text-slate-700 dark:text-slate-300';
+const thClass = 'p-3 px-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider border-b-2 border-slate-200 dark:border-slate-700 text-left sticky top-0 z-10 shadow-[inset_0_-1px_0_rgba(203,213,225,1)] dark:shadow-[inset_0_-1px_0_rgba(51,65,85,1)]';
+const tdClass = 'p-3 px-4 border-b border-r border-slate-200/60 dark:border-slate-700/50 last:border-r-0 align-middle text-slate-700 dark:text-slate-300 text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[300px]';
 
 function DataTable<T>({
     columns,
@@ -130,13 +130,16 @@ function DataTable<T>({
                                 return (
                                     <tr
                                         key={key}
-                                        className={`transition-colors border-b border-slate-100 dark:border-slate-700/30 last:border-none ${onRowClick ? 'cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-700/50' : 'hover:bg-slate-50 dark:hover:bg-slate-800/80'} ${selectedKeys.includes(key) ? 'bg-indigo-50/40 dark:bg-indigo-900/20' : ''}`}
+                                        className={`group transition-all border-b border-slate-200/60 dark:border-slate-700/50 outline-none
+                                            ${onRowClick ? 'cursor-pointer hover:bg-indigo-50/30 dark:hover:bg-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/80'} 
+                                            ${selectedKeys.includes(key) ? 'bg-indigo-50/50 dark:bg-indigo-500/20 shadow-[inset_3px_0_0_0_#6366f1]' : ''}
+                                        `}
                                         onClick={(e) => {
-                                            // Only trigger row click if we're not clicking the checkbox itself
                                             if ((e.target as HTMLElement).tagName.toLowerCase() !== 'input' && onRowClick) {
                                                 onRowClick(row);
                                             }
                                         }}
+                                        tabIndex={onRowClick ? 0 : undefined}
                                     >
                                         {selectable && (
                                             <td className={`${tdClass} w-12 text-center`} onClick={e => e.stopPropagation()}>

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../context/ToastContext';
 import { Shield, Ban } from 'lucide-react';
@@ -17,6 +18,8 @@ const AdminStudents = () => {
     const { addToast } = useToast();
     const queryClient = useQueryClient();
 
+    const [searchParams] = useSearchParams();
+    const studentIdFromUrl = searchParams.get('id');
     const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -62,6 +65,14 @@ const AdminStudents = () => {
 
     const students = queryData?.data || [];
     const totalPages = queryData?.total ? Math.ceil(queryData.total / limit) : 1;
+
+    // Auto-open drawer if ID is in URL
+    useEffect(() => {
+        if (studentIdFromUrl && students.length > 0 && !selectedStudent) {
+            const student = students.find((s: any) => s._id === studentIdFromUrl);
+            if (student) setSelectedStudent(student);
+        }
+    }, [studentIdFromUrl, students, selectedStudent]);
 
     // In a real prod environment, search term should also be pushed to the backend `?name[regex]=term`
     // using MongoDB regex filtering if supported by advancedResults. For now, we apply local filtering
@@ -114,6 +125,7 @@ const AdminStudents = () => {
     const columns: Column<any>[] = [
         {
             header: 'Student Info',
+            accessor: 'name',
             cell: (s) => (
                 <div className="flex items-center gap-4">
                     <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold shrink-0">
@@ -267,6 +279,7 @@ const AdminStudents = () => {
 
             <BulkActionBar
                 selectedCount={selectedKeys.length}
+                itemName="Students"
                 onClearSelection={() => setSelectedKeys([])}
                 onApprove={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: true })}
                 onReject={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: false })}

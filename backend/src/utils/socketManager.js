@@ -107,6 +107,22 @@ function initializeSocket(httpServer) {
             }
         });
 
+        socket.on('cursor_move', (payload) => {
+            try {
+                if (socket.currentPage) {
+                    const room = `page_${socket.currentPage}`;
+                    // Broadcast to everyone else in the room
+                    socket.to(room).emit('cursor_update', {
+                        userId: socket.user.id,
+                        userDetails: socket.pageUserDetails,
+                        data: payload // e.g., { activeRecordId: '...' }
+                    });
+                }
+            } catch (err) {
+                logger.error('[Socket.io] Error in cursor_move:', err);
+            }
+        });
+
         socket.on('disconnecting', () => {
             if (socket.currentPage) {
                 const room = `page_${socket.currentPage}`;

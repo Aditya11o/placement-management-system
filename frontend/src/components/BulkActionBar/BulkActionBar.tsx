@@ -4,6 +4,7 @@ import { CheckCircle, XCircle, X } from 'lucide-react';
 
 interface BulkActionBarProps {
     selectedCount: number;
+    itemName?: string;
     onClearSelection: () => void;
     onApprove: () => void;
     onReject: () => void;
@@ -12,6 +13,7 @@ interface BulkActionBarProps {
 
 const BulkActionBar: React.FC<BulkActionBarProps> = ({
     selectedCount,
+    itemName = "Items",
     onClearSelection,
     onApprove,
     onReject,
@@ -21,40 +23,46 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
         <AnimatePresence>
             {selectedCount > 0 && (
                 <motion.div
-                    initial={{ y: 100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: 100, opacity: 0 }}
-                    className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-6 px-6 py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl shadow-2xl border border-slate-700 w-[90%] max-w-2xl"
+                    initial={{ y: 50, opacity: 0, scale: 0.95 }}
+                    animate={{ y: 0, opacity: 1, scale: 1 }}
+                    exit={{ y: 50, opacity: 0, scale: 0.95 }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                    className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-4 px-5 py-3 
+                               bg-slate-900/90 dark:bg-slate-800/90 backdrop-blur-xl text-white rounded-full 
+                               shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] border border-slate-700/50 w-max"
                 >
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-300 font-bold text-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center min-w-[32px] h-8 px-2 rounded-full bg-indigo-500/20 text-indigo-300 font-bold text-sm border border-indigo-500/30">
                             {selectedCount}
                         </div>
-                        <span className="font-semibold text-[15px]">Students Selected</span>
-                        <div className="w-px h-6 bg-slate-700 mx-2" />
+                        <span className="font-semibold text-sm mr-2">{itemName} Selected</span>
+                        <div className="w-px h-5 bg-slate-700" />
                         <button
                             onClick={onClearSelection}
                             disabled={isProcessing}
-                            className="text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                            className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors disabled:opacity-50"
+                            title="Clear Selection"
                         >
-                            <X size={16} /> Clear
+                            <X size={16} />
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="w-px h-5 bg-slate-700 ml-1 mr-2" />
+
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={onApprove}
                             disabled={isProcessing}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm font-bold hover:bg-green-500/30 transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-bold transition-colors disabled:opacity-50"
                         >
-                            <CheckCircle size={16} /> Approve
+                            <CheckCircle size={14} /> Approve All
                         </button>
                         <button
                             onClick={onReject}
                             disabled={isProcessing}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-bold hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/20 rounded-full text-xs font-bold transition-colors disabled:opacity-50"
                         >
-                            <XCircle size={16} /> Block
+                            <XCircle size={14} /> Block All
                         </button>
                     </div>
                 </motion.div>

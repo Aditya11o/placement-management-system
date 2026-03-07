@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import { useRef, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Card from '../Card/Card';
@@ -36,8 +36,8 @@ interface VirtualizedDataTableProps<T> {
     maxHeight?: string;
 }
 
-const thClass = 'p-4 px-6 bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider text-left sticky top-0 z-10 shadow-[0_1px_0_rgba(203,213,225,1)] dark:shadow-[0_1px_0_rgba(51,65,85,0.5)]';
-const tdClass = 'p-5 px-6 border-b border-slate-200 dark:border-slate-700/50 align-middle text-slate-700 dark:text-slate-300';
+const thClass = 'p-3 px-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider border-b-2 border-slate-200 dark:border-slate-700 text-left sticky top-0 z-10 shadow-[inset_0_-1px_0_rgba(203,213,225,1)] dark:shadow-[inset_0_-1px_0_rgba(51,65,85,1)]';
+const tdClass = 'p-3 px-4 border-b border-r border-slate-200/60 dark:border-slate-700/50 last:border-r-0 align-middle text-slate-700 dark:text-slate-300 text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-[300px]';
 
 function VirtualizedDataTable<T>({
     columns,
@@ -162,12 +162,16 @@ function VirtualizedDataTable<T>({
                                             width: '100%',
                                             transform: `translateY(${virtualRow.start}px)`,
                                         }}
-                                        className={`transition-colors border-b border-slate-100 dark:border-slate-700/30 w-full flex ${onRowClick ? 'cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-700/50' : 'hover:bg-slate-50 dark:hover:bg-slate-800/80'} ${isSelected ? 'bg-indigo-50/40 dark:bg-indigo-900/20' : ''}`}
+                                        className={`group transition-all border-b border-slate-200/60 dark:border-slate-700/50 w-full flex outline-none
+                                            ${onRowClick ? 'cursor-pointer hover:bg-indigo-50/30 dark:hover:bg-indigo-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/80'} 
+                                            ${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-500/20 shadow-[inset_3px_0_0_0_#6366f1]' : ''}
+                                        `}
                                         onClick={(e) => {
                                             if ((e.target as HTMLElement).tagName.toLowerCase() !== 'input' && onRowClick) {
                                                 onRowClick(row);
                                             }
                                         }}
+                                        tabIndex={onRowClick ? 0 : undefined}
                                     >
                                         {selectable && (
                                             <td className={`${tdClass} w-12 text-center flex items-center justify-center`} onClick={e => e.stopPropagation()}>

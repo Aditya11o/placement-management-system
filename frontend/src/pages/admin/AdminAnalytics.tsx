@@ -1,6 +1,20 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    rectSortingStrategy
+} from '@dnd-kit/sortable';
+import {
     BarChart,
     Bar,
     XAxis,
@@ -39,9 +53,13 @@ import { Link } from 'react-router-dom';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import api from '../../services/api';
+import AiActionCenter from '../../components/AiActionCenter/AiActionCenter';
+import SortableWidget from '../../components/SortableWidget/SortableWidget'; // We will create this
 
 const AdminAnalytics = () => {
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
+    // Define the initial order of widgets
+    const [widgetOrder, setWidgetOrder] = useState(['branch-salary', 'placement-rate', 'hiring-trends', 'predictive-analysis']);
 
     // Fetch Branch Placement Stats
     const { data: branchData, isLoading: isBranchLoading, refetch: refetchBranch } = useQuery({
@@ -84,6 +102,29 @@ const AdminAnalytics = () => {
         refetchSalary();
         refetchTrends();
         refetchPredictive();
+    };
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // Require 8px movement before drag starts (allows clicking inside widget)
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEnd = (event: any) => {
+        const { active, over } = event;
+
+        if (active.id !== over.id) {
+            setWidgetOrder((items) => {
+                const oldIndex = items.indexOf(active.id);
+                const newIndex = items.indexOf(over.id);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+        }
     };
 
     const CustomTooltip = ({ active, payload, label }: any) => {
@@ -226,226 +267,263 @@ const AdminAnalytics = () => {
                         <h2 className="text-3xl font-black text-slate-800 dark:text-white m-0">
                             ₹{salaryData?.length > 0 ? Math.max(...salaryData.map((s: any) => s.maxSalary)) : '0'} LPA
                         </h2>
-                        <div className="flex items-center gap-1.5 mt-2 text-indigo-500 font-bold text-xs">
-                            CSE Department
+                        <div className="flex items-center gap-1.5 mt-2 text-slate-400 font-medium text-xs">
+                            Active recruiters on platform
                         </div>
                     </div>
                 </Card>
             </div>
 
-            {/* Main Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Branch-wise Salary Distribution */}
-                <Card className="p-8 border-slate-200/60">
-                    <div className="flex justify-between items-center mb-10">
-                        <div className="flex flex-col gap-1">
-                            <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Salary Distribution by Branch</h3>
-                            <p className="text-sm text-slate-500 m-0">Min, Max, and Average package comparison per department.</p>
-                        </div>
-                        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                            <DollarSign size={18} className="text-indigo-600" />
-                        </div>
+            {/* AI Action Center */}
+            <AiActionCenter />
+
+            {/* Main Content Area (Draggable) */}
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+                <SortableContext
+                    items={widgetOrder}
+                    strategy={rectSortingStrategy}
+                >
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                        {widgetOrder.map((id) => {
+                            if (id === 'branch-salary') {
+                                return (
+                                    <SortableWidget key={id} id={id}>
+                                        <Card className="p-8 border-slate-200/60 h-full">
+                                            <div className="flex justify-between items-center mb-10">
+                                                <div className="flex flex-col gap-1">
+                                                    <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Salary Distribution by Branch</h3>
+                                                    <p className="text-sm text-slate-500 m-0">Min, Max, and Average package comparison per department.</p>
+                                                </div>
+                                                <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                                    <DollarSign size={18} className="text-indigo-600" />
+                                                </div>
+                                            </div>
+
+                                            <div className="h-[350px] w-full">
+                                                {isSalaryLoading ? (
+                                                    <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Loading Distribution Engine...</div>
+                                                ) : (
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <ComposedChart data={salaryData}>
+                                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                                            <XAxis dataKey="branch" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11, fontWeight: 'bold' }} />
+                                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} unit="L" />
+                                                            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F8FAFC' }} />
+                                                            <Legend iconType="circle" wrapperStyle={{ paddingTop: 24, fontSize: 12, fontWeight: 'bold' }} />
+                                                            <Bar dataKey="minSalary" name="Min CTC" fill="#94A3B8" radius={[4, 4, 0, 0]} barSize={20} />
+                                                            <Bar dataKey="avgSalary" name="Avg CTC" fill="#6366F1" radius={[4, 4, 0, 0]} barSize={34} />
+                                                            <Bar dataKey="maxSalary" name="Max CTC" fill="#10B981" radius={[4, 4, 0, 0]} barSize={20} />
+                                                        </ComposedChart>
+                                                    </ResponsiveContainer>
+                                                )}
+                                            </div>
+                                        </Card>
+                                    </SortableWidget>
+                                );
+                            }
+
+                            if (id === 'placement-rate') {
+                                return (
+                                    <SortableWidget key={id} id={id}>
+                                        <Card className="p-8 border-slate-200/60 h-full">
+                                            <div className="flex justify-between items-center mb-10">
+                                                <div className="flex flex-col gap-1">
+                                                    <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Placement Performance</h3>
+                                                    <p className="text-sm text-slate-500 m-0">Percentage of eligible students placed across engineering branches.</p>
+                                                </div>
+                                                <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                                    <Target size={18} className="text-emerald-600" />
+                                                </div>
+                                            </div>
+
+                                            <div className="h-[350px] w-full">
+                                                {isBranchLoading ? (
+                                                    <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Measuring Benchmarks...</div>
+                                                ) : (
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <BarChart data={branchData} layout="vertical">
+                                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                                                            <XAxis type="number" hide domain={[0, 100]} />
+                                                            <YAxis
+                                                                dataKey="branch"
+                                                                type="category"
+                                                                axisLine={false}
+                                                                tickLine={false}
+                                                                width={100}
+                                                                tick={{ fill: '#475569', fontSize: 12, fontWeight: 'bold' }}
+                                                            />
+                                                            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F8FAFC' }} />
+                                                            <Bar
+                                                                dataKey="placementRate"
+                                                                name="Placement Rate"
+                                                                fill="#059669"
+                                                                radius={[0, 4, 4, 0]}
+                                                                barSize={24}
+                                                                label={{ position: 'right', fill: '#059669', fontSize: 12, fontWeight: 'bold', formatter: (v: any) => `${v}%` }}
+                                                            />
+                                                        </BarChart>
+                                                    </ResponsiveContainer>
+                                                )}
+                                            </div>
+                                        </Card>
+                                    </SortableWidget>
+                                );
+                            }
+
+                            if (id === 'hiring-trends') {
+                                return (
+                                    <SortableWidget key={id} id={id} className="lg:col-span-2">
+                                        <Card className="p-8 border-slate-200/60 h-full">
+                                            <div className="flex justify-between items-center mb-10">
+                                                <div className="flex flex-col gap-1">
+                                                    <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Long-term Hiring Momentum</h3>
+                                                    <p className="text-sm text-slate-500 m-0">Comparative analysis of new registrations vs actual placements over the fiscal year.</p>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700">
+                                                        <Filter size={14} />
+                                                        Multi-dimensional View
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="h-[400px] w-full">
+                                                {isTrendsLoading ? (
+                                                    <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Synthesizing Historical Data...</div>
+                                                ) : (
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <AreaChart data={trendsData?.placements}>
+                                                            <defs>
+                                                                <linearGradient id="colorPlacements" x1="0" y1="0" x2="0" y2="1">
+                                                                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.1} />
+                                                                    <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+                                                                </linearGradient>
+                                                                <linearGradient id="colorRegs" x1="0" y1="0" x2="0" y2="1">
+                                                                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.1} />
+                                                                    <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                                                </linearGradient>
+                                                            </defs>
+                                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                                            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11, fontWeight: 'bold' }} />
+                                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} />
+                                                            <Tooltip content={<CustomTooltip />} />
+                                                            <Legend iconType="circle" align="right" verticalAlign="top" wrapperStyle={{ paddingBottom: 20, fontSize: 12, fontWeight: 'bold' }} />
+
+                                                            <Area
+                                                                type="monotone"
+                                                                dataKey="count"
+                                                                name="Placements"
+                                                                stroke="#6366F1"
+                                                                strokeWidth={3}
+                                                                fillOpacity={1}
+                                                                fill="url(#colorPlacements)"
+                                                            />
+
+                                                            <Area
+                                                                data={trendsData?.studentRegistrations}
+                                                                type="monotone"
+                                                                dataKey="count"
+                                                                name="Registrations"
+                                                                stroke="#10B981"
+                                                                strokeWidth={1}
+                                                                strokeDasharray="5 5"
+                                                                fillOpacity={0.5}
+                                                                fill="url(#colorRegs)"
+                                                            />
+                                                        </AreaChart>
+                                                    </ResponsiveContainer>
+                                                )}
+                                            </div>
+                                        </Card>
+                                    </SortableWidget>
+                                );
+                            }
+
+                            if (id === 'predictive-analysis') {
+                                return (
+                                    <div key={id} className="lg:col-span-2 flex flex-col gap-6 pt-10 border-t border-slate-200 dark:border-slate-800">
+                                        <div className="flex flex-col gap-1 mb-2">
+                                            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white m-0 tracking-tight flex items-center gap-2">
+                                                <Lightbulb className="text-amber-500" /> Predictive Success Analysis
+                                            </h2>
+                                            <p className="text-slate-500 dark:text-slate-400 text-sm m-0 ml-8">AI-driven insights on rising skills and branch demand to guide training programs.</p>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                            <SortableWidget id={`${id}-skills`}>
+                                                <Card className="p-8 border-slate-200/60 shadow-sm h-full">
+                                                    <div className="flex justify-between items-center mb-10">
+                                                        <div className="flex flex-col gap-1">
+                                                            <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Rising Skills Demand</h3>
+                                                            <p className="text-sm text-slate-500 m-0">Top 10 most frequently requested skills in active job postings.</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="h-[350px] w-full">
+                                                        {isPredictiveLoading ? (
+                                                            <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Loading Predictive Engine...</div>
+                                                        ) : (
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <BarChart data={predictiveData?.risingSkills} layout="vertical" margin={{ left: -10 }}>
+                                                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                                                                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} />
+                                                                    <YAxis dataKey="skill" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 12, fontWeight: 'bold' }} width={100} />
+                                                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F8FAFC' }} />
+                                                                    <Bar dataKey="count" name="Job Postings" fill="#8B5CF6" radius={[0, 4, 4, 0]} barSize={24} />
+                                                                </BarChart>
+                                                            </ResponsiveContainer>
+                                                        )}
+                                                    </div>
+                                                </Card>
+                                            </SortableWidget>
+
+                                            <SortableWidget id={`${id}-radar`}>
+                                                <Card className="p-8 border-slate-200/60 shadow-sm overflow-hidden relative h-full">
+                                                    <div className="flex justify-between items-start mb-6 relative z-10">
+                                                        <div className="flex flex-col gap-1">
+                                                            <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Market Branch Demand</h3>
+                                                            <p className="text-sm text-slate-500 m-0">Volume of open jobs mapped against eligible branches.</p>
+                                                        </div>
+                                                        <div className="flex flex-col items-end text-right">
+                                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">Job/Student Ratio</span>
+                                                            <span className="text-2xl font-black text-brand-600 leading-tight">{predictiveData?.metrics?.demandSupplyRatio || '0.00'}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="h-[350px] w-full relative z-10">
+                                                        {isPredictiveLoading ? (
+                                                            <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Loading Radar...</div>
+                                                        ) : predictiveData?.branchDemand?.length > 0 ? (
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <RadarChart data={predictiveData?.branchDemand} outerRadius="70%">
+                                                                    <PolarGrid stroke="#E2E8F0" />
+                                                                    <PolarAngleAxis dataKey="branch" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 'bold' }} />
+                                                                    <Tooltip />
+                                                                    <Radar name="Jobs Available" dataKey="jobCount" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.4} />
+                                                                </RadarChart>
+                                                            </ResponsiveContainer>
+                                                        ) : (
+                                                            <div className="w-full h-full flex flex-col gap-3 items-center justify-center text-slate-500">
+                                                                <RadarIcon size={48} className="text-slate-300 opacity-50" />
+                                                                <p className="font-medium text-sm">Not enough active job data to plot radar.</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </Card>
+                                            </SortableWidget>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })}
                     </div>
-
-                    <div className="h-[350px] w-full">
-                        {isSalaryLoading ? (
-                            <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Loading Distribution Engine...</div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <ComposedChart data={salaryData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                    <XAxis dataKey="branch" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11, fontWeight: 'bold' }} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} unit="L" />
-                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F8FAFC' }} />
-                                    <Legend iconType="circle" wrapperStyle={{ paddingTop: 24, fontSize: 12, fontWeight: 'bold' }} />
-                                    <Bar dataKey="minSalary" name="Min CTC" fill="#94A3B8" radius={[4, 4, 0, 0]} barSize={20} />
-                                    <Bar dataKey="avgSalary" name="Avg CTC" fill="#6366F1" radius={[4, 4, 0, 0]} barSize={34} />
-                                    <Bar dataKey="maxSalary" name="Max CTC" fill="#10B981" radius={[4, 4, 0, 0]} barSize={20} />
-                                </ComposedChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
-                </Card>
-
-                {/* Branch placement rate Percentage */}
-                <Card className="p-8 border-slate-200/60">
-                    <div className="flex justify-between items-center mb-10">
-                        <div className="flex flex-col gap-1">
-                            <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Placement Performance</h3>
-                            <p className="text-sm text-slate-500 m-0">Percentage of eligible students placed across engineering branches.</p>
-                        </div>
-                        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                            <Target size={18} className="text-emerald-600" />
-                        </div>
-                    </div>
-
-                    <div className="h-[350px] w-full">
-                        {isBranchLoading ? (
-                            <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Measuring Benchmarks...</div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={branchData} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                                    <XAxis type="number" hide domain={[0, 100]} />
-                                    <YAxis
-                                        dataKey="branch"
-                                        type="category"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        width={100}
-                                        tick={{ fill: '#475569', fontSize: 12, fontWeight: 'bold' }}
-                                    />
-                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F8FAFC' }} />
-                                    <Bar
-                                        dataKey="placementRate"
-                                        name="Placement Rate"
-                                        fill="#059669"
-                                        radius={[0, 4, 4, 0]}
-                                        barSize={24}
-                                        label={{ position: 'right', fill: '#059669', fontSize: 12, fontWeight: 'bold', formatter: (v: any) => `${v}%` }}
-                                    />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
-                </Card>
-
-                {/* Hiring Trends Over Time */}
-                <Card className="p-8 border-slate-200/60 lg:col-span-2">
-                    <div className="flex justify-between items-center mb-10">
-                        <div className="flex flex-col gap-1">
-                            <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Long-term Hiring Momentum</h3>
-                            <p className="text-sm text-slate-500 m-0">Comparative analysis of new registrations vs actual placements over the fiscal year.</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700">
-                                <Filter size={14} />
-                                Multi-dimensional View
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="h-[400px] w-full">
-                        {isTrendsLoading ? (
-                            <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Synthesizing Historical Data...</div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={trendsData?.placements}>
-                                    <defs>
-                                        <linearGradient id="colorPlacements" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#6366F1" stopOpacity={0.1} />
-                                            <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
-                                        </linearGradient>
-                                        <linearGradient id="colorRegs" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.1} />
-                                            <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11, fontWeight: 'bold' }} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} />
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Legend iconType="circle" align="right" verticalAlign="top" wrapperStyle={{ paddingBottom: 20, fontSize: 12, fontWeight: 'bold' }} />
-
-                                    <Area
-                                        type="monotone"
-                                        dataKey="count"
-                                        name="Placements"
-                                        stroke="#6366F1"
-                                        strokeWidth={3}
-                                        fillOpacity={1}
-                                        fill="url(#colorPlacements)"
-                                    />
-
-                                    <Area
-                                        data={trendsData?.studentRegistrations}
-                                        type="monotone"
-                                        dataKey="count"
-                                        name="Registrations"
-                                        stroke="#10B981"
-                                        strokeWidth={1}
-                                        strokeDasharray="5 5"
-                                        fillOpacity={0.5}
-                                        fill="url(#colorRegs)"
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
-                </Card>
-            </div>
-
-            {/* Predictive Success Analysis */}
-            <div className="flex flex-col gap-6 pt-10 border-t border-slate-200 dark:border-slate-800">
-                <div className="flex flex-col gap-1">
-                    <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white m-0 tracking-tight flex items-center gap-2">
-                        <Lightbulb className="text-amber-500" /> Predictive Success Analysis
-                    </h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm m-0 ml-8">AI-driven insights on rising skills and branch demand to guide training programs.</p>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Rising Skills */}
-                    <Card className="p-8 border-slate-200/60 shadow-sm">
-                        <div className="flex justify-between items-center mb-10">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Rising Skills Demand</h3>
-                                <p className="text-sm text-slate-500 m-0">Top 10 most frequently requested skills in active job postings.</p>
-                            </div>
-                        </div>
-
-                        <div className="h-[350px] w-full">
-                            {isPredictiveLoading ? (
-                                <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Loading Predictive Engine...</div>
-                            ) : (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={predictiveData?.risingSkills} layout="vertical" margin={{ left: -10 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} />
-                                        <YAxis dataKey="skill" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 12, fontWeight: 'bold' }} width={100} />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F8FAFC' }} />
-                                        <Bar dataKey="count" name="Job Postings" fill="#8B5CF6" radius={[0, 4, 4, 0]} barSize={24} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            )}
-                        </div>
-                    </Card>
-
-                    {/* Branch Demand Radar */}
-                    <Card className="p-8 border-slate-200/60 shadow-sm overflow-hidden relative">
-                        <div className="flex justify-between items-start mb-6 relative z-10">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Market Branch Demand</h3>
-                                <p className="text-sm text-slate-500 m-0">Volume of open jobs mapped against eligible branches.</p>
-                            </div>
-                            <div className="flex flex-col items-end text-right">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">Job/Student Ratio</span>
-                                <span className="text-2xl font-black text-brand-600 leading-tight">{predictiveData?.metrics?.demandSupplyRatio || '0.00'}</span>
-                            </div>
-                        </div>
-
-                        <div className="h-[350px] w-full relative z-10">
-                            {isPredictiveLoading ? (
-                                <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg flex items-center justify-center text-slate-400">Loading Radar...</div>
-                            ) : predictiveData?.branchDemand?.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart data={predictiveData?.branchDemand} outerRadius="70%">
-                                        <PolarGrid stroke="#E2E8F0" />
-                                        <PolarAngleAxis dataKey="branch" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 'bold' }} />
-                                        <Tooltip />
-                                        <Radar name="Jobs Available" dataKey="jobCount" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.4} />
-                                    </RadarChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div className="w-full h-full flex flex-col gap-3 items-center justify-center text-slate-500">
-                                    <RadarIcon size={48} className="text-slate-300 opacity-50" />
-                                    <p className="font-medium text-sm">Not enough active job data to plot radar.</p>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-                </div>
-            </div>
+                </SortableContext>
+            </DndContext>
 
             {/* Insight Message */}
             <div className="flex items-center gap-2 justify-center py-4 bg-slate-900 text-white rounded-2xl px-6 shadow-2xl">

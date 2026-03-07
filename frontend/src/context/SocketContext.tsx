@@ -4,9 +4,19 @@ import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
 
+interface PageUserDetails {
+    id: string;
+    name: string;
+    avatar?: string;
+    color?: string; // For generating a unique color for the user
+}
+
 interface SocketContextType {
     socket: Socket | null;
     isConnected: boolean;
+    joinPage: (pathname: string, userDetails: PageUserDetails) => void;
+    leavePage: (pathname: string) => void;
+    emitCursorMove: (payload: any) => void;
 }
 
 const SocketContext = createContext<SocketContextType | null>(null);
@@ -89,8 +99,36 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [token, user, addToast, queryClient]);
 
+    // ── Helper Methods ───────────────────────────────────────────────────────
+
+    // Assign a consistent color based on user ID for their avatar/cursor border
+    const getColorForUser = (userId: string) => {
+        const colors = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef'];
+        let hash = 0;
+        for (let i = 0; i < userId.length; i++) hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+        return colors[Math.abs(hash) % colors.length];
+    };
+
+    const joinPage = (pathname: string, userDetails: PageUserDetails) => {
+        if (!socket || !isConnected) return;
+        const color = getColorForUser(userDetails.id);
+        socket.emit('join_page', { pathname, userDetails: { ...userDetails, color } });
+    };
+
+    const leavePage = (pathname: string) => {
+        // Handled automatically by join_page on the backend, or on disconnect.
+        // We could explicitly emit a leave_page if needed for faster cleanup.
+        if (!socket || !isConnected) return;
+        socket.emit('leave_page', { pathname });
+    };
+
+    const emitCursorMove = (payload: any) => {
+        if (!socket || !isConnected) return;
+        socket.emit('cursor_move', payload);
+    };
+
     return (
-        <SocketContext.Provider value={{ socket, isConnected }}>
+        <SocketContext.Provider value={{ socket, isConnected, joinPage, leavePage, emitCursorMove }}>
             {children}
         </SocketContext.Provider>
     );

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
@@ -12,6 +13,8 @@ const AdminRecruiters = () => {
     const { addToast } = useToast();
     const queryClient = useQueryClient();
 
+    const [searchParams] = useSearchParams();
+    const recruiterIdFromUrl = searchParams.get('id');
     const [selectedRecruiter, setSelectedRecruiter] = useState<any | null>(null);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -47,6 +50,14 @@ const AdminRecruiters = () => {
 
     const recruiters = queryData?.data || [];
     const totalPages = queryData?.total ? Math.ceil(queryData.total / limit) : 1;
+
+    // Auto-open drawer if ID is in URL
+    useEffect(() => {
+        if (recruiterIdFromUrl && recruiters.length > 0 && !selectedRecruiter) {
+            const recruiter = recruiters.find((r: any) => r._id === recruiterIdFromUrl);
+            if (recruiter) setSelectedRecruiter(recruiter);
+        }
+    }, [recruiterIdFromUrl, recruiters, selectedRecruiter]);
 
     const statusMutation = useMutation({
         mutationFn: async ({ userId, newStatus }: { userId: string; newStatus: boolean }) =>
@@ -109,6 +120,7 @@ const AdminRecruiters = () => {
     const columns: Column<any>[] = [
         {
             header: 'Recruiter Name',
+            accessor: 'contact_person',
             cell: (rec) => (
                 <div className="flex flex-col">
                     <strong className="text-slate-800 text-[15px] font-semibold mb-0.5">{rec.contact_person}</strong>
@@ -239,6 +251,7 @@ const AdminRecruiters = () => {
 
             <BulkActionBar
                 selectedCount={selectedKeys.length}
+                itemName="Companies"
                 onClearSelection={() => setSelectedKeys([])}
                 onApprove={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: true })}
                 onReject={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: false })}

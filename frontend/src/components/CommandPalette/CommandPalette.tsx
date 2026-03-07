@@ -4,9 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
     Search, LayoutDashboard, User, Briefcase, Users, Settings,
-    ShieldCheck, Calendar, Send, Moon, Sun, Monitor, X
+    ShieldCheck, Calendar, Send, Moon, Sun, Monitor, X,
+    Loader2, ArrowRight, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import api from '../../services/api';
 
 interface CommandItem {
     id: string;
@@ -20,6 +22,8 @@ interface CommandItem {
 const CommandPalette: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
@@ -27,6 +31,31 @@ const CommandPalette: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { setTheme } = useTheme();
+
+    // Debounced Search Logic
+    useEffect(() => {
+        if (!searchQuery || searchQuery.length < 2) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            setIsSearching(true);
+            try {
+                const res = await api.get(`/search?q=${searchQuery}`);
+                if (res.data.success) {
+                    setSearchResults(res.data.data);
+                }
+            } catch (err) {
+                console.error('Search failed', err);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     // Toggle palette via keyboard shortcut
     useEffect(() => {
@@ -49,6 +78,7 @@ const CommandPalette: React.FC = () => {
     useEffect(() => {
         if (isOpen) {
             setSearchQuery('');
+            setSearchResults([]);
             setSelectedIndex(0);
             setTimeout(() => inputRef.current?.focus(), 10);
         }
@@ -64,8 +94,8 @@ const CommandPalette: React.FC = () => {
     // Close palette wrapper
     const closePalette = () => setIsOpen(false);
 
-    // Define all available commands
-    const allCommands: CommandItem[] = [
+    // Static Commands
+    const staticCommands: CommandItem[] = [
         // Navigation - Admin
         { id: 'nav-admin-dashboard', label: 'Go to Admin Dashboard', icon: LayoutDashboard, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/dashboard'); closePalette(); } },
         { id: 'nav-admin-students', label: 'Manage Students', icon: Users, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/students'); closePalette(); } },
@@ -87,43 +117,53 @@ const CommandPalette: React.FC = () => {
         { id: 'nav-stu-jobs', label: 'Job Board', icon: Briefcase, category: 'Navigation', roles: ['STUDENT'], action: () => { navigate('/student/jobs'); closePalette(); } },
 
         // Actions
-        { id: 'action-logout', label: 'Sign Out', icon: User, category: 'Actions', action: () => { closePalette(); /* Logout handled loosely here, ideally trigger global logout */ } },
+        { id: 'action-logout', label: 'Sign Out', icon: User, category: 'Actions', action: () => { closePalette(); window.location.href = '/login'; } },
 
         // Theme
         { id: 'theme-light', label: 'Switch to Light Theme', icon: Sun, category: 'Theme', action: () => { setTheme('light'); closePalette(); } },
         { id: 'theme-dark', label: 'Switch to Dark Theme', icon: Moon, category: 'Theme', action: () => { setTheme('dark'); closePalette(); } },
-        { id: 'theme-system', label: 'Use System Theme', icon: Monitor, category: 'Theme', action: () => { setTheme('system'); closePalette(); } },
     ];
 
-    // Filter commands based on user role and search query
-    const filteredCommands = allCommands.filter(command => {
-        // Role check
-        if (command.roles && user?.role && !command.roles.includes(user.role)) {
-            return false;
-        }
-        // Search check
-        if (searchQuery && !command.label.toLowerCase().includes(searchQuery.toLowerCase())) {
-            return false;
-        }
+    // Filtered static commands
+    const filteredStatic = staticCommands.filter(command => {
+        if (command.roles && user?.role && !command.roles.includes(user.role)) return false;
+        if (searchQuery && !command.label.toLowerCase().includes(searchQuery.toLowerCase())) return false;
         return true;
     });
 
-    // Group commands by category
-    const groupedCommands = filteredCommands.reduce((acc, cmd) => {
-        if (!acc[cmd.category]) {
-            acc[cmd.category] = [];
-        }
+    // Map Search Results to Command Items
+    const dynamicCommands: CommandItem[] = searchResults.map(res => {
+        const pathMap: Record<string, string> = {
+            student: '/admin/students',
+            recruiter: '/admin/recruiters',
+            job: '/admin/jobs'
+        };
+        return {
+            id: `dynamic-${res.type}-${res.id}`,
+            label: res.label,
+            icon: res.type === 'student' ? User : res.type === 'recruiter' ? Briefcase : Search,
+            category: 'Actions', // Keep it simple for search results
+            action: () => {
+                navigate(`${pathMap[res.type]}?id=${res.id}`);
+                closePalette();
+            }
+        };
+    });
+
+    // Combine all
+    const allFiltered = [...filteredStatic, ...dynamicCommands];
+
+    // Grouping
+    const grouped = allFiltered.reduce((acc, cmd) => {
+        if (!acc[cmd.category]) acc[cmd.category] = [];
         acc[cmd.category].push(cmd);
         return acc;
     }, {} as Record<string, CommandItem[]>);
 
-    // Flatten for keyboard navigation
-    const flattenedList = Object.values(groupedCommands).flat();
+    const flattenedList = Object.values(grouped).flat();
 
-    // Keyboard navigation handlers
     const handleListKeyDown = (e: React.KeyboardEvent) => {
         if (flattenedList.length === 0) return;
-
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             setSelectedIndex((prev) => (prev + 1) % flattenedList.length);
@@ -136,15 +176,12 @@ const CommandPalette: React.FC = () => {
         }
     };
 
-    // Scroll selected item into view
     useEffect(() => {
         if (listRef.current) {
             const selectedElement = listRef.current.querySelector('[data-selected="true"]') as HTMLElement;
-            if (selectedElement) {
-                selectedElement.scrollIntoView({ block: 'nearest' });
-            }
+            if (selectedElement) selectedElement.scrollIntoView({ block: 'nearest' });
         }
-    }, [selectedIndex, searchQuery]);
+    }, [selectedIndex, searchQuery, searchResults]);
 
     return (
         <AnimatePresence>
@@ -153,30 +190,22 @@ const CommandPalette: React.FC = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-start justify-center pt-[15vh] p-4"
+                    className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-md flex items-start justify-center pt-[15vh] p-4"
                     onClick={handleOutsideClick}
                 >
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        initial={{ opacity: 0, scale: 0.9, y: -20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        transition={{
-                            type: "spring",
-                            damping: 25,
-                            stiffness: 300
-                        }}
-                        className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col"
+                        exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                        className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl w-full max-w-2xl rounded-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border border-white/20 dark:border-slate-800 overflow-hidden flex flex-col ring-1 ring-black/5"
                     >
-
-                        {/* Search Input Header */}
-                        <div className="flex items-center px-4 border-b border-slate-100 dark:border-slate-800">
-                            <Search className="w-5 h-5 text-slate-400 shrink-0" />
+                        <div className="flex items-center px-5 border-b border-slate-200/50 dark:border-slate-800/50">
+                            <Search className={`w-5 h-5 transition-colors ${isSearching ? 'text-indigo-500 animate-pulse' : 'text-slate-400'}`} />
                             <input
                                 ref={inputRef}
                                 type="text"
-                                placeholder="Type a command or search..."
-                                className="flex-1 h-14 px-4 bg-transparent border-none outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-lg"
+                                placeholder="Search students, companies, jobs or commands..."
+                                className="flex-1 h-16 px-4 bg-transparent border-none outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-lg font-medium"
                                 value={searchQuery}
                                 onChange={(e) => {
                                     setSearchQuery(e.target.value);
@@ -184,63 +213,64 @@ const CommandPalette: React.FC = () => {
                                 }}
                                 onKeyDown={handleListKeyDown}
                             />
-                            <div className="flex items-center gap-2">
-                                <kbd className="hidden sm:inline-flex h-6 items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 px-2 font-mono text-[10px] font-medium text-slate-500 border border-slate-200 dark:border-slate-700">
-                                    ESC
-                                </kbd>
-                                <button onClick={closePalette} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 transition-colors">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
+                            {isSearching && <Loader2 className="w-4 h-4 text-slate-400 animate-spin mr-3" />}
+                            <kbd className="hidden sm:inline-flex h-7 items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 px-2.5 font-mono text-[10px] font-bold text-slate-500 border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <span className="text-xs">ESC</span>
+                            </kbd>
                         </div>
 
-                        {/* Command List Body */}
-                        <div
-                            ref={listRef}
-                            className="max-h-[60vh] overflow-y-auto p-2 scrollbar-thin"
-                        >
-                            {filteredCommands.length === 0 ? (
-                                <div className="py-14 text-center text-sm text-slate-500 dark:text-slate-400">
-                                    No results found for "{searchQuery}"
+                        <div ref={listRef} className="max-h-[60vh] overflow-y-auto p-3 scrollbar-hide">
+                            {flattenedList.length === 0 ? (
+                                <div className="py-20 text-center">
+                                    <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 dark:border-slate-700">
+                                        <Search size={24} className="text-slate-300" />
+                                    </div>
+                                    <p className="text-slate-500 dark:text-slate-400 font-medium">No matches found for "{searchQuery}"</p>
+                                    <p className="text-xs text-slate-400 mt-1">Try searching for a name, email or company.</p>
                                 </div>
                             ) : (
-                                Object.entries(groupedCommands).map(([category, items], groupIndex) => {
-                                    // Calculate global index offset for this group
-                                    let globalGroupOffset = 0;
-                                    const groupCategories = Object.keys(groupedCommands);
-                                    for (let i = 0; i < groupIndex; i++) {
-                                        globalGroupOffset += groupedCommands[groupCategories[i]].length;
-                                    }
+                                Object.entries(grouped).map(([category, items], gIdx) => {
+                                    let offset = 0;
+                                    const cats = Object.keys(grouped);
+                                    for (let i = 0; i < gIdx; i++) offset += grouped[cats[i]].length;
 
                                     return (
                                         <div key={category} className="mb-4 last:mb-0">
-                                            <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">
+                                            <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-1">
                                                 {category}
                                             </div>
                                             <div className="space-y-1">
-                                                {items.map((cmd, itemIndex) => {
-                                                    const globalIndex = globalGroupOffset + itemIndex;
-                                                    const isSelected = selectedIndex === globalIndex;
+                                                {items.map((cmd, iIdx) => {
+                                                    const gIndex = offset + iIdx;
+                                                    const isSelected = selectedIndex === gIndex;
+                                                    const resultData = searchResults.find(r => `dynamic-${r.type}-${r.id}` === cmd.id);
 
                                                     return (
                                                         <button
                                                             key={cmd.id}
                                                             data-selected={isSelected}
-                                                            className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-colors text-left
-                                                        ${isSelected
-                                                                    ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300'
-                                                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                                                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm transition-all text-left group
+                                                                ${isSelected
+                                                                    ? 'bg-indigo-600 shadow-lg shadow-indigo-500/20 text-white translate-x-1'
+                                                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                                                                 }`}
                                                             onClick={() => cmd.action()}
-                                                            onMouseEnter={() => setSelectedIndex(globalIndex)}
+                                                            onMouseEnter={() => setSelectedIndex(gIndex)}
                                                         >
-                                                            <cmd.icon className={`w-5 h-5 ${isSelected ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400'}`} />
-                                                            <span className="flex-1 font-medium">{cmd.label}</span>
-                                                            {isSelected && (
-                                                                <kbd className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px] text-brand-600 dark:text-brand-400">
-                                                                    Enter
-                                                                </kbd>
-                                                            )}
+                                                            <div className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors
+                                                                ${isSelected ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}
+                                                            `}>
+                                                                <cmd.icon size={18} />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="font-bold truncate">{cmd.label}</div>
+                                                                {resultData?.sublabel && (
+                                                                    <div className={`text-xs truncate transition-colors ${isSelected ? 'text-indigo-100' : 'text-slate-400'}`}>
+                                                                        {resultData.sublabel}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {isSelected && <ArrowRight size={16} className="opacity-70" />}
                                                         </button>
                                                     );
                                                 })}
@@ -251,15 +281,15 @@ const CommandPalette: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Footer hints */}
-                        <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
-                            <div className="flex items-center gap-4 text-xs text-slate-500">
-                                <span className="flex items-center gap-1.5"><kbd className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">↑</kbd><kbd className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">↓</kbd> to navigate</span>
-                                <span className="flex items-center gap-1.5"><kbd className="bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700">Enter</kbd> to select</span>
+                        <div className="px-5 py-3 border-t border-slate-200/50 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+                            <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                <span className="flex items-center gap-1.5"><kbd className="bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shadow-sm text-slate-500">↑↓</kbd> Navigate</span>
+                                <span className="flex items-center gap-1.5"><kbd className="bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shadow-sm text-slate-500">↵</kbd> Select</span>
                             </div>
-                            <span className="text-[10px] font-semibold tracking-widest uppercase text-slate-400">Nexus OS</span>
+                            <div className="flex items-center gap-1 text-[10px] font-black italic text-indigo-500 uppercase tracking-tighter">
+                                Spotlight Search <Zap size={10} className="fill-current" />
+                            </div>
                         </div>
-
                     </motion.div>
                 </motion.div>
             )}

@@ -135,6 +135,7 @@ const interviewRoutes = require('./src/routes/interviewRoutes');
 const notificationPrefsRoutes = require('./src/routes/notificationPrefsRoutes');
 const rbacRoutes = require('./src/routes/rbacRoutes');
 const logRoutes = require('./src/routes/logRoutes');
+const searchRoutes = require('./src/routes/searchRoutes');
 const initCronJobs = require('./src/jobs/index');
 
 app.use('/api/v1/auth', authRoutes);
@@ -151,6 +152,7 @@ app.use('/api/v1/interviews', interviewRoutes);
 app.use('/api/v1/notification-prefs', notificationPrefsRoutes);
 app.use('/api/v1/rbac', rbacRoutes);
 app.use('/api/v1/logs', logRoutes);
+app.use('/api/v1/search', searchRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

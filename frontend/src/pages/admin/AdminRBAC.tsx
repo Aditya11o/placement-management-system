@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, ShieldCheck, ShieldAlert, ChevronDown, ChevronUp, Crown, UserCog, User, Save, Loader2, Plus, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Shield, ShieldAlert, ChevronDown, ChevronUp, Crown, UserCog, User, Loader2, Plus, X, Settings2 } from 'lucide-react';
 import api from '../../services/api';
 import Card from '../../components/Card/Card';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
+import LiveAvatars, { PageUserDetails } from '../../components/LiveAvatars/LiveAvatars';
+import LottieSuccessModal from '../../components/LottieSuccessModal/LottieSuccessModal';
 
 // ── Shared Types ─────────────────────────────────────────────────────────────
 interface AdminAccount {
@@ -28,7 +33,7 @@ interface CreateAdminModalProps {
 }
 
 const CreateAdminModal: React.FC<CreateAdminModalProps> = ({ isOpen, onClose, onSuccess }) => {
-    const { showToast } = useToast();
+    const { addToast } = useToast();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -39,22 +44,24 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({ isOpen, onClose, on
     const createMutation = useMutation({
         mutationFn: (data: typeof formData) => api.post('/rbac/admins', data),
         onSuccess: () => {
-            showToast('Admin created successfully', 'success');
             onSuccess();
             onClose();
             setFormData({ name: '', email: '', password: '', sub_role: 'ADMIN' });
         },
-        onError: (err: any) => showToast(err.response?.data?.message || 'Failed to create admin', 'error'),
+        onError: (err: any) => addToast(err.response?.data?.message || 'Failed to create admin', 'error'),
     });
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-            <Card className="w-full max-w-md p-6 shadow-2xl relative animate-scale-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Deep frosted glass backdrop */}
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xl transition-opacity animate-fade-in" onClick={onClose} />
+
+            <div className="w-full max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl rounded-3xl p-8 shadow-2xl relative animate-scale-in border border-white/20 dark:border-slate-700/50">
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                    className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
                 >
                     <X size={20} />
                 </button>
@@ -134,7 +141,7 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({ isOpen, onClose, on
                         </button>
                     </div>
                 </form>
-            </Card>
+            </div>
         </div>
     );
 };
@@ -163,9 +170,83 @@ const SUB_ROLE_CONFIG: Record<string, { label: string; icon: React.ElementType; 
 // ── Component ────────────────────────────────────────────────────────────────
 const AdminRBAC: React.FC = () => {
     const queryClient = useQueryClient();
-    const { showToast } = useToast();
+    const { addToast } = useToast();
+    const { user } = useAuth();
+    const { socket, isConnected, joinPage, emitCursorMove } = useSocket();
+
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+    const [activeUsers, setActiveUsers] = useState<PageUserDetails[]>([]);
+    const [remoteCursors, setRemoteCursors] = useState<Record<string, { userId: string, color: string }>>({});
+    const [showAdvancedPermissions, setShowAdvancedPermissions] = useState<Record<string, boolean>>({});
+
+    // ── Real-time Presence Setup ─────────────────────────────────────────────
+    React.useEffect(() => {
+        if (!user || !isConnected || !socket) return;
+
+        const path = window.location.pathname;
+        const fallbackId = (user as any).id || (user as any)._id || 'unknown';
+        const userDetails: PageUserDetails = {
+            id: user._id || fallbackId,
+            name: user.name || 'Admin',
+        };
+
+        joinPage(path, userDetails);
+
+        const handlePresenceUpdate = (users: PageUserDetails[]) => {
+            setActiveUsers(users);
+        };
+
+        const handleCursorUpdate = (payload: { userId: string, userDetails: PageUserDetails, data: any }) => {
+            if (payload.userId === userDetails.id) return; // ignore self
+
+            if (payload.data?.expandedId) {
+                setRemoteCursors(prev => ({
+                    ...prev,
+                    [payload.data.expandedId]: { userId: payload.userId, color: payload.userDetails.color || '#6366f1' }
+                }));
+            } else {
+                // They collapsed it
+                setRemoteCursors(prev => {
+                    const next = { ...prev };
+                    Object.keys(next).forEach(key => {
+                        if (next[key].userId === payload.userId) delete next[key];
+                    });
+                    return next;
+                });
+            }
+        };
+
+        socket.on('page_presence_update', handlePresenceUpdate);
+        socket.on('cursor_update', handleCursorUpdate);
+
+        return () => {
+            socket.off('page_presence_update', handlePresenceUpdate);
+            socket.off('cursor_update', handleCursorUpdate);
+        };
+    }, [user, isConnected, socket, joinPage]);
+
+    const handleExpandToggle = (id: string) => {
+        setExpandedId(expandedId === id ? null : id);
+        // Clean up advanced permissions state when closing
+        if (expandedId === id) {
+            setShowAdvancedPermissions(prev => {
+                const newState = { ...prev };
+                delete newState[id];
+                return newState;
+            });
+        }
+
+        // Broadcast cursor movement
+        if (isConnected && socket) {
+            emitCursorMove({ expandedId: expandedId === id ? null : id });
+        }
+    };
+
+    const toggleAdvancedPermissions = (id: string) => {
+        setShowAdvancedPermissions(prev => ({ ...prev, [id]: !prev[id] }));
+    };
 
     // Fetch admin list
     const { data: admins = [], isLoading: adminsLoading, refetch: refetchAdmins } = useQuery<AdminAccount[]>({
@@ -193,9 +274,9 @@ const AdminRBAC: React.FC = () => {
             api.post(`/rbac/admins/${id}/permissions`, { permissions }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['rbac-admins'] });
-            showToast('Permissions granted successfully', 'success');
+            addToast('Permissions granted successfully', 'success');
         },
-        onError: (err: any) => showToast(err.response?.data?.message || 'Failed to grant permissions', 'error'),
+        onError: (err: any) => addToast(err.response?.data?.message || 'Failed to grant permissions', 'error'),
     });
 
     const revokeMutation = useMutation({
@@ -203,9 +284,9 @@ const AdminRBAC: React.FC = () => {
             api.delete(`/rbac/admins/${id}/permissions`, { data: { permissions } }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['rbac-admins'] });
-            showToast('Permissions revoked', 'success');
+            addToast('Permissions revoked', 'success');
         },
-        onError: (err: any) => showToast(err.response?.data?.message || 'Failed to revoke permissions', 'error'),
+        onError: (err: any) => addToast(err.response?.data?.message || 'Failed to revoke permissions', 'error'),
     });
 
     const subRoleMutation = useMutation({
@@ -213,9 +294,9 @@ const AdminRBAC: React.FC = () => {
             api.put(`/rbac/admins/${id}/sub-role`, { sub_role }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['rbac-admins'] });
-            showToast('Sub-role updated', 'success');
+            addToast('Sub-role updated', 'success');
         },
-        onError: (err: any) => showToast(err.response?.data?.message || 'Failed to update sub-role', 'error'),
+        onError: (err: any) => addToast(err.response?.data?.message || 'Failed to update sub-role', 'error'),
     });
 
     const handlePermissionToggle = (admin: AdminAccount, permission: string) => {
@@ -236,20 +317,25 @@ const AdminRBAC: React.FC = () => {
     return (
         <div className="flex flex-col gap-6 animate-fade-in overflow-hidden">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-indigo-700 dark:text-indigo-400 mb-1 flex items-center gap-3">
                         <Shield size={28} /> Roles & Permissions
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 text-base m-0">Manage admin sub-roles and granular permission grants.</p>
                 </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/20 transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer shrink-0"
-                >
-                    <Plus size={20} />
-                    <span>Add New Admin</span>
-                </button>
+
+                <div className="flex items-center gap-4 flex-wrap">
+                    <LiveAvatars users={activeUsers} maxDisplay={4} />
+
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/20 transition-all cursor-pointer shrink-0"
+                    >
+                        <Plus size={18} />
+                        <span>New Admin</span>
+                    </button>
+                </div>
             </div>
 
             <CreateAdminModal
@@ -258,8 +344,22 @@ const AdminRBAC: React.FC = () => {
                 onSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: ['rbac-admins'] });
                     refetchAdmins();
+                    setIsSuccessModalOpen(true);
                 }}
             />
+
+            {/* Lottie Success Animation Modal */}
+            <AnimatePresence>
+                {isSuccessModalOpen && (
+                    <LottieSuccessModal
+                        isOpen={isSuccessModalOpen}
+                        onClose={() => setIsSuccessModalOpen(false)}
+                        title="Admin Created!"
+                        description="The new administrative account has been securely generated and added to the system."
+                        autoCloseDelay={2500}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Loading State */}
             {adminsLoading ? (
@@ -281,15 +381,31 @@ const AdminRBAC: React.FC = () => {
                         const roleConfig = SUB_ROLE_CONFIG[admin.sub_role] || SUB_ROLE_CONFIG.ADMIN;
                         const RoleIcon = roleConfig.icon;
                         const isSuperAdmin = admin.sub_role === 'SUPER_ADMIN';
+                        const remoteEditor = remoteCursors[admin._id];
 
                         return (
-                            <Card key={admin._id} className="overflow-hidden p-0">
+                            <Card
+                                key={admin._id}
+                                className={`overflow-hidden p-0 transition-all duration-300 ${remoteEditor ? 'shadow-lg' : ''}`}
+                                style={remoteEditor ? { outline: `2px solid ${remoteEditor.color}80`, outlineOffset: '-2px' } : {}}
+                            >
                                 {/* Admin Row */}
                                 <div
-                                    className="flex items-center justify-between p-5 px-6 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                                    onClick={() => setExpandedId(isExpanded ? null : admin._id)}
+                                    className={`flex items-center justify-between p-5 px-6 cursor-pointer transition-colors relative
+                                        ${isExpanded ? 'bg-slate-50 dark:bg-slate-800/80' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}
+                                    `}
+                                    onClick={() => handleExpandToggle(admin._id)}
                                 >
-                                    <div className="flex items-center gap-4 min-w-0">
+                                    {/* Presence Indicator Glow if someone else is editing */}
+                                    {remoteEditor && (
+                                        <div
+                                            className="absolute left-0 top-0 bottom-0 w-1.5 opacity-80 backdrop-blur"
+                                            style={{ backgroundColor: remoteEditor.color }}
+                                            title="Another admin is viewing this record"
+                                        />
+                                    )}
+
+                                    <div className="flex items-center gap-4 min-w-0 pl-1">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${roleConfig.bg}`}>
                                             <RoleIcon size={18} className={roleConfig.color} />
                                         </div>
@@ -338,41 +454,69 @@ const AdminRBAC: React.FC = () => {
                                                 })}
                                             </div>
                                             {isSuperAdmin && (
-                                                <span className="text-xs text-amber-500 dark:text-amber-400 italic ml-2">
+                                                <span className="text-xs text-amber-500 dark:text-amber-400 italic ml-2 hidden lg:inline">
                                                     Super Admin has all permissions by default
                                                 </span>
                                             )}
                                         </div>
 
-                                        {/* Permission Toggles */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {allPermissions.map((perm) => {
-                                                const meta = PERMISSION_LABELS[perm] || { label: perm, description: '' };
-                                                const hasIt = isSuperAdmin || admin.permissions.includes(perm);
+                                        {/* Progressive Disclosure: Advanced Permissions Toggle */}
+                                        {!isSuperAdmin && (
+                                            <div className="mb-4 flex items-center justify-between bg-slate-100 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 m-0">Advanced Granular Permissions</h4>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 m-0">Explicitly grant or revoke specific system abilities independent of base roles.</p>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); toggleAdvancedPermissions(admin._id); }}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 transition-colors cursor-pointer shrink-0"
+                                                >
+                                                    <Settings2 size={16} className="text-indigo-500" />
+                                                    {showAdvancedPermissions[admin._id] ? 'Hide Settings' : 'Configure'}
+                                                </button>
+                                            </div>
+                                        )}
 
-                                                return (
-                                                    <label
-                                                        key={perm}
-                                                        className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer ${hasIt
-                                                            ? 'bg-indigo-50/60 dark:bg-indigo-900/15 border-indigo-200 dark:border-indigo-800/40'
-                                                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                                                            }`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={hasIt}
-                                                            onChange={() => handlePermissionToggle(admin, perm)}
-                                                            disabled={isMutating}
-                                                            className="mt-0.5 w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed"
-                                                        />
-                                                        <div className="min-w-0">
-                                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200 block">{meta.label}</span>
-                                                            <span className="text-xs text-slate-400 dark:text-slate-500">{meta.description}</span>
-                                                        </div>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
+                                        {/* Permission Toggles Grid */}
+                                        <AnimatePresence>
+                                            {(isSuperAdmin || showAdvancedPermissions[admin._id]) && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    className="overflow-hidden"
+                                                >
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pt-2">
+                                                        {allPermissions.map((perm) => {
+                                                            const meta = PERMISSION_LABELS[perm] || { label: perm, description: '' };
+                                                            const hasIt = isSuperAdmin || admin.permissions.includes(perm);
+
+                                                            return (
+                                                                <label
+                                                                    key={perm}
+                                                                    className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer ${hasIt
+                                                                        ? 'bg-indigo-50/60 dark:bg-indigo-900/15 border-indigo-200 dark:border-indigo-800/40'
+                                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                                                        }`}
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={hasIt}
+                                                                        onChange={() => handlePermissionToggle(admin, perm)}
+                                                                        disabled={isMutating}
+                                                                        className="mt-0.5 w-4 h-4 text-indigo-600 bg-slate-100 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed"
+                                                                    />
+                                                                    <div className="min-w-0">
+                                                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200 block">{meta.label}</span>
+                                                                        <span className="text-xs text-slate-400 dark:text-slate-500">{meta.description}</span>
+                                                                    </div>
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 )}
                             </Card>

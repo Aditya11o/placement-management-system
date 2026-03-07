@@ -37,7 +37,7 @@ const MainLayout: React.FC = () => {
     // react-hotkeys-hook automatically ignores keypresses inside inputs/textareas
 
     // Toggle Help Modal
-    useHotkeys('shift+?', () => setIsShortcutsModalOpen(prev => !prev), { preventDefault: true });
+    useHotkeys(['?', 'shift+?'], () => setIsShortcutsModalOpen(prev => !prev), { preventDefault: true });
 
     // Admin Navigation Sequences (Pro-mode)
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
