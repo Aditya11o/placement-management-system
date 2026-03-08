@@ -13,10 +13,11 @@ interface JobFormData {
     description: string;
     requirements: string;
     location: string;
-    salary_package: string;
+    package_lpa: string;
     eligible_branch: string;
     min_cgpa: string;
     deadline: string;
+    graduation_year: string;
 }
 
 const RecruiterJobs: React.FC = () => {
@@ -32,10 +33,11 @@ const RecruiterJobs: React.FC = () => {
         description: '',
         requirements: '',
         location: '',
-        salary_package: '',
+        package_lpa: '',
         eligible_branch: '',
         min_cgpa: '',
-        deadline: ''
+        deadline: '',
+        graduation_year: new Date().getFullYear().toString()
     });
 
     useEffect(() => {
@@ -67,7 +69,8 @@ const RecruiterJobs: React.FC = () => {
                 ...formData,
                 requirements: formData.requirements.split(',').map(r => r.trim()),
                 min_cgpa: parseFloat(formData.min_cgpa),
-                salary_package: parseFloat(formData.salary_package)
+                package_lpa: parseFloat(formData.package_lpa),
+                graduation_year: parseInt(formData.graduation_year)
             };
 
             await api.post('/jobs', formattedData);
@@ -77,7 +80,8 @@ const RecruiterJobs: React.FC = () => {
             // Reset form
             setFormData({
                 title: '', description: '', requirements: '', location: '',
-                salary_package: '', eligible_branch: '', min_cgpa: '', deadline: ''
+                package_lpa: '', eligible_branch: '', min_cgpa: '', deadline: '',
+                graduation_year: new Date().getFullYear().toString()
             });
 
             fetchJobs();
@@ -156,8 +160,9 @@ const RecruiterJobs: React.FC = () => {
 
                                     <div className="flex items-center">
                                         <div className="flex gap-2 min-w-0 flex-wrap">
-                                            <span className="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded text-sm font-medium text-slate-600">₹{job.salary_package} LPA</span>
+                                            <span className="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded text-sm font-medium text-slate-600">₹{job.package_lpa} LPA</span>
                                             <span className="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded text-sm font-medium text-slate-600">CGPA: {job.min_cgpa}+</span>
+                                            <span className="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded text-sm font-medium text-slate-600">Batch: {job.graduation_year}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -224,13 +229,25 @@ const RecruiterJobs: React.FC = () => {
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-6 mb-6">
-                                <div className="flex-1"><Input label="Salary (LPA)" name="salary_package" type="number" step="0.1" value={formData.salary_package} onChange={handleInputChange} required /></div>
+                                <div className="flex-1"><Input label="Salary (LPA)" name="package_lpa" type="number" step="0.1" value={formData.package_lpa} onChange={handleInputChange} required /></div>
                                 <div className="flex-1"><Input label="Min CGPA" name="min_cgpa" type="number" step="0.1" value={formData.min_cgpa} onChange={handleInputChange} required /></div>
-                                <div className="flex-1"><Input label="Deadline" name="deadline" type="date" value={formData.deadline} onChange={handleInputChange} required /></div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-slate-800 mb-1.5">Deadline</label>
+                                    <input
+                                        type="date"
+                                        name="deadline"
+                                        value={formData.deadline}
+                                        onChange={handleInputChange}
+                                        required
+                                        className="w-full px-4 py-2.5 border border-slate-300 rounded-md font-sans text-sm bg-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                                        min={new Date().toISOString().split('T')[0]}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="mb-6">
-                                <Input label="Eligible Branches (e.g. CSE, IT, ECE)" name="eligible_branch" value={formData.eligible_branch} onChange={handleInputChange} required />
+                            <div className="flex flex-col sm:flex-row gap-6 mb-6">
+                                <div className="flex-1"><Input label="Eligible Branches (e.g. CSE, IT, ECE)" name="eligible_branch" value={formData.eligible_branch} onChange={handleInputChange} required /></div>
+                                <div className="flex-1"><Input label="Target Graduation Year" name="graduation_year" type="number" value={formData.graduation_year} onChange={handleInputChange} required /></div>
                             </div>
 
                             <div className="p-6 -mx-6 -mb-6 border-t border-slate-200 mt-2 flex justify-end gap-4 bg-slate-50">

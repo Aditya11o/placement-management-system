@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     History,
-    Search,
     Filter,
     Calendar,
     User,
@@ -12,7 +11,6 @@ import {
     Download,
     ChevronLeft,
     ChevronRight,
-    Loader2,
     Database,
     AlertTriangle,
     RefreshCw
@@ -32,14 +30,16 @@ const ACTION_TYPES = [
     { value: 'LOGOUT', label: 'User Logout' },
 ];
 
-const AdminAuditLogs = () => {
+const AdminAuditLogs = ({ embedded = false }: { embedded?: boolean }) => {
     const [page, setPage] = useState(1);
     const [limit] = useState(20);
     const [filters, setFilters] = useState({
         action: '',
         startDate: '',
         endDate: '',
-        search: ''
+        search: '',
+        user_id: '',
+        ip_address: ''
     });
 
     // Build query params
@@ -50,6 +50,10 @@ const AdminAuditLogs = () => {
         params.append('sort', '-created_at');
 
         if (filters.action) params.append('action', filters.action);
+        if (filters.search) params.append('search', filters.search);
+        if (filters.user_id) params.append('user_id', filters.user_id);
+        if (filters.ip_address) params.append('ip_address', filters.ip_address);
+
         if (filters.startDate) params.append('created_at[gte]', new Date(filters.startDate).toISOString());
         if (filters.endDate) {
             const d = new Date(filters.endDate);
@@ -74,7 +78,14 @@ const AdminAuditLogs = () => {
     };
 
     const resetFilters = () => {
-        setFilters({ action: '', startDate: '', endDate: '', search: '' });
+        setFilters({
+            action: '',
+            startDate: '',
+            endDate: '',
+            search: '',
+            user_id: '',
+            ip_address: ''
+        });
         setPage(1);
     };
 
@@ -105,17 +116,25 @@ const AdminAuditLogs = () => {
     };
 
     return (
-        <div className="flex flex-col gap-6 animate-fade-in max-w-6xl mx-auto w-full">
+        <div className={`flex flex-col gap-6 animate-fade-in ${embedded ? 'w-full' : 'max-w-6xl mx-auto w-full'}`}>
             {/* Header Area */}
-            <div className="flex justify-between items-start flex-wrap gap-4">
+            <div className="flex justify-between items-center gap-4">
                 <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Link to="/admin/settings" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
-                            <ArrowLeft size={18} />
-                        </Link>
-                        <h1 className="text-3xl font-bold text-slate-800 dark:text-white m-0">Audit Log Explorer</h1>
+                    <div className="flex items-center gap-3">
+                        {!embedded ? (
+                            <Link to="/admin/settings" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors">
+                                <ArrowLeft size={18} />
+                            </Link>
+                        ) : (
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+                                <History size={22} />
+                            </div>
+                        )}
+                        <h1 className={`${embedded ? 'text-xl' : 'text-3xl'} font-bold text-slate-800 dark:text-white m-0`}>
+                            {embedded ? 'Audit Log Explorer' : 'Audit Log Explorer'}
+                        </h1>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 text-base m-0 ml-9">Deep-dive into system security events and administrative actions.</p>
+                    {!embedded && <p className="text-slate-500 dark:text-slate-400 text-base m-0 ml-9">Deep-dive into system security events and administrative actions.</p>}
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -140,58 +159,102 @@ const AdminAuditLogs = () => {
             </div>
 
             {/* Filter Bar */}
-            <Card className="p-4 border-slate-200 dark:border-slate-800 shadow-sm">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Action Filter */}
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
-                            <Filter size={12} /> Filter by Action
-                        </label>
-                        <select
-                            value={filters.action}
-                            onChange={(e) => handleFilterChange('action', e.target.value)}
-                            className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all cursor-pointer"
-                        >
-                            {ACTION_TYPES.map(type => (
-                                <option key={type.value} value={type.value}>{type.label}</option>
-                            ))}
-                        </select>
+            <Card className="p-5 border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="flex flex-col gap-6">
+                    {/* Primary Row: Keywords & Identity */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        {/* Keyword Search */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
+                                <History size={12} /> Keyword Search
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Search description or IP..."
+                                value={filters.search}
+                                onChange={(e) => handleFilterChange('search', e.target.value)}
+                                className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                            />
+                        </div>
+
+                        {/* Actor ID Filter */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
+                                <User size={12} /> Actor ID
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Filter by User ID..."
+                                value={filters.user_id}
+                                onChange={(e) => handleFilterChange('user_id', e.target.value)}
+                                className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-mono"
+                            />
+                        </div>
+
+                        {/* IP Direct Filter */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
+                                <Shield size={12} /> Specific IP
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. 192.168.1.1"
+                                value={filters.ip_address}
+                                onChange={(e) => handleFilterChange('ip_address', e.target.value)}
+                                className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all font-mono"
+                            />
+                        </div>
                     </div>
 
-                    {/* Start Date */}
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
-                            <Calendar size={12} /> From Date
-                        </label>
-                        <input
-                            type="date"
-                            value={filters.startDate}
-                            onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                            className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all cursor-pointer"
-                        />
-                    </div>
+                    {/* Secondary Row: Meta & Chronology */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-end">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
+                                <Filter size={12} /> Action Filter
+                            </label>
+                            <select
+                                value={filters.action}
+                                onChange={(e) => handleFilterChange('action', e.target.value)}
+                                className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all cursor-pointer"
+                            >
+                                {ACTION_TYPES.map(type => (
+                                    <option key={type.value} value={type.value}>{type.label}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                    {/* End Date */}
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
-                            <Calendar size={12} /> To Date
-                        </label>
-                        <input
-                            type="date"
-                            value={filters.endDate}
-                            onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                            className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all cursor-pointer"
-                        />
-                    </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
+                                <Calendar size={12} /> From Date
+                            </label>
+                            <input
+                                type="date"
+                                value={filters.startDate}
+                                onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                                className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                            />
+                        </div>
 
-                    {/* Reset Button */}
-                    <div className="flex items-end">
-                        <button
-                            onClick={resetFilters}
-                            className="w-full h-10 rounded-lg text-slate-500 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                        >
-                            Clear All Filters
-                        </button>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
+                                <Calendar size={12} /> To Date
+                            </label>
+                            <input
+                                type="date"
+                                value={filters.endDate}
+                                onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                                className="w-full h-10 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <button
+                                onClick={resetFilters}
+                                className="w-full h-10 rounded-lg text-slate-500 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-slate-100 dark:border-slate-800"
+                            >
+                                Clear All Filters
+                            </button>
+                        </div>
                     </div>
                 </div>
             </Card>
@@ -211,9 +274,32 @@ const AdminAuditLogs = () => {
                         <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                             {isLoading ? (
                                 Array(5).fill(0).map((_, i) => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan={4} className="px-6 py-8 text-center text-slate-300">
-                                            <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-full"></div>
+                                    <tr key={i} className="animate-pulse border-b border-slate-50 dark:border-slate-800/50">
+                                        <td className="px-6 py-5 relative">
+                                            <div className="invisible absolute top-0 left-0 w-0.5 h-full opacity-0"></div>
+                                            <div className="flex flex-col gap-2 relative z-10">
+                                                <div className="w-16 h-5 bg-slate-200 dark:bg-slate-700 rounded mb-0.5"></div>
+                                                <div className="w-28 h-3 bg-slate-100 dark:bg-slate-800 rounded"></div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 shrink-0"></div>
+                                                <div className="flex flex-col gap-2 w-full">
+                                                    <div className="w-24 h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                                    <div className="w-16 h-3 bg-slate-100 dark:bg-slate-800 rounded"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="w-14 h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                                                <div className="w-24 h-3 bg-slate-100 dark:bg-slate-800 rounded"></div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="w-full max-w-md h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+                                            <div className="w-3/4 max-w-sm h-3 bg-slate-100 dark:bg-slate-800 rounded"></div>
                                         </td>
                                     </tr>
                                 ))
@@ -242,9 +328,9 @@ const AdminAuditLogs = () => {
                                             <div className="flex flex-col gap-1.5">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter ${log.action.includes('BAN') ? 'bg-red-500 text-white' :
-                                                            log.action.includes('UPDATE') ? 'bg-indigo-600 text-white' :
-                                                                log.action.includes('ADMIN') ? 'bg-amber-500 text-white' :
-                                                                    'bg-slate-600 text-white'
+                                                        log.action.includes('UPDATE') ? 'bg-indigo-600 text-white' :
+                                                            log.action.includes('ADMIN') ? 'bg-amber-500 text-white' :
+                                                                'bg-slate-600 text-white'
                                                         }`}>
                                                         {log.action}
                                                     </span>

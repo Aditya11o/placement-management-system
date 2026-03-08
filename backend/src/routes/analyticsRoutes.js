@@ -9,7 +9,8 @@ const {
     getSalaryStats,
     getPredictiveAnalytics,
     getCohortAnalysis,
-    getEngagementStats
+    getEngagementStats,
+    getPlacementReadiness
 } = require('../controllers/analyticsController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -250,5 +251,11 @@ router.get('/cohorts', getCohortAnalysis);
  * @route   GET /api/v1/analytics/engagement
  */
 router.get('/engagement', getEngagementStats);
+
+/**
+ * @desc    Student placement readiness scoring
+ * @route   GET /api/v1/analytics/placement-readiness
+ */
+router.get('/placement-readiness', getPlacementReadiness);
 
 module.exports = router;

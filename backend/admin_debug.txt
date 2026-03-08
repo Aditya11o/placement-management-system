@@ -1,0 +1,21 @@
+[
+  {
+    "twofa_enabled": false,
+    "_id": "69a6c4682ecaa67d79b6ebdc",
+    "name": "Admin",
+    "email": "admin@nexus.edu",
+    "password": "$2a$10$pVPuJIc9m/aX321Dk/zspOuPOorVTlICWcqaH2G8TOKIDgz5D7vX.",
+    "role": "ADMIN",
+    "sub_role": "SUPER_ADMIN",
+    "isActive": true,
+    "permissions": [
+      "manage_students",
+      "manage_recruiters",
+      "manage_applications",
+      "manage_announcements",
+      "view_analytics",
+      "view_logs"
+    ],
+    "api_keys": []
+  }
+]

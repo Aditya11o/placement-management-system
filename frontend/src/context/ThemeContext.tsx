@@ -8,6 +8,7 @@ interface ThemeContextProps {
     setTheme: (theme: Theme) => void;
     isDark: boolean;
     logoUrl: string | null;
+    faviconUrl: string | null;
 }
 
 const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
@@ -33,22 +34,35 @@ const adjustColor = (hex: string, percent: number) => {
     return "#" + RR + GG + BB;
 };
 
+// Helper for mesh colors (hex to "r, g, b" string)
+const hexToRgbValues = (hex: string) => {
+    const r = parseInt(hex.substring(1, 3), 16);
+    const g = parseInt(hex.substring(3, 5), 16);
+    const b = parseInt(hex.substring(5, 7), 16);
+    return `${r}, ${g}, ${b}`;
+};
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
     const [isDark, setIsDark] = useState(false);
     const [primaryColor, setPrimaryColor] = useState<string>('#4f46e5'); // Default Indigo-600
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
+    const [meshColors, setMeshColors] = useState<string[]>(['#6366f1', '#8b5cf6', '#d946ef', '#3b82f6']);
 
     // Fetch Global Settings for Branding
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                // Public endpoint or handle unauth gracefully here since this wraps App
                 const response = await api.get('/admin/settings');
                 if (response.data?.success) {
                     const settings = response.data.data;
                     if (settings.primaryColor) setPrimaryColor(settings.primaryColor);
                     if (settings.logoUrl) setLogoUrl(settings.logoUrl);
+                    if (settings.faviconUrl) setFaviconUrl(settings.faviconUrl);
+                    if (settings.meshGradientColors && settings.meshGradientColors.length === 4) {
+                        setMeshColors(settings.meshGradientColors);
+                    }
                 }
             } catch (error) {
                 console.warn('Failed to fetch branding settings, using defaults.', error);
@@ -57,11 +71,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         fetchSettings();
     }, []);
 
-    // Inject CSS Variables for the selected Primary Color
+    // Inject CSS Variables for the selected Primary Color & Mesh Colors
     useEffect(() => {
         const root = document.documentElement;
 
-        // Tailwind shade approximations relative to the base (600) color
+        // Brand Shades
         root.style.setProperty('--color-brand-50', adjustColor(primaryColor, 80));
         root.style.setProperty('--color-brand-100', adjustColor(primaryColor, 60));
         root.style.setProperty('--color-brand-200', adjustColor(primaryColor, 40));
@@ -72,7 +86,26 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         root.style.setProperty('--color-brand-700', adjustColor(primaryColor, -15));
         root.style.setProperty('--color-brand-800', adjustColor(primaryColor, -30));
         root.style.setProperty('--color-brand-900', adjustColor(primaryColor, -45));
-    }, [primaryColor]);
+
+        // Mesh Gradient Colors
+        meshColors.forEach((color, idx) => {
+            root.style.setProperty(`--mesh-color-${idx + 1}`, hexToRgbValues(color));
+        });
+    }, [primaryColor, meshColors]);
+
+    // Update Favicon
+    useEffect(() => {
+        if (!faviconUrl) return;
+        const link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+        if (link) {
+            link.href = faviconUrl;
+        } else {
+            const newLink = document.createElement('link');
+            newLink.rel = 'icon';
+            newLink.href = faviconUrl;
+            document.head.appendChild(newLink);
+        }
+    }, [faviconUrl]);
 
     useEffect(() => {
         const root = window.document.documentElement;
@@ -113,7 +146,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [theme]);
 
     return (
-        <ThemeContext.Provider value={{ theme, setTheme, isDark, logoUrl }}>
+        <ThemeContext.Provider value={{ theme, setTheme, isDark, logoUrl, faviconUrl }}>
             {children}
         </ThemeContext.Provider>
     );

@@ -40,19 +40,18 @@ export interface RecruiterProfile {
 
 export interface Job {
     _id: string;
-    recruiter: string | User;
+    recruiter_id: string | User;
     title: string;
     description: string;
-    type: 'Full-time' | 'Part-time' | 'Internship' | 'Contract';
     location: string;
-    salary_range: string;
-    salary_package?: number | string;
-    min_cgpa?: number;
-    eligible_branch?: string;
+    package_lpa: number;
+    min_cgpa: number;
+    eligible_branch: string;
+    graduation_year: number;
     applicationCount?: number;
-    skills_required: string[];
     status: 'ACTIVE' | 'CLOSED';
     deadline: string;
+    created_at?: string;
     createdAt?: string;
     updatedAt?: string;
 }

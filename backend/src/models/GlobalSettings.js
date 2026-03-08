@@ -62,6 +62,39 @@ const GlobalSettingsSchema = new mongoose.Schema({
     tier1SalaryThreshold: {
         type: Number,
         default: 1000000 // 10 LPA default
+    },
+    adminIpWhitelist: {
+        type: [String],
+        default: []
+    },
+    // --- Calendar & Scheduling ---
+    googleCalendarApiKey: {
+        type: String,
+        trim: true
+    },
+    googleCalendarClientId: {
+        type: String,
+        trim: true
+    },
+    microsoftCalendarApiKey: {
+        type: String,
+        trim: true
+    },
+    calendarSyncEnabled: {
+        type: Boolean,
+        default: false
+    },
+    autoScheduleInterviews: {
+        type: Boolean,
+        default: false
+    },
+    faviconUrl: {
+        type: String,
+        default: ''
+    },
+    meshGradientColors: {
+        type: [String],
+        default: ['#6366f1', '#8b5cf6', '#d946ef', '#3b82f6'] // Indigo, Violet, Fuchsia, Blue
     }
 }, {
     timestamps: true

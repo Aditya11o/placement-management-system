@@ -17,6 +17,8 @@ interface SocketContextType {
     joinPage: (pathname: string, userDetails: PageUserDetails) => void;
     leavePage: (pathname: string) => void;
     emitCursorMove: (payload: any) => void;
+    registerPush: () => Promise<void>;
+    pushPermission: NotificationPermission;
 }
 
 const SocketContext = createContext<SocketContextType | null>(null);
@@ -79,6 +81,52 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
             queryClient.invalidateQueries({ queryKey: ['announcements'] });
         });
 
+        // Event: Notification Received
+        newSocket.on('notification', (data: any) => {
+            console.log('Real-time Notification Received:', data);
+
+            // Handle Audio Alert
+            const soundEnabled = localStorage.getItem('pms_notification_sound') !== 'false';
+            const isDndMode = localStorage.getItem('pms_notification_dnd') === 'true';
+
+            if (soundEnabled && !isDndMode) {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3'); // Subtle notification ping
+                audio.play().catch(e => console.warn('Audio playback inhibited by browser:', e));
+            }
+
+            addToast(data.message, data.type?.toLowerCase() || 'info');
+            // Invalidate the notifications query to update UI/counter
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        });
+
+        // Event: Admin Pulse (Real-time Audit logs)
+        newSocket.on('admin_pulse', (data: any) => {
+            console.log('Real-time Admin Pulse Received:', data);
+            // Invalidate the pulse feed query so other admin components stay in sync
+            queryClient.invalidateQueries({ queryKey: ['adminPulseFeed'] });
+        });
+
+        // Event: Cross-tab Synchronization (Multi-tab)
+        newSocket.on('sync_notification_read', () => {
+            console.log('Multi-tab: Notification read sync');
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        });
+
+        newSocket.on('sync_notification_deleted', () => {
+            console.log('Multi-tab: Notification deleted sync');
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        });
+
+        newSocket.on('sync_all_read', () => {
+            console.log('Multi-tab: Mark all as read sync');
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        });
+
+        newSocket.on('sync_all_cleared', () => {
+            console.log('Multi-tab: Clear all sync');
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        });
+
         // Event: Disconnected
         newSocket.on('disconnect', () => {
             console.log('Socket.io Disconnected');
@@ -127,8 +175,55 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         socket.emit('cursor_move', payload);
     };
 
+    const [pushPermission, setPushPermission] = useState<NotificationPermission>(
+        typeof Notification !== 'undefined' ? Notification.permission : 'default'
+    );
+
+    useEffect(() => {
+        // Register Service Worker on mount
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then((registration) => {
+                console.log('Service Worker registered with scope:', registration.scope);
+            }).catch((error) => {
+                console.error('Service Worker registration failed:', error);
+            });
+        }
+    }, []);
+
+    const registerPush = async () => {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            console.warn('Push alerts not supported');
+            return;
+        }
+
+        try {
+            const permission = await Notification.requestPermission();
+            setPushPermission(permission);
+            if (permission !== 'granted') return;
+
+            const registration = await navigator.serviceWorker.ready;
+
+            // Public VAPID Key from Backend
+            const vapidPublicKey = 'BFQ7gj5XjSOzVoJ_mIykyBz6pP7tVF7YO5aKpzs_ASGAW8nD_Ae-DBPC4GyAHqGyw2JO0GKbbZCc6LM-IAYfqpM';
+
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: vapidPublicKey
+            });
+
+            // Send subscription to backend
+            const { default: api } = await import('../services/api');
+            await api.post('/notifications/subscribe', { subscription });
+            console.log('Push subscription successful');
+            addToast('Desktop notifications enabled!', 'success');
+        } catch (err) {
+            console.error('Failed to subscribe to push:', err);
+            addToast('Failed to enable desktop notifications', 'error');
+        }
+    };
+
     return (
-        <SocketContext.Provider value={{ socket, isConnected, joinPage, leavePage, emitCursorMove }}>
+        <SocketContext.Provider value={{ socket, isConnected, joinPage, leavePage, emitCursorMove, registerPush, pushPermission }}>
             {children}
         </SocketContext.Provider>
     );

@@ -394,16 +394,10 @@ exports.getPredictiveAnalytics = async (req, res) => {
         }));
 
         // 2. Branch Demand Aggregation
-        // Unwinds eligible branches to count demand per branch
+        // Unwinds eligible branch to count demand per branch
         const branchDemandArray = await Job.aggregate([
-            { $match: { status: 'OPEN' } },
-            { $unwind: { path: "$eligible_branches", preserveNullAndEmptyArrays: false } },
-            {
-                $group: {
-                    _id: "$eligible_branches",
-                    jobCount: { $sum: 1 }
-                }
-            },
+            { $match: { status: 'ACTIVE' } },
+            { $group: { _id: "$eligible_branch", jobCount: { $sum: 1 } } },
             { $sort: { jobCount: -1 } }
         ]);
 
@@ -413,9 +407,9 @@ exports.getPredictiveAnalytics = async (req, res) => {
         }));
 
         // 3. Mock Placement Probability Score
-        // Demand vs Supply ratio = Open Jobs / Approved Students
+        // Demand vs Supply ratio = Active Jobs / Approved Students
         const totalApprovedStudents = await Student.countDocuments({ status: 'APPROVED' });
-        const totalOpenJobs = await Job.countDocuments({ status: 'OPEN' });
+        const totalOpenJobs = await Job.countDocuments({ status: 'ACTIVE' });
         const demandSupplyRatio = totalApprovedStudents > 0
             ? (totalOpenJobs / totalApprovedStudents).toFixed(2)
             : 0;
@@ -588,3 +582,91 @@ exports.getEngagementStats = async (req, res) => {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 function getMonthName(monthNumber) { return MONTHS[monthNumber - 1] || '?'; }
+
+/**
+ * @desc    Get detailed student placement readiness scoring
+ * @route   GET /api/v1/analytics/placement-readiness
+ * @access  Private/Admin
+ */
+exports.getPlacementReadiness = async (req, res) => {
+    try {
+        const students = await Student.aggregate([
+            { $match: { status: 'APPROVED' } },
+            {
+                $lookup: {
+                    from: 'applications',
+                    localField: '_id',
+                    foreignField: 'student_id',
+                    as: 'apps'
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    branch: 1,
+                    cgpa: 1,
+                    marks_10th: 1,
+                    marks_12th: 1,
+                    skills: 1,
+                    resume_versions: 1,
+                    apps: 1
+                }
+            }
+        ]);
+
+        const scoredStudents = students.map(s => {
+            const resume_count = s.resume_versions?.length || 0;
+            const total_apps = s.apps?.length || 0;
+            const shortlisted_apps = s.apps?.filter(app => ['SHORTLISTED', 'SELECTED'].includes(app.status)).length || 0;
+
+            // 1. Academic Strength (40%)
+            const cgpaScore = (s.cgpa / 10) * 30; // 30 points
+            const marksScore = ((s.marks_10th + s.marks_12th) / 200) * 10; // 10 points
+            const academicTotal = cgpaScore + marksScore;
+
+            // 2. Profile Maturity (30%)
+            const resumeScore = resume_count > 0 ? 20 : 0; // 20 points
+            const skillsScore = Math.min((s.skills?.length || 0) * 2, 10); // 2 pts per skill, max 10
+            const profileTotal = resumeScore + skillsScore;
+
+            // 3. Engagement (30%)
+            const appRatio = total_apps > 0 ? (shortlisted_apps / total_apps) : 0;
+            const engagementTotal = Math.min(appRatio * 30, 30); // 30 points
+
+            const totalScore = Math.round(academicTotal + profileTotal + engagementTotal);
+
+            let category = 'Low';
+            if (totalScore >= 80) category = 'High';
+            else if (totalScore >= 50) category = 'Moderate';
+
+            return {
+                id: s._id,
+                name: s.name,
+                branch: s.branch,
+                score: totalScore,
+                category
+            };
+        });
+
+        const distribution = {
+            High: scoredStudents.filter(s => s.category === 'High').length,
+            Moderate: scoredStudents.filter(s => s.category === 'Moderate').length,
+            Low: scoredStudents.filter(s => s.category === 'Low').length
+        };
+
+        const topLeads = scoredStudents
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                distribution,
+                topLeads,
+                totalAnalyzed: scoredStudents.length
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};

@@ -2,7 +2,11 @@ const express = require('express');
 const {
     getNotifications,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications,
+    subscribePush,
+    triggerAction
 } = require('../controllers/notificationController');
 const { protect } = require('../middlewares/authMiddleware');
 
@@ -32,8 +36,18 @@ router.use(protect); // All routes require authentication
  *     responses:
  *       200:
  *         description: List of notifications
+ *   delete:
+ *     summary: Clear all notifications for user
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Success message
  */
-router.route('/').get(getNotifications);
+router.route('/')
+    .get(getNotifications)
+    .delete(deleteAllNotifications);
 
 /**
  * @swagger
@@ -71,5 +85,46 @@ router.route('/read-all').put(markAllAsRead);
  *         description: Notification not found
  */
 router.route('/:id/read').put(markAsRead);
+
+/**
+ * @swagger
+ * /api/v1/notifications/{id}:
+ *   delete:
+ *     summary: Delete a single notification
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Success message
+ *       404:
+ *         description: Notification not found
+ */
+router.route('/:id').delete(deleteNotification);
+
+/**
+ * @swagger
+ * /api/v1/notifications/subscribe:
+ *   post:
+ *     summary: Subscribe to push notifications
+ *     tags: [Notifications]
+ */
+router.route('/subscribe').post(subscribePush);
+
+/**
+ * @swagger
+ * /api/v1/notifications/{id}/action:
+ *   post:
+ *     summary: Trigger a notification action
+ *     tags: [Notifications]
+ */
+router.route('/:id/action').post(triggerAction);
 
 module.exports = router;

@@ -61,7 +61,7 @@ const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({ template, onC
     };
 
     return (
-        <div className="flex flex-col h-[70vh] bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xl animate-scale-up z-50 fixed inset-x-4 md:inset-x-auto md:w-[800px] md:left-1/2 md:-translate-x-1/2 top-[15vh]">
+        <div className="flex flex-col h-[80vh] bg-transparent overflow-hidden">
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">

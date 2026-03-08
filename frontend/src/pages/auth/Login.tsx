@@ -1,4 +1,3 @@
-
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -36,7 +35,7 @@ const Login = () => {
 
     const onSubmit = async (data: LoginFormData) => {
         try {
-            const role = await login(data);
+            const { role } = await login(data);
             addToast('Successfully logged in!', 'success');
 
             // Redirect based on role
@@ -67,7 +66,6 @@ const Login = () => {
                     <p className="text-slate-500 text-center mb-8 text-sm">Sign in to your account</p>
 
                     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-
                         <div className="flex bg-slate-100 rounded-md p-1 mb-2">
                             <button
                                 type="button"

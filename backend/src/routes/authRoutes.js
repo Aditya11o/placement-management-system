@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerStudent, registerRecruiter, login, getMe, forgotPassword, resetPassword, refreshToken, getSessions, logout, logoutAll, generate2FA, enable2FA, verifyLogin2FA, disable2FA, configureWebhook } = require('../controllers/authController');
+const { registerStudent, registerRecruiter, login, getMe, forgotPassword, resetPassword, refreshToken, getSessions, logout, logoutAll, configureWebhook } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const { validate } = require('../middlewares/validate');
 const { validateStudentRegister, validateRecruiterRegister, validateLogin } = require('../validations/authValidator');
@@ -261,109 +261,6 @@ router.post('/logout', logout);
  *         description: Logged out of all devices
  */
 router.post('/logout/all', protect, logoutAll);
-
-/**
- * @swagger
- * /api/v1/auth/2fa/generate:
- *   post:
- *     summary: Generate a 2FA secret (Admins and Recruiters only)
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Secret generated and QR code URL returned
- *       403:
- *         description: Forbidden for students
- */
-router.post('/2fa/generate', protect, generate2FA);
-
-/**
- * @swagger
- * /api/v1/auth/2fa/enable:
- *   post:
- *     summary: Enable 2FA after verifying the generated secret
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - token
- *             properties:
- *               token:
- *                 type: string
- *     responses:
- *       200:
- *         description: 2FA successfully enabled
- *       400:
- *         description: Invalid token
- */
-router.post('/2fa/enable', protect, enable2FA);
-
-/**
- * @swagger
- * /api/v1/auth/2fa/verify-login:
- *   post:
- *     summary: Verify 2FA token during login to get session cookies
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - tempToken
- *               - token
- *             properties:
- *               tempToken:
- *                 type: string
- *               token:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login successful
- *       401:
- *         description: Invalid temporary token or 2FA token
- */
-router.post('/2fa/verify-login', verifyLogin2FA); // Public endpoint utilizing tempToken
-
-/**
- * @swagger
- * /api/v1/auth/2fa/disable:
- *   post:
- *     summary: Disable 2FA
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - password
- *               - token
- *             properties:
- *               password:
- *                 type: string
- *               token:
- *                 type: string
- *     responses:
- *       200:
- *         description: 2FA disabled successfully
- *       400:
- *         description: 2FA is not enabled
- *       401:
- *         description: Invalid password or 2FA token
- */
-router.post('/2fa/disable', protect, disable2FA);
 
 /**
  * @swagger

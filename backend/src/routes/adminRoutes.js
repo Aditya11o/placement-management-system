@@ -9,7 +9,9 @@ const {
     updateSettings,
     getEmailTemplates,
     updateEmailTemplate,
+    sendTestTemplateEmail,
     uploadLogo,
+    uploadFavicon,
     bulkOperations,
     getBulkJobStatus,
     getAuditLogs,
@@ -25,10 +27,14 @@ const {
     getPredictiveAnalytics,
     generateApiKey,
     listApiKeys,
-    revokeApiKey
+    revokeApiKey,
+    exportMasterData,
+    getSystemHealth,
+    purgeData
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
+const ipWhitelist = require('../middlewares/ipWhitelistMiddleware');
 const checkPermission = require('../middlewares/checkPermission');
 const { validate } = require('../middlewares/validate');
 const { validateUserStatusUpdate, validateExportRequest, validateApiKeyGeneration } = require('../validations/adminValidator');
@@ -47,6 +53,7 @@ const requireAdminOrApiKey = (req, res, next) => {
 
 // Apply middleware to all routes in this module
 router.use(requireAdminOrApiKey);
+router.use(ipWhitelist);
 
 const advancedResults = require('../middlewares/advancedResults');
 const Student = require('../models/Student');
@@ -151,6 +158,9 @@ const blockApiKeys = (req, res, next) => {
 };
 
 router.post('/export', checkPermission('export_data'), validateExportRequest, validate, exportData);
+router.get('/export-master', checkPermission('export_data'), exportMasterData);
+router.get('/system-health', getSystemHealth);
+router.post('/purge', checkPermission('export_data'), purgeData); // Using export_data permission for purge as well for now
 
 router.post('/api-keys', blockApiKeys, checkPermission('manage_api_keys'), validateApiKeyGeneration, validate, generateApiKey);
 router.get('/api-keys', blockApiKeys, checkPermission('manage_api_keys'), listApiKeys);
@@ -231,6 +241,7 @@ const uploadImage = multer({
 });
 
 router.post('/settings/logo', uploadImage.single('logo'), uploadLogo);
+router.post('/settings/favicon', uploadImage.single('favicon'), uploadFavicon);
 
 // ==========================
 // Custom Email Templates API
@@ -238,6 +249,7 @@ router.post('/settings/logo', uploadImage.single('logo'), uploadLogo);
 
 router.get('/email-templates', getEmailTemplates);
 router.put('/email-templates/:id', updateEmailTemplate);
+router.post('/email-templates/:id/test', sendTestTemplateEmail);
 
 // Job Management
 router.get('/jobs', advancedResults(Job), getJobs);

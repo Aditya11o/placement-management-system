@@ -155,6 +155,53 @@ exports.exportData = async (req, res) => {
 };
 
 /**
+ * @desc    Get master data export (all platform data)
+ * @route   GET /api/v1/admin/export-master
+ * @access  Private/Admin
+ */
+exports.exportMasterData = async (req, res) => {
+    try {
+        // Log the high-privilege action
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'EXPORT_MASTER_DATA',
+            description: 'Initiated full system data export'
+        });
+
+        // 1. Fetch all relevant data (Passwords excluded via schema or manual omission)
+        const [students, recruiters, jobs, applications, settings] = await Promise.all([
+            Student.find().select('-password'),
+            Recruiter.find().select('-password'),
+            Job.find(),
+            Application.find(),
+            GlobalSettings.findOne({ singletonId: 'nexus_settings' })
+        ]);
+
+        const exportPayload = {
+            exportTimestamp: new Date(),
+            exportedBy: req.user.email,
+            platformName: settings?.institutionName || 'Nexus',
+            data: {
+                students,
+                recruiters,
+                jobs,
+                applications
+            }
+        };
+
+        // 2. Set headers for file download
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename=Nexus_Master_Export_${new Date().toISOString().split('T')[0]}.json`);
+
+        res.status(200).send(exportPayload);
+    } catch (err) {
+        logger.error(`Master export error: ${err.message}`);
+        res.status(500).json({ success: false, message: 'Failed to generate master data export.' });
+    }
+};
+
+/**
  * @desc    Get system logs
  * @route   GET /api/v1/admin/logs
  * @access  Private/Admin
@@ -435,14 +482,31 @@ exports.updateSettings = async (req, res) => {
  */
 exports.getAuditLogs = async (req, res) => {
     try {
+        const { search, user_id, action, ip_address } = req.query;
+
+        // Initialize advancedFilter if not present
+        if (!req.advancedFilter) req.advancedFilter = {};
+
+        // 1. Global Search (IP or Description)
+        if (search) {
+            req.advancedFilter.$or = [
+                { description: { $regex: search, $options: 'i' } },
+                { ip_address: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // 2. Direct Filters (in case they aren't handled by middleware automated parsing)
+        if (user_id) req.advancedFilter.user_id = user_id;
+        if (action) req.advancedFilter.action = action;
+        if (ip_address) req.advancedFilter.ip_address = ip_address;
+
         if (res.advancedResults) {
             return res.status(200).json(res.advancedResults);
         }
 
-        const logs = await Log.find({
-            action: { $in: ['SETTINGS_UPDATE', 'ADMIN_ACTION', 'BAN_IP', 'UNBAN_IP'] }
-        })
-            .populate('user_id', 'name email')
+        // Fallback for manual query if middleware for some reason didn't run
+        const logs = await Log.find(req.advancedFilter)
+            .populate('user_id', 'name email profile_image_url')
             .sort({ created_at: -1 })
             .limit(100);
 
@@ -485,6 +549,39 @@ exports.uploadLogo = async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Logo upload failed: ' + err.message });
+    }
+};
+
+/**
+ * @desc    Upload Favicon to Cloudinary and update Settings
+ * @route   POST /api/v1/admin/settings/favicon
+ * @access  Private/Admin
+ */
+exports.uploadFavicon = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Please provide an icon or image file' });
+        }
+
+        // Upload to Cloudinary, folder: "branding"
+        const result = await uploadToCloudinary(req.file.buffer, 'branding', 'image');
+
+        // Update the GlobalSettings with the new favicon URL
+        const settings = await GlobalSettings.findOneAndUpdate(
+            { singletonId: 'nexus_settings' },
+            { faviconUrl: result.secure_url },
+            { new: true, upsert: true }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Favicon updated successfully',
+            data: {
+                faviconUrl: settings.faviconUrl
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Favicon upload failed: ' + err.message });
     }
 };
 
@@ -554,6 +651,52 @@ exports.updateEmailTemplate = async (req, res, next) => {
         res.status(200).json({
             success: true,
             data: template
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Send a test email using a specific template
+ * @route   POST /api/v1/admin/email-templates/:id/test
+ * @access  Private/Admin
+ */
+exports.sendTestTemplateEmail = async (req, res, next) => {
+    try {
+        const template = await EmailTemplate.findById(req.params.id);
+
+        if (!template) {
+            return res.status(404).json({ success: false, message: 'Template not found' });
+        }
+
+        // Mock context based on template variables or common defaults
+        const context = {
+            name: req.user.name || 'Test Admin',
+            email: req.user.email,
+            resetToken: 'TEST_TOKEN_123456',
+            loginUrl: `${config.get('frontend_url')}/login`,
+            institutionName: 'Nexus University',
+            status: 'APPROVED',
+            timestamp: new Date().toLocaleString()
+        };
+
+        await emailQueue.add('test-email', {
+            email: req.user.email,
+            template: template.name,
+            context
+        });
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'TEST_EMAIL_DISPATCH',
+            description: `Sent test email for template: ${template.name}`
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Test email for "${template.name}" has been queued. Check ${req.user.email} shortly.`
         });
     } catch (err) {
         next(err);
@@ -875,4 +1018,97 @@ exports.createCampaign = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
+/**
+ * @desc    Get counts of obsolete data for maintenance
+ * @route   GET /api/v1/admin/system-health
+ * @access  Private/Admin
+ */
+exports.getSystemHealth = async (req, res) => {
+    try {
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+        const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+        const [logCount, appCount, studentCount] = await Promise.all([
+            Log.countDocuments({ created_at: { $lt: ninetyDaysAgo } }),
+            Application.countDocuments({
+                status: { $in: ['REJECTED', 'WITHDRAWN'] },
+                applied_at: { $lt: sixMonthsAgo }
+            }),
+            Student.countDocuments({
+                status: 'PENDING',
+                created_at: { $lt: threeMonthsAgo }
+            })
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                obsoleteLogs: logCount,
+                obsoleteApplications: appCount,
+                inactiveStudents: studentCount,
+                lastChecked: new Date()
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Purge obsolete platform data
+ * @route   POST /api/v1/admin/purge
+ * @access  Private/Admin
+ */
+exports.purgeData = async (req, res) => {
+    try {
+        const { type } = req.body; // 'LOGS', 'APPLICATIONS', 'STUDENTS'
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+        const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+        let result;
+        let description = '';
+
+        switch (type) {
+            case 'LOGS':
+                result = await Log.deleteMany({ created_at: { $lt: ninetyDaysAgo } });
+                description = `Purged ${result.deletedCount} audit logs older than 90 days.`;
+                break;
+            case 'APPLICATIONS':
+                result = await Application.deleteMany({
+                    status: { $in: ['REJECTED', 'WITHDRAWN'] },
+                    applied_at: { $lt: sixMonthsAgo }
+                });
+                description = `Purged ${result.deletedCount} rejected/withdrawn applications older than 6 months.`;
+                break;
+            case 'STUDENTS':
+                result = await Student.deleteMany({
+                    status: 'PENDING',
+                    created_at: { $lt: threeMonthsAgo }
+                });
+                description = `Purged ${result.deletedCount} inactive student registrations older than 3 months.`;
+                break;
+            default:
+                return res.status(400).json({ success: false, message: 'Invalid purge type' });
+        }
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'DATA_PURGE',
+            description
+        });
+
+        res.status(200).json({
+            success: true,
+            message: description,
+            deletedCount: result.deletedCount
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
 

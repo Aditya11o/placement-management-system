@@ -30,6 +30,19 @@ const notificationSchema = new mongoose.Schema({
     },
     link: {
         type: String
+    },
+    avatar: {
+        type: String
+    },
+    actions: [{
+        label: { type: String, required: true },
+        url: { type: String, required: true },
+        method: { type: String, enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], default: 'POST' },
+        color: { type: String, default: 'indigo' }
+    }],
+    metadata: {
+        type: Map,
+        of: mongoose.Schema.Types.Mixed
     }
 }, {
     timestamps: true

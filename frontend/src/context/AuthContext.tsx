@@ -7,7 +7,7 @@ interface AuthContextType {
     user: User | null;
     token: string | null;
     isLoading: boolean;
-    login: (credentials: any) => Promise<string>;
+    login: (credentials: any) => Promise<{ role: string }>;
     logout: () => void;
 }
 
@@ -49,20 +49,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         initializeAuth();
     }, [token]);
 
-    const login = async (credentials: any): Promise<string> => {
+    const login = async (credentials: any): Promise<{ role: string }> => {
         const response = await api.post('/auth/login', credentials);
         const { token: newToken, user: userData } = response.data;
 
         localStorage.setItem('token', newToken);
         setToken(newToken);
 
-        // The role isn't explicitly returned in `/auth/login` body sometimes depending on backend logic,
-        // so we decode it from the token to be certain.
         const decoded: any = jwtDecode(newToken);
         setUser({ ...userData, role: decoded.role });
 
-        return decoded.role;
+        return { role: decoded.role };
     };
+
 
     return (
         <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>

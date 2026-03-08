@@ -8,7 +8,6 @@ const Session = require('../models/Session');
 const UAParser = require('ua-parser-js');
 const { emailQueue } = require('../utils/emailQueue');
 const config = require('../config/config');
-const { generate2FASecret, verify2FAToken } = require('../utils/totp');
 const { sendSystemAlert } = require('../utils/webhookHelper');
 const logger = require('../utils/logger');
 const GlobalSettings = require('../models/GlobalSettings');
@@ -131,21 +130,7 @@ exports.login = async (req, res) => {
             return res.status(403).json({ success: false, message: `Account is ${user.status}. Please await admin approval.` });
         }
 
-        // --- 2FA Check ---
-        if (user.twofa_enabled) {
-            // Issue a temporary token good for 5 minutes to verify 2FA
-            const tempToken = jwt.sign({ id: user._id, role }, config.get('jwt.secret'), {
-                expiresIn: '5m',
-            });
-            return res.status(200).json({
-                success: true,
-                requires2FA: true,
-                tempToken,
-                message: 'Two-factor authentication required. Please verify your token.'
-            });
-        }
-
-        // Proceed with normal login if 2FA is not enabled
+        // Proceed with normal login
         await completeLogin(user, role, req, res);
     } catch (err) {
         logger.error(`Login Error: ${err.message}`);
@@ -415,102 +400,6 @@ exports.enable2FA = async (req, res) => {
     }
 };
 
-exports.verifyLogin2FA = async (req, res) => {
-    try {
-        const { tempToken, token } = req.body;
-        if (!tempToken || !token) {
-            return res.status(400).json({ success: false, message: 'Temporary token and 6-digit code are required.' });
-        }
-
-        const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
-        const redisClient = getRedisClient();
-        const strikeKey = `failed_login:${clientIp}`; // Share block bucket with primary login
-
-        // Verify temp token
-        let decoded;
-        try {
-            decoded = jwt.verify(tempToken, config.get('jwt.secret'));
-        } catch (err) {
-            return res.status(401).json({ success: false, message: 'Temporary token is invalid or expired.' });
-        }
-
-        const { id, role } = decoded;
-
-        let user;
-        if (role === 'ADMIN') user = await Admin.findById(id).select('+twofa_secret');
-        else if (role === 'RECRUITER') user = await Recruiter.findById(id).select('+twofa_secret');
-        else return res.status(401).json({ success: false, message: 'Invalid role for 2FA' });
-
-        if (!user || (!user.twofa_enabled || !user.twofa_secret)) {
-            return res.status(400).json({ success: false, message: '2FA is not enabled for this user.' });
-        }
-
-        const isValid = verify2FAToken(user.twofa_secret, token);
-
-        if (!isValid) {
-            // Track Failed Attempts for Brute-Force Protection
-            if (redisClient && redisClient.isReady) {
-                const strikes = await redisClient.incr(strikeKey);
-                if (strikes === 1) {
-                    await redisClient.expire(strikeKey, 900); // 15 mins TTL
-                } else if (strikes >= 5) {
-                    await banIp(clientIp, 24, 'Brute-force 2FA guessing detected (5+ failed attempts)');
-                    await redisClient.del(strikeKey); // reset strikes once banned
-                }
-            }
-            return res.status(401).json({ success: false, message: 'Invalid 2FA token.' });
-        }
-
-        // Wipe strikes upon successful final auth
-        if (redisClient && redisClient.isReady) {
-            await redisClient.del(strikeKey);
-        }
-
-        // 2FA verified successfully, complete the login
-        await completeLogin(user, role, req, res);
-
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-};
-
-exports.disable2FA = async (req, res) => {
-    try {
-        const { password, token } = req.body; // Require password and current 2FA token to disable
-
-        if (!password || !token) {
-            return res.status(400).json({ success: false, message: 'Please provide your password and current 2FA token to disable 2FA.' });
-        }
-
-        let user;
-        if (req.user.role === 'ADMIN') user = await Admin.findById(req.user._id).select('+password +twofa_secret');
-        else if (req.user.role === 'RECRUITER') user = await Recruiter.findById(req.user._id).select('+password +twofa_secret');
-        else return res.status(403).json({ success: false, message: 'Unsupported role for 2FA' });
-
-        if (!user.twofa_enabled || !user.twofa_secret) {
-            return res.status(400).json({ success: false, message: '2FA is already disabled.' });
-        }
-
-        if (!(await user.matchPassword(password))) {
-            return res.status(401).json({ success: false, message: 'Invalid password.' });
-        }
-
-        const isValid = verify2FAToken(user.twofa_secret, token);
-        if (!isValid) {
-            return res.status(401).json({ success: false, message: 'Invalid 2FA token.' });
-        }
-
-        user.twofa_enabled = false;
-        user.twofa_secret = undefined;
-        await user.save();
-
-        await Log.create({ user_id: user._id, user_role: req.user.role, action: 'DISABLE_2FA', description: 'User disabled Two-Factor Authentication' });
-
-        res.status(200).json({ success: true, message: 'Two-Factor Authentication has been successfully disabled.' });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-};
 
 // @desc    Configure Recruiter Webhook URL
 // @route   PUT /api/v1/auth/webhook

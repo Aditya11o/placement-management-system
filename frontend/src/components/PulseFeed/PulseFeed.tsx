@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, UserPlus, Briefcase, FileText, CheckCircle, XCircle, LogIn, BellRing, Settings, LucideIcon } from 'lucide-react';
 import api from '../../services/api';
-import { io } from 'socket.io-client';
+import { useSocket } from '../../context/SocketContext';
 
 interface PulseEvent {
     _id: string;
@@ -14,8 +14,8 @@ interface PulseEvent {
 }
 
 const PulseFeed: React.FC = () => {
+    const { socket, isConnected } = useSocket();
     const [events, setEvents] = useState<PulseEvent[]>([]);
-    const [isLive, setIsLive] = useState(false);
     const feedRef = useRef<HTMLDivElement>(null);
 
     // Initial Fetch of the latest 20 events
@@ -35,35 +35,23 @@ const PulseFeed: React.FC = () => {
     }, [initialData]);
 
     useEffect(() => {
-        // Subscribe to real-time Admin events via Socket.io
-        const socket = io(import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000', {
-            auth: {
-                token: localStorage.getItem('token') || ''
-            }
-        });
+        if (!socket) return;
 
-        if (socket) {
-            setIsLive(true);
-
-            // Listen for newly created logs broadcast by Mongoose Post-Save hook
-            socket.on('admin_pulse', (newEvent: PulseEvent) => {
-                setEvents((prev) => {
-                    // Prepend new event and keep array at max 50 items to prevent DOM bloat
-                    const updated = [newEvent, ...prev].slice(0, 50);
-                    return updated;
-                });
+        // Listen for newly created logs broadcast by Mongoose Post-Save hook
+        const handleAdminPulse = (newEvent: PulseEvent) => {
+            setEvents((prev) => {
+                // Prepend new event and keep array at max 50 items to prevent DOM bloat
+                const updated = [newEvent, ...prev].slice(0, 50);
+                return updated;
             });
+        };
 
-            socket.on('disconnect', () => setIsLive(false));
-            socket.on('connect', () => setIsLive(true));
-        }
+        socket.on('admin_pulse', handleAdminPulse);
 
         return () => {
-            if (socket) {
-                socket.off('admin_pulse');
-            }
+            socket.off('admin_pulse', handleAdminPulse);
         };
-    }, []);
+    }, [socket]);
 
     // Helper to map Action Types to Icons and Colors
     const getActionMeta = (action: string): { icon: LucideIcon | ((desc: string) => LucideIcon), color: string, bg: string } => {
@@ -107,11 +95,11 @@ const PulseFeed: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1.5">
                     <span className={`relative flex h-2.5 w-2.5`}>
-                        {isLive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
-                        <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isLive ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                        {isConnected && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+                        <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isConnected ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
                     </span>
                     <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                        {isLive ? 'LIVE' : 'OFFLINE'}
+                        {isConnected ? 'LIVE' : 'OFFLINE'}
                     </span>
                 </div>
             </div>

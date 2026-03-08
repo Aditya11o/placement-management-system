@@ -14,7 +14,7 @@ const advancedResults = (model, populate) => async (req, res, next) => {
     let queryStr = JSON.stringify(reqQuery);
 
     // Create operators ($gt, $gte, etc)
-    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
+    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in|regex|options)\b/g, match => `$${match}`);
 
     // Finding resource
     // Additional filters can be attached to req.advancedFilter base query by controllers before hitting this

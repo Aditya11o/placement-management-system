@@ -47,6 +47,8 @@ const AdminSystemHealth = lazy(() => import('./pages/admin/AdminSystemHealth'));
 const AdminCommunication = lazy(() => import('./pages/admin/AdminCommunication'));
 const AdminAnalyticsDeepDive = lazy(() => import('./pages/admin/AdminAnalyticsDeepDive'));
 
+const NotificationCenter = lazy(() => import('./pages/shared/NotificationCenter'));
+
 // Provisional Page imports
 const Unauthorized = () => <div style={{ padding: '2rem' }}><h1>403 - Unauthorized Access</h1></div>;
 const NotFound = () => <div style={{ padding: '2rem' }}><h1>404 - Page Not Found</h1></div>;
@@ -122,6 +124,9 @@ const App = () => {
                             <Route path="/admin/communication" element={<AdminCommunication />} />
                             <Route path="/admin/analytics-deep-dive" element={<AdminAnalyticsDeepDive />} />
                           </Route>
+
+                          {/* Shared Activity Routes */}
+                          <Route path="/notifications" element={<NotificationCenter />} />
 
                         </Route>
                       </Route>

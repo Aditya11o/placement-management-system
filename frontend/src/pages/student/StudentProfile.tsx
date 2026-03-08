@@ -5,13 +5,14 @@ import Card from '../../components/Card/Card';
 import Input from '../../components/Input/Input';
 import Button from '../../components/Button/Button';
 import SkeletonProfileForm from '../../components/Skeleton/SkeletonProfileForm';
-import { User, BookOpen, Edit2, Code, Plus, X, Image as ImageIcon } from 'lucide-react';
+import { User, BookOpen, Edit2, Code, Plus, X, Image as ImageIcon, Bell } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import api from '../../services/api';
 import { useMutation } from '@tanstack/react-query';
 import FileUpload from '../../components/FileUpload/FileUpload';
+import NotificationSettings from '../../components/NotificationSettings/NotificationSettings';
 
 const profileSchema = z.object({
     branch: z.string().min(2, 'Branch is required'),
@@ -24,6 +25,9 @@ const profileSchema = z.object({
 const StudentProfile: React.FC = () => {
     const { user } = useAuth();
     const { addToast } = useToast();
+
+    // Tabs state
+    const [activeTab, setActiveTab] = useState<'profile' | 'notifications'>('profile');
 
     // Non-form data
     const [originalProfile, setOriginalProfile] = useState<any>(null);
@@ -153,134 +157,165 @@ const StudentProfile: React.FC = () => {
 
             <div className="flex justify-between items-start flex-wrap gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-indigo-700 mb-1">My Profile</h1>
-                    <p className="text-slate-500 text-base m-0">Manage your academic details and skill sets.</p>
+                    <h1 className="text-3xl font-bold text-indigo-700 mb-1">Account & Profile</h1>
+                    <p className="text-slate-500 text-base m-0">Manage your academic details and notification settings.</p>
                 </div>
-                {!isEditing ? (
-                    <Button icon={Edit2} onClick={() => setIsEditing(true)}>Edit Profile</Button>
-                ) : (
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <Button variant="ghost" onClick={handleCancel}>Cancel</Button>
-                        <Button variant="primary" onClick={handleSubmit(onSubmit)} isLoading={isSaving}>Save Changes</Button>
-                    </div>
+                {activeTab === 'profile' && (
+                    !isEditing ? (
+                        <Button icon={Edit2} onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                    ) : (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <Button variant="ghost" onClick={handleCancel}>Cancel</Button>
+                            <Button variant="primary" onClick={handleSubmit(onSubmit)} isLoading={isSaving}>Save Changes</Button>
+                        </div>
+                    )
                 )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Personal Details */}
-                <Card>
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
-                        <User className="text-sky-500" size={24} />
-                        <h2 className="text-lg m-0 font-bold">Personal Details</h2>
+            {/* Tabs Navigation */}
+            <div className="flex border-b border-slate-200 dark:border-slate-800 gap-8">
+                <button
+                    onClick={() => setActiveTab('profile')}
+                    className={`pb-4 px-2 text-sm font-semibold transition-all relative ${activeTab === 'profile' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                    <div className="flex items-center gap-2">
+                        <User size={18} />
+                        Profile Details
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                        <div className="col-span-1 sm:col-span-2">
-                            <label className="text-slate-500 text-sm block mb-1">Full Name</label>
-                            <p className="font-semibold text-slate-800 text-base mb-4 mt-0">{user?.name}</p>
-                        </div>
-                        <div className="col-span-1 sm:col-span-2">
-                            <label className="text-slate-500 text-sm block mb-1">Email Address</label>
-                            <p className="font-semibold text-slate-800 text-base mb-4 mt-0">{user?.email}</p>
-                        </div>
+                    {activeTab === 'profile' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 animate-slide-in-right" />}
+                </button>
+                <button
+                    onClick={() => setActiveTab('notifications')}
+                    className={`pb-4 px-2 text-sm font-semibold transition-all relative ${activeTab === 'notifications' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                    <div className="flex items-center gap-2">
+                        <Bell size={18} />
+                        Notifications
                     </div>
-                </Card>
-
-                {/* Uploads Section */}
-                <Card className="col-span-1 lg:col-span-2">
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
-                        <ImageIcon className="text-pink-500" size={24} />
-                        <h2 className="text-lg m-0 font-bold">Documents & Media</h2>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <FileUpload
-                            label="Profile Photo (Avatar)"
-                            accept="image/jpeg,image/png,image/webp"
-                            description="JPEG, PNG or WebP up to 5MB"
-                            currentFileUrl={originalProfile?.profile_image_url}
-                            isUploading={uploadPhotoMutation.isPending}
-                            onUpload={async (file) => uploadPhotoMutation.mutateAsync(file)}
-                        />
-                        <FileUpload
-                            label="Professional Resume"
-                            accept="application/pdf"
-                            description="PDF only up to 10MB. We extract skills automatically."
-                            currentFileUrl={originalProfile?.activeResume?.url || originalProfile?.resume_url}
-                            isUploading={uploadResumeMutation.isPending}
-                            onUpload={async (file) => uploadResumeMutation.mutateAsync(file)}
-                        />
-                    </div>
-                </Card>
-
-                {/* Academic Details */}
-                <Card>
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
-                        <BookOpen className="text-purple-500" size={24} />
-                        <h2 className="text-lg m-0 font-bold">Academic History</h2>
-                    </div>
-
-                    <form className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                        <div className="col-span-1 sm:col-span-2 mb-2">
-                            <Input label="Branch" error={errors.branch?.message} {...register('branch')} disabled={!isEditing} />
-                        </div>
-                        <div className="mb-2">
-                            <Input label="Current CGPA" type="number" step="0.01" error={errors.cgpa?.message} {...register('cgpa')} disabled={!isEditing} />
-                        </div>
-                        <div className="mb-2">
-                            <Input label="Graduation Year" type="number" error={errors.graduation_year?.message} {...register('graduation_year')} disabled={!isEditing} />
-                        </div>
-                        <div className="mb-2">
-                            <Input label="10th Marks (%)" type="number" step="0.01" error={errors.marks_10th?.message} {...register('marks_10th')} disabled={!isEditing} />
-                        </div>
-                        <div className="mb-2">
-                            <Input label="12th Marks (%)" type="number" step="0.01" error={errors.marks_12th?.message} {...register('marks_12th')} disabled={!isEditing} />
-                        </div>
-                    </form>
-                </Card>
-
-                {/* Skills Management */}
-                <Card className="col-span-1 lg:col-span-2">
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
-                        <Code className="text-orange-500" size={24} />
-                        <h2 className="text-lg m-0 font-bold">Technical Skills</h2>
-                    </div>
-                    <p className="text-slate-500 text-sm block mb-6">Add relevant skills to improve your AI Job Matching score.</p>
-
-                    <div className="flex flex-wrap gap-2">
-                        {skills?.map((skill, index) => (
-                            <div key={index} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full text-sm font-medium transition-colors hover:bg-indigo-100">
-                                {skill}
-                                {isEditing && (
-                                    <button className="bg-transparent border-none flex items-center justify-center text-indigo-500 cursor-pointer rounded-full p-0.5 hover:bg-indigo-200 hover:text-red-500" onClick={() => handleRemoveSkill(skill)}>
-                                        <X size={14} />
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                        {skills?.length === 0 && !isEditing && (
-                            <p className="text-slate-500 text-sm block mb-1">No skills added yet.</p>
-                        )}
-                    </div>
-
-                    {isEditing && (
-                        <div className="flex items-end gap-2 mt-6">
-                            <div className="w-[250px]">
-                                <Input
-                                    placeholder="e.g. React.js, Python, AWS"
-                                    value={newSkill}
-                                    onChange={(e) => setNewSkill(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
-                                    fullWidth={true}
-                                />
-                            </div>
-                            <div className="mb-[16px]">
-                                <Button type="button" variant="secondary" onClick={handleAddSkill} icon={Plus}>Add</Button>
-                            </div>
-                        </div>
-                    )}
-                </Card>
-
+                    {activeTab === 'notifications' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 animate-slide-in-right" />}
+                </button>
             </div>
+
+            {activeTab === 'profile' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
+                    {/* Personal Details */}
+                    <Card>
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
+                            <User className="text-sky-500" size={24} />
+                            <h2 className="text-lg m-0 font-bold">Personal Details</h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                            <div className="col-span-1 sm:col-span-2">
+                                <label className="text-slate-500 text-sm block mb-1">Full Name</label>
+                                <p className="font-semibold text-slate-800 text-base mb-4 mt-0">{user?.name}</p>
+                            </div>
+                            <div className="col-span-1 sm:col-span-2">
+                                <label className="text-slate-500 text-sm block mb-1">Email Address</label>
+                                <p className="font-semibold text-slate-800 text-base mb-4 mt-0">{user?.email}</p>
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* Uploads Section */}
+                    <Card className="col-span-1 lg:col-span-2">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
+                            <ImageIcon className="text-pink-500" size={24} />
+                            <h2 className="text-lg m-0 font-bold">Documents & Media</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <FileUpload
+                                label="Profile Photo (Avatar)"
+                                accept="image/jpeg,image/png,image/webp"
+                                description="JPEG, PNG or WebP up to 5MB"
+                                currentFileUrl={originalProfile?.profile_image_url}
+                                isUploading={uploadPhotoMutation.isPending}
+                                onUpload={async (file) => uploadPhotoMutation.mutateAsync(file)}
+                            />
+                            <FileUpload
+                                label="Professional Resume"
+                                accept="application/pdf"
+                                description="PDF only up to 10MB. We extract skills automatically."
+                                currentFileUrl={originalProfile?.activeResume?.url || originalProfile?.resume_url}
+                                isUploading={uploadResumeMutation.isPending}
+                                onUpload={async (file) => uploadResumeMutation.mutateAsync(file)}
+                            />
+                        </div>
+                    </Card>
+
+                    {/* Academic Details */}
+                    <Card>
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
+                            <BookOpen className="text-purple-500" size={24} />
+                            <h2 className="text-lg m-0 font-bold">Academic History</h2>
+                        </div>
+
+                        <form className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                            <div className="col-span-1 sm:col-span-2 mb-2">
+                                <Input label="Branch" error={errors.branch?.message} {...register('branch')} disabled={!isEditing} />
+                            </div>
+                            <div className="mb-2">
+                                <Input label="Current CGPA" type="number" step="0.01" error={errors.cgpa?.message} {...register('cgpa')} disabled={!isEditing} />
+                            </div>
+                            <div className="mb-2">
+                                <Input label="Graduation Year" type="number" error={errors.graduation_year?.message} {...register('graduation_year')} disabled={!isEditing} />
+                            </div>
+                            <div className="mb-2">
+                                <Input label="10th Marks (%)" type="number" step="0.01" error={errors.marks_10th?.message} {...register('marks_10th')} disabled={!isEditing} />
+                            </div>
+                            <div className="mb-2">
+                                <Input label="12th Marks (%)" type="number" step="0.01" error={errors.marks_12th?.message} {...register('marks_12th')} disabled={!isEditing} />
+                            </div>
+                        </form>
+                    </Card>
+
+                    {/* Skills Management */}
+                    <Card className="col-span-1 lg:col-span-2">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
+                            <Code className="text-orange-500" size={24} />
+                            <h2 className="text-lg m-0 font-bold">Technical Skills</h2>
+                        </div>
+                        <p className="text-slate-500 text-sm block mb-6">Add relevant skills to improve your AI Job Matching score.</p>
+
+                        <div className="flex flex-wrap gap-2">
+                            {skills?.map((skill, index) => (
+                                <div key={index} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full text-sm font-medium transition-colors hover:bg-indigo-100">
+                                    {skill}
+                                    {isEditing && (
+                                        <button className="bg-transparent border-none flex items-center justify-center text-indigo-500 cursor-pointer rounded-full p-0.5 hover:bg-indigo-200 hover:text-red-500" onClick={() => handleRemoveSkill(skill)}>
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                            {skills?.length === 0 && !isEditing && (
+                                <p className="text-slate-500 text-sm block mb-1">No skills added yet.</p>
+                            )}
+                        </div>
+
+                        {isEditing && (
+                            <div className="flex items-end gap-2 mt-6">
+                                <div className="w-[250px]">
+                                    <Input
+                                        placeholder="e.g. React.js, Python, AWS"
+                                        value={newSkill}
+                                        onChange={(e) => setNewSkill(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+                                        fullWidth={true}
+                                    />
+                                </div>
+                                <div className="mb-[16px]">
+                                    <Button type="button" variant="secondary" onClick={handleAddSkill} icon={Plus}>Add</Button>
+                                </div>
+                            </div>
+                        )}
+                    </Card>
+                </div>
+            ) : (
+                <div className="animate-fade-in max-w-4xl">
+                    <NotificationSettings />
+                </div>
+            )}
         </div>
     );
 };
