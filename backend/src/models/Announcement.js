@@ -17,9 +17,25 @@ const announcementSchema = new mongoose.Schema({
         ref: 'Admin',
         required: true,
         index: true
+    },
+    status: {
+        type: String,
+        enum: ['DRAFT', 'SCHEDULED', 'SENT'],
+        default: 'SENT',
+        index: true
+    },
+    scheduled_at: {
+        type: Date,
+        default: null
+    },
+    target_roles: {
+        type: [String],
+        enum: ['STUDENT', 'RECRUITER', 'ADMIN'],
+        default: ['STUDENT', 'RECRUITER'],
+        index: true
     }
 }, {
-    timestamps: { createdAt: 'created_at', updatedAt: false }
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
 announcementSchema.plugin(softDeletePlugin);

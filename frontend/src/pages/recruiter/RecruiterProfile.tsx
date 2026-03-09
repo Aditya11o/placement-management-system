@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-
 import { useToast } from '../../context/ToastContext';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
@@ -7,7 +6,6 @@ import Input from '../../components/Input/Input';
 import SkeletonProfileForm from '../../components/Skeleton/SkeletonProfileForm';
 import { Building2, Save, Mail, User, Link as LinkIcon, ExternalLink, Bell } from 'lucide-react';
 import api from '../../services/api';
-
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -17,7 +15,8 @@ const recruiterProfileSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     company_name: z.string().min(2, 'Company name is required'),
     website: z.string().url('Must be a valid URL (e.g., https://example.com)').or(z.literal('')),
-    description: z.string().max(1000, 'Description is too long').optional()
+    description: z.string().max(1000, 'Description is too long').optional(),
+    webhook_url: z.string().url('Must be a valid URL').or(z.literal('')).optional()
 });
 
 type RecruiterFormData = z.infer<typeof recruiterProfileSchema>;
@@ -27,7 +26,6 @@ const RecruiterProfile: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'company' | 'notifications'>('company');
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSaving, setIsSaving] = useState<boolean>(false);
-
     const [originalProfile, setOriginalProfile] = useState<any>(null);
 
     const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<RecruiterFormData>({
@@ -44,15 +42,15 @@ const RecruiterProfile: React.FC = () => {
 
     const fetchProfile = async () => {
         try {
-            const res = await api.get('/auth/me'); // Gets the logged in user's full profile
+            const res = await api.get('/auth/me');
             const profile = res.data.data;
-
             setOriginalProfile(profile);
             reset({
                 name: profile.name || '',
                 company_name: profile.company_name || '',
                 website: profile.website || '',
-                description: profile.description || ''
+                description: profile.description || '',
+                webhook_url: profile.webhook_url || ''
             });
         } catch (error) {
             addToast('Failed to load profile data', 'error');
@@ -61,13 +59,16 @@ const RecruiterProfile: React.FC = () => {
         }
     };
 
-    const onSubmit = async (_data: RecruiterFormData) => {
+    const onSubmit = async (data: RecruiterFormData) => {
         setIsSaving(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network
+            // Need to handle different roles if this component shared, 
+            // but for recruiter it's usually a specific profile update endpoint
+            await api.put('/auth/recruiter/profile', data);
             addToast('Profile updated successfully', 'success');
-        } catch (error) {
-            addToast('Profile updated successfully (Simulated)', 'success');
+            fetchProfile();
+        } catch (error: any) {
+            addToast(error.response?.data?.message || 'Failed to update profile', 'error');
         } finally {
             setIsSaving(false);
         }
@@ -94,7 +95,6 @@ const RecruiterProfile: React.FC = () => {
                 </div>
             </div>
 
-            {/* Tabs Navigation */}
             <div className="flex border-b border-slate-200 dark:border-slate-800 gap-8 mb-8">
                 <button
                     onClick={() => setActiveTab('company')}
@@ -123,7 +123,6 @@ const RecruiterProfile: React.FC = () => {
                     <div>
                         <Card className="p-8">
                             <h2 className="text-xl font-bold text-slate-800 mb-6">Company Information</h2>
-
                             <form onSubmit={handleSubmit(onSubmit)}>
                                 <div className="mb-6">
                                     <label className="flex items-center gap-2 text-slate-700 font-medium mb-2">
@@ -169,12 +168,11 @@ const RecruiterProfile: React.FC = () => {
 
                                 <div className="h-px bg-slate-200 my-8"></div>
 
-                                <h2 className="text-xl font-bold text-slate-800 mb-6">Contact Person details</h2>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <div className="mb-6">
+                                <h2 className="text-xl font-bold text-slate-800 mb-6">Contact & Integrations</h2>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                                    <div>
                                         <label className="flex items-center gap-2 text-slate-700 font-medium mb-2">
-                                            <User size={16} className="text-indigo-600" /> Representative Name
+                                            <User size={16} className="text-indigo-600" /> Representative
                                         </label>
                                         <Input
                                             placeholder="John Doe"
@@ -182,21 +180,46 @@ const RecruiterProfile: React.FC = () => {
                                             error={errors.name?.message}
                                         />
                                     </div>
-                                    <div className="mb-6">
+                                    <div>
                                         <label className="flex items-center gap-2 text-slate-700 font-medium mb-2">
-                                            <Mail size={16} className="text-indigo-600" /> Account Email
+                                            <Mail size={16} className="text-indigo-600" /> Email (Read-only)
                                         </label>
                                         <Input
                                             value={originalProfile?.email || ''}
                                             disabled
-                                            title="Email cannot be changed"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end mt-4">
+                                <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 mb-6">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg text-indigo-600">
+                                            <ExternalLink size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-800 dark:text-white">Workspace Webhook</h3>
+                                            <p className="text-xs text-slate-500 font-medium">Connect Slack or Discord for job alerts.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300 text-sm font-semibold mb-2">
+                                            Webhook URL
+                                        </label>
+                                        <Input
+                                            placeholder="https://hooks.slack.com/services/..."
+                                            {...register('webhook_url')}
+                                            error={errors.webhook_url?.message}
+                                        />
+                                        <p className="text-[10px] text-slate-400 mt-2">
+                                            We'll push application summaries to this URL whenever a student applies.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end pt-4">
                                     <Button type="submit" variant="primary" icon={Save} isLoading={isSaving}>
-                                        Save Changes
+                                        Save Profile & Settings
                                     </Button>
                                 </div>
                             </form>

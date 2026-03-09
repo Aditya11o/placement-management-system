@@ -137,6 +137,8 @@ const rbacRoutes = require('./src/routes/rbacRoutes');
 const logRoutes = require('./src/routes/logRoutes');
 const searchRoutes = require('./src/routes/searchRoutes');
 const initCronJobs = require('./src/jobs/index');
+const { initBroadcastScheduler } = require('./src/services/broadcastScheduler');
+const { initDigestCron } = require('./src/services/digestService');
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
@@ -175,6 +177,8 @@ if (config.get('env') !== 'test') {
         logger.info(`Server running in ${config.get('env')} mode on port ${PORT}`);
         // Initialize background scheduled workers
         initCronJobs();
+        initBroadcastScheduler();
+        initDigestCron();
     });
 
     // Handle EADDRINUSE (Port already in use) gracefully

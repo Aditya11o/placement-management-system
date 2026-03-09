@@ -2,22 +2,16 @@ const { webhookQueue } = require('./webhookQueue');
 const logger = require('./logger');
 
 /**
- * Sends a formatted alert to the configured system webhook (Slack/Discord)
- * @param {string} url - The Webhook URL from GlobalSettings
- * @param {string} message - The message text
- * @param {Object} [fields] - Optional key-value pairs to display as fields/embeds
+ * Internal generic helper to queue a webhook job
  */
-exports.sendSystemAlert = async (url, message, fields = {}) => {
+const queueWebhook = async (url, message, fields = {}, username = 'Nexus PMS Bot') => {
     if (!url) return;
 
     try {
-        // Construct Slack/Discord compatible payload
-        // Slack uses "text" or "blocks", Discord uses "content" or "embeds"
-        // This simple payload works for both as the primary message text
         const payload = {
-            text: message, // Slack primary
-            content: message, // Discord primary
-            username: 'Nexus PMS Bot',
+            text: message,
+            content: message,
+            username,
             attachments: Object.keys(fields).length > 0 ? [
                 {
                     color: '#4f46e5',
@@ -30,13 +24,27 @@ exports.sendSystemAlert = async (url, message, fields = {}) => {
             ] : []
         };
 
-        await webhookQueue.add('system-alert', {
+        await webhookQueue.add('webhook-alert', {
             url,
             payload
         });
 
-        logger.info(`System alert queued for webhook: ${message}`);
+        logger.info(`Webhook alert queued: ${message}`);
     } catch (err) {
-        logger.error(`Failed to queue system alert: ${err.message}`);
+        logger.error(`Failed to queue webhook: ${err.message}`);
     }
+};
+
+/**
+ * Sends a formatted alert to the configured system webhook (Slack/Discord)
+ */
+exports.sendSystemAlert = async (url, message, fields = {}) => {
+    return queueWebhook(url, message, fields, 'Nexus System');
+};
+
+/**
+ * Sends a formatted alert to a User/Recruiter defined webhook
+ */
+exports.sendWebhook = async (url, message, fields = {}, username = 'Nexus Notification') => {
+    return queueWebhook(url, message, fields, username);
 };

@@ -8,7 +8,7 @@ import SkeletonTable from '../../components/Skeleton/SkeletonTable';
 import { Briefcase, Users, CheckCircle, TrendingUp, Plus, Megaphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Job, Announcement } from '../../types';
 
 interface RecruiterStats {
@@ -68,12 +68,28 @@ const RecruiterDashboard: React.FC = () => {
         enabled: !!user,
     });
 
+    const { data: notifyStats, isPending: nLoading, isError: nError } = useQuery({
+        queryKey: ['recruiterNotifyStats'],
+        queryFn: async () => {
+            const res = await api.get('/notifications/recruiter/stats');
+            return res.data.data;
+        },
+        enabled: !!user,
+    });
+
+    const queryClient = useQueryClient();
+
+    const markReadMutation = useMutation({
+        mutationFn: (id: string) => api.patch(`/announcements/${id}/read`),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['announcements'] }),
+    });
+
     // Handle toast error triggering just once if queries fail
     React.useEffect(() => {
-        if (sError || jError || aError) addToast('Failed to load dashboard data', 'error');
-    }, [sError, jError, aError, addToast]);
+        if (sError || jError || aError || nError) addToast('Failed to load dashboard data', 'error');
+    }, [sError, jError, aError, nError, addToast]);
 
-    if (sLoading || jLoading || aLoading) return (
+    if (sLoading || jLoading || aLoading || nLoading) return (
         <div className="flex flex-col gap-8">
             <div className="flex justify-between items-start gap-4 animate-pulse">
                 <div className="flex flex-col gap-2">
@@ -194,6 +210,28 @@ const RecruiterDashboard: React.FC = () => {
                         </div>
                     </Card>
 
+                    <Card className="mt-6 bg-indigo-50/30 border-indigo-100">
+                        <div className="flex items-center gap-2 mb-4">
+                            <TrendingUp size={20} className="text-indigo-600" />
+                            <h2 className="text-lg font-bold text-slate-800 m-0">Notification Reach</h2>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex justify-between items-end">
+                                <span className="text-2xl font-black text-slate-900">{notifyStats?.reads || 0}</span>
+                                <span className="text-xs text-slate-500 font-medium mb-1">out of {notifyStats?.total || 0} students</span>
+                            </div>
+                            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-1">
+                                <div
+                                    className="bg-indigo-600 h-full transition-all duration-1000"
+                                    style={{ width: `${notifyStats?.rate || 0}%` }}
+                                />
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-1 italic">
+                                Percentage of students who viewed your job notifications.
+                            </p>
+                        </div>
+                    </Card>
+
                     <Card className="mt-6 border-l-4 border-indigo-500">
                         <div className="flex items-center gap-2 mb-4">
                             <Megaphone size={20} className="text-indigo-600" />
@@ -201,12 +239,26 @@ const RecruiterDashboard: React.FC = () => {
                         </div>
                         <div className="flex flex-col gap-4">
                             {announcements.length > 0 ? (
-                                announcements.map((ann) => (
-                                    <div key={ann._id} className="pb-3 border-b border-slate-100 last:border-0">
-                                        <h4 className="text-sm font-bold text-slate-800 mb-1">{ann.title}</h4>
+                                announcements.map((ann: any) => (
+                                    <div
+                                        key={ann._id}
+                                        className={`pb-3 border-b border-slate-100 last:border-0 cursor-pointer transition-all hover:bg-slate-50/50 px-1 rounded
+                                            ${ann.isRead ? 'opacity-60' : ''}`}
+                                        onClick={() => {
+                                            if (!ann.isRead) markReadMutation.mutate(ann._id);
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between gap-2 mb-1">
+                                            <h4 className={`text-sm m-0 ${ann.isRead ? 'font-medium text-slate-700' : 'font-bold text-slate-900'}`}>
+                                                {ann.title}
+                                            </h4>
+                                            {!ann.isRead && (
+                                                <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" />
+                                            )}
+                                        </div>
                                         <p className="text-[13px] text-slate-500 line-clamp-2 my-0">{ann.message}</p>
                                         <span className="text-[11px] text-slate-400 font-medium">
-                                            {new Date(ann.created_at || (ann as any).createdAt).toLocaleDateString()}
+                                            {new Date(ann.created_at || ann.createdAt || new Date()).toLocaleDateString()}
                                         </span>
                                     </div>
                                 ))
@@ -217,7 +269,6 @@ const RecruiterDashboard: React.FC = () => {
                     </Card>
                 </div>
             </div>
-
         </div>
     );
 };

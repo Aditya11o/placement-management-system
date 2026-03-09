@@ -6,6 +6,7 @@ import api from '../../services/api';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import SkeletonCard from '../../components/Skeleton/SkeletonCard';
+import AnnouncementAnalytics from './components/AnnouncementAnalytics';
 
 interface Announcement {
     _id: string;
@@ -13,19 +14,29 @@ interface Announcement {
     message: string;
     created_at: string;
     created_by: string;
+    status: 'DRAFT' | 'SCHEDULED' | 'SENT';
+    scheduled_at?: string;
+    target_roles: string[];
 }
 
 const AdminAnnouncements = () => {
     const { addToast } = useToast();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '' });
+    const [isStatsOpen, setIsStatsOpen] = useState(false);
+    const [selectedAnnId, setSelectedAnnId] = useState<string | null>(null);
+    const [newAnnouncement, setNewAnnouncement] = useState({
+        title: '',
+        message: '',
+        scheduled_at: '',
+        target_roles: ['STUDENT', 'RECRUITER']
+    });
 
     // Fetch Announcements
     const { data: announcements = [], isLoading } = useQuery<Announcement[]>({
         queryKey: ['adminAnnouncements'],
         queryFn: async () => {
-            const res = await api.get('/announcements');
+            const res = await api.get('/announcements?admin=true'); // Parameter to see all inkl. scheduled
             return res.data.data;
         }
     });
@@ -36,9 +47,14 @@ const AdminAnnouncements = () => {
             return await api.post('/announcements', data);
         },
         onSuccess: () => {
-            addToast('Announcement broadcasted successfully!', 'success');
+            addToast('Announcement handled successfully!', 'success');
             setIsModalOpen(false);
-            setNewAnnouncement({ title: '', message: '' });
+            setNewAnnouncement({
+                title: '',
+                message: '',
+                scheduled_at: '',
+                target_roles: ['STUDENT', 'RECRUITER']
+            });
             queryClient.invalidateQueries({ queryKey: ['adminAnnouncements'] });
         },
         onError: (err: any) => {
@@ -66,6 +82,15 @@ const AdminAnnouncements = () => {
             return addToast('Please fill in all fields', 'info');
         }
         createMutation.mutate(newAnnouncement);
+    };
+
+    const handleTargetToggle = (role: string) => {
+        setNewAnnouncement(prev => ({
+            ...prev,
+            target_roles: prev.target_roles.includes(role)
+                ? prev.target_roles.filter(r => r !== role)
+                : [...prev.target_roles, role]
+        }));
     };
 
     if (isLoading) return <div className="p-6"><SkeletonCard count={3} /></div>;
@@ -98,18 +123,47 @@ const AdminAnnouncements = () => {
                         <Card key={ann._id} className="p-0 overflow-hidden border-l-4 border-l-indigo-500">
                             <div className="p-6">
                                 <div className="flex justify-between items-start gap-4 mb-3">
-                                    <h3 className="text-xl font-bold text-slate-800 m-0">{ann.title}</h3>
-                                    <button
-                                        className="p-2 text-slate-400 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
-                                        onClick={() => {
-                                            if (window.confirm('Are you sure you want to delete this announcement?')) {
-                                                deleteMutation.mutate(ann._id);
-                                            }
-                                        }}
-                                        disabled={deleteMutation.isPending}
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-xl font-bold text-slate-800 m-0">{ann.title}</h3>
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${ann.status === 'SENT' ? 'bg-green-100 text-green-700' :
+                                                ann.status === 'SCHEDULED' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-slate-100 text-slate-700'
+                                                }`}>
+                                                {ann.status}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {ann.target_roles.map(role => (
+                                                <span key={role} className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                                                    @{role}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                            onClick={() => {
+                                                setSelectedAnnId(ann._id);
+                                                setIsStatsOpen(true);
+                                            }}
+                                            title="View Analytics"
+                                        >
+                                            <Megaphone size={18} />
+                                        </button>
+                                        <button
+                                            className="p-2 text-slate-400 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer"
+                                            onClick={() => {
+                                                if (window.confirm('Are you sure you want to delete this announcement?')) {
+                                                    deleteMutation.mutate(ann._id);
+                                                }
+                                            }}
+                                            disabled={deleteMutation.isPending}
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
                                 </div>
                                 <p className="text-slate-600 text-base leading-relaxed mb-4 whitespace-pre-wrap">
                                     {ann.message}
@@ -117,9 +171,12 @@ const AdminAnnouncements = () => {
                                 <div className="flex items-center gap-6 text-[13px] text-slate-400 font-medium pt-4 border-t border-slate-100">
                                     <div className="flex items-center gap-1.5">
                                         <Calendar size={14} />
-                                        <span>{new Date(ann.created_at).toLocaleDateString(undefined, { dateStyle: 'long' })}</span>
+                                        <span>
+                                            {ann.status === 'SCHEDULED' ? 'Scheduled for: ' : 'Posted: '}
+                                            {new Date(ann.status === 'SCHEDULED' ? ann.scheduled_at! : ann.created_at).toLocaleDateString(undefined, { dateStyle: 'long', timeStyle: 'short' })}
+                                        </span>
                                     </div>
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5 ml-auto">
                                         <User size={14} />
                                         <span>Admin Post</span>
                                     </div>
@@ -161,6 +218,35 @@ const AdminAnnouncements = () => {
                                     onChange={(e) => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })}
                                 />
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Schedule (Optional)</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="px-4 py-2 rounded-lg border border-slate-200 outline-none focus:border-indigo-500 transition-all text-sm"
+                                        value={newAnnouncement.scheduled_at}
+                                        onChange={(e) => setNewAnnouncement({ ...newAnnouncement, scheduled_at: e.target.value })}
+                                    />
+                                    <span className="text-[10px] text-slate-400 mt-0.5">Leave blank for instant broadcast</span>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Target Roles</label>
+                                    <div className="flex gap-4 items-center h-[42px]">
+                                        {['STUDENT', 'RECRUITER'].map(role => (
+                                            <label key={role} className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                    checked={newAnnouncement.target_roles.includes(role)}
+                                                    onChange={() => handleTargetToggle(role)}
+                                                />
+                                                <span className="text-sm font-medium text-slate-600 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{role}s</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                             <div className="flex justify-end gap-3 pt-2">
                                 <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                                 <Button
@@ -172,6 +258,20 @@ const AdminAnnouncements = () => {
                                 </Button>
                             </div>
                         </form>
+                    </Card>
+                </div>
+            )}
+            {/* Analytics Modal */}
+            {isStatsOpen && selectedAnnId && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                    <Card className="w-full max-w-2xl shadow-2xl relative animate-scale-in p-8">
+                        <AnnouncementAnalytics
+                            announcementId={selectedAnnId}
+                            onClose={() => {
+                                setIsStatsOpen(false);
+                                setSelectedAnnId(null);
+                            }}
+                        />
                     </Card>
                 </div>
             )}

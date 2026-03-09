@@ -427,3 +427,34 @@ exports.configureWebhook = async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+// @desc    Update Recruiter Profile
+// @route   PUT /api/v1/auth/recruiter/profile
+// @access  Private (Recruiter only)
+exports.updateRecruiterProfile = async (req, res) => {
+    try {
+        if (req.user.role !== 'RECRUITER') {
+            return res.status(403).json({ success: false, message: 'Only recruiters can update this profile' });
+        }
+
+        const { name, company_name, website, description, webhook_url } = req.body;
+
+        const recruiter = await Recruiter.findById(req.user._id);
+        if (!recruiter) return res.status(404).json({ success: false, message: 'Recruiter not found' });
+
+        if (name) recruiter.contact_person = name;
+        if (company_name) recruiter.company_name = company_name;
+        if (website !== undefined) recruiter.website = website;
+        if (description !== undefined) recruiter.description = description;
+        if (webhook_url !== undefined) recruiter.webhook_url = webhook_url;
+
+        await recruiter.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile updated successfully',
+            data: recruiter
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};

@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerStudent, registerRecruiter, login, getMe, forgotPassword, resetPassword, refreshToken, getSessions, logout, logoutAll, configureWebhook } = require('../controllers/authController');
+const { registerStudent, registerRecruiter, login, getMe, forgotPassword, resetPassword, refreshToken, getSessions, logout, logoutAll, configureWebhook, updateRecruiterProfile } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const { validate } = require('../middlewares/validate');
 const { validateStudentRegister, validateRecruiterRegister, validateLogin } = require('../validations/authValidator');
@@ -286,5 +286,6 @@ router.post('/logout/all', protect, logoutAll);
  *         description: Invalid URL
  */
 router.put('/webhook', protect, configureWebhook);
+router.put('/recruiter/profile', protect, updateRecruiterProfile);
 
 module.exports = router;

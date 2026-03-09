@@ -46,33 +46,25 @@ exports.updateUserStatus = async (req, res) => {
 
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-        // Dispatch Email Notification on Approval
+        // Dispatch across all channels: persistent DB, WebSocket, Email (respecting frequency), Webhooks, and SMS if critical
         if (status === 'APPROVED') {
-            try {
-                // Determine the correct name field based on role
-                const userName = role === 'STUDENT' ? user.name : user.company_name;
-                const emailMessage = role === 'STUDENT'
-                    ? 'Congratulations! Your student account has been verified and approved by the placement administration. You can now log in and start applying for jobs.'
-                    : 'Congratulations! Your recruiter account has been verified and approved by the placement administration. You can now log in and start posting jobs.';
+            const userName = role === 'STUDENT' ? user.name : user.company_name;
+            const eventName = role === 'STUDENT' ? 'application_status_update' : 'new_application_received'; // reuse existing keys for prefs
 
-                await emailQueue.add('approval-email', {
-                    email: user.email,
-                    subject: 'Account Approved - Placement Management System',
-                    template: 'alert',
-                    context: {
-                        title: 'Account Approved!',
-                        name: userName,
-                        message: emailMessage,
-                        cta: {
-                            text: 'Login to Dashboard',
-                            url: `${config.get('frontend_url')}/login`
-                        }
-                    }
-                });
-            } catch (emailError) {
-                // Log the error but don't fail the request
-                logger.warn(`Email queue failed for approval notification: ${emailError.message}`);
-            }
+            await dispatchToUser({
+                recipientId: user._id,
+                recipientModel: role.charAt(0).toUpperCase() + role.slice(1).toLowerCase(), // Student or Recruiter
+                eventName: eventName,
+                title: 'Account Approved!',
+                message: role === 'STUDENT'
+                    ? 'Your student account has been verified and approved. You can now log in and start applying.'
+                    : 'Your recruiter account has been verified and approved. You can now log in and start posting jobs.',
+                type: 'SUCCESS',
+                link: '/login',
+                emailOptions: {
+                    subject: 'Account Approved - Placement Management System'
+                }
+            });
         }
 
         await Log.create({

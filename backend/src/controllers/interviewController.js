@@ -43,7 +43,7 @@ exports.scheduleInterview = async (req, res) => {
             notes
         });
 
-        // 🚀 Persist notification to DB + instant WebSocket push to the student
+        // 🚀 Dispatch across all channels: persistent DB, WebSocket, Email, Webhooks, and SMS (Critical)
         await dispatchToUser({
             recipientId: application.student_id._id,
             recipientModel: 'Student',
@@ -51,27 +51,22 @@ exports.scheduleInterview = async (req, res) => {
             title: 'Interview Scheduled',
             message: `You have been scheduled for an interview for ${application.job_id.title} at ${application.job_id.company_name}.`,
             type: 'INFO',
-            link: `/interviews/${interview._id}`
-        });
-
-        try {
-            await emailQueue.add('interview-email', {
-                email: application.student_id.email,
+            link: `/interviews/${interview._id}`,
+            metadata: {
+                isCritical: true // Interviews are time-sensitive
+            },
+            emailOptions: {
                 subject: `Interview Scheduled for ${application.job_id.title}`,
                 template: 'interview',
                 context: {
                     jobTitle: application.job_id.title,
-                    name: application.student_id.name,
                     company: application.job_id.company_name,
                     date: new Date(scheduled_at).toLocaleString(),
                     type: location_type,
-                    location: location_details,
-                    loginUrl: `${config.get('frontend_url')}/applications`
+                    location: location_details
                 }
-            });
-        } catch (e) {
-            logger.warn(`Interview email queue failed: ${e.message}`);
-        }
+            }
+        });
 
         await Log.create({
             user_id: req.user._id, user_role: 'RECRUITER',

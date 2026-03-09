@@ -25,7 +25,7 @@ exports.getNotifications = async (req, res) => {
         const skip = (page - 1) * limit;
 
         const notifications = await Notification.find({ recipientId: req.user._id })
-            .sort({ createdAt: -1 })
+            .sort({ priority: -1, createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
@@ -36,9 +36,49 @@ exports.getNotifications = async (req, res) => {
 
         const total = await Notification.countDocuments({ recipientId: req.user._id });
 
+        // --- Post-processing: Grouping similar unread notifications ---
+        // We only group UNREAD notifications to reduce clutter in the initial view.
+        // Once read, they usually become distinct historical items.
+        const processedData = [];
+        const groups = new Map();
+
+        notifications.forEach(n => {
+            const isUnread = !n.isRead;
+            const groupId = n.metadata?.get('groupId') || (isUnread ? `${n.title}_${n.type}` : null);
+
+            if (isUnread && groupId) {
+                if (!groups.has(groupId)) {
+                    groups.set(groupId, {
+                        ...n.toObject(),
+                        isGroup: true,
+                        count: 1,
+                        ids: [n._id],
+                        originalMessages: [n.message]
+                    });
+                } else {
+                    const group = groups.get(groupId);
+                    group.count += 1;
+                    group.ids.push(n._id);
+                    if (!group.originalMessages.includes(n.message)) {
+                        group.originalMessages.push(n.message);
+                    }
+                    // Update the message to reflect grouping
+                    group.message = `${group.count} similar notifications: ${group.title}`;
+                }
+            } else {
+                processedData.push(n.toObject());
+            }
+        });
+
+        // Add grouped items to the final list
+        const finalData = [...processedData, ...Array.from(groups.values())].sort((a, b) => {
+            if (b.priority !== a.priority) return b.priority - a.priority;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+
         res.status(200).json({
             success: true,
-            count: notifications.length,
+            count: finalData.length,
             pagination: {
                 page,
                 limit,
@@ -46,7 +86,7 @@ exports.getNotifications = async (req, res) => {
                 totalPages: Math.ceil(total / limit)
             },
             totalUnread,
-            data: notifications
+            data: finalData
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -229,6 +269,52 @@ exports.triggerAction = async (req, res) => {
             success: true,
             message: `Action '${action.label}' triggered successfully`,
             action: action
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Get notification stats for a recruiter's jobs
+ * @route   GET /api/v1/notifications/recruiter/stats
+ * @access  Private (Recruiter only)
+ */
+exports.getRecruiterNotificationStats = async (req, res) => {
+    try {
+        const Job = require('../models/Job');
+        const recruiterJobs = await Job.find({ recruiter: req.user._id }).select('_id');
+        const jobIds = recruiterJobs.map(j => j._id.toString());
+
+        if (jobIds.length === 0) {
+            return res.json({ success: true, data: { reads: 0, total: 0, rate: 0 } });
+        }
+
+        const stats = await Notification.aggregate([
+            {
+                $match: {
+                    'metadata.jobId': { $in: jobIds },
+                    recipientModel: 'Student'
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: 1 },
+                    reads: { $sum: { $cond: [{ $eq: ["$isRead", true] }, 1, 0] } }
+                }
+            }
+        ]);
+
+        const data = stats[0] || { total: 0, reads: 0 };
+
+        res.json({
+            success: true,
+            data: {
+                reads: data.reads,
+                total: data.total,
+                rate: data.total > 0 ? (data.reads / data.total) * 100 : 0
+            }
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });

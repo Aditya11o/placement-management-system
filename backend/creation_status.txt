@@ -1,5 +1,0 @@
-Attempting to connect to: mongodb://localhost:27017/placement_management
-Connected to MongoDB successfully
-Admin with email superadmin@nexus.com already exists
-Name: Super Admin
-Sub-role: SUPER_ADMIN

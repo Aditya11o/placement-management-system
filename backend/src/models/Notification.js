@@ -43,6 +43,11 @@ const notificationSchema = new mongoose.Schema({
     metadata: {
         type: Map,
         of: mongoose.Schema.Types.Mixed
+    },
+    priority: {
+        type: Number,
+        default: 0,
+        index: true
     }
 }, {
     timestamps: true

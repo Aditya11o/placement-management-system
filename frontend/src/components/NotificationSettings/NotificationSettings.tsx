@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, RotateCcw, Info, BellRing, Volume2, Moon, Settings2, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Loader2, RotateCcw, Info, BellRing, Volume2, Moon, Settings2, ShieldCheck, ShieldAlert, Mail, Clock } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { useSocket } from '../../context/SocketContext';
@@ -20,6 +20,12 @@ interface NotificationPrefsResponse {
     data: {
         preferences: Record<string, { push: boolean; email: boolean } | boolean>;
         availableEvents: NotificationEvent[];
+        emailFrequency: 'IMMEDIATE' | 'DAILY';
+        quietHours: {
+            enabled: boolean;
+            start: string;
+            end: string;
+        };
     };
 }
 
@@ -177,20 +183,129 @@ const NotificationSettings: React.FC = () => {
 
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600">
+                                <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600">
                                     <Moon size={18} />
                                 </div>
-                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Do Not Disturb</span>
+                                <div>
+                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Quiet Hours</span>
+                                    {data.data.quietHours.enabled && (
+                                        <p className="text-[10px] text-indigo-600 font-bold">
+                                            Silenced {data.data.quietHours.start} - {data.data.quietHours.end}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input
                                     type="checkbox"
                                     className="sr-only peer"
-                                    checked={isDndMode}
-                                    onChange={() => setIsDndMode(!isDndMode)}
+                                    checked={data.data.quietHours.enabled}
+                                    onChange={() => updateMutation.mutate({
+                                        quietHours: { ...data.data.quietHours, enabled: !data.data.quietHours.enabled }
+                                    })}
                                 />
                                 <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
                             </label>
+                        </div>
+                    </div>
+                </Card>
+
+                {/* Quiet Hours Settings Grid Segment - NEW */}
+                {data.data.quietHours.enabled && (
+                    <Card className="p-5 border-slate-200 dark:border-slate-800 col-span-1 border-l-4 border-l-indigo-500 bg-indigo-50/10 animate-fade-in">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Clock size={16} className="text-indigo-600" />
+                                <h4 className="text-sm font-bold text-slate-800 dark:text-white">Scheduled Silence Window</h4>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Start Time</label>
+                                    <input
+                                        type="time"
+                                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                        value={data.data.quietHours.start}
+                                        onChange={(e) => updateMutation.mutate({
+                                            quietHours: { ...data.data.quietHours, start: e.target.value }
+                                        })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">End Time</label>
+                                    <input
+                                        type="time"
+                                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                        value={data.data.quietHours.end}
+                                        onChange={(e) => updateMutation.mutate({
+                                            quietHours: { ...data.data.quietHours, end: e.target.value }
+                                        })}
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-slate-500 italic">
+                                * System will suppress all non-critical notifications during this time.
+                            </p>
+                        </div>
+                    </Card>
+                )}
+
+                {/* Manual DND Override */}
+                <Card className={`p-5 border-slate-200 dark:border-slate-800 flex flex-col justify-center ${isDndMode ? 'bg-amber-50/10 border-amber-200' : ''}`}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${isDndMode ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'}`}>
+                                <ShieldAlert size={18} />
+                            </div>
+                            <div>
+                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Manual Do Not Disturb</span>
+                                {isDndMode && <p className="text-[10px] text-amber-600 font-bold">Overrides all schedules</p>}
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={isDndMode}
+                                onChange={() => setIsDndMode(!isDndMode)}
+                            />
+                            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
+                        </label>
+                    </div>
+                </Card>
+
+                {/* Email Frequency - NEW */}
+                <Card className="p-5 border-slate-200 dark:border-slate-800 col-span-1 md:col-span-2">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl text-indigo-600">
+                                <Mail size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800 dark:text-white">Email Delivery Frequency</h3>
+                                <p className="text-xs text-slate-500 mt-0.5">Choose how often you want to receive notification emails.</p>
+                            </div>
+                        </div>
+                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full md:w-auto">
+                            <button
+                                onClick={() => updateMutation.mutate({ emailFrequency: 'IMMEDIATE' })}
+                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${data.data.emailFrequency === 'IMMEDIATE'
+                                    ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                <BellRing size={16} />
+                                Immediate
+                            </button>
+                            <button
+                                onClick={() => updateMutation.mutate({ emailFrequency: 'DAILY' })}
+                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${data.data.emailFrequency === 'DAILY'
+                                    ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                <Clock size={16} />
+                                Daily Wrap-up
+                            </button>
                         </div>
                     </div>
                 </Card>

@@ -178,27 +178,7 @@ exports.updateApplicationStatus = async (req, res) => {
             }
         }
 
-        // Dispatch Email Notification to Student asynchronously via queue
-        try {
-            await emailQueue.add('status-update-email', {
-                email: application.student_id.email,
-                subject: `Application Status Updated: ${application.job_id.title}`,
-                template: 'alert',
-                context: {
-                    title: 'Application Update',
-                    name: application.student_id.name,
-                    message: `Your application for ${application.job_id.title} at ${application.job_id.company_name} has been updated to: ${status}`,
-                    cta: {
-                        text: 'View Application',
-                        url: `${config.get('frontend_url')}/applications`
-                    }
-                }
-            });
-        } catch (emailError) {
-            logger.warn(`Email queue failed for application update: ${emailError.message}`);
-        }
-
-        // 🚀 Dispatch persistent DB notification + instant WebSocket push in one call
+        // 🚀 Dispatch across all channels: persistent DB, WebSocket, Email (respecting frequency), Webhooks, and SMS if critical
         const notifType = status === 'SELECTED' ? 'SUCCESS' : status === 'REJECTED' ? 'ERROR' : 'INFO';
         await dispatchToUser({
             recipientId: application.student_id._id,
@@ -207,39 +187,16 @@ exports.updateApplicationStatus = async (req, res) => {
             title: `Application Update: ${application.job_id.company_name}`,
             message: `Your application for "${application.job_id.title}" is now: ${status}.`,
             type: notifType,
-            link: `/applications/${application._id}`
+            link: `/applications/${application._id}`,
+            emailOptions: {
+                subject: `Application Status Updated: ${application.job_id.title}`
+            },
+            metadata: {
+                isCritical: status === 'SELECTED' || status === 'SHORTLISTED'
+            }
         });
 
-        // 🔗 Dispatch Webhook Payload to ATS if configured
-        try {
-            // Need to fetch Recruiter to get Webhook URL since we only have Recruiter ID
-            const Recruiter = require('../models/Recruiter');
-            const recruiter = await Recruiter.findById(application.job_id.recruiter_id).select('webhook_url company_name');
-
-            if (recruiter && recruiter.webhook_url) {
-                const { webhookQueue } = require('../utils/webhookQueue');
-
-                const payload = {
-                    event: 'application_status_updated',
-                    timestamp: new Date().toISOString(),
-                    data: {
-                        application_id: application._id,
-                        job_id: application.job_id._id,
-                        job_title: application.job_id.title,
-                        student_name: application.student_id.name,
-                        student_email: application.student_id.email,
-                        new_status: status
-                    }
-                };
-
-                await webhookQueue.add('dispatch-webhook', {
-                    url: recruiter.webhook_url,
-                    payload
-                });
-            }
-        } catch (webhookErr) {
-            logger.warn(`Webhook queuing failed: ${webhookErr.message}`);
-        }
+        // Redundant manual webhook logic removed - handled by dispatchToUser
 
         // Notification already persisted + pushed via dispatchToUser above
 

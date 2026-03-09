@@ -18,7 +18,7 @@ const mongoose = require('mongoose');
  *   - weekly_digest              → weekly placement summary email (cron-driven)
  */
 const prefSchema = new mongoose.Schema({
-    push:  { type: Boolean, default: true },
+    push: { type: Boolean, default: true },
     email: { type: Boolean, default: true }
 }, { _id: false });
 
@@ -41,8 +41,8 @@ const notificationPrefsSchema = new mongoose.Schema({
 
     // ── Student-specific events ───────────────────────────────────────────────
     application_status_update: prefField(),
-    interview_scheduled:        prefField(),
-    interview_canceled:         prefField(),
+    interview_scheduled: prefField(),
+    interview_canceled: prefField(),
     new_job_posted: { type: Boolean, default: true },       // push-only
     new_announcement: { type: Boolean, default: true },       // push-only
 
@@ -50,7 +50,18 @@ const notificationPrefsSchema = new mongoose.Schema({
     new_application_received: { type: Boolean, default: true },       // push-only
 
     // ── Shared ────────────────────────────────────────────────────────────────
-    weekly_digest: { type: Boolean, default: true }        // email-only
+    weekly_digest: { type: Boolean, default: true },        // email-only
+    emailFrequency: {
+        type: String,
+        enum: ['IMMEDIATE', 'DAILY'],
+        default: 'IMMEDIATE',
+        index: true
+    },
+    quietHours: {
+        enabled: { type: Boolean, default: false },
+        start: { type: String, default: '22:00' }, // 24h format
+        end: { type: String, default: '08:00' }
+    }
 }, {
     timestamps: true
 });

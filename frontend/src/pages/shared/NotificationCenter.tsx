@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -10,20 +10,16 @@ import {
     Trash2,
     CheckCheck,
     Search,
-    Filter,
     ArrowLeft,
-    Inbox,
     Loader2,
     Calendar,
-    ChevronRight,
-    MoreVertical,
-    Check
+    Check,
+    Layers,
+    ChevronRight
 } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
-import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
-import Input from '../../components/Input/Input';
 
 interface Notification {
     _id: string;
@@ -40,6 +36,10 @@ interface Notification {
         color: string;
     }>;
     createdAt: string;
+    // Grouping fields
+    isGroup?: boolean;
+    count?: number;
+    ids?: string[];
 }
 
 interface NotificationResponse {
@@ -62,8 +62,19 @@ const NotificationCenter: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedType, setSelectedType] = useState<string>('ALL');
 
+    // UX Improvements State
+    const [pendingDeletions, setPendingDeletions] = useState<Set<string>>(new Set());
+    const [undoTimeouts, setUndoTimeouts] = useState<Record<string, any>>({});
+
+    // Cleanup timeouts on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(undoTimeouts).forEach(clearTimeout);
+        };
+    }, [undoTimeouts]);
+
     // Fetch notifications
-    const { data, isLoading, isError } = useQuery<NotificationResponse>({
+    const { data, isLoading } = useQuery<NotificationResponse>({
         queryKey: ['notifications', filter, selectedType],
         queryFn: async () => {
             const res = await api.get('/notifications?limit=100'); // Higher limit for center
@@ -75,7 +86,13 @@ const NotificationCenter: React.FC = () => {
 
     // Mutations
     const markReadMutation = useMutation({
-        mutationFn: (id: string) => api.put(`/notifications/${id}/read`),
+        mutationFn: async (ids: string | string[]) => {
+            if (Array.isArray(ids)) {
+                const results = await Promise.all(ids.map(id => api.put(`/notifications/${id}/read`)));
+                return results[0]; // Return any one of the results to satisfy type
+            }
+            return api.put(`/notifications/${ids}/read`);
+        },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
     });
 
@@ -88,12 +105,65 @@ const NotificationCenter: React.FC = () => {
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (id: string) => api.delete(`/notifications/${id}`),
+        mutationFn: async (ids: string | string[]) => {
+            if (Array.isArray(ids)) {
+                const results = await Promise.all(ids.map(id => api.delete(`/notifications/${id}`)));
+                return results[0];
+            }
+            return api.delete(`/notifications/${ids}`);
+        },
         onSuccess: () => {
-            addToast('Notification deleted', 'success');
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
         },
     });
+
+    const handleDelete = (n: Notification) => {
+        const idToGhost = n._id; // Use primary ID for ghosting logic
+        const idsToDelete = n.isGroup ? n.ids! : [n._id];
+
+        // 1. Ghost the notification immediately in UI
+        setPendingDeletions(prev => {
+            const next = new Set(prev);
+            next.add(idToGhost);
+            return next;
+        });
+
+        // 2. Set a timeout for real deletion (5 seconds)
+        const timeoutId = setTimeout(() => {
+            deleteMutation.mutate(idsToDelete);
+            setPendingDeletions(prev => {
+                const next = new Set(prev);
+                next.delete(idToGhost);
+                return next;
+            });
+        }, 5000);
+
+        setUndoTimeouts(prev => ({ ...prev, [idToGhost]: timeoutId }));
+
+        // 3. Show Undo Toast
+        addToast(
+            n.isGroup ? `Deleted group of ${n.count} notifications` : 'Notification deleted',
+            'info',
+            5000,
+            {
+                label: 'Undo',
+                onClick: () => {
+                    clearTimeout(timeoutId);
+                    setPendingDeletions(prev => {
+                        const next = new Set(prev);
+                        next.delete(idToGhost);
+                        return next;
+                    });
+                    setUndoTimeouts(prev => {
+                        const next = { ...prev };
+                        delete next[idToGhost];
+                        return next;
+                    });
+                    addToast('Deletion undone', 'success', 2000);
+                }
+            }
+        );
+    };
 
     const clearAllMutation = useMutation({
         mutationFn: () => api.delete('/notifications'),
@@ -144,7 +214,10 @@ const NotificationCenter: React.FC = () => {
     });
 
     const handleAction = async (n: Notification) => {
-        if (!n.isRead) markReadMutation.mutate(n._id);
+        if (!n.isRead) {
+            const idsToMark = n.isGroup ? n.ids! : [n._id];
+            markReadMutation.mutate(idsToMark);
+        }
         if (n.link) navigate(n.link);
     };
 
@@ -270,7 +343,7 @@ const NotificationCenter: React.FC = () => {
             {/* List */}
             <div className="flex flex-col gap-3">
                 {filteredNotifications.length === 0 ? (
-                    <Card className="flex flex-col items-center justify-center p-20 text-center bg-slate-50/50 border-dashed border-2 dark:bg-slate-900/20">
+                    <div className="flex flex-col items-center justify-center p-20 text-center bg-slate-50/50 border-dashed border-2 dark:bg-slate-900/20 rounded-2xl">
                         <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                             <Bell className="text-slate-400 opacity-40" size={32} />
                         </div>
@@ -291,95 +364,108 @@ const NotificationCenter: React.FC = () => {
                                 Reset All Filters
                             </Button>
                         )}
-                    </Card>
+                    </div>
                 ) : (
-                    filteredNotifications.map((n, idx) => (
-                        <Card
-                            key={n._id}
-                            className={`group border-l-4 transition-all hover:shadow-md cursor-pointer ${n.isRead
-                                ? 'border-transparent bg-white dark:bg-slate-900'
-                                : 'border-indigo-500 bg-indigo-50/20 dark:bg-indigo-900/10'
-                                }`}
-                            onClick={() => handleAction(n)}
-                        >
-                            <div className="flex items-start gap-4 p-1">
-                                <div className={`shrink-0 ${n.avatar ? '' : 'mt-1 p-2 rounded-xl ' + (n.isRead ? 'bg-slate-100 dark:bg-slate-800' : 'bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-100 dark:ring-slate-700')
-                                    }`}>
-                                    {getIcon(n)}
-                                </div>
+                    filteredNotifications
+                        .filter(n => !pendingDeletions.has(n._id))
+                        .map((n) => (
+                            <div
+                                key={n._id}
+                                className={`group p-4 bg-white dark:bg-slate-900 border rounded-2xl border-l-4 transition-all hover:shadow-md cursor-pointer ${n.isRead
+                                    ? 'border-transparent bg-white dark:bg-slate-900'
+                                    : 'border-indigo-500 bg-indigo-50/20 dark:bg-indigo-900/10'
+                                    }`}
+                                onClick={() => handleAction(n)}
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className={`shrink-0 ${n.avatar ? '' : 'mt-1 p-2 rounded-xl ' + (n.isRead ? 'bg-slate-100 dark:bg-slate-800' : 'bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-100 dark:ring-slate-700')
+                                        }`}>
+                                        {getIcon(n)}
+                                    </div>
 
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-4 mb-1">
-                                        <h4 className={`text-base m-0 leading-tight truncate ${n.isRead ? 'text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-white font-bold'}`}>
-                                            {n.title || 'System Alert'}
-                                        </h4>
-                                        <div className="flex items-center gap-3 shrink-0">
-                                            <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                                                <Calendar size={12} />
-                                                {formatDate(n.createdAt)}
-                                            </span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-4 mb-1">
+                                            <div className="flex flex-col gap-0.5 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className={`text-base m-0 leading-tight truncate ${n.isRead ? 'text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-white font-bold'}`}>
+                                                        {n.title || 'System Alert'}
+                                                    </h4>
+                                                    {n.isGroup && (
+                                                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                            <Layers size={10} />
+                                                            {n.count} Grouped
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3 shrink-0">
+                                                <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                                                    <Calendar size={12} />
+                                                    {formatDate(n.createdAt)}
+                                                </span>
 
-                                            {/* Action Menu (Visible on hover) */}
-                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
-                                                {!n.isRead && (
+                                                {/* Action Menu (Visible on hover) */}
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
+                                                    {!n.isRead && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const ids = n.isGroup ? n.ids! : [n._id];
+                                                                markReadMutation.mutate(ids);
+                                                            }}
+                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+                                                            title="Mark as read"
+                                                        >
+                                                            <Check size={16} />
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            markReadMutation.mutate(n._id);
+                                                            handleDelete(n);
                                                         }}
-                                                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
-                                                        title="Mark as read"
+                                                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                                                        title="Delete"
                                                     >
-                                                        <Check size={16} />
+                                                        <Trash2 size={16} />
                                                     </button>
-                                                )}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        deleteMutation.mutate(n._id);
-                                                    }}
-                                                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <p className={`text-sm leading-relaxed mb-0 ${n.isRead ? 'text-slate-500' : 'text-slate-700 dark:text-slate-300'}`}>
-                                        {n.message}
-                                    </p>
+                                        <p className={`text-sm leading-relaxed mb-0 ${n.isRead ? 'text-slate-500' : 'text-slate-700 dark:text-slate-300'}`}>
+                                            {n.message}
+                                        </p>
 
-                                    {n.actions && n.actions.length > 0 && (
-                                        <div className="mt-4 flex flex-wrap gap-2">
-                                            {n.actions.map((action, actionIdx) => (
-                                                <button
-                                                    key={actionIdx}
-                                                    onClick={(e) => handleButtonClick(e, n, actionIdx)}
-                                                    className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all shadow-sm flex items-center gap-1.5 
+                                        {n.actions && n.actions.length > 0 && (
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                {n.actions.map((action, actionIdx) => (
+                                                    <button
+                                                        key={actionIdx}
+                                                        onClick={(e) => handleButtonClick(e, n, actionIdx)}
+                                                        className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all shadow-sm flex items-center gap-1.5 
                                                         ${action.color === 'indigo' ? 'bg-indigo-600 text-white hover:bg-indigo-700' :
-                                                            action.color === 'red' ? 'bg-red-500 text-white hover:bg-red-600' :
-                                                                'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750'}`}
-                                                >
-                                                    {action.label === 'Accept' && <Check size={14} />}
-                                                    {action.label === 'Reject' && <Trash2 size={14} />}
-                                                    {action.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                                                action.color === 'red' ? 'bg-red-500 text-white hover:bg-red-600' :
+                                                                    'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750'}`}
+                                                    >
+                                                        {action.label === 'Accept' && <Check size={14} />}
+                                                        {action.label === 'Reject' && <Trash2 size={14} />}
+                                                        {action.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
 
-                                    {n.link && !n.actions?.length && (
-                                        <div className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 group/link">
-                                            View Details
-                                            <ChevronRight size={14} className="transition-transform group-hover/link:translate-x-0.5" />
-                                        </div>
-                                    )}
+                                        {n.link && !n.actions?.length && (
+                                            <div className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 group/link">
+                                                View Details
+                                                <ChevronRight size={14} className="transition-transform group-hover/link:translate-x-0.5" />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </Card>
-                    ))
+                        ))
                 )}
 
                 {data?.pagination && data.pagination.totalPages > 1 && (

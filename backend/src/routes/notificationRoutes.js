@@ -6,13 +6,17 @@ const {
     deleteNotification,
     deleteAllNotifications,
     subscribePush,
-    triggerAction
+    triggerAction,
+    getRecruiterNotificationStats
 } = require('../controllers/notificationController');
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, authorize } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.use(protect); // All routes require authentication
+router.use(protect);
+
+// Recruiter-specific stats
+router.get('/recruiter/stats', authorize('RECRUITER'), getRecruiterNotificationStats);
 
 /**
  * @swagger

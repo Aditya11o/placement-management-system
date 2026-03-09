@@ -94,7 +94,21 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
                 audio.play().catch(e => console.warn('Audio playback inhibited by browser:', e));
             }
 
-            addToast(data.message, data.type?.toLowerCase() || 'info');
+            // Interactive Action: Mark as Read directly from Toast
+            const action = data._id ? {
+                label: 'Mark as Read',
+                onClick: async () => {
+                    try {
+                        const { default: api } = await import('../services/api');
+                        await api.put(`/notifications/${data._id}/read`);
+                        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                    } catch (err) {
+                        console.error('Failed to mark as read from toast', err);
+                    }
+                }
+            } : undefined;
+
+            addToast(data.message, data.type?.toLowerCase() as any || 'info', 6000, action);
             // Invalidate the notifications query to update UI/counter
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
         });

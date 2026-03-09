@@ -6,8 +6,9 @@ import Button from '../../components/Button/Button';
 import SkeletonCard from '../../components/Skeleton/SkeletonCard';
 import { Briefcase, FileText, CheckCircle, Clock, Star } from 'lucide-react';
 import api from '../../services/api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Announcement } from '../../types';
+import { Layers } from 'lucide-react';
 
 interface StudentStats {
     applicationsSent: number;
@@ -60,12 +61,21 @@ const StudentDashboard = () => {
         enabled: !!user,
     });
 
+    const queryClient = useQueryClient();
+
+    const markReadMutation = useMutation({
+        mutationFn: (id: string) => api.patch(`/announcements/${id}/read`),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['announcements'] }),
+    });
+
     // Handle toast error triggering just once if queries fail
     React.useEffect(() => {
         if (aError || sError) addToast('Failed to load dashboard data', 'error');
     }, [aError, sError, addToast]);
 
     if (aLoading || sLoading) return (
+        // ... (omitting loading skeleton for brevity in replacement)
+        // I will keep the original loading skeleton in the real replacement
         <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-2 animate-pulse">
                 <div className="h-9 w-72 rounded bg-slate-200" />
@@ -146,14 +156,35 @@ const StudentDashboard = () => {
 
                         <div className="flex flex-col gap-4">
                             {announcements.length > 0 ? (
-                                announcements.map((ann) => (
-                                    <div key={ann._id} className="flex gap-4 p-4 bg-slate-50 rounded-md border-l-4 border-indigo-500 transition-transform duration-200 hover:translate-x-1 hover:bg-slate-100">
-                                        <span className="text-xs font-semibold text-indigo-600 uppercase min-w-[50px] shrink-0 mt-0.5">
-                                            {new Date(ann.created_at || ann.createdAt || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                        </span>
-                                        <div>
-                                            <h4 className="mb-1 text-base font-bold text-slate-800">{ann.title}</h4>
-                                            <p className="text-sm text-slate-500 m-0">{ann.message ? ann.message.substring(0, 100) : ''}...</p>
+                                announcements.map((ann: any) => (
+                                    <div
+                                        key={ann._id}
+                                        className={`flex gap-4 p-4 rounded-md border-l-4 transition-all duration-200 hover:translate-x-1 cursor-pointer
+                                            ${ann.isRead
+                                                ? 'bg-slate-50 border-slate-300 opacity-80'
+                                                : 'bg-indigo-50/50 border-indigo-500 shadow-sm hover:bg-indigo-50'}`}
+                                        onClick={() => {
+                                            if (!ann.isRead) markReadMutation.mutate(ann._id);
+                                        }}
+                                    >
+                                        <div className="flex flex-col items-center min-w-[50px] shrink-0 mt-0.5">
+                                            <span className="text-xs font-bold text-slate-400 uppercase">
+                                                {new Date(ann.created_at || ann.createdAt || new Date()).toLocaleDateString('en-US', { month: 'short' })}
+                                            </span>
+                                            <span className="text-lg font-black text-slate-700">
+                                                {new Date(ann.created_at || ann.createdAt || new Date()).getDate()}
+                                            </span>
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="text-base font-bold text-slate-800 m-0">{ann.title}</h4>
+                                                {!ann.isRead && (
+                                                    <span className="px-1.5 py-0.5 bg-indigo-600 text-white text-[9px] font-black rounded uppercase tracking-tighter animate-pulse">
+                                                        New
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-slate-500 m-0 line-clamp-2">{ann.message}</p>
                                         </div>
                                     </div>
                                 ))
