@@ -1,4 +1,5 @@
 const Application = require('../models/Application');
+const Recruiter = require('../models/Recruiter');
 const Job = require('../models/Job');
 const Log = require('../models/Log');
 const { emailQueue } = require('../utils/emailQueue');
@@ -9,6 +10,7 @@ const { sendSystemAlert } = require('../utils/webhookHelper');
 const GlobalSettings = require('../models/GlobalSettings');
 const config = require('../config/config');
 const logger = require('../utils/logger');
+
 
 exports.applyToJob = async (req, res) => {
     try {
@@ -63,24 +65,43 @@ exports.applyToJob = async (req, res) => {
 
 exports.getRecruiterApplications = async (req, res, next) => {
     try {
-        // Find all jobs posted by this recruiter
-        const jobs = await Job.find({ recruiter_id: req.user._id }).select('_id');
+        const recruiter = await Recruiter.findById(req.user._id);
+        if (!recruiter.company_id) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+
+        // Find all jobs in this company
+        const jobs = await Job.find({ company_id: recruiter.company_id }).select('_id');
         const jobIds = jobs.map(job => job._id);
 
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const startIndex = (page - 1) * limit;
+
+        const total = await Application.countDocuments({ job_id: { $in: jobIds } });
         const applications = await Application.find({ job_id: { $in: jobIds } })
             .populate({
                 path: 'job_id',
-                select: 'title company_name status deadline'
+                select: 'title company_name status deadline company_id'
             })
             .populate({
                 path: 'student_id',
                 select: 'name email phone branch graduation_year cgpa marks_10th marks_12th backlogs_active skills profile_image_url resume_versions activeResume resume_url'
             })
-            .sort('-created_at');
+            .sort('-created_at')
+            .skip(startIndex)
+            .limit(limit)
+            .lean();
 
         res.status(200).json({
             success: true,
             count: applications.length,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
+            },
             data: applications
         });
     } catch (err) {
@@ -90,8 +111,9 @@ exports.getRecruiterApplications = async (req, res, next) => {
 
 exports.getMyApplications = async (req, res, next) => {
     try {
-        req.advancedFilter = { student_id: req.user._id };
-        res.status(200).json(res.advancedResults);
+        const applications = await Application.find({ student_id: req.user._id })
+            .populate('job_id', 'title company_name status deadline');
+        res.status(200).json({ success: true, count: applications.length, data: applications });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -99,17 +121,21 @@ exports.getMyApplications = async (req, res, next) => {
 
 exports.getJobApplicants = async (req, res, next) => {
     try {
+        const recruiter = await Recruiter.findById(req.user._id);
         const { job_id } = req.params;
         const job = await Job.findById(job_id);
 
         if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
-        if (job.recruiter_id.toString() !== req.user._id.toString()) {
+        if (job.company_id.toString() !== recruiter.company_id.toString()) {
             return res.status(403).json({ success: false, message: 'Not authorized to view applicants for this job' });
         }
 
-        req.advancedFilter = { job_id };
-        res.status(200).json(res.advancedResults);
+        const applications = await Application.find({ job_id })
+            .populate('student_id', 'name email branch cgpa phone resume_url')
+            .sort('-applied_at');
+        
+        res.status(200).json({ success: true, count: applications.length, data: applications });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -124,13 +150,14 @@ exports.updateApplicationStatus = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid status' });
         }
 
+        const recruiter = await Recruiter.findById(req.user._id);
         let application = await Application.findById(req.params.id)
             .populate('job_id')
             .populate('student_id', 'name email');
 
         if (!application) return res.status(404).json({ success: false, message: 'Application not found' });
 
-        if (application.job_id.recruiter_id.toString() !== req.user._id.toString()) {
+        if (application.job_id.company_id.toString() !== recruiter.company_id.toString()) {
             return res.status(403).json({ success: false, message: 'Not authorized to update this status' });
         }
 
@@ -149,7 +176,9 @@ exports.updateApplicationStatus = async (req, res) => {
                     // Save the Cloudinary URL back onto the application document
                     await Application.findByIdAndUpdate(application._id, {
                         offer_letter_url: pdfUrl,
-                        offer_letter_generated_at: new Date()
+                        offer_letter_generated_at: new Date(),
+                        offer_issued_at: new Date(),
+                        offer_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
                     });
                 }
             }).catch(() => { }); // already logged inside the service
@@ -211,6 +240,152 @@ exports.updateApplicationStatus = async (req, res) => {
         res.json({ success: true, data: application });
     } catch (err) {
         console.error("APP_CONTROLLER_ERROR:", err.stack || err.message || err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+exports.addScorecard = async (req, res) => {
+    try {
+        const { communication, technical, culture, overall, comments, round_name, recommendation } = req.body;
+        
+        // Basic validation
+        if (![communication, technical, culture, overall].every(val => val >= 1 && val <= 5)) {
+            return res.status(400).json({ success: false, message: 'Ratings must be between 1 and 5' });
+        }
+
+        const recruiter = await Recruiter.findById(req.user._id);
+        const application = await Application.findById(req.params.id).populate('job_id');
+        if (!application) {
+            return res.status(404).json({ success: false, message: 'Application not found' });
+        }
+
+        // Restrict to the recruiter who belongs to the same company
+        if (application.job_id.company_id.toString() !== recruiter.company_id.toString()) {
+            return res.status(403).json({ success: false, message: 'Not authorized to scorecard this application' });
+        }
+
+        const newScorecard = {
+            reviewer_id: req.user._id,
+            reviewer_name: req.user.name,
+            round_name: round_name || 'General',
+            communication,
+            technical,
+            culture,
+            overall,
+            recommendation: recommendation || 'MAYBE',
+            comments: comments || ''
+        };
+
+        application.scorecards.unshift(newScorecard);
+        await application.save();
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'RECRUITER',
+            action: 'SUBMIT_SCORECARD',
+            target_id: application._id,
+            description: `Submitted scorecard with overall rating ${overall}/5`
+        });
+
+        res.status(201).json({ success: true, data: application });
+    } catch (err) {
+        logger.error(`Add Scorecard Error: ${err.message}`);
+        res.status(500).json({ success: false, message: 'Server Error adding scorecard' });
+    }
+};
+
+/**
+ * @desc    Accept a job offer
+ * @route   POST /api/v1/applications/:id/accept
+ * @access  Private (Student Only)
+ */
+exports.acceptOffer = async (req, res) => {
+    try {
+        const application = await Application.findById(req.params.id)
+            .populate('job_id')
+            .populate('student_id');
+
+        if (!application) return res.status(404).json({ success: false, message: 'Application not found' });
+
+        // Authorization check
+        if (application.student_id._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        if (application.status !== 'SELECTED') {
+            return res.status(400).json({ success: false, message: 'Offer not found or already processed' });
+        }
+
+        // Update application
+        application.status = 'OFFER_ACCEPTED';
+        await application.save();
+
+        // Update student placement status
+        const Student = require('../models/Student');
+        await Student.findByIdAndUpdate(req.user._id, {
+            is_placed: true,
+            placement_details: {
+                job_id: application.job_id._id,
+                company_name: application.job_id.company_name,
+                package_lpa: application.job_id.package_lpa,
+                placed_at: new Date()
+            }
+        });
+
+        // Notify recruiter
+        await dispatchToUser({
+            recipientId: application.job_id.recruiter_id,
+            recipientModel: 'Recruiter',
+            eventName: 'offer_accepted',
+            title: `Offer Accepted! 🎉`,
+            message: `${application.student_id.name} has accepted the offer for "${application.job_id.title}".`,
+            type: 'SUCCESS',
+            link: `/jobs/${application.job_id._id}/applicants`
+        });
+
+        res.json({ success: true, message: 'Congratulations! You have accepted the offer.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Decline a job offer
+ * @route   POST /api/v1/applications/:id/decline
+ * @access  Private (Student Only)
+ */
+exports.declineOffer = async (req, res) => {
+    try {
+        const application = await Application.findById(req.params.id)
+            .populate('job_id')
+            .populate('student_id');
+
+        if (!application) return res.status(404).json({ success: false, message: 'Application not found' });
+
+        if (application.student_id._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        if (application.status !== 'SELECTED') {
+            return res.status(400).json({ success: false, message: 'Offer not found or already processed' });
+        }
+
+        application.status = 'OFFER_DECLINED';
+        await application.save();
+
+        // Notify recruiter
+        await dispatchToUser({
+            recipientId: application.job_id.recruiter_id,
+            recipientModel: 'Recruiter',
+            eventName: 'offer_declined',
+            title: `Offer Declined`,
+            message: `${application.student_id.name} has declined the offer for "${application.job_id.title}".`,
+            type: 'ERROR',
+            link: `/jobs/${application.job_id._id}/applicants`
+        });
+
+        res.json({ success: true, message: 'You have declined the offer.' });
+    } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
 };

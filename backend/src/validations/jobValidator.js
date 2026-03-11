@@ -10,7 +10,11 @@ exports.validateJobCreation = [
     check('min_marks_10th', 'Min 10th marks must be between 0 and 100').optional().isFloat({ min: 0, max: 100 }),
     check('min_marks_12th', 'Min 12th marks must be between 0 and 100').optional().isFloat({ min: 0, max: 100 }),
     check('diversity_hiring', 'Diversity hiring must be ALL or FEMALE_ONLY').optional().isIn(['ALL', 'FEMALE_ONLY']),
-    check('deadline', 'Deadline is required and must be a valid date').isISO8601().toDate()
+    check('deadline', 'Deadline is required and must be a valid date').isISO8601().toDate(),
+    check('salary_min', 'Minimum salary must be a number').optional().isFloat({ min: 0 }),
+    check('salary_max', 'Maximum salary must be a number').optional().isFloat({ min: 0 }),
+    check('has_equity', 'Has equity must be a boolean').optional().isBoolean(),
+    check('has_bonus', 'Has bonus must be a boolean').optional().isBoolean()
 ];
 
 exports.validateJobUpdate = [
@@ -24,5 +28,9 @@ exports.validateJobUpdate = [
     check('min_marks_12th', 'Min 12th marks must be between 0 and 100').optional().isFloat({ min: 0, max: 100 }),
     check('diversity_hiring', 'Diversity hiring must be ALL or FEMALE_ONLY').optional().isIn(['ALL', 'FEMALE_ONLY']),
     check('deadline', 'Deadline must be a valid date').optional().isISO8601().toDate(),
+    check('salary_min', 'Minimum salary must be a number').optional().isFloat({ min: 0 }),
+    check('salary_max', 'Maximum salary must be a number').optional().isFloat({ min: 0 }),
+    check('has_equity', 'Has equity must be a boolean').optional().isBoolean(),
+    check('has_bonus', 'Has bonus must be a boolean').optional().isBoolean(),
     check('status', 'Status must be ACTIVE or CLOSED').optional().isIn(['ACTIVE', 'CLOSED'])
 ];

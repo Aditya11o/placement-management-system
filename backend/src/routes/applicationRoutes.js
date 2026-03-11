@@ -1,5 +1,5 @@
 const express = require('express');
-const { applyToJob, getMyApplications, getJobApplicants, getRecruiterApplications, updateApplicationStatus } = require('../controllers/applicationController');
+const { applyToJob, getMyApplications, getJobApplicants, getRecruiterApplications, updateApplicationStatus, addScorecard, acceptOffer, declineOffer } = require('../controllers/applicationController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { validate } = require('../middlewares/validate');
 const { validateApplicationApply, validateApplicationStatusUpdate } = require('../validations/applicationValidator');
@@ -13,7 +13,7 @@ router.use(protect);
 
 // Aliases for frontend compatibility
 router.post('/', authorize('STUDENT'), idempotency, validateApplicationApply, validate, applyToJob);
-router.get('/student', authorize('STUDENT'), advancedResults(Application, { path: 'job_id', select: 'title company_name status deadline' }), getMyApplications);
+router.get('/student', authorize('STUDENT'), getMyApplications);
 
 /**
  * @swagger
@@ -64,7 +64,7 @@ router.post('/apply', authorize('STUDENT'), idempotency, validateApplicationAppl
  *       200:
  *         description: List of applications
  */
-router.get('/my-applications', authorize('STUDENT'), advancedResults(Application, { path: 'job_id', select: 'title company_name status deadline' }), getMyApplications);
+router.get('/my-applications', authorize('STUDENT'), getMyApplications);
 
 // Recruiter routes
 router.get('/recruiter', authorize('RECRUITER'), getRecruiterApplications);
@@ -89,7 +89,7 @@ router.get('/recruiter', authorize('RECRUITER'), getRecruiterApplications);
  *       404:
  *         description: Job not found or not owned by recruiter
  */
-router.get('/job/:job_id', authorize('RECRUITER'), advancedResults(Application, { path: 'student_id', select: '-password' }), getJobApplicants);
+router.get('/job/:job_id', authorize('RECRUITER'), getJobApplicants);
 
 /**
  * @swagger
@@ -146,5 +146,55 @@ router.get('/resumes', authorize('RECRUITER'), advancedResults(Student), (req, r
  *         description: Status updated successfully
  */
 router.put('/:id/status', authorize('RECRUITER'), idempotency, validateApplicationStatusUpdate, validate, updateApplicationStatus);
+
+/**
+ * @swagger
+ * /api/v1/applications/{id}/scorecards:
+ *   post:
+ *     summary: Add an interview scorecard
+ *     tags: [Applications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - communication
+ *               - technical
+ *               - culture
+ *               - overall
+ *             properties:
+ *               communication:
+ *                 type: number
+ *               technical:
+ *                 type: number
+ *               culture:
+ *                 type: number
+ *               overall:
+ *                 type: number
+ *               comments:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Scorecard added successfully
+ *       400:
+ *         description: Invalid rating scale
+ *       403:
+ *         description: Not authorized
+ */
+router.post('/:id/scorecards', authorize('RECRUITER'), addScorecard);
+
+// Offer Management (Student)
+router.post('/:id/accept', authorize('STUDENT'), acceptOffer);
+router.post('/:id/decline', authorize('STUDENT'), declineOffer);
 
 module.exports = router;

@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
     Menu, X, LayoutDashboard, User, Briefcase,
     FileText, Users, Settings, LogOut, Building, LucideIcon, ShieldCheck, Send, Search,
-    Shield, FileCheck, Activity, Calendar, TrendingUp
+    Shield, FileCheck, Activity, Calendar, TrendingUp, Globe
 } from 'lucide-react';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
 import ThemeToggle from '../components/ThemeToggle/ThemeToggle';
@@ -74,6 +74,9 @@ const MainLayout: React.FC = () => {
                     { label: 'Company Profile', path: '/recruiter/profile', icon: Building },
                     { label: 'Manage Jobs', path: '/recruiter/jobs', icon: Briefcase },
                     { label: 'Review Applicants', path: '/recruiter/applicants', icon: Users },
+                    { label: 'Interviews', path: '/recruiter/interviews', icon: Calendar },
+                    { label: 'Candidate Database', path: '/recruiter/database', icon: Globe },
+                    { label: 'Recruiting Team', path: '/recruiter/team', icon: Users },
                 ];
             case 'ADMIN':
             case 'SUPER_ADMIN':

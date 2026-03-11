@@ -21,6 +21,22 @@ const jobSchema = new mongoose.Schema({
         required: [true, 'Please specify the package in LPA'],
         min: [0, 'Package cannot be negative']
     },
+    salary_min: {
+        type: Number,
+        default: 0
+    },
+    salary_max: {
+        type: Number,
+        default: 0
+    },
+    has_equity: {
+        type: Boolean,
+        default: false
+    },
+    has_bonus: {
+        type: Boolean,
+        default: false
+    },
     min_cgpa: {
         type: Number,
         required: [true, 'Please add minimum CGPA requirement'],
@@ -74,6 +90,11 @@ const jobSchema = new mongoose.Schema({
         required: true,
         index: true,
     },
+    company_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Company',
+        index: true
+    },
     is_approved: {
         type: Boolean,
         default: false,
@@ -83,6 +104,10 @@ const jobSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
         index: true
+    },
+    views: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }

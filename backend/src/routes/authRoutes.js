@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerStudent, registerRecruiter, login, getMe, forgotPassword, resetPassword, refreshToken, getSessions, logout, logoutAll, configureWebhook, updateRecruiterProfile } = require('../controllers/authController');
+const { registerStudent, registerRecruiter, login, getMe, forgotPassword, resetPassword, refreshToken, getSessions, logout, logoutAll, configureWebhook, updateRecruiterProfile, generate2FA, enable2FA, verify2FALogin, disable2FA } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const { validate } = require('../middlewares/validate');
 const { validateStudentRegister, validateRecruiterRegister, validateLogin } = require('../validations/authValidator');
@@ -287,5 +287,11 @@ router.post('/logout/all', protect, logoutAll);
  */
 router.put('/webhook', protect, configureWebhook);
 router.put('/recruiter/profile', protect, updateRecruiterProfile);
+
+// 2FA Routes
+router.post('/2fa/generate', protect, generate2FA);
+router.post('/2fa/enable', protect, enable2FA);
+router.post('/2fa/verify-login', verify2FALogin);
+router.post('/2fa/disable', protect, disable2FA);
 
 module.exports = router;

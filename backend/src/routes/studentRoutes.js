@@ -1,39 +1,32 @@
 const express = require('express');
-const { getStudentProfile, updateStudentProfile } = require('../controllers/studentController');
+const { getStudentProfile, updateStudentProfile, getStudents, inviteStudent } = require('../controllers/studentController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
+const advancedResults = require('../middlewares/advancedResults');
+const Student = require('../models/Student');
 
 const router = express.Router();
 
-// All routes here are protected and limited to students
+// All routes are protected
 router.use(protect);
-router.use(authorize('STUDENT'));
 
 /**
- * @swagger
- * /api/v1/students/profile:
- *   get:
- *     summary: Get logged-in student profile
- *     tags: [Students]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Profile data
+ * @desc Get all students (Recruiters/Admins)
  */
-router.get('/profile', getStudentProfile);
+router.get('/', authorize('RECRUITER', 'ADMIN'), advancedResults(Student), getStudents);
 
 /**
- * @swagger
- * /api/v1/students/profile:
- *   put:
- *     summary: Update student profile
- *     tags: [Students]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Profile updated
+ * @desc Invite student (Recruiters only)
  */
-router.put('/profile', updateStudentProfile);
+router.post('/:id/invite', authorize('RECRUITER'), inviteStudent);
+
+/**
+ * @desc Get logged-in student profile (Student only)
+ */
+router.get('/profile', authorize('STUDENT'), getStudentProfile);
+
+/**
+ * @desc Update student profile (Student only)
+ */
+router.put('/profile', authorize('STUDENT'), updateStudentProfile);
 
 module.exports = router;

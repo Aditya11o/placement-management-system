@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const Student = require('../models/Student');
 const Recruiter = require('../models/Recruiter');
 const Admin = require('../models/Admin');
+const Company = require('../models/Company');
 const Log = require('../models/Log');
 const Session = require('../models/Session');
 const UAParser = require('ua-parser-js');
@@ -11,6 +12,7 @@ const config = require('../config/config');
 const { sendSystemAlert } = require('../utils/webhookHelper');
 const logger = require('../utils/logger');
 const GlobalSettings = require('../models/GlobalSettings');
+const { generate2FASecret, verify2FAToken } = require('../utils/totp');
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, config.get('jwt.secret'), {
@@ -47,6 +49,8 @@ exports.registerStudent = async (req, res) => {
     }
 };
 
+
+
 exports.registerRecruiter = async (req, res) => {
     try {
         const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
@@ -54,21 +58,54 @@ exports.registerRecruiter = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Recruiter registration is currently disabled by the administrator.' });
         }
 
-        const { company_name, contact_person, email, password, phone } = req.body;
+        const { company_name, contact_person, email, password, phone, join_code } = req.body;
         const exists = await Recruiter.findOne({ email });
         if (exists) return res.status(400).json({ success: false, message: 'Recruiter with this email already exists' });
 
-        const recruiter = await Recruiter.create({ company_name, contact_person, email, password, phone });
+        let company;
+        let role = 'OWNER';
 
-        await Log.create({ user_id: recruiter._id, user_role: 'RECRUITER', action: 'REGISTER', description: 'Recruiter registered account' });
+        if (join_code) {
+            company = await Company.findOne({ join_code });
+            if (!company) {
+                return res.status(400).json({ success: false, message: 'Invalid join code. Please check with your team administrator.' });
+            }
+            role = 'MEMBER';
+        } else if (!company_name) {
+            return res.status(400).json({ success: false, message: 'Company name is required if not using a join code.' });
+        }
+
+        // Create recruiter first (but don't save yet if we need company_id)
+        const recruiter = new Recruiter({ 
+            company_name: company ? company.name : company_name, 
+            contact_person, 
+            email, 
+            password, 
+            phone,
+            team_role: role
+        });
+
+        if (!company) {
+            // Create new company
+            company = await Company.create({
+                name: company_name,
+                owner_id: recruiter._id
+            });
+        }
+
+        recruiter.company_id = company._id;
+        await recruiter.save();
+
+        await Log.create({ user_id: recruiter._id, user_role: 'RECRUITER', action: 'REGISTER', description: `Recruiter registered as ${role} for ${company.name}` });
 
         // 🔌 Trigger System Webhook if configured
         if (settings && settings.systemWebhookUrl) {
             await sendSystemAlert(
                 settings.systemWebhookUrl,
-                `🚀 **New Recruiter Registration!**`,
+                `🚀 **New Recruiter Registered!**`,
                 {
-                    'Company': company_name,
+                    'Company': company.name,
+                    'Role': role,
                     'Contact': contact_person,
                     'Email': email,
                     'Timestamp': new Date().toLocaleString()
@@ -130,6 +167,17 @@ exports.login = async (req, res) => {
             return res.status(403).json({ success: false, message: `Account is ${user.status}. Please await admin approval.` });
         }
 
+        // Check for 2FA requirement
+        if (user.twofa_enabled) {
+            const tempToken = jwt.sign({ id: user._id, role }, config.get('jwt.secret'), { expiresIn: '5m' });
+            return res.status(200).json({ 
+                success: true, 
+                requires2FA: true, 
+                tempToken,
+                message: 'Please provide the 2FA token from your authenticator app.'
+            });
+        }
+
         // Proceed with normal login
         await completeLogin(user, role, req, res);
     } catch (err) {
@@ -187,8 +235,33 @@ const completeLogin = async (user, role, req, res) => {
         email: user.email,
         role,
         name: user.name || user.contact_person,
-        company_name: user.company_name,
     };
+
+    if (role === 'RECRUITER') {
+        // JIT Migration: Link legacy recruiter to a Company based on name
+        if (!user.company_id) {
+            let company = await Company.findOne({ name: user.company_name });
+            if (!company) {
+                company = await Company.create({
+                    name: user.company_name,
+                    owner_id: user._id
+                });
+                user.team_role = 'OWNER';
+            }
+            user.company_id = company._id;
+            await user.save();
+
+            // Link existing jobs to the new company context
+            const Job = require('../models/Job');
+            await Job.updateMany(
+                { recruiter_id: user._id, company_id: { $exists: false } },
+                { $set: { company_id: company._id } }
+            );
+        }
+        userObj.company_name = user.company_name;
+        userObj.company_id = user.company_id;
+        userObj.team_role = user.team_role || 'MEMBER';
+    }
 
     res.json({ success: true, token, user: userObj });
 };
@@ -395,6 +468,67 @@ exports.enable2FA = async (req, res) => {
         await Log.create({ user_id: user._id, user_role: req.user.role, action: 'ENABLE_2FA', description: 'User enabled Two-Factor Authentication' });
 
         res.status(200).json({ success: true, message: 'Two-Factor Authentication has been successfully enabled.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+exports.verify2FALogin = async (req, res) => {
+    try {
+        const { tempToken, token } = req.body;
+        if (!tempToken || !token) {
+            return res.status(400).json({ success: false, message: 'Please provide tempToken and 2FA token' });
+        }
+
+        const decoded = jwt.verify(tempToken, config.get('jwt.secret'));
+        const { id, role } = decoded;
+
+        let user;
+        if (role === 'ADMIN') user = await Admin.findById(id).select('+twofa_secret');
+        else if (role === 'RECRUITER') user = await Recruiter.findById(id).select('+twofa_secret');
+
+        if (!user || !user.twofa_secret) {
+            return res.status(404).json({ success: false, message: 'User or 2FA secret not found' });
+        }
+
+        const isValid = verify2FAToken(user.twofa_secret, token);
+        if (!isValid) {
+            return res.status(400).json({ success: false, message: 'Invalid 2FA token' });
+        }
+
+        await completeLogin(user, role, req, res);
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+exports.disable2FA = async (req, res) => {
+    try {
+        const { password, token } = req.body;
+        if (!password || !token) {
+            return res.status(400).json({ success: false, message: 'Please provide password and 2FA token' });
+        }
+
+        let user;
+        if (req.user.role === 'ADMIN') user = await Admin.findById(req.user._id).select('+password +twofa_secret');
+        else if (req.user.role === 'RECRUITER') user = await Recruiter.findById(req.user._id).select('+password +twofa_secret');
+
+        if (!(await user.matchPassword(password))) {
+            return res.status(401).json({ success: false, message: 'Invalid password' });
+        }
+
+        const isValid = verify2FAToken(user.twofa_secret, token);
+        if (!isValid) {
+            return res.status(400).json({ success: false, message: 'Invalid 2FA token' });
+        }
+
+        user.twofa_enabled = false;
+        user.twofa_secret = undefined;
+        await user.save();
+
+        await Log.create({ user_id: user._id, user_role: req.user.role, action: 'DISABLE_2FA', description: 'User disabled Two-Factor Authentication' });
+
+        res.status(200).json({ success: true, message: '2FA disabled successfully' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

@@ -3,6 +3,7 @@ const {
     scheduleInterview,
     respondToInterview,
     updateInterviewStatus,
+    rescheduleInterview,
     getMyInterviews
 } = require('../controllers/interviewController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
@@ -54,5 +55,14 @@ router.route('/:id/respond').put(authorize('STUDENT'), validateInterviewResponse
  *     tags: [Interviews]
  */
 router.route('/:id/status').put(authorize('RECRUITER'), validateInterviewStatusUpdate, validate, updateInterviewStatus);
+
+/**
+ * @swagger
+ * /api/v1/interviews/{id}/reschedule:
+ *   patch:
+ *     summary: Reschedule an interview (Recruiter only)
+ *     tags: [Interviews]
+ */
+router.route('/:id/reschedule').patch(authorize('RECRUITER'), rescheduleInterview);
 
 module.exports = router;

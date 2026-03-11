@@ -5,6 +5,9 @@ export interface User {
     role: 'STUDENT' | 'RECRUITER' | 'ADMIN' | 'SUPER_ADMIN';
     is_approved: boolean;
     is_active: boolean;
+    company_name?: string;
+    company_id?: string;
+    team_role?: 'OWNER' | 'MEMBER';
     createdAt?: string;
     updatedAt?: string;
 }
@@ -43,12 +46,18 @@ export interface Job {
     recruiter_id: string | User;
     title: string;
     description: string;
+    requirements?: string[];
     location: string;
     package_lpa: number;
+    salary_min?: number;
+    salary_max?: number;
+    has_equity?: boolean;
+    has_bonus?: boolean;
     min_cgpa: number;
     eligible_branch: string;
     graduation_year: number;
     applicationCount?: number;
+    is_featured?: boolean;
     status: 'ACTIVE' | 'CLOSED';
     deadline: string;
     created_at?: string;
@@ -60,9 +69,24 @@ export interface Application {
     _id: string;
     student: string | User;
     job: string | Job;
-    status: 'SUBMITTED' | 'REVIEWED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED';
+    status: 'SUBMITTED' | 'REVIEWED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED' | 'OFFER_ACCEPTED' | 'OFFER_DECLINED';
     resume_url: string;
     notes?: string;
+    scorecards?: Array<{
+        reviewer_id: string;
+        reviewer_name: string;
+        round_name?: string;
+        communication: number;
+        technical: number;
+        culture: number;
+        overall: number;
+        recommendation?: 'HIRE' | 'NO_HIRE' | 'MAYBE';
+        comments: string;
+        created_at: string;
+    }>;
+    offer_letter_url?: string;
+    offer_issued_at?: string;
+    offer_expires_at?: string;
     createdAt?: string;
     updatedAt?: string;
 }

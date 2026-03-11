@@ -53,6 +53,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Fetch Global Settings for Branding
     useEffect(() => {
         const fetchSettings = async () => {
+            const token = localStorage.getItem('token');
+            // Avoid unauthorized calls if no token is present
+            if (!token) return;
+
             try {
                 const response = await api.get('/admin/settings');
                 if (response.data?.success) {
@@ -65,7 +69,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     }
                 }
             } catch (error) {
-                console.warn('Failed to fetch branding settings, using defaults.', error);
+                // Keep it silent during development if it fails (not critical)
+                console.debug('Branding fetch skipped or failed.');
             }
         };
         fetchSettings();

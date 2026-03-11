@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, RotateCcw, Info, BellRing, Volume2, Moon, Settings2, ShieldCheck, ShieldAlert, Mail, Clock } from 'lucide-react';
+import { Loader2, RotateCcw, Info, BellRing, Volume2, Moon, Calendar, ShieldCheck, ShieldAlert, Mail, Clock } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { useSocket } from '../../context/SocketContext';
@@ -20,7 +20,7 @@ interface NotificationPrefsResponse {
     data: {
         preferences: Record<string, { push: boolean; email: boolean } | boolean>;
         availableEvents: NotificationEvent[];
-        emailFrequency: 'IMMEDIATE' | 'DAILY';
+        emailFrequency: 'IMMEDIATE' | 'DAILY' | 'WEEKLY';
         quietHours: {
             enabled: boolean;
             start: string;
@@ -285,10 +285,10 @@ const NotificationSettings: React.FC = () => {
                                 <p className="text-xs text-slate-500 mt-0.5">Choose how often you want to receive notification emails.</p>
                             </div>
                         </div>
-                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full md:w-auto">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
                             <button
                                 onClick={() => updateMutation.mutate({ emailFrequency: 'IMMEDIATE' })}
-                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${data.data.emailFrequency === 'IMMEDIATE'
+                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${data.data.emailFrequency === 'IMMEDIATE'
                                     ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm'
                                     : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                                     }`}
@@ -298,13 +298,23 @@ const NotificationSettings: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => updateMutation.mutate({ emailFrequency: 'DAILY' })}
-                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${data.data.emailFrequency === 'DAILY'
+                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${data.data.emailFrequency === 'DAILY'
                                     ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm'
                                     : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                                     }`}
                             >
                                 <Clock size={16} />
-                                Daily Wrap-up
+                                Daily wrap
+                            </button>
+                            <button
+                                onClick={() => updateMutation.mutate({ emailFrequency: 'WEEKLY' })}
+                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${data.data.emailFrequency === 'WEEKLY'
+                                    ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                            >
+                                <Calendar size={16} />
+                                Weekly
                             </button>
                         </div>
                     </div>

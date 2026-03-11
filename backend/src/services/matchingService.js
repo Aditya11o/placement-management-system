@@ -3,7 +3,7 @@
  * Calculates a match score (0-100) between a Student's profile and a Job's requirements.
  */
 
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const config = require('../config/config');
 const logger = require('../utils/logger');
 
@@ -19,7 +19,7 @@ let aiClient = null;
 try {
     const apiKey = config.get('gemini.api_key');
     if (apiKey) {
-        aiClient = new GoogleGenAI({ apiKey });
+        aiClient = new GoogleGenerativeAI(apiKey);
         logger.info('🤖 Gemini AI Client initialized for semantic matching.');
     } else {
         logger.warn('⚠️ Gemini API Key not found. Falling back to basic string matching.');
@@ -137,12 +137,10 @@ const calculateSkillScoreSemantic = async (student, job) => {
         Respond with ONLY a single integer between 0 and 100 representing the percentage match.
         `;
 
-        const response = await aiClient.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt
-        });
-
-        const textOutput = response.text.trim();
+        const model = aiClient.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const textOutput = response.text().trim();
         // Extract the first number found in the output just in case the AI adds extra text
         const match = textOutput.match(/\d+/);
         let score = match ? parseInt(match[0], 10) : NaN;

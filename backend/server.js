@@ -114,11 +114,7 @@ app.use(cookieParser());
 
 // Sanitize data against NoSQL query injection
 app.use(mongoSanitize());
-
-// Prevent XSS attacks
 app.use(xss());
-
-// Prevent HTTP param pollution
 app.use(hpp());
 
 // Routes
@@ -136,6 +132,8 @@ const notificationPrefsRoutes = require('./src/routes/notificationPrefsRoutes');
 const rbacRoutes = require('./src/routes/rbacRoutes');
 const logRoutes = require('./src/routes/logRoutes');
 const searchRoutes = require('./src/routes/searchRoutes');
+const aiRoutes = require('./src/routes/aiRoutes');
+const teamRoutes = require('./src/routes/teamRoutes');
 const initCronJobs = require('./src/jobs/index');
 const { initBroadcastScheduler } = require('./src/services/broadcastScheduler');
 const { initDigestCron } = require('./src/services/digestService');
@@ -155,6 +153,8 @@ app.use('/api/v1/notification-prefs', notificationPrefsRoutes);
 app.use('/api/v1/rbac', rbacRoutes);
 app.use('/api/v1/logs', logRoutes);
 app.use('/api/v1/search', searchRoutes);
+app.use('/api/v1/ai', aiRoutes);
+app.use('/api/v1/team', teamRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

@@ -40,6 +40,7 @@ exports.checkEligibility = (student, job) => {
 
     return {
         isEligible: reasons.length === 0,
-        reasons
+        reasons,
+        blockerType: reasons.length > 0 ? (job.diversity_hiring !== 'ALL' && student.gender !== 'FEMALE' ? 'HARD_BLOCKER' : 'ACADEMIC_BLOCKER') : null
     };
 };

@@ -154,3 +154,234 @@
   background: rgba(30, 41, 59, 0.6);
   border-color: rgba(99, 102, 241, 0.2);
 }
+
+/* ── Dual-Thumb Salary Range Slider ── */
+input[type='range'].range-thumb-indigo {
+  pointer-events: none;
+}
+
+input[type='range'].range-thumb-indigo::-webkit-slider-thumb {
+  pointer-events: all;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #4f46e5;
+  border: 3px solid white;
+  box-shadow: 0 1px 6px rgba(79, 70, 229, 0.4);
+  cursor: grab;
+  transition: box-shadow 0.2s;
+}
+
+input[type='range'].range-thumb-indigo::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.15);
+}
+
+input[type='range'].range-thumb-indigo::-moz-range-thumb {
+  pointer-events: all;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #4f46e5;
+  border: 3px solid white;
+  box-shadow: 0 1px 6px rgba(79, 70, 229, 0.4);
+  cursor: grab;
+}
+
+/* ── React Big Calendar Overrides ── */
+.rbc-wrapper .rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-wrapper .rbc-toolbar {
+  display: none;
+  /* We render our own custom toolbar */
+}
+
+.rbc-wrapper .rbc-header {
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.rbc-wrapper .rbc-today {
+  background-color: #eef2ff;
+}
+
+.rbc-wrapper .rbc-event {
+  border-radius: 6px !important;
+  padding: 2px 6px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  border: none !important;
+}
+
+.rbc-wrapper .rbc-event:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+.rbc-wrapper .rbc-off-range-bg {
+  background: #f1f5f9;
+}
+
+.rbc-wrapper .rbc-time-view,
+.rbc-wrapper .rbc-time-header,
+.rbc-wrapper .rbc-time-content,
+.rbc-wrapper .rbc-day-bg+.rbc-day-bg,
+.rbc-wrapper .rbc-time-header-cell,
+.rbc-wrapper .rbc-header+.rbc-header {
+  border-color: #e2e8f0;
+}
+
+.rbc-wrapper .rbc-time-slot {
+  border-top-color: #f1f5f9;
+}
+
+.rbc-wrapper .rbc-current-time-indicator {
+  background-color: #6366f1;
+  height: 2px;
+}
+
+.dark .rbc-wrapper .rbc-header {
+  background: #1e293b;
+  color: #64748b;
+  border-color: #334155;
+}
+
+.dark .rbc-wrapper .rbc-today {
+  background-color: #1e1b4b;
+}
+
+.dark .rbc-wrapper .rbc-off-range-bg {
+  background: #0f172a;
+}
+
+.dark .rbc-wrapper .rbc-day-bg+.rbc-day-bg,
+.dark .rbc-wrapper .rbc-time-header,
+.dark .rbc-wrapper .rbc-time-content,
+.dark .rbc-wrapper .rbc-header+.rbc-header {
+  border-color: #334155;
+}
+
+/* ── Print Styles (PDF Export) ── */
+@media print {
+
+  /* Hide everything not part of dashboard content */
+  body>*:not(#root) {
+    display: none !important;
+  }
+
+  nav,
+  aside,
+  header,
+  [data-sidebar],
+  [data-nav],
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Show only dashboard content */
+  #dashboard-content {
+    display: block !important;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Reset backgrounds and shadows for clean print */
+  * {
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Break cards nicely across pages */
+  .grid>* {
+    break-inside: avoid;
+  }
+}
+
+/* ── Fade-in animation ── */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out both;
+}
+
+/* ── Slide-up animation (modals) ── */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── React Quill Dark Mode Support ───────────────────────────────────────── */
+.rich-text-editor .ql-toolbar {
+  background: #f8fafc;
+  border-radius: 8px 8px 0 0;
+  border-color: #e2e8f0 !important;
+}
+
+.rich-text-editor .ql-container {
+  background: white;
+  border-radius: 0 0 8px 8px;
+  border-color: #e2e8f0 !important;
+  font-family: inherit;
+  min-height: 200px;
+}
+
+.dark .rich-text-editor .ql-toolbar {
+  background: #1e293b;
+  border-color: #334155 !important;
+}
+
+.dark .rich-text-editor .ql-container {
+  background: #0f172a;
+  border-color: #334155 !important;
+  color: #f1f5f9;
+}
+
+.dark .rich-text-editor .ql-stroke {
+  stroke: #94a3b8 !important;
+}
+
+.dark .rich-text-editor .ql-fill {
+  fill: #94a3b8 !important;
+}
+
+.dark .rich-text-editor .ql-picker {
+  color: #94a3b8 !important;
+}
+
+.dark .rich-text-editor .ql-picker-options {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}

@@ -46,14 +46,13 @@ const notificationPrefsSchema = new mongoose.Schema({
     new_job_posted: { type: Boolean, default: true },       // push-only
     new_announcement: { type: Boolean, default: true },       // push-only
 
-    // ── Recruiter-specific events ─────────────────────────────────────────────
-    new_application_received: { type: Boolean, default: true },       // push-only
+    high_match_alert: { type: Boolean, default: true },      // push-only (recruiter)
 
     // ── Shared ────────────────────────────────────────────────────────────────
     weekly_digest: { type: Boolean, default: true },        // email-only
     emailFrequency: {
         type: String,
-        enum: ['IMMEDIATE', 'DAILY'],
+        enum: ['IMMEDIATE', 'DAILY', 'WEEKLY'],
         default: 'IMMEDIATE',
         index: true
     },

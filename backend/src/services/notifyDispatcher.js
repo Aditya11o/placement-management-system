@@ -6,6 +6,9 @@ const { sendWebhook } = require('../utils/webhookHelper');
 const { sendSMS } = require('../services/smsService');
 const logger = require('../utils/logger');
 const mongoose = require('mongoose');
+const Student = require('../models/Student');
+const Recruiter = require('../models/Recruiter');
+const Admin = require('../models/Admin');
 
 /**
  * Dispatches a targeted notification to a SINGLE user across all enabled channels.
@@ -23,10 +26,12 @@ const dispatchToUser = async ({
 }) => {
     try {
         // 1. Fetch User and Prefs concurrently
-        const [recipient, prefs] = await Promise.all([
-            mongoose.model(recipientModel).findById(recipientId),
-            NotificationPrefs.findOne({ userId: recipientId })
-        ]);
+        let recipient;
+        if (recipientModel === 'Student') recipient = await Student.findById(recipientId);
+        else if (recipientModel === 'Recruiter') recipient = await Recruiter.findById(recipientId);
+        else if (recipientModel === 'Admin') recipient = await Admin.findById(recipientId);
+
+        const prefs = await NotificationPrefs.findOne({ userId: recipientId });
 
         if (!recipient) {
             logger.warn(`[notifyDispatcher] Recipient not found: ${recipientModel} ${recipientId}`);
@@ -71,17 +76,25 @@ const dispatchToUser = async ({
 
         // 4. Webhook Integration (Recruiters only for now)
         if (recipientModel === 'Recruiter' && recipient.webhook_url) {
-            sendWebhook(recipient.webhook_url, `[Nexus] ${title}`, {
-                'Message': message,
-                'Status': type,
-                'Link': link ? `${process.env.FRONTEND_URL || 'http://localhost:5173'}${link}` : 'N/A',
-                'Priority': priority >= 8 ? 'High' : 'Normal'
-            });
+            try {
+                sendWebhook(recipient.webhook_url, `[Nexus] ${title}`, {
+                    'Message': message,
+                    'Status': type,
+                    'Link': link ? `${process.env.FRONTEND_URL || 'http://localhost:5173'}${link}` : 'N/A',
+                    'Priority': priority >= 8 ? 'High' : 'Normal'
+                });
+            } catch (hwErr) {
+                logger.error(`[notifyDispatcher] Webhook failed for ${recipientId}: ${hwErr.message}`);
+            }
         }
 
         // 5. SMS Integration (Critical events)
         if (isCritical && recipient.phone) {
-            sendSMS(recipient.phone, `CRITICAL: ${title} - ${message}`);
+            try {
+                sendSMS(recipient.phone, `CRITICAL: ${title} - ${message}`);
+            } catch (smsErr) {
+                logger.error(`[notifyDispatcher] SMS failed for ${recipientId}: ${smsErr.message}`);
+            }
         }
 
         // 6. Email Integration (Respect frequency and silence)

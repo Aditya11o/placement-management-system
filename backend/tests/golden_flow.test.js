@@ -19,6 +19,7 @@ describe('Golden Flow E2E: From Registration to Application', () => {
         await mongoose.connection.collection('recruiters').deleteMany({});
         await mongoose.connection.collection('jobs').deleteMany({});
         await mongoose.connection.collection('applications').deleteMany({});
+        await mongoose.connection.collection('companies').deleteMany({});
     });
 
     afterAll(async () => {

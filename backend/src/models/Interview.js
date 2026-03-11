@@ -31,6 +31,15 @@ const interviewSchema = new mongoose.Schema({
         required: [true, 'Please provide the interview date and time'],
         index: true
     },
+    duration_minutes: {
+        type: Number,
+        default: 45
+    },
+    type: {
+        type: String,
+        enum: ['Technical', 'HR', 'Behavioral', 'Initial Screening', 'Portfolio Review', 'Cultural Fit'],
+        default: 'Technical'
+    },
     location_type: {
         type: String,
         enum: ['VIRTUAL', 'PHYSICAL'],

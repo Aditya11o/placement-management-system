@@ -74,7 +74,7 @@ describe('Scheduled Cron Workers Logic', () => {
         const updatedExpiredJob = await Job.findById(expiredJob._id);
         const updatedFutureJob = await Job.findById(futureJob._id);
 
-        expect(updatedExpiredJob.status).toBe('INACTIVE');
+        expect(updatedExpiredJob.status).toBe('CLOSED');
         expect(updatedFutureJob.status).toBe('ACTIVE');
     });
 

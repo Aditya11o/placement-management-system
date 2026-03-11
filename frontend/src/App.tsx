@@ -27,6 +27,10 @@ const RecruiterDashboard = lazy(() => import('./pages/recruiter/RecruiterDashboa
 const RecruiterJobs = lazy(() => import('./pages/recruiter/RecruiterJobs'));
 const ApplicantReview = lazy(() => import('./pages/recruiter/ApplicantReview'));
 const RecruiterProfile = lazy(() => import('./pages/recruiter/RecruiterProfile'));
+const RecruiterInterviews = lazy(() => import('./pages/recruiter/RecruiterInterviews'));
+const CandidateDatabase = lazy(() => import('./pages/recruiter/CandidateDatabase'));
+const RecruiterTeam = lazy(() => import('./pages/recruiter/RecruiterTeam'));
+
 
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminStudents = lazy(() => import('./pages/admin/AdminStudents'));
@@ -101,6 +105,9 @@ const App = () => {
                             <Route path="/recruiter/profile" element={<RecruiterProfile />} />
                             <Route path="/recruiter/jobs" element={<RecruiterJobs />} />
                             <Route path="/recruiter/applicants" element={<ApplicantReview />} />
+                            <Route path="/recruiter/interviews" element={<RecruiterInterviews />} />
+                            <Route path="/recruiter/database" element={<CandidateDatabase />} />
+                            <Route path="/recruiter/team" element={<RecruiterTeam />} />
                           </Route>
 
                           {/* Admin Routes */}

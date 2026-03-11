@@ -12,6 +12,7 @@ const CONFIGURABLE_EVENTS = {
     ],
     recruiter: [
         { key: 'new_application_received', label: 'New applications received', channels: ['push'] },
+        { key: 'high_match_alert', label: 'High-match applications (≥80%)', channels: ['push'] },
         { key: 'new_announcement', label: 'System announcements', channels: ['push'] },
         { key: 'weekly_digest', label: 'Weekly digest', channels: ['email'] }
     ],

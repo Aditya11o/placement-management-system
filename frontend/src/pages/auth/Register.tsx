@@ -4,7 +4,7 @@ import { useToast } from '../../context/ToastContext';
 import Card from '../../components/Card/Card';
 import Input from '../../components/Input/Input';
 import Button from '../../components/Button/Button';
-import { Mail, Lock, User, Briefcase, Phone, BookOpen, Building, MapPin } from 'lucide-react';
+import { Mail, Lock, User, Briefcase, Phone, BookOpen, Building, MapPin, Users } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -27,12 +27,18 @@ const recruiterSchema = z.object({
     email: z.string().min(1, 'Email is required').email('Invalid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     phone: z.string().min(10, 'Phone must be at least 10 characters'),
-    company_name: z.string().min(2, 'Company name is required'),
+    company_name: z.string().optional().or(z.literal('')),
+    join_code: z.string().optional().or(z.literal('')),
     contact_person: z.string().min(2, 'Contact person is required'),
     industry: z.string().min(2, 'Industry is required'),
     location: z.string().min(2, 'Location is required'),
-    website: z.string().url('Invalid website URL')
+    website: z.string().url('Invalid website URL').optional().or(z.literal(''))
+}).refine((data) => (data.company_name && data.company_name.length >= 2) || (data.join_code && data.join_code.length >= 4), {
+    message: "Company Name (min 2 chars) or a valid Join Code is required",
+    path: ["company_name"],
 });
+
+
 
 const Register = () => {
     const [role, setRole] = useState('STUDENT');
@@ -159,7 +165,16 @@ const Register = () => {
                             {role === 'RECRUITER' && (
                                 <>
                                     <div className="sm:col-span-2">
-                                        <Input icon={Building} type="text" placeholder="Company Name" error={errors.company_name?.message} {...register('company_name')} />
+                                        <div className="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100 mb-2">
+                                            <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-2">Team Onboarding</p>
+                                            <Input icon={Users} type="text" placeholder="Have a Team Join Code? (Optional)" error={errors.join_code?.message} {...register('join_code')} />
+                                            <div className="flex items-center gap-2 my-2">
+                                                <div className="flex-1 h-[1px] bg-indigo-200"></div>
+                                                <span className="text-[10px] font-bold text-indigo-400">OR CREATE NEW</span>
+                                                <div className="flex-1 h-[1px] bg-indigo-200"></div>
+                                            </div>
+                                            <Input icon={Building} type="text" placeholder="Company Name (New Organization)" error={errors.company_name?.message} {...register('company_name')} />
+                                        </div>
                                     </div>
                                     <div>
                                         <Input icon={User} type="text" placeholder="Contact Person Name" error={errors.contact_person?.message} {...register('contact_person')} />

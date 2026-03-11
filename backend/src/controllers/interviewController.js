@@ -13,7 +13,7 @@ const logger = require('../utils/logger');
  */
 exports.scheduleInterview = async (req, res) => {
     try {
-        const { application_id, scheduled_at, location_type, location_details, notes } = req.body;
+        const { application_id, scheduled_at, duration_minutes, type, location_type, location_details, notes } = req.body;
 
         const application = await Application.findById(application_id)
             .populate('job_id')
@@ -32,12 +32,46 @@ exports.scheduleInterview = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Student must be SHORTLISTED first' });
         }
 
+        const scheduledAt = new Date(scheduled_at);
+        const duration = duration_minutes || 45;
+        const endTime = new Date(scheduledAt.getTime() + duration * 60000);
+        
+        // Concurrency Check with 15-min buffer
+        const bufferMs = 15 * 60000;
+        const startTimeWithBuffer = new Date(scheduledAt.getTime() - bufferMs);
+        const endTimeWithBuffer = new Date(endTime.getTime() + bufferMs);
+
+        const overlapping = await Interview.findOne({
+            $or: [
+                { recruiter_id: req.user._id },
+                { student_id: application.student_id._id }
+            ],
+            status: { $in: ['PROPOSED', 'CONFIRMED'] },
+            scheduled_at: { $lt: endTimeWithBuffer },
+            $expr: {
+                $gt: [
+                    { $add: ["$scheduled_at", { $multiply: ["$duration_minutes", 60000] }, bufferMs] },
+                    startTimeWithBuffer
+                ]
+            }
+        });
+
+        if (overlapping) {
+            const conflictSubject = overlapping.recruiter_id.toString() === req.user._id.toString() ? 'Recruiter' : 'Student';
+            return res.status(409).json({ 
+                success: false, 
+                message: `${conflictSubject} already has an interview scheduled near this time Slot (including 15m buffer).` 
+            });
+        }
+
         const interview = await Interview.create({
             application_id,
-            student_id: application.student_id._id,
+            student_id: application.student_id,
             job_id: application.job_id._id,
             recruiter_id: req.user._id,
             scheduled_at,
+            duration_minutes: duration_minutes || 45,
+            type: type || 'Technical',
             location_type,
             location_details,
             notes
@@ -74,6 +108,72 @@ exports.scheduleInterview = async (req, res) => {
         });
 
         res.status(201).json({ success: true, data: interview });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+/**
+ * @desc    Reschedule an interview
+ * @route   PATCH /api/v1/interviews/:id/reschedule
+ * @access  Private/Recruiter
+ */
+exports.rescheduleInterview = async (req, res) => {
+    try {
+        const { scheduled_at, duration_minutes, type, reason } = req.body;
+
+        let interview = await Interview.findById(req.params.id)
+            .populate('job_id', 'title company_name')
+            .populate('student_id', 'name email');
+
+        if (!interview) {
+            return res.status(404).json({ success: false, message: 'Interview not found' });
+        }
+
+        if (interview.recruiter_id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: 'Not authorized to reschedule this interview' });
+        }
+
+        // Keep status as SCHEDULED/PROPOSED but update time
+        interview.scheduled_at = scheduled_at || interview.scheduled_at;
+        if (duration_minutes) interview.duration_minutes = duration_minutes;
+        if (type) interview.type = type;
+        if (interview.status !== 'CONFIRMED' && interview.status !== 'COMPLETED' && interview.status !== 'CANCELED') {
+             // reset to proposed if it was rejected previously to trigger a new cycle
+             interview.status = 'PROPOSED';
+        }
+        
+        await interview.save();
+
+        // 🚀 Dispatch across channels with 'reason' for reschedule
+        await dispatchToUser({
+            recipientId: interview.student_id._id,
+            recipientModel: 'Student',
+            eventName: 'interview_rescheduled',
+            title: 'Interview Rescheduled',
+            message: `Your interview for ${interview.job_id.title} has been rescheduled to ${new Date(interview.scheduled_at).toLocaleString()}.`,
+            type: 'INFO',
+            link: `/interviews/${interview._id}`,
+            emailOptions: {
+                subject: `Update: Interview Rescheduled for ${interview.job_id.title}`,
+                template: 'interview',  // We can reuse the interview template
+                context: {
+                    jobTitle: interview.job_id.title,
+                    company: interview.job_id.company_name,
+                    date: new Date(interview.scheduled_at).toLocaleString(),
+                    type: interview.location_type,
+                    location: interview.location_details,
+                    notes: reason ? `Message from recruiter: ${reason}` : ''
+                }
+            }
+        });
+
+        await Log.create({
+            user_id: req.user._id, user_role: 'RECRUITER',
+            action: 'RESCHEDULE_INTERVIEW', target_id: interview._id
+        });
+
+        res.status(200).json({ success: true, data: interview });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

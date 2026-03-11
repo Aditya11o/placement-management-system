@@ -1,4 +1,4 @@
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const logger = require('./logger');
 const config = require('../config/config');
 
@@ -14,8 +14,9 @@ exports.extractSkillsFromResume = async (pdfBuffer) => {
             return [];
         }
 
-        // Initialize Gemini SDK lazily, only if key exists
-        const ai = new GoogleGenAI({});
+        // Initialize Gemini SDK lazily
+        const genAI = new GoogleGenerativeAI(config.get('gemini.api_key'));
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
         // Lazy-load pdf-parse to avoid its native module (@napi-rs/canvas) registering
         // a GC finalizer at import time, which would keep Jest test processes open.
@@ -54,13 +55,9 @@ exports.extractSkillsFromResume = async (pdfBuffer) => {
         `;
 
         // 3. Query Gemini
-        const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
-            contents: prompt,
-        });
-
-        // 4. Process and clean the output
-        const rawOutput = response.text || '';
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const rawOutput = response.text() || '';
         if (rawOutput.length === 0) return [];
 
         const skills = rawOutput

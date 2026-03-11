@@ -153,6 +153,9 @@ describe('Placement Management System - Core Flow Integration', () => {
             .get('/api/v1/applications/my')
             .set('Authorization', `Bearer ${studentToken}`);
 
+        const fs = require('fs');
+        fs.writeFileSync('step_4_debug.json', JSON.stringify(res.body, null, 2));
+
         expect(res.statusCode).toBe(200);
         expect(res.body.data[0].offer_letter_url).toContain('mock-pdf-url.com');
     });

@@ -3,18 +3,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import Card from '../../components/Card/Card';
-import FilterBar from '../../components/FilterBar/FilterBar';
+import Button from '../../components/Button/Button';
 import KanbanBoard from '../../components/Kanban/KanbanBoard';
 import SkeletonTable from '../../components/Skeleton/SkeletonTable';
 import StudentProfileDrawer from '../../components/ProfileViewer/StudentProfileDrawer';
-import { Filter } from 'lucide-react';
+import { Filter, Search, CheckSquare, X, Download, LayoutTemplate } from 'lucide-react';
 import api from '../../services/api';
+import { exportToCSV } from '../../utils/export';
+import ComposeMessageModal, { MessageRecipient, TEMPLATES } from '../../components/Modal/ComposeMessageModal';
+import ManagePipelineModal, { PipelineStage } from '../../components/Modal/ManagePipelineModal';
+import CompareCandidatesModal from '../../components/Modal/CompareCandidatesModal';
 import { Job, Application } from '../../types';
 
 interface UIApplicant extends Omit<Application, 'student' | 'job'> {
-    student?: { name: string; email: string; resume_url?: string };
+    student?: { name: string; email: string; resume_url?: string; cgpa?: number; skills?: string[] };
     job?: { _id: string; title: string };
     matchScore?: number;
+    createdAt?: string;
 }
 
 const ApplicantReview: React.FC = () => {
@@ -23,9 +28,31 @@ const ApplicantReview: React.FC = () => {
     const queryClient = useQueryClient();
 
     const [selectedJob, setSelectedJob] = useState('ALL');
-    const [selectedStatus, setSelectedStatus] = useState('ALL');
     const [searchTerm, setSearchTerm] = useState('');
+    const [minMatchScore, setMinMatchScore] = useState<number>(0);
     const [selectedApplicant, setSelectedApplicant] = useState<UIApplicant | null>(null);
+    const [selectedApplicantsForBulk, setSelectedApplicantsForBulk] = useState<string[]>([]);
+    const [isBulkMode, setIsBulkMode] = useState(false);
+
+    // Messaging State
+    const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+    const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
+    const [emailDefaults, setEmailDefaults] = useState({ subject: '', body: '' });
+    const [pendingStatusCache, setPendingStatusCache] = useState<{ appId?: string, appIds?: string[], status: string } | null>(null);
+
+    // Comparison State
+    const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+    // Pipeline Customization State
+    const DEFAULT_STAGES: PipelineStage[] = [
+        { id: 'SUBMITTED', title: 'Submitted', isProtected: true },
+        { id: 'REVIEWED', title: 'Reviewed', isProtected: true },
+        { id: 'SHORTLISTED', title: 'Shortlisted', isProtected: true },
+        { id: 'SELECTED', title: 'Selected' },
+        { id: 'REJECTED', title: 'Rejected', isProtected: true }
+    ];
+    const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>(DEFAULT_STAGES);
+    const [isPipelineModalOpen, setIsPipelineModalOpen] = useState(false);
 
     // ── Fetch recruiter jobs (for filter dropdown) ──────────────────────────
     const { data: jobs = [] } = useQuery<Job[]>({
@@ -51,67 +78,302 @@ const ApplicantReview: React.FC = () => {
     const statusMutation = useMutation({
         mutationFn: ({ appId, newStatus }: { appId: string; newStatus: string }) =>
             api.put(`/applications/${appId}/status`, { status: newStatus }),
+        onMutate: async ({ appId, newStatus }) => {
+            await queryClient.cancelQueries({ queryKey: ['recruiterApplications'] });
+            const previousApps = queryClient.getQueryData(['recruiterApplications']);
+            queryClient.setQueryData(['recruiterApplications'], (old: any) => {
+                if (!old) return old;
+                return old.map((app: any) => app._id === appId ? { ...app, status: newStatus } : app);
+            });
+            return { previousApps };
+        },
         onSuccess: (_, { newStatus }) => {
             addToast(`Application marked as ${newStatus}`, 'success');
-            queryClient.invalidateQueries({ queryKey: ['recruiterApplications'] });
         },
-        onError: (error: any) => {
+        onError: (error: any, _, context) => {
+            if (context?.previousApps) {
+                queryClient.setQueryData(['recruiterApplications'], context.previousApps);
+            }
             addToast(error.response?.data?.message || 'Failed to update status', 'error');
         },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['recruiterApplications'] });
+        }
     });
+
+    // ── Mutation: bulk update applications status ───────────────────────────
+    const bulkStatusMutation = useMutation({
+        mutationFn: ({ appIds, newStatus }: { appIds: string[]; newStatus: string }) =>
+            Promise.all(appIds.map((id) => api.put(`/applications/${id}/status`, { status: newStatus }))),
+        onMutate: async ({ appIds, newStatus }) => {
+            await queryClient.cancelQueries({ queryKey: ['recruiterApplications'] });
+            const previousApps = queryClient.getQueryData(['recruiterApplications']);
+            queryClient.setQueryData(['recruiterApplications'], (old: any) => {
+                if (!old) return old;
+                return old.map((app: any) => appIds.includes(app._id) ? { ...app, status: newStatus } : app);
+            });
+            return { previousApps };
+        },
+        onSuccess: (_, { newStatus, appIds }) => {
+            addToast(`Successfully moved ${appIds.length} candidate(s) to ${newStatus}`, 'success');
+            setSelectedApplicantsForBulk([]);
+            setIsBulkMode(false);
+        },
+        onError: (_error: any, _, context) => {
+            if (context?.previousApps) {
+                queryClient.setQueryData(['recruiterApplications'], context.previousApps);
+            }
+            addToast('Failed to perform bulk action update', 'error');
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['recruiterApplications'] });
+        }
+    });
+
+    // Request Email wrapper for drag and drop
+    const handleStatusChangeRequest = (appId: string, newStatus: string) => {
+        if (newStatus === 'REJECTED' || newStatus === 'SHORTLISTED') {
+            const app = applications.find(a => a._id === appId);
+            if (app) {
+                setPendingStatusCache({ appId, status: newStatus });
+                setMessageRecipients([{ _id: app._id, student: app.student, job: app.job }]);
+
+                // Pre-fill template based on status
+                const template = TEMPLATES.find(t =>
+                    newStatus === 'REJECTED' ? t.label.includes('Rejection') : t.label.includes('Shortlist')
+                );
+                if (template) {
+                    const firstName = app.student?.name?.split(' ')[0] || 'there';
+                    setEmailDefaults({
+                        subject: template.subject,
+                        body: template.body.replace(/{{candidate_name}}/g, firstName)
+                    });
+                } else {
+                    setEmailDefaults({ subject: '', body: '' });
+                }
+
+                setIsMessageModalOpen(true);
+            }
+        } else {
+            statusMutation.mutate({ appId, newStatus });
+        }
+    };
+
+    // Request Email wrapper for bulk actions
+    const handleBulkActionRequest = (newStatus: string | 'SEND_MESSAGE' | 'COMPARE') => {
+        if (selectedApplicantsForBulk.length === 0) {
+            addToast('Please select at least one candidate first', 'error');
+            return;
+        }
+
+        const selectedApps = applications.filter(a => selectedApplicantsForBulk.includes(a._id));
+
+        if (newStatus === 'COMPARE') {
+            if (selectedApplicantsForBulk.length < 2 || selectedApplicantsForBulk.length > 4) {
+                addToast('Please select 2 to 4 candidates to compare', 'info');
+                return;
+            }
+            setIsCompareModalOpen(true);
+            return;
+        }
+
+        if (newStatus === 'SEND_MESSAGE') {
+            setPendingStatusCache(null); // No status change, just messaging
+            setMessageRecipients(selectedApps.map(a => ({ _id: a._id, student: a.student, job: a.job })));
+            setEmailDefaults({ subject: '', body: '' });
+            setIsMessageModalOpen(true);
+            return;
+        }
+
+        if (newStatus === 'REJECTED' || newStatus === 'SHORTLISTED') {
+            setPendingStatusCache({ appIds: selectedApplicantsForBulk, status: newStatus });
+            setMessageRecipients(selectedApps.map(a => ({ _id: a._id, student: a.student, job: a.job })));
+
+            // Pre-fill generic template
+            const template = TEMPLATES.find(t =>
+                newStatus === 'REJECTED' ? t.label.includes('Rejection') : t.label.includes('Shortlist')
+            );
+            setEmailDefaults(template ? { subject: template.subject, body: template.body.replace(/{{candidate_name}}/g, 'there') } : { subject: '', body: '' });
+
+            setIsMessageModalOpen(true);
+        } else {
+            bulkStatusMutation.mutate({ appIds: selectedApplicantsForBulk, newStatus });
+        }
+    };
+
+    const confirmPendingStatusAndCloseMsg = () => {
+        if (pendingStatusCache?.appId) {
+            statusMutation.mutate({ appId: pendingStatusCache.appId, newStatus: pendingStatusCache.status });
+        } else if (pendingStatusCache?.appIds) {
+            bulkStatusMutation.mutate({ appIds: pendingStatusCache.appIds, newStatus: pendingStatusCache.status });
+        }
+        setIsMessageModalOpen(false);
+        setPendingStatusCache(null);
+    };
 
     // ── Derived: filtered + sorted list ─────────────────────────────────────
     const filtered = applications
         .filter((app) => {
             const matchJob = selectedJob === 'ALL' || app.job?._id === selectedJob;
-            const matchStatus = selectedStatus === 'ALL' || app.status === selectedStatus;
+            const matchScoreCheck = (app.matchScore ?? 0) >= minMatchScore;
+
             const q = searchTerm.toLowerCase();
             const matchSearch =
                 app.student?.name?.toLowerCase().includes(q) ||
                 app.job?.title?.toLowerCase().includes(q) ||
                 app.student?.email?.toLowerCase().includes(q);
-            return matchJob && matchStatus && matchSearch;
+
+            return matchJob && matchScoreCheck && matchSearch;
         })
         .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
 
+    const toggleApplicantSelection = (appId: string) => {
+        setSelectedApplicantsForBulk(prev =>
+            prev.includes(appId) ? prev.filter(id => id !== appId) : [...prev, appId]
+        );
+    };
 
+    const handleExportCSV = () => {
+        const toExport = isBulkMode && selectedApplicantsForBulk.length > 0
+            ? filtered.filter(app => selectedApplicantsForBulk.includes(app._id))
+            : filtered;
+
+        if (toExport.length === 0) {
+            addToast('No candidates to export.', 'error');
+            return;
+        }
+
+        // Map domain objects to raw CSV rows
+        const csvData = toExport.map(app => ({
+            'Candidate Name': app.student?.name || 'Unknown',
+            'Email': app.student?.email || 'N/A',
+            'Job Title': app.job?.title || 'General',
+            'Status': app.status,
+            'Match Score (%)': app.matchScore ?? 0,
+            'CGPA': app.student?.cgpa || 'N/A',
+            'Skills': app.student?.skills?.join(' | ') || 'N/A',
+            'Applied Date': app.createdAt ? new Date(app.createdAt).toLocaleDateString() : 'N/A'
+        }));
+
+        const filename = `candidates_export_${new Date().toISOString().split('T')[0]}`;
+        exportToCSV(csvData, filename);
+        addToast(`Exported ${toExport.length} candidates`, 'success');
+    };
 
     return (
         <>
-            <div className="flex flex-col gap-6 animate-fade-in">
-                <div>
-                    <h1 className="text-3xl font-bold text-indigo-700 mb-1">Applicant Review Board</h1>
-                    <p className="text-slate-500 text-base m-0">Evaluate candidates and manage application pipelines.</p>
+            <div className="flex flex-col gap-6 animate-fade-in relative">
+                <div className="flex justify-between items-end flex-wrap gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-indigo-700 mb-1">Applicant Review Board</h1>
+                        <p className="text-slate-500 text-base m-0">Evaluate candidates and manage application pipelines.</p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                        <Button
+                            variant="secondary"
+                            icon={Download}
+                            onClick={handleExportCSV}
+                        >
+                            Export CSV
+                        </Button>
+                        <Button
+                            variant={isBulkMode ? "secondary" : "ghost"}
+                            icon={isBulkMode ? X : CheckSquare}
+                            onClick={() => {
+                                setIsBulkMode(!isBulkMode);
+                                if (isBulkMode) setSelectedApplicantsForBulk([]);
+                            }}
+                        >
+                            {isBulkMode ? "Cancel Bulk Edit" : "Bulk Actions"}
+                        </Button>
+                    </div>
                 </div>
 
-                <FilterBar
-                    searchPlaceholder="Search candidate name or email..."
-                    searchValue={searchTerm}
-                    onSearchChange={setSearchTerm}
-                    filters={[
-                        {
-                            value: selectedJob,
-                            onChange: setSelectedJob,
-                            showIcon: true,
-                            options: [
-                                { label: 'All Jobs', value: 'ALL' },
-                                ...jobs.map((j) => ({ label: j.title, value: j._id })),
-                            ],
-                        },
-                        {
-                            value: selectedStatus,
-                            onChange: setSelectedStatus,
-                            options: [
-                                { label: 'All Statuses', value: 'ALL' },
-                                { label: 'Submitted', value: 'SUBMITTED' },
-                                { label: 'Reviewed', value: 'REVIEWED' },
-                                { label: 'Shortlisted', value: 'SHORTLISTED' },
-                                { label: 'Selected', value: 'SELECTED' },
-                                { label: 'Rejected', value: 'REJECTED' },
-                            ],
-                        },
-                    ]}
-                />
+                {isBulkMode && selectedApplicantsForBulk.length > 0 && (
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 dark:bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-6 z-40 animate-slide-up border border-slate-700">
+                        <span className="font-semibold text-indigo-400">{selectedApplicantsForBulk.length} Selected</span>
+                        <div className="w-px h-6 bg-slate-700"></div>
+                        <div className="flex gap-2">
+                            <Button size="sm" variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-700" onClick={() => handleBulkActionRequest('COMPARE')}>Compare</Button>
+                            <Button size="sm" variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-700" onClick={() => handleBulkActionRequest('SEND_MESSAGE')}>Message</Button>
+                            <div className="w-px h-6 bg-slate-700 mx-1"></div>
+                            <Button size="sm" variant="ghost" className="text-red-400 hover:text-white hover:bg-red-900/40" onClick={() => handleBulkActionRequest('REJECTED')}>Reject</Button>
+                            <Button size="sm" variant="primary" className="bg-indigo-500 hover:bg-indigo-400 border-none text-white shadow-none font-bold" onClick={() => handleBulkActionRequest('SHORTLISTED')}>Shortlist</Button>
+                        </div>
+                    </div>
+                )}
+
+                <Card className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 p-4 lg:px-6">
+                    {/* Search & Basic Filters */}
+                    <div className="flex flex-wrap items-center gap-4 flex-grow">
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <Button
+                                variant="ghost"
+                                className="bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                                onClick={() => setIsPipelineModalOpen(true)}
+                                icon={LayoutTemplate}
+                            >
+                                Edit Pipeline
+                            </Button>
+                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                                <button
+                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${!isBulkMode ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                                    onClick={() => setIsBulkMode(false)}
+                                >
+                                    Kanban View
+                                </button>
+                                <button
+                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${isBulkMode ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                                    onClick={() => setIsBulkMode(true)}
+                                >
+                                    Bulk Actions
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-md border border-slate-200 flex-grow max-w-[300px]">
+                            <Search size={18} className="text-slate-400 shrink-0" />
+                            <input
+                                type="text"
+                                placeholder="Search candidates..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-transparent border-none outline-none text-[15px] text-slate-800 font-sans cursor-text"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-md border border-slate-200">
+                            <Filter size={18} className="text-slate-400 shrink-0" />
+                            <select
+                                value={selectedJob}
+                                onChange={(e) => setSelectedJob(e.target.value)}
+                                className="bg-transparent border-none outline-none text-[15px] text-slate-800 font-sans cursor-pointer focus:ring-0 max-w-[200px]"
+                            >
+                                <option value="ALL">All Jobs</option>
+                                {jobs.map((j) => (
+                                    <option key={j._id} value={j._id}>{j.title}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Advanced Filters */}
+                    <div className="flex items-center gap-4 bg-indigo-50/50 px-5 py-3 rounded-lg border border-indigo-100 shrink-0">
+                        <span className="text-sm font-semibold text-indigo-900 whitespace-nowrap">
+                            Min Match Score:
+                        </span>
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={minMatchScore}
+                            onChange={(e) => setMinMatchScore(Number(e.target.value))}
+                            className="w-[120px] accent-indigo-600"
+                        />
+                        <span className="text-sm font-bold w-10 text-right text-indigo-700">{minMatchScore}%+</span>
+                    </div>
+                </Card>
 
                 <div className="flex flex-col gap-4">
                     {isLoading ? (
@@ -125,11 +387,23 @@ const ApplicantReview: React.FC = () => {
                             <p className="text-slate-500">Try adjusting your filters or search terms.</p>
                         </Card>
                     ) : (
-                        <KanbanBoard
-                            applications={filtered}
-                            onStatusChange={(appId, newStatus) => statusMutation.mutate({ appId, newStatus })}
-                            onViewProfile={setSelectedApplicant}
-                        />
+                        <div className={isBulkMode ? 'pl-8 relative' : ''}>
+                            {isBulkMode && (
+                                <div className="absolute left-0 top-0 bottom-0 w-8 flex flex-col items-center pt-14 z-10 space-y-[132px]">
+                                    {/* Abstract representation to show selection boxes would normally be inside the cards, 
+                                        but modifying Kanban card is needed. For simplicity, we can pass properties down to KanbanBoard. */}
+                                </div>
+                            )}
+                            <KanbanBoard
+                                applications={filtered}
+                                columns={pipelineStages}
+                                onStatusChange={handleStatusChangeRequest}
+                                onViewProfile={setSelectedApplicant}
+                                isBulkMode={isBulkMode}
+                                selectedAppIds={selectedApplicantsForBulk}
+                                onToggleAppSelection={toggleApplicantSelection}
+                            />
+                        </div>
                     )}
                 </div>
             </div>
@@ -139,6 +413,32 @@ const ApplicantReview: React.FC = () => {
                 isOpen={!!selectedApplicant}
                 onClose={() => setSelectedApplicant(null)}
                 applicant={selectedApplicant}
+            />
+
+            {/* In-app messaging interceptor */}
+            <ComposeMessageModal
+                isOpen={isMessageModalOpen}
+                onClose={() => setIsMessageModalOpen(false)}
+                onSkip={confirmPendingStatusAndCloseMsg}
+                recipients={messageRecipients}
+                requireAction={!!pendingStatusCache}
+                defaultSubject={emailDefaults.subject}
+                defaultBody={emailDefaults.body}
+            />
+
+            {/* Candidate Comparison Modal */}
+            <CompareCandidatesModal
+                isOpen={isCompareModalOpen}
+                onClose={() => setIsCompareModalOpen(false)}
+                applicants={applications.filter(a => selectedApplicantsForBulk.includes(a._id))}
+            />
+
+            {/* Pipeline Customization Modal */}
+            <ManagePipelineModal
+                isOpen={isPipelineModalOpen}
+                onClose={() => setIsPipelineModalOpen(false)}
+                stages={pipelineStages}
+                onSave={setPipelineStages}
             />
         </>
     );

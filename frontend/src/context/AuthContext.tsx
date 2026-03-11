@@ -36,7 +36,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     } else {
                         // Fetch fresh user profile details
                         const response = await api.get('/auth/me');
-                        setUser({ ...response.data.data, role: decoded.role });
+                        const userData = response.data.data;
+                        const newUser = { ...userData, role: decoded.role };
+
+                        // Only update if something actually changed to avoid downstream re-renders
+                        setUser(prev => {
+                            if (prev && JSON.stringify(prev) === JSON.stringify(newUser)) return prev;
+                            return newUser;
+                        });
                     }
                 } catch (error) {
                     console.error('Invalid token or failed to fetch user');

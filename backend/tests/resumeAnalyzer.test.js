@@ -2,16 +2,18 @@ const { extractSkillsFromResume } = require('../src/utils/resumeAnalyzer');
 const logger = require('../src/utils/logger');
 const config = require('../src/config/config');
 
-// We need to mock @google/genai and pdf-parse
-jest.mock('@google/genai', () => {
+// We need to mock @google/generative-ai and pdf-parse
+jest.mock('@google/generative-ai', () => {
     return {
-        GoogleGenAI: jest.fn().mockImplementation(() => {
+        GoogleGenerativeAI: jest.fn().mockImplementation(() => {
             return {
-                models: {
+                getGenerativeModel: jest.fn().mockReturnValue({
                     generateContent: jest.fn().mockResolvedValue({
-                        text: 'Node.js, React, Testing'
+                        response: {
+                            text: () => 'Node.js, React, Testing'
+                        }
                     })
-                }
+                })
             };
         })
     };
@@ -63,12 +65,12 @@ describe('Resume Analyzer Service (AI Skill Extraction)', () => {
     });
 
     it('should gracefully handle Gemini AI errors', async () => {
-        const { GoogleGenAI } = require('@google/genai');
+        const { GoogleGenerativeAI } = require('@google/generative-ai');
         // Get the mock instance behavior
-        GoogleGenAI.mockImplementationOnce(() => ({
-            models: {
+        GoogleGenerativeAI.mockImplementationOnce(() => ({
+            getGenerativeModel: jest.fn().mockReturnValue({
                 generateContent: jest.fn().mockRejectedValue(new Error('AI Quota Exceeded'))
-            }
+            })
         }));
 
         const skills = await extractSkillsFromResume(Buffer.from('...'));

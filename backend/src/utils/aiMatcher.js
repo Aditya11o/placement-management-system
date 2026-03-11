@@ -1,4 +1,4 @@
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const logger = require('./logger');
 const config = require('../config/config');
 
@@ -18,7 +18,13 @@ exports.rankCandidatesForJob = async (job, students) => {
         if (!students || students.length === 0) return [];
 
         // Initialize Gemini SDK lazily
-        const ai = new GoogleGenAI({});
+        const genAI = new GoogleGenerativeAI(config.get('gemini.api_key'));
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-1.5-flash',
+            generationConfig: {
+                responseMimeType: "application/json",
+            }
+        });
 
         // Prepare minimized data payloads to save tokens
         const jobContext = `
@@ -58,17 +64,10 @@ exports.rankCandidatesForJob = async (job, students) => {
         ]
         `;
 
-        // Query Gemini, requesting JSON format
-        const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
-            contents: prompt,
-            config: {
-                // Ensure the model knows we want JSON (supported directly by 1.5-flash)
-                responseMimeType: "application/json",
-            }
-        });
-
-        const rawOutput = response.text || '[]';
+        // Query Gemini
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const rawOutput = response.text() || '[]';
 
         let rankedResults = [];
         try {

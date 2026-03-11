@@ -80,6 +80,13 @@ const studentSchema = new mongoose.Schema({
     }],
     skills: [{ type: String, index: true }],
     status: { type: String, enum: ['PENDING', 'APPROVED', 'BLOCKED'], default: 'PENDING', index: true },
+    is_placed: { type: Boolean, default: false },
+    placement_details: {
+        job_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Job' },
+        company_name: String,
+        package_lpa: Number,
+        placed_at: Date
+    },
     resetPasswordToken: String,
     resetPasswordExpire: Date
 }, {

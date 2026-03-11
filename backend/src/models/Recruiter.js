@@ -46,6 +46,16 @@ const recruiterSchema = new mongoose.Schema({
         default: 'PENDING',
         index: true,
     },
+    company_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Company',
+        index: true
+    },
+    team_role: {
+        type: String,
+        enum: ['OWNER', 'MEMBER'],
+        default: 'MEMBER'
+    },
     twofa_secret: {
         type: String,
         select: false,
