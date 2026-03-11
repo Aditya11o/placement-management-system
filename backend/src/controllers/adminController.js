@@ -13,6 +13,7 @@ const GlobalSettings = require('../models/GlobalSettings');
 const EmailTemplate = require('../models/EmailTemplate');
 const config = require('../config/config');
 const logger = require('../utils/logger');
+const { dispatchToUser, dispatchToRole } = require('../services/notifyDispatcher');
 
 exports.getUsers = async (req, res, next) => {
     try {
