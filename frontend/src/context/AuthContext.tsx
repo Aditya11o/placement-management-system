@@ -15,11 +15,12 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    const [token, setToken] = useState<string | null>(localStorage.getItem('token') || sessionStorage.getItem('token'));
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const logout = () => {
         localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         setToken(null);
         setUser(null);
     };
@@ -27,9 +28,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Initialize Auth state from token on load
     useEffect(() => {
         const initializeAuth = async () => {
-            if (token) {
+            const currentToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (currentToken) {
                 try {
-                    const decoded: any = jwtDecode(token);
+                    const decoded: any = jwtDecode(currentToken);
                     // Check expiration
                     if (decoded.exp * 1000 < Date.now()) {
                         logout();
@@ -44,6 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                             if (prev && JSON.stringify(prev) === JSON.stringify(newUser)) return prev;
                             return newUser;
                         });
+                        setToken(currentToken);
                     }
                 } catch (error) {
                     console.error('Invalid token or failed to fetch user');
@@ -59,8 +62,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const login = async (credentials: any): Promise<{ role: string }> => {
         const response = await api.post('/auth/login', credentials);
         const { token: newToken, user: userData } = response.data;
+        const { rememberMe } = credentials;
 
-        localStorage.setItem('token', newToken);
+        if (rememberMe) {
+            localStorage.setItem('token', newToken);
+        } else {
+            sessionStorage.setItem('token', newToken);
+        }
+        
         setToken(newToken);
 
         const decoded: any = jwtDecode(newToken);

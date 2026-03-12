@@ -19,7 +19,7 @@ const createSuperAdmin = async () => {
         await mongoose.connect(uri);
         log('Connected to MongoDB successfully');
 
-        const email = 'superadmin@nexus.com';
+        const email = 'superadmin@tnu.com';
         const existingAdmin = await Admin.findOne({ email });
         if (existingAdmin) {
             log(`Admin with email ${email} already exists`);

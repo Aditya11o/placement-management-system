@@ -151,6 +151,18 @@ exports.exportData = async (req, res) => {
  * @desc    Get master data export (all platform data)
  * @route   GET /api/v1/admin/export-master
  * @access  Private/Admin
+ *
+ * --- Memory Optimization ---
+ * Previously, this loaded ALL documents from 4 collections into memory at once
+ * using Model.find(). With 50k+ records across collections, this could consume
+ * hundreds of MBs and crash the Node.js process (heap out of memory).
+ *
+ * The refactored version uses Mongoose cursors to stream documents one-by-one
+ * into the HTTP response. Memory usage stays constant (~few KB) regardless of
+ * how many records exist in the database.
+ *
+ * The JSON output format is identical to the old version, so the frontend/download
+ * behaviour is fully backward-compatible.
  */
 exports.exportMasterData = async (req, res) => {
     try {
@@ -159,38 +171,60 @@ exports.exportMasterData = async (req, res) => {
             user_id: req.user._id,
             user_role: 'ADMIN',
             action: 'EXPORT_MASTER_DATA',
-            description: 'Initiated full system data export'
+            description: 'Initiated full system data export (streamed)'
         });
 
-        // 1. Fetch all relevant data (Passwords excluded via schema or manual omission)
-        const [students, recruiters, jobs, applications, settings] = await Promise.all([
-            Student.find().select('-password'),
-            Recruiter.find().select('-password'),
-            Job.find(),
-            Application.find(),
-            GlobalSettings.findOne({ singletonId: 'nexus_settings' })
-        ]);
+        const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
 
-        const exportPayload = {
-            exportTimestamp: new Date(),
-            exportedBy: req.user.email,
-            platformName: settings?.institutionName || 'Nexus',
-            data: {
-                students,
-                recruiters,
-                jobs,
-                applications
+        // Set headers for file download
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename=TNU_Master_Export_${new Date().toISOString().split('T')[0]}.json`);
+
+        // --- Helper: stream an entire collection as a JSON array ---
+        // Writes documents one-by-one from a Mongoose cursor, keeping memory flat.
+        const streamCollection = async (cursor) => {
+            let first = true;
+            res.write('[');
+            for await (const doc of cursor) {
+                if (!first) res.write(',');
+                res.write(JSON.stringify(doc));
+                first = false;
             }
+            res.write(']');
         };
 
-        // 2. Set headers for file download
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Content-Disposition', `attachment; filename=Nexus_Master_Export_${new Date().toISOString().split('T')[0]}.json`);
+        // Begin writing the JSON envelope
+        res.write('{');
+        res.write(`"exportTimestamp":"${new Date().toISOString()}",`);
+        res.write(`"exportedBy":${JSON.stringify(req.user.email)},`);
+        res.write(`"platformName":${JSON.stringify(settings?.institutionName || 'TNU')},`);
+        res.write('"data":{');
 
-        res.status(200).send(exportPayload);
+        // Stream each collection using cursors (constant memory usage)
+        res.write('"students":');
+        await streamCollection(Student.find().select('-password').lean().cursor());
+
+        res.write(',"recruiters":');
+        await streamCollection(Recruiter.find().select('-password').lean().cursor());
+
+        res.write(',"jobs":');
+        await streamCollection(Job.find().lean().cursor());
+
+        res.write(',"applications":');
+        await streamCollection(Application.find().lean().cursor());
+
+        // Close the JSON envelope
+        res.write('}}');
+        res.end();
     } catch (err) {
         logger.error(`Master export error: ${err.message}`);
-        res.status(500).json({ success: false, message: 'Failed to generate master data export.' });
+        // If headers haven't been sent yet, send an error response
+        if (!res.headersSent) {
+            res.status(500).json({ success: false, message: 'Failed to generate master data export.' });
+        } else {
+            // Headers already sent (mid-stream failure) — destroy the connection
+            res.destroy();
+        }
     }
 };
 
@@ -416,10 +450,10 @@ exports.getBulkJobStatus = async (req, res) => {
  */
 exports.getSettings = async (req, res) => {
     try {
-        let settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+        let settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
 
         if (!settings) {
-            settings = await GlobalSettings.create({ singletonId: 'nexus_settings' });
+            settings = await GlobalSettings.create({ singletonId: 'tnu_settings' });
         }
 
         res.status(200).json({ success: true, data: settings });
@@ -435,10 +469,10 @@ exports.getSettings = async (req, res) => {
  */
 exports.updateSettings = async (req, res) => {
     try {
-        const oldSettings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+        const oldSettings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
 
         const settings = await GlobalSettings.findOneAndUpdate(
-            { singletonId: 'nexus_settings' },
+            { singletonId: 'tnu_settings' },
             req.body,
             { new: true, runValidators: true, upsert: true }
         );
@@ -528,7 +562,7 @@ exports.uploadLogo = async (req, res) => {
 
         // Update the GlobalSettings with the new logo URL
         const settings = await GlobalSettings.findOneAndUpdate(
-            { singletonId: 'nexus_settings' },
+            { singletonId: 'tnu_settings' },
             { logoUrl: result.secure_url },
             { new: true, upsert: true }
         );
@@ -561,7 +595,7 @@ exports.uploadFavicon = async (req, res) => {
 
         // Update the GlobalSettings with the new favicon URL
         const settings = await GlobalSettings.findOneAndUpdate(
-            { singletonId: 'nexus_settings' },
+            { singletonId: 'tnu_settings' },
             { faviconUrl: result.secure_url },
             { new: true, upsert: true }
         );
@@ -669,7 +703,7 @@ exports.sendTestTemplateEmail = async (req, res, next) => {
             email: req.user.email,
             resetToken: 'TEST_TOKEN_123456',
             loginUrl: `${config.get('frontend_url')}/login`,
-            institutionName: 'Nexus University',
+            institutionName: 'TNU University',
             status: 'APPROVED',
             timestamp: new Date().toLocaleString()
         };

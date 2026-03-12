@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const validator = require('validator');
 const softDeletePlugin = require('./plugins/softDelete');
 const config = require('../config/config');
 
@@ -13,14 +14,15 @@ const studentSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add an email'],
         unique: true,
-        match: [
-            /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-            'Please add a valid email'
-        ]
+        validate: { 
+            validator: (v) => validator.isEmail(v), 
+            message: 'Please add a valid email' 
+        }
     },
     password: {
         type: String,
         required: true,
+        minlength: [6, 'Password must be at least 6 characters'],
         select: false, // Don't return password by default
     },
     branch: {

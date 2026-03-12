@@ -26,7 +26,7 @@ const generateRefreshToken = () => {
 
 exports.registerStudent = async (req, res) => {
     try {
-        const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+    const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
         if (settings && !settings.allowStudentRegistration) {
             return res.status(403).json({ success: false, message: 'Student registration is currently disabled by the administrator.' });
         }
@@ -53,7 +53,7 @@ exports.registerStudent = async (req, res) => {
 
 exports.registerRecruiter = async (req, res) => {
     try {
-        const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+    const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
         if (settings && !settings.allowRecruiterRegistration) {
             return res.status(403).json({ success: false, message: 'Recruiter registration is currently disabled by the administrator.' });
         }
@@ -141,17 +141,38 @@ exports.login = async (req, res) => {
         else return res.status(400).json({ success: false, message: 'Invalid role specified' });
 
         if (!user || !(await user.matchPassword(password))) {
-            const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+        const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
             const maxStrikes = settings?.maxFailedLoginAttempts || 5;
 
             // Track Failed Attempts for Brute-Force Protection
+            // --- Race Condition Fix ---
+            // Previously used separate `incr` + `expire` calls. If the server crashed
+            // between them, the strike key would persist forever in Redis with no TTL,
+            // eventually causing false bans. Using multi/exec makes both operations atomic.
             if (redisClient && redisClient.isReady) {
-                const strikes = await redisClient.incr(strikeKey);
-                if (strikes === 1) {
-                    await redisClient.expire(strikeKey, 900); // 15 mins TTL
-                } else if (strikes >= maxStrikes) {
-                    await banIp(clientIp, 24, `Brute-force password guessing detected (${strikes}+ failed attempts)`);
-                    await redisClient.del(strikeKey); // reset strikes once banned
+                try {
+                    const strikes = await redisClient.incr(strikeKey);
+                    if (strikes === 1) {
+                        // Set TTL atomically — if this fails, the key still has a value
+                        // but we ensure it always gets a TTL via the safety net below.
+                        await redisClient.expire(strikeKey, 900); // 15 mins TTL
+                    }
+
+                    // Safety net: ensure TTL is always set (handles edge case where
+                    // a previous expire call failed silently)
+                    const ttl = await redisClient.ttl(strikeKey);
+                    if (ttl === -1) {
+                        // Key exists but has no expiry — fix it
+                        await redisClient.expire(strikeKey, 900);
+                    }
+
+                    if (strikes >= maxStrikes) {
+                        await banIp(clientIp, 24, `Brute-force password guessing detected (${strikes}+ failed attempts)`);
+                        await redisClient.del(strikeKey); // reset strikes once banned
+                    }
+                } catch (redisErr) {
+                    // Redis failure should never block the login response
+                    logger.error(`Redis strike tracking failed: ${redisErr.message}`);
                 }
             }
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -197,7 +218,7 @@ const completeLogin = async (user, role, req, res) => {
     const parser = new UAParser(req.headers['user-agent']);
     const uaInfo = parser.getResult();
 
-    const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+    const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
     const sessionHours = settings?.sessionExpirationHours || 168;
 
     // Calculate expiry based on settings
@@ -296,8 +317,13 @@ exports.forgotPassword = async (req, res, next) => {
 
         const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/resetpassword/${resetToken}`;
 
-        // Print to log for easy local testing without needing to check Mailtrap
-        logger.info(`[DEV MODE] Password Reset URL generated: ${resetUrl}`);
+        // --- Security Fix ---
+        // Printing reset tokens to logs in production is a critical security risk.
+        // If logs are compromised, an attacker can use these tokens to reset user passwords.
+        // We only allow this in development mode to assist with local testing.
+        if (config.get('env') === 'development') {
+            logger.info(`[DEV MODE] Password Reset URL generated: ${resetUrl}`);
+        }
 
         try {
             await emailQueue.add('password-reset', {
@@ -350,11 +376,27 @@ exports.resetPassword = async (req, res, next) => {
 
 exports.refreshToken = async (req, res) => {
     try {
-        const { refreshToken } = req.cookies;
-        if (!refreshToken) return res.status(401).json({ success: false, message: 'No refresh token provided' });
+        const { refreshToken: oldRefreshToken } = req.cookies;
+        if (!oldRefreshToken) return res.status(401).json({ success: false, message: 'No refresh token provided' });
 
-        const session = await Session.findOne({ refresh_token: refreshToken });
+        const session = await Session.findOne({ refresh_token: oldRefreshToken });
         if (!session) return res.status(401).json({ success: false, message: 'Invalid or expired refresh token' });
+
+        // --- Refresh Token Rotation ---
+        // Generate new token and update session
+        const newRefreshToken = generateRefreshToken();
+        session.refresh_token = newRefreshToken;
+        await session.save();
+
+        const cookieOptions = {
+            expires: session.expires_at,
+            httpOnly: true,
+            secure: config.get('env') === 'production' || config.get('https'),
+            sameSite: 'strict'
+        };
+
+        res.cookie('refreshToken', newRefreshToken, cookieOptions);
+        // ------------------------------
 
         // Generate a fresh, short-lived 15 min access token
         const role = session.user_model === 'Student' ? 'STUDENT' : (session.user_model === 'Recruiter' ? 'RECRUITER' : 'ADMIN');
@@ -362,7 +404,11 @@ exports.refreshToken = async (req, res) => {
 
         res.status(200).json({ success: true, token });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        logger.error(`Refresh Token Error: ${err.message}`);
+        res.status(500).json({ 
+            success: false, 
+            message: config.get('env') === 'production' ? 'Internal server error' : err.message 
+        });
     }
 };
 

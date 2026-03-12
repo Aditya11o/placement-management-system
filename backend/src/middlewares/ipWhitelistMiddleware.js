@@ -11,7 +11,7 @@ const ipWhitelist = async (req, res, next) => {
             return next();
         }
 
-        const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+        const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
 
         // If no settings or whitelist is empty, allow access
         if (!settings || !settings.adminIpWhitelist || settings.adminIpWhitelist.length === 0) {

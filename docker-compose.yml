@@ -1,0 +1,96 @@
+# =============================================================================
+# Placement Management System — Docker Compose
+# =============================================================================
+# Usage:
+#   docker-compose up --build -d        # Build and start all services
+#   docker-compose logs -f backend      # Follow backend logs
+#   docker-compose down                 # Stop all services
+#   docker-compose down -v              # Stop and remove volumes (⚠ data loss)
+# =============================================================================
+
+version: "3.9"
+
+services:
+  # ---------------------------------------------------------------------------
+  # Backend (Node.js + Express)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pms-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override the .env values so the backend connects to the Docker services
+      # instead of localhost or remote hosts.
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: mongodb://mongodb:27017/placement_management
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pms-network
+
+  # ---------------------------------------------------------------------------
+  # MongoDB 6.0
+  # ---------------------------------------------------------------------------
+  mongodb:
+    image: mongo:6.0
+    container_name: pms-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - pms-network
+
+  # ---------------------------------------------------------------------------
+  # Redis (Alpine — lightweight)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: pms-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - pms-network
+
+# =============================================================================
+# Persistent Volumes
+# =============================================================================
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# =============================================================================
+# Internal Network
+# =============================================================================
+networks:
+  pms-network:
+    driver: bridge

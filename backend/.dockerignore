@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Environment files (secrets must NOT be baked into images)
+.env
+.env.*
+
+# Version control
+.git
+.gitignore
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+
+# Tests (not needed in production image)
+tests
+jest.config.js
+coverage
+
+# Dev tooling
+.husky
+.eslintrc.json
+nodemon.json
+
+# SSL certs (local dev only)
+ssl
+
+# Docker files (avoid recursive copy)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# OS files
+Thumbs.db
+.DS_Store

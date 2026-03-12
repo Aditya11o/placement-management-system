@@ -2,6 +2,7 @@ import axios, { InternalAxiosRequestConfig, AxiosError, AxiosResponse } from 'ax
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json'
     }
@@ -11,7 +12,7 @@ const api = axios.create({
 // Attach the JWT token from localStorage to every outbound request.
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token && config.headers) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
@@ -48,6 +49,7 @@ api.interceptors.response.use(
             } else {
                 // Fallback for very early requests (before React mounts)
                 localStorage.removeItem('token');
+                sessionStorage.removeItem('token');
                 window.location.href = '/login';
             }
         }

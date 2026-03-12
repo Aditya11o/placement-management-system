@@ -1,4 +1,4 @@
-# 🎓 Placement Management System (Nexus PMS)
+# 🎓 Placement Management System (TNU PMS)
 
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://www.typescriptlang.org/)
@@ -7,7 +7,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Redis-Caching-DC382D.svg)](https://redis.io/)
 
-A premium, full-stack placement automation platform designed for modern universities. **Nexus PMS** bridges the gap between students, recruiters, and administrators, providing a seamless, AI-enhanced workflow for campus recruitments.
+A premium, full-stack placement automation platform designed for modern universities. **TNU PMS** bridges the gap between students, recruiters, and administrators, providing a seamless, AI-enhanced workflow for campus recruitments.
 
 ---
 

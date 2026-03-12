@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const PushSubscription = require('../models/PushSubscription');
+const Job = require('../models/Job');
 const webpush = require('web-push');
 const axios = require('axios'); // For triggerAction internal requests if needed
 const { notifyUser } = require('../utils/socketManager');
@@ -7,7 +8,7 @@ const { notifyUser } = require('../utils/socketManager');
 // Configure web-push with VAPID keys from .env
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
     webpush.setVapidDetails(
-        `mailto:${process.env.EMAIL_FROM || 'admin@nexus.com'}`,
+        `mailto:${process.env.EMAIL_FROM || 'admin@tnu.com'}`,
         process.env.VAPID_PUBLIC_KEY,
         process.env.VAPID_PRIVATE_KEY
     );
@@ -282,7 +283,6 @@ exports.triggerAction = async (req, res) => {
  */
 exports.getRecruiterNotificationStats = async (req, res) => {
     try {
-        const Job = require('../models/Job');
         const recruiterJobs = await Job.find({ recruiter: req.user._id }).select('_id');
         const jobIds = recruiterJobs.map(j => j._id.toString());
 

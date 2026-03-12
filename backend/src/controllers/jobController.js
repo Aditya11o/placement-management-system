@@ -1,8 +1,11 @@
 const Job = require('../models/Job');
 const Recruiter = require('../models/Recruiter');
+const Application = require('../models/Application');
 const Log = require('../models/Log');
 const { calculateMatchScore } = require('../services/matchingService');
 const { dispatchToRole } = require('../services/notifyDispatcher');
+const { clearCache } = require('../middlewares/cacheMiddleware');
+const { checkEligibility } = require('../services/eligibilityService');
 
 exports.createJob = async (req, res) => {
     try {
@@ -35,7 +38,6 @@ exports.createJob = async (req, res) => {
             target_id: job._id
         });
 
-        const { clearCache } = require('../middlewares/cacheMiddleware');
         await clearCache('/api/v1/jobs');
 
         // 🚀 Broadcast to all students — new opportunity available
@@ -74,12 +76,24 @@ exports.getRecruiterJobs = async (req, res) => {
             .limit(limit)
             .lean();
 
-        // Append application counts
-        const Application = require('../models/Application');
-        const jobsWithCount = await Promise.all(jobs.map(async (job) => {
-            const count = await Application.countDocuments({ job_id: job._id });
-            return { ...job, applicationCount: count };
+        // --- Optimization: Prevent N+1 Query ---
+        // Instead of counting applications for each job in a loop (Standard N+1 issue),
+        // we use a single aggregation to get counts for all fetched jobs at once.
+
+        const jobIds = jobs.map(job => job._id);
+
+        const counts = await Application.aggregate([
+            { $match: { job_id: { $in: jobIds } } },
+            { $group: { _id: '$job_id', count: { $sum: 1 } } }
+        ]);
+
+        // Map counts back to jobs
+        const countMap = new Map(counts.map(c => [c._id.toString(), c.count]));
+        const jobsWithCount = jobs.map(job => ({
+            ...job,
+            applicationCount: countMap.get(job._id.toString()) || 0
         }));
+        // ---------------------------------------
 
         res.status(200).json({ 
             success: true, 
@@ -137,7 +151,6 @@ exports.updateJob = async (req, res) => {
             target_id: job._id
         });
 
-        const { clearCache } = require('../middlewares/cacheMiddleware');
         await clearCache('/api/v1/jobs');
 
         res.json({ success: true, data: job });
@@ -146,7 +159,7 @@ exports.updateJob = async (req, res) => {
     }
 };
 
-const { checkEligibility } = require('../services/eligibilityService');
+
 
 // Eligibility Engine: Get jobs student is allowed to apply for
 exports.getEligibleJobs = async (req, res, next) => {

@@ -8,7 +8,7 @@ import SkeletonJobCard from '../../components/Skeleton/SkeletonJobCard';
 import { Search, MapPin, Building, Calendar, DollarSign, Send, CheckCircle, ChevronLeft, ChevronRight, Filter, Briefcase } from 'lucide-react';
 import api from '../../services/api';
 import JobModal, { UIJob } from '../../components/JobModal/JobModal';
-import PageTransition from '../../components/Transitions/PageTransition';
+
 import { motion, Variants } from 'framer-motion';
 
 const JOB_TYPES = ['Full-time', 'Part-time', 'Internship', 'Contract'];
@@ -102,7 +102,7 @@ const JobBoard: React.FC = () => {
     };
 
     return (
-        <PageTransition className="flex flex-col gap-6 relative">
+        <div className="flex flex-col gap-6 relative">
             <div>
                 <h1 className="text-3xl font-bold text-indigo-700 dark:text-indigo-400 mb-1">Job Discovery Board</h1>
                 <p className="text-slate-500 dark:text-slate-400 text-base m-0">Find and apply to the latest placement opportunities.</p>
@@ -363,7 +363,7 @@ const JobBoard: React.FC = () => {
                 onApply={handleApply}
                 isApplying={applyingTo === selectedJob?._id}
             />
-        </PageTransition>
+        </div>
     );
 };
 

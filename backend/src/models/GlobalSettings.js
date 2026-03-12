@@ -4,7 +4,7 @@ const GlobalSettingsSchema = new mongoose.Schema({
     // Only one document should exist. We use a static ID to enforce this.
     singletonId: {
         type: String,
-        default: 'nexus_settings',
+        default: 'tnu_settings',
         unique: true
     },
     allowStudentRegistration: {
@@ -41,7 +41,7 @@ const GlobalSettingsSchema = new mongoose.Schema({
     },
     institutionName: {
         type: String,
-        default: 'Nexus'
+        default: 'TNU'
     },
     sessionExpirationHours: {
         type: Number,

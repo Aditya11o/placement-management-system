@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import {
     FileText, Users, Settings, LogOut, Building, LucideIcon, ShieldCheck, Send, Search,
     Shield, FileCheck, Activity, Calendar, TrendingUp, Globe
 } from 'lucide-react';
+import Loader from '../components/Loader/Loader';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
 import ThemeToggle from '../components/ThemeToggle/ThemeToggle';
 import CommandPalette from '../components/CommandPalette/CommandPalette';
@@ -118,7 +119,7 @@ const MainLayout: React.FC = () => {
                     {logoUrl ? (
                         <img src={logoUrl} alt="Institution Logo" className="h-8 w-auto object-contain" />
                     ) : (
-                        <h2 className="text-brand-600 dark:text-brand-400 m-0 text-2xl font-bold tracking-tight">Nexus</h2>
+                        <h2 className="text-brand-600 dark:text-brand-400 m-0 text-2xl font-bold tracking-tight">TNU</h2>
                     )}
                     <button className="lg:hidden text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" onClick={toggleSidebar}>
                         <X size={20} />
@@ -174,7 +175,7 @@ const MainLayout: React.FC = () => {
                             <Menu size={24} />
                         </button>
                         <h1 className="font-semibold text-slate-800 dark:text-slate-100 text-lg sm:text-xl m-0 truncate hidden sm:block transition-colors">Placement Management System</h1>
-                        <h1 className="font-semibold text-slate-800 dark:text-slate-100 text-lg m-0 truncate sm:hidden transition-colors">Nexus Portal</h1>
+                        <h1 className="font-semibold text-slate-800 dark:text-slate-100 text-lg m-0 truncate sm:hidden transition-colors">TNU Portal</h1>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -201,18 +202,20 @@ const MainLayout: React.FC = () => {
                     <div className="mesh-glow" />
                     <div className="mesh-glow" />
 
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={location.pathname}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
-                            className="relative z-10"
-                        >
-                            <Outlet />
-                        </motion.div>
-                    </AnimatePresence>
+                    <Suspense fallback={<Loader />}>
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={location.pathname}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="relative z-10 h-full"
+                            >
+                                <Outlet />
+                            </motion.div>
+                        </AnimatePresence>
+                    </Suspense>
                 </div>
             </main>
 

@@ -4,7 +4,7 @@ import Button from '../Button/Button';
 import { Job } from '../../types';
 
 // Extend Job interface to match the UIJob we use in JobBoard
-export interface UIJob extends Job {
+export interface UIJob extends Omit<Job, 'min_cgpa' | 'eligible_branch' | 'graduation_year' | 'status' | 'deadline'> {
     company?: { company_name: string };
     skills_required: string[];
     status: 'ACTIVE' | 'CLOSED';
@@ -21,6 +21,7 @@ export interface UIJob extends Job {
     max_backlogs_allowed?: number;
     diversity_hiring?: string;
     graduation_year?: number;
+    type?: string;
 }
 
 interface JobModalProps {

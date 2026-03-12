@@ -48,7 +48,7 @@ const ResetPassword = () => {
 
             <div className="relative z-10 w-full max-w-[440px] p-4">
                 <div className="text-center mb-8 animate-fade-in">
-                    <h1 className="text-4xl text-indigo-600 tracking-tight font-bold mb-1">Nexus</h1>
+                    <h1 className="text-4xl text-indigo-600 tracking-tight font-bold mb-1">TNU</h1>
                 </div>
 
                 <Card className="!p-8 sm:!p-10 shadow-xl animate-fade-in" style={{ animationDelay: '0.1s' }}>

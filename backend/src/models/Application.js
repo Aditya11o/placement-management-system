@@ -16,7 +16,7 @@ const applicationSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['SUBMITTED', 'REVIEWED', 'SHORTLISTED', 'SELECTED', 'OFFER_ACCEPTED', 'OFFER_DECLINED'],
+        enum: ['SUBMITTED', 'REVIEWED', 'SHORTLISTED', 'SELECTED', 'REJECTED', 'OFFER_ACCEPTED', 'OFFER_DECLINED'],
         default: 'SUBMITTED',
         index: true,
     },
@@ -49,6 +49,8 @@ const applicationSchema = new mongoose.Schema({
 
 // Enforce unique application per job per student
 applicationSchema.index({ student_id: 1, job_id: 1 }, { unique: true });
+// Index for sorting by application date
+applicationSchema.index({ applied_at: -1 });
 
 applicationSchema.plugin(softDeletePlugin);
 

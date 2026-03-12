@@ -77,7 +77,7 @@ const dispatchToUser = async ({
         // 4. Webhook Integration (Recruiters only for now)
         if (recipientModel === 'Recruiter' && recipient.webhook_url) {
             try {
-                sendWebhook(recipient.webhook_url, `[Nexus] ${title}`, {
+                sendWebhook(recipient.webhook_url, `[TNU] ${title}`, {
                     'Message': message,
                     'Status': type,
                     'Link': link ? `${process.env.FRONTEND_URL || 'http://localhost:5173'}${link}` : 'N/A',
@@ -104,7 +104,7 @@ const dispatchToUser = async ({
 
             if ((frequency === 'IMMEDIATE' || isCritical) && !suppressDueToSilence) {
                 // Queue immediate email
-                emailQueue.add('nexus-notification-email', {
+                emailQueue.add('tnu-notification-email', {
                     email: recipient.email,
                     subject: emailOptions?.subject || title,
                     template: emailOptions?.template || 'alert',

@@ -68,7 +68,8 @@ const healthCors = cors({
         } else {
             callback(new Error('Not allowed by CORS'));
         }
-    }
+    },
+    credentials: true
 });
 app.use('/api/v1/health', healthCors, healthRoutes);
 
@@ -82,14 +83,24 @@ const limiter = rateLimit({
     },
     message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes.' },
     handler: async (req, res, next, options) => {
-        const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
-        logger.warn(`RATE LIMIT BREACHED BY ${clientIp}. Triggering 24-hour network ban.`);
+        // --- Race Condition Fix ---
+        // express-rate-limit does NOT handle rejected promises from async handlers.
+        // If banIp throws (e.g. Redis offline), the error goes unhandled and the
+        // response hangs forever. Wrapping in try/catch ensures a response is ALWAYS sent.
+        try {
+            const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+            logger.warn(`RATE LIMIT BREACHED BY ${clientIp}. Triggering 24-hour network ban.`);
 
-        // Push to Redis blocklist for 24 hours
-        await banIp(clientIp, 24, 'Exceeded Global Rate Limiting Thresholds (Spam/DDoS)');
+            // Push to Redis blocklist for 24 hours
+            await banIp(clientIp, 24, 'Exceeded Global Rate Limiting Thresholds (Spam/DDoS)');
 
-        // Return 403 Forbidden payload
-        res.status(403).json(options.message);
+            // Return 403 Forbidden payload
+            res.status(403).json(options.message);
+        } catch (err) {
+            logger.error(`Rate limit ban handler failed: ${err.message}`);
+            // Graceful fallback: still deny the request even if banning failed
+            res.status(429).json(options.message);
+        }
     }
 });
 app.use('/api', limiter);
@@ -103,13 +114,14 @@ const corsOptions = {
         } else {
             callback(new Error('Not allowed by CORS'));
         }
-    }
+    },
+    credentials: true
 };
 app.use(cors(corsOptions));
 
 const cookieParser = require('cookie-parser');
 
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
 // Sanitize data against NoSQL query injection

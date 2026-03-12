@@ -185,7 +185,7 @@ exports.updateApplicationStatus = async (req, res) => {
 
             // 🔌 Check for Tier-1 Placement Celebration Webhook
             try {
-                const settings = await GlobalSettings.findOne({ singletonId: 'nexus_settings' });
+                const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
                 if (settings && settings.systemWebhookUrl) {
                     const threshold = settings.tier1SalaryThreshold || 1000000;
                     if (application.job_id.package_lpa >= threshold) {

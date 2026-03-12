@@ -9,7 +9,7 @@ self.addEventListener('push', (event) => {
         }
     }
 
-    const title = data.title || 'Nexus PMS';
+    const title = data.title || 'TNU PMS';
     const options = {
         body: data.message || data.body || 'You have a new update.',
         icon: data.icon || '/favicon.ico',
@@ -18,7 +18,7 @@ self.addEventListener('push', (event) => {
             url: data.link || data.url || '/notifications'
         },
         actions: data.actions || [],
-        tag: data.tag || 'nexus-notification',
+        tag: data.tag || 'tnu-notification',
         renotify: true
     };
 

@@ -24,7 +24,7 @@ exports.protect = async (req, res, next) => {
         let user;
         if (decoded.role === 'STUDENT') user = await Student.findById(decoded.id);
         else if (decoded.role === 'RECRUITER') user = await Recruiter.findById(decoded.id);
-        else if (decoded.role === 'ADMIN') user = await Admin.findById(decoded.id);
+        else if (decoded.role === 'ADMIN' || decoded.role === 'SUPER_ADMIN') user = await Admin.findById(decoded.id);
 
         if (!user) {
             return res.status(401).json({ success: false, message: 'User not found' });

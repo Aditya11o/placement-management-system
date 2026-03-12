@@ -4,7 +4,7 @@ const logger = require('./logger');
 /**
  * Internal generic helper to queue a webhook job
  */
-const queueWebhook = async (url, message, fields = {}, username = 'Nexus PMS Bot') => {
+const queueWebhook = async (url, message, fields = {}, username = 'TNU PMS Bot') => {
     if (!url) return;
 
     try {
@@ -39,12 +39,12 @@ const queueWebhook = async (url, message, fields = {}, username = 'Nexus PMS Bot
  * Sends a formatted alert to the configured system webhook (Slack/Discord)
  */
 exports.sendSystemAlert = async (url, message, fields = {}) => {
-    return queueWebhook(url, message, fields, 'Nexus System');
+    return queueWebhook(url, message, fields, 'TNU System');
 };
 
 /**
  * Sends a formatted alert to a User/Recruiter defined webhook
  */
-exports.sendWebhook = async (url, message, fields = {}, username = 'Nexus Notification') => {
+exports.sendWebhook = async (url, message, fields = {}, username = 'TNU Notification') => {
     return queueWebhook(url, message, fields, username);
 };

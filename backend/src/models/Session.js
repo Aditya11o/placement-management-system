@@ -27,7 +27,10 @@ const sessionSchema = new mongoose.Schema({
         type: Date,
         required: true
     }
-}, { timestamps: true });
+}, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
+
+// Index for fast session lookups during token refresh
+sessionSchema.index({ refresh_token: 1 });
 
 // Auto-delete expired sessions using TTL index
 sessionSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });

@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const config = require('../config/config');
 
 const errorHandler = (err, req, res, next) => {
     let error = { ...err };
@@ -12,8 +13,8 @@ const errorHandler = (err, req, res, next) => {
         });
     }
 
-    // Log for dev using Winston
-    logger.error(`${err.name}: ${err.message}`);
+    // Log for dev using Winston (always log the full error)
+    logger.error(`${err.name}: ${err.message}`, { stack: err.stack, path: req.path });
 
     // Mongoose bad ObjectId
     if (err.name === 'CastError') {
@@ -36,9 +37,19 @@ const errorHandler = (err, req, res, next) => {
         error.statusCode = 400;
     }
 
-    res.status(error.statusCode || 500).json({
+    // Determine the status code
+    const statusCode = error.statusCode || 500;
+
+    // Redaction for production environment
+    // Only return the actual message if it's a client error (4xx) or if in development
+    let responseMessage = error.message || 'Server Error';
+    if (config.get('env') === 'production' && statusCode >= 500) {
+        responseMessage = 'Internal Server Error';
+    }
+
+    res.status(statusCode).json({
         success: false,
-        error: error.message || 'Server Error'
+        error: responseMessage
     });
 };
 
