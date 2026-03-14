@@ -1,5 +1,7 @@
 import axios, { InternalAxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
 
+let _tenantId: string | null = null;
+
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
     withCredentials: true,
@@ -8,32 +10,40 @@ const api = axios.create({
     }
 });
 
+/**
+ * Update the global tenant ID used for all outbound requests.
+ * Called by AuthProvider when a user logs in.
+ */
+export const setTenantId = (id: string | null) => {
+    _tenantId = id;
+};
+
 // --- Request Interceptor ---
-// Attach the JWT token from localStorage to every outbound request.
+// Attach the JWT token and Tenant ID to every outbound request.
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token && config.headers) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
+
+        // Inject the X-College-Id header for multi-tenancy scoping
+        if (_tenantId && config.headers) {
+            config.headers['X-College-Id'] = _tenantId;
+        }
+
         return config;
     },
     (error: AxiosError) => Promise.reject(error)
 );
 
 // --- Response Interceptor (runtime-injectable) ---
-// We use a holder pattern so App.tsx can inject real React callbacks
-// after the component tree mounts, avoiding circular imports.
 type InterceptorCallbacks = {
     onUnauthenticated: () => void;
 };
 
 let _callbacks: InterceptorCallbacks | null = null;
 
-/**
- * Call this once from inside the React component tree (after providers mount)
- * to wire up the 401 response handler with access to AuthContext and QueryClient.
- */
 export const setupInterceptors = (callbacks: InterceptorCallbacks) => {
     _callbacks = callbacks;
 };
@@ -43,11 +53,8 @@ api.interceptors.response.use(
     (error: AxiosError) => {
         if (error.response?.status === 401) {
             if (_callbacks) {
-                // Delegate to the injected handler  — it has access to
-                // queryClient.clear(), logout(), and addToast().
                 _callbacks.onUnauthenticated();
             } else {
-                // Fallback for very early requests (before React mounts)
                 localStorage.removeItem('token');
                 sessionStorage.removeItem('token');
                 window.location.href = '/login';

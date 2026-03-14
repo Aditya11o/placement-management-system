@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const softDeletePlugin = require('./plugins/softDelete');
+const tenantPlugin = require('./plugins/tenantPlugin');
 
 const applicationSchema = new mongoose.Schema({
     student_id: {
@@ -66,9 +67,9 @@ const applicationSchema = new mongoose.Schema({
 
 // Enforce unique application per job per student
 applicationSchema.index({ student_id: 1, job_id: 1 }, { unique: true });
-// Index for sorting by application date
 applicationSchema.index({ applied_at: -1 });
 
 applicationSchema.plugin(softDeletePlugin);
+applicationSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Application', applicationSchema);

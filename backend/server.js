@@ -6,6 +6,21 @@ const morganMiddleware = require('./src/middlewares/morganMiddleware');
 const logger = require('./src/utils/logger');
 const config = require('./src/config/config');
 
+const Sentry = require('@sentry/node');
+const { nodeProfilingIntegration } = require('@sentry/profiling-node');
+
+if (config.get('sentry.dsn')) {
+    Sentry.init({
+        dsn: config.get('sentry.dsn'),
+        integrations: [
+            nodeProfilingIntegration(),
+        ],
+        // Performance Monitoring
+        tracesSampleRate: 1.0,
+        profilesSampleRate: 1.0,
+    });
+}
+
 const helmet = require('helmet');
 
 const hpp = require('hpp');
@@ -129,6 +144,10 @@ app.use(mongoSanitize());
 app.use(xss());
 app.use(hpp());
 
+// Multi-Tenancy Scoping Middleware (AsyncLocalStorage)
+const { tenantMiddleware } = require('./src/middlewares/tenantMiddleware');
+app.use(tenantMiddleware);
+
 // Routes
 const authRoutes = require('./src/routes/authRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
@@ -185,6 +204,11 @@ app.get('/', (req, res) => {
 // Setup Swagger API Documentation
 const swaggerDocs = require('./src/config/swagger');
 swaggerDocs(app);
+
+// Sentry Error Handler (must be before custom error handler)
+if (config.get('sentry.dsn')) {
+    Sentry.setupExpressErrorHandler(app);
+}
 
 // Error Handler Middleware
 const errorHandler = require('./src/middlewares/errorMiddleware');

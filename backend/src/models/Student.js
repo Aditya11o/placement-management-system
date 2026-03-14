@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const validator = require('validator');
 const softDeletePlugin = require('./plugins/softDelete');
+const tenantPlugin = require('./plugins/tenantPlugin');
 const config = require('../config/config');
 
 const studentSchema = new mongoose.Schema({
@@ -153,6 +154,7 @@ studentSchema.virtual('resume_url').get(function () {
 
 // Apply soft-delete retention strategy
 studentSchema.plugin(softDeletePlugin);
+studentSchema.plugin(tenantPlugin);
 
 studentSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();

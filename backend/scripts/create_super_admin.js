@@ -1,18 +1,20 @@
 const mongoose = require('mongoose');
-const Admin = require('./src/models/Admin');
+const Admin = require('../src/models/Admin');
 const dotenv = require('dotenv');
 const fs = require('fs');
+const path = require('path');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const log = (msg) => {
     console.log(msg);
-    fs.appendFileSync('creation_status.txt', msg + '\n');
+    fs.appendFileSync(path.join(__dirname, '../creation_status.txt'), msg + '\n');
 };
 
 const createSuperAdmin = async () => {
     try {
-        if (fs.existsSync('creation_status.txt')) fs.unlinkSync('creation_status.txt');
+        const statusFile = path.join(__dirname, '../creation_status.txt');
+        if (fs.existsSync(statusFile)) fs.unlinkSync(statusFile);
 
         const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/placement_management';
         log('Attempting to connect to: ' + uri);

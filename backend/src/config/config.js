@@ -179,6 +179,14 @@ const config = convict({
             sensitive: true
         }
     },
+    sentry: {
+        dsn: {
+            doc: 'Sentry DSN for error tracking.',
+            format: String,
+            default: '',
+            env: 'SENTRY_DSN'
+        }
+    },
     frontend_url: {
         doc: 'Frontend URL.',
         format: String,

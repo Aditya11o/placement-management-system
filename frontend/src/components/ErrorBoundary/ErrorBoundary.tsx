@@ -3,6 +3,7 @@ import Card from '../Card/Card';
 import Button from '../Button/Button';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
+import * as Sentry from '@sentry/react';
 
 interface ErrorBoundaryProps {
     children: ReactNode;
@@ -26,6 +27,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error("ErrorBoundary caught an error:", error, errorInfo);
+        if (import.meta.env.VITE_SENTRY_DSN) {
+            Sentry.captureException(error, { extra: errorInfo as unknown as Record<string, unknown> });
+        }
     }
 
     handleReload = () => {

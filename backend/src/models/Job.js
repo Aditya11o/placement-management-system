@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const softDeletePlugin = require('./plugins/softDelete');
+const tenantPlugin = require('./plugins/tenantPlugin');
 
 const jobSchema = new mongoose.Schema({
     title: {
@@ -117,5 +118,6 @@ const jobSchema = new mongoose.Schema({
 jobSchema.index({ eligible_branch: 1, status: 1 });
 
 jobSchema.plugin(softDeletePlugin);
+jobSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Job', jobSchema);

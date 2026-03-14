@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import api from '../services/api';
+import api, { setTenantId } from '../services/api';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         sessionStorage.removeItem('token');
         setToken(null);
         setUser(null);
+        setTenantId(null);
     };
 
     // Initialize Auth state from token on load
@@ -40,6 +41,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         const response = await api.get('/auth/me');
                         const userData = response.data.data;
                         const newUser = { ...userData, role: decoded.role };
+
+                        // Update global tenant ID for API requests
+                        if (userData.college_id) {
+                            setTenantId(userData.college_id.toString());
+                        }
 
                         // Only update if something actually changed to avoid downstream re-renders
                         setUser(prev => {
@@ -75,6 +81,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const decoded: any = jwtDecode(newToken);
         setUser({ ...userData, role: decoded.role });
+
+        if (userData.college_id) {
+            setTenantId(userData.college_id.toString());
+        }
 
         return { role: decoded.role };
     };

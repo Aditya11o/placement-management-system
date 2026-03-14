@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const validator = require('validator');
 const config = require('../config/config');
+const tenantPlugin = require('./plugins/tenantPlugin');
 
 const recruiterSchema = new mongoose.Schema({
     company_name: {
@@ -71,6 +72,8 @@ const recruiterSchema = new mongoose.Schema({
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }
 });
+
+recruiterSchema.plugin(tenantPlugin);
 
 recruiterSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
