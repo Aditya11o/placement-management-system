@@ -7,7 +7,7 @@ const { dispatchToRole } = require('../services/notifyDispatcher');
 const { clearCache } = require('../middlewares/cacheMiddleware');
 const { checkEligibility } = require('../services/eligibilityService');
 
-exports.createJob = async (req, res) => {
+exports.createJob = async (req, res, next) => {
     try {
         // Automatically inject recruiter's id and company name from standard token fields
         const jobData = { ...req.body };
@@ -58,7 +58,7 @@ exports.createJob = async (req, res) => {
 // @desc    Get all jobs for logged in recruiter (Shared Company Workspace)
 // @route   GET /api/v1/jobs/recruiter
 // @access  Private (Recruiter)
-exports.getRecruiterJobs = async (req, res) => {
+exports.getRecruiterJobs = async (req, res, next) => {
     try {
         const recruiter = await Recruiter.findById(req.user._id);
         if (!recruiter.company_id) {
@@ -107,14 +107,14 @@ exports.getRecruiterJobs = async (req, res) => {
             data: jobsWithCount 
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // @desc    Update job
 // @route   PUT /api/v1/jobs/:id
 // @access  Private (Recruiter)
-exports.updateJob = async (req, res) => {
+exports.updateJob = async (req, res, next) => {
     try {
         const recruiter = await Recruiter.findById(req.user._id);
         let job = await Job.findById(req.params.id);
@@ -155,7 +155,7 @@ exports.updateJob = async (req, res) => {
 
         res.json({ success: true, data: job });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -185,11 +185,11 @@ exports.getEligibleJobs = async (req, res, next) => {
         // Send modified payload
         res.status(200).json(res.advancedResults);
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.getJobById = async (req, res) => {
+exports.getJobById = async (req, res, next) => {
     try {
         let job = await Job.findById(req.params.id);
         if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
@@ -203,7 +203,7 @@ exports.getJobById = async (req, res) => {
 
         res.json({ success: true, matchScore, data: job });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -212,7 +212,7 @@ exports.getJobById = async (req, res) => {
  * @route   GET /api/v1/jobs/recommended
  * @access  Private/Student
  */
-exports.getRecommendedJobs = async (req, res) => {
+exports.getRecommendedJobs = async (req, res, next) => {
     try {
         const student = req.user;
         // Cap job pool to 200 most recent active and approved jobs to avoid memory/API pressure
@@ -238,6 +238,6 @@ exports.getRecommendedJobs = async (req, res) => {
             data: topJobs
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

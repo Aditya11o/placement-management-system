@@ -258,6 +258,7 @@ const AdminStudents = () => {
                     _id: selectedStudent._id,
                     job: { _id: 'admin', title: 'Admin View' },
                     student: {
+                        _id: selectedStudent._id,
                         name: selectedStudent.name,
                         email: selectedStudent.email,
                         phone: selectedStudent.phone,
@@ -273,7 +274,8 @@ const AdminStudents = () => {
                     },
                     status: 'SUBMITTED',
                     resume_url: selectedStudent.studentProfile?.resume_url,
-                    matchScore: 0 // Not relevant for admin view
+                    matchScore: 0,
+                    createdAt: selectedStudent.created_at || new Date().toISOString()
                 } : null}
             />
 

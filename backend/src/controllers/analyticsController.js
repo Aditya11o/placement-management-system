@@ -35,7 +35,7 @@ function buildDateFilter(from, to, field = 'created_at') {
  * @route   GET /api/v1/analytics/overview?from=&to=
  * @access  Private/Admin
  */
-exports.getOverviewStats = async (req, res) => {
+exports.getOverviewStats = async (req, res, next) => {
     try {
         const dateFilter = buildDateFilter(req.query.from, req.query.to); // Defaults to created_at
         const appDateFilter = buildDateFilter(req.query.from, req.query.to, 'applied_at');
@@ -53,7 +53,7 @@ exports.getOverviewStats = async (req, res) => {
             data: { totalStudents, totalRecruiters, activeJobs, totalApplications }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -62,7 +62,7 @@ exports.getOverviewStats = async (req, res) => {
  * @route   GET /api/v1/analytics/placements?from=&to=
  * @access  Private/Admin
  */
-exports.getPlacementStats = async (req, res) => {
+exports.getPlacementStats = async (req, res, next) => {
     try {
         const dateFilter = buildDateFilter(req.query.from, req.query.to);
         const appDateFilter = buildDateFilter(req.query.from, req.query.to, 'applied_at');
@@ -87,7 +87,7 @@ exports.getPlacementStats = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -96,7 +96,7 @@ exports.getPlacementStats = async (req, res) => {
  * @route   GET /api/v1/analytics/branch-placements?from=&to=
  * @access  Private/Admin
  */
-exports.getBranchPlacementStats = async (req, res) => {
+exports.getBranchPlacementStats = async (req, res, next) => {
     try {
         const dateFilter = buildDateFilter(req.query.from, req.query.to);
 
@@ -138,7 +138,7 @@ exports.getBranchPlacementStats = async (req, res) => {
             data: branchStats
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -147,7 +147,7 @@ exports.getBranchPlacementStats = async (req, res) => {
  * @route   GET /api/v1/analytics/top-companies?from=&to=&limit=10
  * @access  Private/Admin
  */
-exports.getTopCompanies = async (req, res) => {
+exports.getTopCompanies = async (req, res, next) => {
     try {
         const appDateFilter = buildDateFilter(req.query.from, req.query.to, 'applied_at');
         const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
@@ -168,7 +168,7 @@ exports.getTopCompanies = async (req, res) => {
             data: topCompanies
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -179,7 +179,7 @@ exports.getTopCompanies = async (req, res) => {
  * @route   GET /api/v1/analytics/trends?from=2026-01-01&to=2026-12-31
  * @access  Private/Admin
  */
-exports.getTrends = async (req, res) => {
+exports.getTrends = async (req, res, next) => {
     try {
         // Default: last 12 months
         const to = req.query.to ? new Date(req.query.to) : new Date();
@@ -261,7 +261,7 @@ exports.getTrends = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -273,7 +273,7 @@ exports.getTrends = async (req, res) => {
  * Returns counts at each stage of the application pipeline:
  * SUBMITTED → REVIEWED → SHORTLISTED → SELECTED (and REJECTED at each stage)
  */
-exports.getFunnel = async (req, res) => {
+exports.getFunnel = async (req, res, next) => {
     try {
         const appDateFilter = buildDateFilter(req.query.from, req.query.to, 'applied_at');
 
@@ -301,7 +301,7 @@ exports.getFunnel = async (req, res) => {
             data: { total, funnel }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -310,7 +310,7 @@ exports.getFunnel = async (req, res) => {
  * @route   GET /api/v1/analytics/salary-stats?from=&to=
  * @access  Private/Admin
  */
-exports.getSalaryStats = async (req, res) => {
+exports.getSalaryStats = async (req, res, next) => {
     try {
         const appDateFilter = buildDateFilter(req.query.from, req.query.to, 'applied_at');
 
@@ -362,7 +362,7 @@ exports.getSalaryStats = async (req, res) => {
             data: salaryStats
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -371,7 +371,7 @@ exports.getSalaryStats = async (req, res) => {
  * @route   GET /api/v1/analytics/predictive
  * @access  Private/Admin
  */
-exports.getPredictiveAnalytics = async (req, res) => {
+exports.getPredictiveAnalytics = async (req, res, next) => {
     try {
         // 1. Rising Skills Aggregation
         // Unwinds the requirements array, lowercases and trims to avoid duplicates
@@ -425,7 +425,7 @@ exports.getPredictiveAnalytics = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -434,7 +434,7 @@ exports.getPredictiveAnalytics = async (req, res) => {
  * @route   GET /api/v1/analytics/cohorts
  * @access  Private/Admin
  */
-exports.getCohortAnalysis = async (req, res) => {
+exports.getCohortAnalysis = async (req, res, next) => {
     try {
         const cohortStats = await Student.aggregate([
             { $match: { status: 'APPROVED' } },
@@ -511,7 +511,7 @@ exports.getCohortAnalysis = async (req, res) => {
 
         res.status(200).json({ success: true, data: cohortStats });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -520,7 +520,7 @@ exports.getCohortAnalysis = async (req, res) => {
  * @route   GET /api/v1/analytics/engagement
  * @access  Private/Admin
  */
-exports.getEngagementStats = async (req, res) => {
+exports.getEngagementStats = async (req, res, next) => {
     try {
         const engagement = await Application.aggregate([
             {
@@ -574,7 +574,7 @@ exports.getEngagementStats = async (req, res) => {
 
         res.status(200).json({ success: true, data: engagement });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -588,7 +588,7 @@ function getMonthName(monthNumber) { return MONTHS[monthNumber - 1] || '?'; }
  * @route   GET /api/v1/analytics/placement-readiness
  * @access  Private/Admin
  */
-exports.getPlacementReadiness = async (req, res) => {
+exports.getPlacementReadiness = async (req, res, next) => {
     try {
         const students = await Student.aggregate([
             { $match: { status: 'APPROVED' } },
@@ -667,6 +667,6 @@ exports.getPlacementReadiness = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

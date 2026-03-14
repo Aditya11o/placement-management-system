@@ -26,7 +26,7 @@ const CONFIGURABLE_EVENTS = {
  * @route   GET /api/v1/notification-prefs
  * @access  Private
  */
-exports.getPrefs = async (req, res) => {
+exports.getPrefs = async (req, res, next) => {
     try {
         const userModel = req.user.role === 'STUDENT' ? 'Student'
             : req.user.role === 'RECRUITER' ? 'Recruiter' : 'Admin';
@@ -44,7 +44,7 @@ exports.getPrefs = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -56,7 +56,7 @@ exports.getPrefs = async (req, res) => {
  * Body: flat or nested preference map, e.g.
  *   { "application_status_update": { "push": true, "email": false }, "weekly_digest": false }
  */
-exports.updatePrefs = async (req, res) => {
+exports.updatePrefs = async (req, res, next) => {
     try {
         const userModel = req.user.role === 'STUDENT' ? 'Student'
             : req.user.role === 'RECRUITER' ? 'Recruiter' : 'Admin';
@@ -99,7 +99,7 @@ exports.updatePrefs = async (req, res) => {
             data: prefs
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -108,7 +108,7 @@ exports.updatePrefs = async (req, res) => {
  * @route   DELETE /api/v1/notification-prefs
  * @access  Private
  */
-exports.resetPrefs = async (req, res) => {
+exports.resetPrefs = async (req, res, next) => {
     try {
         const userModel = req.user.role === 'STUDENT' ? 'Student'
             : req.user.role === 'RECRUITER' ? 'Recruiter' : 'Admin';
@@ -122,6 +122,6 @@ exports.resetPrefs = async (req, res) => {
             data: fresh
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

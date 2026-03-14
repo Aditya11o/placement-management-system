@@ -12,17 +12,55 @@ export interface User {
     updatedAt?: string;
 }
 
+export interface Project {
+    title: string;
+    description: string;
+    technologies: string[];
+    link?: string;
+    duration?: string;
+}
+
+export interface Internship {
+    company: string;
+    role: string;
+    description: string;
+    duration?: string;
+    certificate_url?: string;
+}
+
+export interface Badge {
+    type: string;
+    awardedAt: string;
+}
+
+export interface Gamification {
+    streak: number;
+    lastActive: string;
+    badges: Badge[];
+    points: number;
+}
+
 export interface StudentProfile {
     _id: string;
-    user: string;
+    user: string | User;
     branch: string;
     cgpa: number;
     graduation_year: number;
-    gender: 'MALE' | 'FEMALE' | 'OTHER';
+    gender?: 'MALE' | 'FEMALE' | 'OTHER';
     marks_10th: number;
     marks_12th: number;
     skills: string[];
+    projects: Project[];
+    internships: Internship[];
+    gamification: Gamification;
+    public_profile_slug?: string;
+    profile_image_url?: string;
     resume_url?: string;
+    activeResume?: {
+        url: string;
+        version: number;
+    };
+    portfolio_theme?: 'MINIMALIST' | 'CREATIVE' | 'TECHNICAL' | 'EXECUTIVE';
     is_approved: boolean;
     createdAt?: string;
     updatedAt?: string;
@@ -44,11 +82,14 @@ export interface RecruiterProfile {
 export interface Job {
     _id: string;
     recruiter_id: string | User;
+    company?: { company_name: string }; // Populated
     title: string;
     description: string;
     requirements?: string[];
+    skills_required: string[];
     location: string;
     package_lpa: number;
+    salary_package?: string; // Formatted or duplicate
     salary_min?: number;
     salary_max?: number;
     has_equity?: boolean;
@@ -60,6 +101,8 @@ export interface Job {
     is_featured?: boolean;
     status: 'ACTIVE' | 'CLOSED';
     deadline: string;
+    hasApplied?: boolean;
+    matchScore?: number;
     created_at?: string;
     createdAt?: string;
     updatedAt?: string;

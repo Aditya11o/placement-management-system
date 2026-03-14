@@ -22,6 +22,14 @@ const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
 const Resumes = lazy(() => import('./pages/student/Resumes'));
 const JobBoard = lazy(() => import('./pages/student/JobBoard'));
 const StudentApplications = lazy(() => import('./pages/student/StudentApplications'));
+const PeerInsights = lazy(() => import('./pages/student/PeerInsights'));
+const CompanyPrepKit = lazy(() => import('./pages/student/CompanyPrepKit'));
+const ChatInbox = lazy(() => import('./pages/student/ChatInbox'));
+const AlumniDirectory = lazy(() => import('./pages/student/AlumniDirectory'));
+const PrepRooms = lazy(() => import('./pages/student/PrepRooms'));
+const PrepRoomSession = lazy(() => import('./components/PrepRoom/PrepRoomSession'));
+const LiveEvents = lazy(() => import('./pages/student/LiveEvents'));
+const PublicPortfolio = lazy(() => import('./pages/public/PublicPortfolio'));
 
 const RecruiterDashboard = lazy(() => import('./pages/recruiter/RecruiterDashboard'));
 const RecruiterJobs = lazy(() => import('./pages/recruiter/RecruiterJobs'));
@@ -62,6 +70,8 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false, // Don't refetch on tab switch by default
       retry: 1, // Retry failed requests once before showing error
+      staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
+      gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
     },
   },
 });
@@ -84,6 +94,7 @@ const App = () => {
                       <Route path="/register" element={<Register />} />
                       <Route path="/forgot-password" element={<ForgotPassword />} />
                       <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
+                      <Route path="/portfolio/:slug" element={<PublicPortfolio />} />
                       <Route path="/unauthorized" element={<Unauthorized />} />
 
                       {/* Protected Routes (Must be logged in) */}
@@ -97,6 +108,13 @@ const App = () => {
                             <Route path="/student/resumes" element={<Resumes />} />
                             <Route path="/student/jobs" element={<JobBoard />} />
                             <Route path="/student/applications" element={<StudentApplications />} />
+                            <Route path="/student/peer-insights" element={<PeerInsights />} />
+                            <Route path="/student/prep-kits" element={<CompanyPrepKit />} />
+                            <Route path="/student/messages" element={<ChatInbox />} />
+                            <Route path="/student/alumni" element={<AlumniDirectory />} />
+                            <Route path="/student/prep-rooms" element={<PrepRooms />} />
+                            <Route path="/student/prep-rooms/:id" element={<PrepRoomSession />} />
+                            <Route path="/student/live-events" element={<LiveEvents />} />
                           </Route>
 
                           {/* Recruiter Routes */}

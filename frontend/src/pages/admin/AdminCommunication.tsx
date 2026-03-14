@@ -6,13 +6,10 @@ import {
     Mail,
     MessageSquare,
     Bell,
-    Filter,
     History,
     CheckCircle,
     Clock,
-    AlertCircle,
     ChevronRight,
-    Search,
     RefreshCw
 } from 'lucide-react';
 import api from '../../services/api';

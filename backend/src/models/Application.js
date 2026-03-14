@@ -42,6 +42,23 @@ const applicationSchema = new mongoose.Schema({
         },
         comments: { type: String, default: '' },
         created_at: { type: Date, default: Date.now }
+    }],
+    
+    // Interactive Student Journal (Phase 4)
+    student_notes: { type: String, default: '' },
+    checklists: [{
+        task: { type: String, required: true },
+        completed: { type: Boolean, default: false },
+        category: { 
+            type: String, 
+            enum: ['GENERAL', 'TECHNICAL', 'HR', 'RESOURCES'], 
+            default: 'GENERAL' 
+        },
+        priority: {
+            type: String,
+            enum: ['LOW', 'MEDIUM', 'HIGH'],
+            default: 'MEDIUM'
+        }
     }]
 }, {
     timestamps: { createdAt: 'applied_at', updatedAt: false }

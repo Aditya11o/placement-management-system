@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import Card from '../../components/Card/Card';
-import { useToast } from '../../context/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface CohortData {
@@ -43,7 +42,6 @@ interface EngagementData {
 }
 
 const AdminAnalyticsDeepDive: React.FC = () => {
-    const { addToast } = useToast();
 
     // Fetch Cohort Analytics
     const { data: cohorts = [], isLoading: cohortsLoading } = useQuery<CohortData[]>({
@@ -130,7 +128,7 @@ const AdminAnalyticsDeepDive: React.FC = () => {
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                     />
                                     <Bar dataKey="placementRate" name="Placed %" radius={[6, 6, 0, 0]} barSize={40}>
-                                        {cohorts.map((entry, index) => (
+                                        {cohorts.map((_, index) => (
                                             <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#6366F1' : '#818CF8'} />
                                         ))}
                                     </Bar>

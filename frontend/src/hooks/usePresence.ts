@@ -24,7 +24,7 @@ export const usePresence = () => {
             pathname: location.pathname,
             userDetails: {
                 // Handle different ID fields historically used
-                id: user._id || user.id,
+                id: user._id,
                 name: user.name,
                 email: user.email,
             }
@@ -35,7 +35,7 @@ export const usePresence = () => {
 
         const handlePresenceUpdate = (users: PresenceUser[]) => {
             // Filter ourselves out of the presence list
-            const myId = user._id || user.id;
+            const myId = user._id;
             const otherUsers = users.filter(u => u.id !== myId);
             setActiveUsers(otherUsers);
         };

@@ -24,9 +24,9 @@ const generateRefreshToken = () => {
     return crypto.randomBytes(40).toString('hex');
 };
 
-exports.registerStudent = async (req, res) => {
+exports.registerStudent = async (req, res, next) => {
     try {
-    const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
+        const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
         if (settings && !settings.allowStudentRegistration) {
             return res.status(403).json({ success: false, message: 'Student registration is currently disabled by the administrator.' });
         }
@@ -45,15 +45,15 @@ exports.registerStudent = async (req, res) => {
 
         res.status(201).json({ success: true, message: 'Student registered successfully, pending admin approval.' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 
 
-exports.registerRecruiter = async (req, res) => {
+exports.registerRecruiter = async (req, res, next) => {
     try {
-    const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
+        const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
         if (settings && !settings.allowRecruiterRegistration) {
             return res.status(403).json({ success: false, message: 'Recruiter registration is currently disabled by the administrator.' });
         }
@@ -115,14 +115,14 @@ exports.registerRecruiter = async (req, res) => {
 
         res.status(201).json({ success: true, message: 'Recruiter registered successfully, pending admin approval.' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 const { getRedisClient } = require('../config/redis');
 const { banIp } = require('../middlewares/blocklistMiddleware');
 
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
     try {
         const { email, password, role } = req.body;
 
@@ -141,20 +141,14 @@ exports.login = async (req, res) => {
         else return res.status(400).json({ success: false, message: 'Invalid role specified' });
 
         if (!user || !(await user.matchPassword(password))) {
-        const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
+            const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
             const maxStrikes = settings?.maxFailedLoginAttempts || 5;
 
             // Track Failed Attempts for Brute-Force Protection
-            // --- Race Condition Fix ---
-            // Previously used separate `incr` + `expire` calls. If the server crashed
-            // between them, the strike key would persist forever in Redis with no TTL,
-            // eventually causing false bans. Using multi/exec makes both operations atomic.
             if (redisClient && redisClient.isReady) {
                 try {
                     const strikes = await redisClient.incr(strikeKey);
                     if (strikes === 1) {
-                        // Set TTL atomically — if this fails, the key still has a value
-                        // but we ensure it always gets a TTL via the safety net below.
                         await redisClient.expire(strikeKey, 900); // 15 mins TTL
                     }
 
@@ -162,7 +156,6 @@ exports.login = async (req, res) => {
                     // a previous expire call failed silently)
                     const ttl = await redisClient.ttl(strikeKey);
                     if (ttl === -1) {
-                        // Key exists but has no expiry — fix it
                         await redisClient.expire(strikeKey, 900);
                     }
 
@@ -202,8 +195,7 @@ exports.login = async (req, res) => {
         // Proceed with normal login
         await completeLogin(user, role, req, res);
     } catch (err) {
-        logger.error(`Login Error: ${err.message}`);
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -287,16 +279,20 @@ const completeLogin = async (user, role, req, res) => {
     res.json({ success: true, token, user: userObj });
 };
 
-exports.getMe = async (req, res) => {
+exports.getMe = async (req, res, next) => {
     try {
         let user;
         if (req.user.role === 'STUDENT') user = await Student.findById(req.user._id).select('-password');
         else if (req.user.role === 'RECRUITER') user = await Recruiter.findById(req.user._id).select('-password');
         else if (req.user.role === 'ADMIN') user = await Admin.findById(req.user._id).select('-password');
 
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
         res.status(200).json({ success: true, data: user });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -343,7 +339,7 @@ exports.forgotPassword = async (req, res, next) => {
             return res.status(500).json({ success: false, message: 'Email could not be sent' });
         }
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        next(error);
     }
 };
 
@@ -370,11 +366,11 @@ exports.resetPassword = async (req, res, next) => {
 
         res.status(200).json({ success: true, message: 'Password reset successful' });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        next(error);
     }
 };
 
-exports.refreshToken = async (req, res) => {
+exports.refreshToken = async (req, res, next) => {
     try {
         const { refreshToken: oldRefreshToken } = req.cookies;
         if (!oldRefreshToken) return res.status(401).json({ success: false, message: 'No refresh token provided' });
@@ -412,16 +408,16 @@ exports.refreshToken = async (req, res) => {
     }
 };
 
-exports.getSessions = async (req, res) => {
+exports.getSessions = async (req, res, next) => {
     try {
         const sessions = await Session.find({ user_id: req.user._id }).select('-refresh_token').sort('-createdAt');
         res.status(200).json({ success: true, data: sessions });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.logout = async (req, res) => {
+exports.logout = async (req, res, next) => {
     try {
         const { refreshToken } = req.cookies;
         if (refreshToken) {
@@ -430,17 +426,17 @@ exports.logout = async (req, res) => {
         res.clearCookie('refreshToken');
         res.status(200).json({ success: true, message: 'Logged out successfully' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.logoutAll = async (req, res) => {
+exports.logoutAll = async (req, res, next) => {
     try {
         await Session.deleteMany({ user_id: req.user._id });
         res.clearCookie('refreshToken');
         res.status(200).json({ success: true, message: 'Logged out of all registered devices' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -448,7 +444,7 @@ exports.logoutAll = async (req, res) => {
 // 2FA Endpoints
 // ==========================
 
-exports.generate2FA = async (req, res) => {
+exports.generate2FA = async (req, res, next) => {
     try {
         if (req.user.role === 'STUDENT') {
             return res.status(403).json({ success: false, message: '2FA is only available for Admins and Recruiters' });
@@ -470,18 +466,19 @@ exports.generate2FA = async (req, res) => {
             message: 'Scan the QR code with your authenticator app and verify to enable 2FA.'
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.enable2FA = async (req, res) => {
+exports.enable2FA = async (req, res, next) => {
     try {
         const { token } = req.body;
         if (!token) return res.status(400).json({ success: false, message: 'Please provide the 6-digit token from your authenticator app.' });
 
         const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
         const redisClient = getRedisClient();
-        const strikeKey = `failed_login:${clientIp}`;
+        // Use a dedicated key prefix to avoid collision with login brute-force strikes
+        const strikeKey = `failed_2fa:${clientIp}`;
 
         let user;
         if (req.user.role === 'ADMIN') user = await Admin.findById(req.user._id).select('+twofa_secret');
@@ -496,11 +493,22 @@ exports.enable2FA = async (req, res) => {
 
         if (!isValid) {
             if (redisClient && redisClient.isReady) {
-                const strikes = await redisClient.incr(strikeKey);
-                if (strikes === 1) await redisClient.expire(strikeKey, 900);
-                else if (strikes >= 5) {
-                    await banIp(clientIp, 24, '2FA setup token guessing detected (5+ failed attempts)');
-                    await redisClient.del(strikeKey);
+                try {
+                    const strikes = await redisClient.incr(strikeKey);
+                    if (strikes === 1) {
+                        await redisClient.expire(strikeKey, 900);
+                    }
+                    // TTL safety net
+                    const ttl = await redisClient.ttl(strikeKey);
+                    if (ttl === -1) {
+                        await redisClient.expire(strikeKey, 900);
+                    }
+                    if (strikes >= 5) {
+                        await banIp(clientIp, 24, '2FA setup token guessing detected (5+ failed attempts)');
+                        await redisClient.del(strikeKey);
+                    }
+                } catch (redisErr) {
+                    logger.error(`Redis 2FA strike tracking failed: ${redisErr.message}`);
                 }
             }
             return res.status(400).json({ success: false, message: 'Invalid 2FA token. Try again.' });
@@ -515,11 +523,11 @@ exports.enable2FA = async (req, res) => {
 
         res.status(200).json({ success: true, message: 'Two-Factor Authentication has been successfully enabled.' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.verify2FALogin = async (req, res) => {
+exports.verify2FALogin = async (req, res, next) => {
     try {
         const { tempToken, token } = req.body;
         if (!tempToken || !token) {
@@ -544,11 +552,11 @@ exports.verify2FALogin = async (req, res) => {
 
         await completeLogin(user, role, req, res);
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.disable2FA = async (req, res) => {
+exports.disable2FA = async (req, res, next) => {
     try {
         const { password, token } = req.body;
         if (!password || !token) {
@@ -558,6 +566,10 @@ exports.disable2FA = async (req, res) => {
         let user;
         if (req.user.role === 'ADMIN') user = await Admin.findById(req.user._id).select('+password +twofa_secret');
         else if (req.user.role === 'RECRUITER') user = await Recruiter.findById(req.user._id).select('+password +twofa_secret');
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
 
         if (!(await user.matchPassword(password))) {
             return res.status(401).json({ success: false, message: 'Invalid password' });
@@ -576,7 +588,7 @@ exports.disable2FA = async (req, res) => {
 
         res.status(200).json({ success: true, message: '2FA disabled successfully' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -584,7 +596,7 @@ exports.disable2FA = async (req, res) => {
 // @desc    Configure Recruiter Webhook URL
 // @route   PUT /api/v1/auth/webhook
 // @access  Private (Recruiter only)
-exports.configureWebhook = async (req, res) => {
+exports.configureWebhook = async (req, res, next) => {
     try {
         if (req.user.role !== 'RECRUITER') {
             return res.status(403).json({ success: false, message: 'Only recruiters can configure webhooks' });
@@ -604,13 +616,13 @@ exports.configureWebhook = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 // @desc    Update Recruiter Profile
 // @route   PUT /api/v1/auth/recruiter/profile
 // @access  Private (Recruiter only)
-exports.updateRecruiterProfile = async (req, res) => {
+exports.updateRecruiterProfile = async (req, res, next) => {
     try {
         if (req.user.role !== 'RECRUITER') {
             return res.status(403).json({ success: false, message: 'Only recruiters can update this profile' });
@@ -635,6 +647,6 @@ exports.updateRecruiterProfile = async (req, res) => {
             data: recruiter
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

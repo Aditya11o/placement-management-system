@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { X, Search, Briefcase, Building2, MapPin, ChevronRight, Loader2, Send } from 'lucide-react';
 import api from '../../services/api';
-import Card from '../Card/Card';
-import { useToast } from '../../context/ToastContext';
-
 interface Job {
     _id: string;
     title: string;
@@ -30,7 +27,6 @@ const JobSelectionModal: React.FC<JobSelectionModalProps> = ({
     isSubmitting = false 
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const { addToast } = useToast();
 
     const { data: jobs = [], isLoading } = useQuery({
         queryKey: ['recruiterActiveJobs'],

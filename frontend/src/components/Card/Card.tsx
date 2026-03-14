@@ -1,13 +1,14 @@
-import React, { HTMLAttributes, ReactNode, useRef, useState } from 'react';
+import React, { ReactNode, useRef, useState } from 'react';
 import { motion, useMotionTemplate, useMotionValue, HTMLMotionProps } from 'framer-motion';
 
 export interface CardProps extends Omit<HTMLMotionProps<"div">, "hoverable" | "className" | "onAnimationStart" | "onDragStart" | "onDragEnd" | "onDrag"> {
     children: ReactNode;
     hoverable?: boolean;
     className?: string;
+    border?: boolean;
 }
 
-const Card: React.FC<CardProps> = ({ children, className = '', hoverable = false, ...props }) => {
+const Card: React.FC<CardProps> = ({ children, className = '', hoverable = false, border = false, ...props }) => {
     // Spotlight Effect Setup
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
@@ -24,11 +25,11 @@ const Card: React.FC<CardProps> = ({ children, className = '', hoverable = false
         mouseY.set(clientY - top);
     }
 
-    const baseClasses = "relative overflow-hidden p-6 bg-white/70 dark:bg-slate-800/80 backdrop-blur-md border border-white/20 dark:border-slate-700/50 rounded-xl shadow-md transition-shadow duration-300";
+    const baseClasses = `relative overflow-hidden p-6 bg-white/80 dark:bg-slate-800/90 backdrop-blur-xl ${border ? 'border-indigo-500/20 dark:border-indigo-400/20' : 'border-white/20 dark:border-slate-700/50'} border rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] transition-all duration-300`;
 
     // We use framer-motion's whileHover for the spring effect instead of Tailwind classes
-    const hoverScale = hoverable ? 1.01 : 1;
-    const hoverY = hoverable ? -2 : 0;
+    const hoverScale = hoverable ? 1.015 : 1;
+    const hoverY = hoverable ? -4 : 0;
 
     return (
         <motion.div

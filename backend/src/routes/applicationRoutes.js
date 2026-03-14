@@ -1,5 +1,5 @@
 const express = require('express');
-const { applyToJob, getMyApplications, getJobApplicants, getRecruiterApplications, updateApplicationStatus, addScorecard, acceptOffer, declineOffer } = require('../controllers/applicationController');
+const { applyToJob, getMyApplications, getJobApplicants, getRecruiterApplications, updateApplicationStatus, addScorecard, acceptOffer, declineOffer, updateApplicationJournal } = require('../controllers/applicationController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { validate } = require('../middlewares/validate');
 const { validateApplicationApply, validateApplicationStatusUpdate } = require('../validations/applicationValidator');
@@ -196,5 +196,6 @@ router.post('/:id/scorecards', authorize('RECRUITER'), addScorecard);
 // Offer Management (Student)
 router.post('/:id/accept', authorize('STUDENT'), acceptOffer);
 router.post('/:id/decline', authorize('STUDENT'), declineOffer);
+router.put('/:id/journal', authorize('STUDENT'), updateApplicationJournal);
 
 module.exports = router;

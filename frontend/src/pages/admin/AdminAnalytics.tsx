@@ -31,7 +31,9 @@ import {
     PolarAngleAxis,
     PieChart,
     Pie,
-    Cell
+    Cell,
+    ComposedChart,
+    RadarChart
 } from 'recharts';
 import {
     TrendingUp,
@@ -52,7 +54,6 @@ import {
     Radar as RadarIcon,
     Zap,
     Trophy,
-    AlertCircle,
     ChevronRight,
     Search
 } from 'lucide-react';
@@ -587,7 +588,7 @@ const AdminAnalytics = () => {
                                                             {isReadinessLoading ? (
                                                                 [1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-slate-50 dark:bg-slate-800 animate-pulse rounded-xl" />)
                                                             ) : (
-                                                                readinessData?.topLeads?.map((student: any, idx: number) => (
+                                                                readinessData?.topLeads?.map((student: any) => (
                                                                     <motion.div
                                                                         key={student.id}
                                                                         whileHover={{ x: 4 }}

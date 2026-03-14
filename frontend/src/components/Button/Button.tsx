@@ -40,22 +40,38 @@ const Button: React.FC<ButtonProps> = ({
 
     return (
         <motion.button
-            className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
+            className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className} relative overflow-hidden group/btn`}
             disabled={isLoading || props.disabled}
-            whileHover={!(isLoading || props.disabled) ? { scale: 1.02 } : { scale: 1 }}
-            whileTap={!(isLoading || props.disabled) ? { scale: 0.98 } : { scale: 1 }}
+            whileHover={!(isLoading || props.disabled) ? { 
+                scale: 1.02,
+                y: -1
+            } : { scale: 1 }}
+            whileTap={!(isLoading || props.disabled) ? { scale: 0.96 } : { scale: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
             {...(safeProps as any)}
         >
+            {/* Shine Effect Overlay for Primary */}
+            {variant === 'primary' && !isLoading && !props.disabled && (
+                <div className="absolute inset-0 w-full h-full pointer-events-none">
+                    <motion.div 
+                        initial={{ x: '-100%', opacity: 0 }}
+                        whileHover={{ x: '100%', opacity: 0.2 }}
+                        transition={{ duration: 0.8, ease: "easeInOut" }}
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent -skew-x-12"
+                    />
+                </div>
+            )}
+
             {isLoading ? (
                 <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
             ) : (
-                <>
-                    {Icon && <Icon className="shrink-0" size={size === 'sm' ? 16 : 20} />}
-                    {children}
-                </>
+                <div className="relative z-10 flex items-center gap-2">
+                    {Icon && <Icon className="shrink-0 group-hover/btn:rotate-6 transition-transform" size={size === 'sm' ? 16 : 20} />}
+                    <span className="truncate">{children}</span>
+                </div>
             )}
         </motion.button>
     );

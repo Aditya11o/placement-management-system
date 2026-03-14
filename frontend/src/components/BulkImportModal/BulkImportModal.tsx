@@ -6,9 +6,7 @@ import {
     FileText,
     AlertCircle,
     CheckCircle,
-    Loader2,
-    RefreshCw,
-    CircleDot
+    Loader2
 } from 'lucide-react';
 import Button from '../Button/Button';
 import Card from '../Card/Card';

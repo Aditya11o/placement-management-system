@@ -5,7 +5,7 @@ const Log = require('../models/Log');
 // @desc    Get company details and join code
 // @route   GET /api/v1/team/company
 // @access  Private (Recruiter)
-exports.getCompanyDetails = async (req, res) => {
+exports.getCompanyDetails = async (req, res, next) => {
     try {
         const recruiter = await Recruiter.findById(req.user._id);
         if (!recruiter.company_id) {
@@ -15,14 +15,14 @@ exports.getCompanyDetails = async (req, res) => {
         const company = await Company.findById(recruiter.company_id);
         res.status(200).json({ success: true, data: company });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // @desc    Get all team members
 // @route   GET /api/v1/team/members
 // @access  Private (Recruiter)
-exports.getTeamMembers = async (req, res) => {
+exports.getTeamMembers = async (req, res, next) => {
     try {
         const recruiter = await Recruiter.findById(req.user._id);
         if (!recruiter.company_id) {
@@ -34,14 +34,14 @@ exports.getTeamMembers = async (req, res) => {
 
         res.status(200).json({ success: true, data: members });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // @desc    Update member role (OWNER only)
 // @route   PUT /api/v1/team/members/:id/role
 // @access  Private (Recruiter OWNER)
-exports.updateMemberRole = async (req, res) => {
+exports.updateMemberRole = async (req, res, next) => {
     try {
         const { role } = req.body;
         if (!['OWNER', 'MEMBER'].includes(role)) {
@@ -71,6 +71,6 @@ exports.updateMemberRole = async (req, res) => {
 
         res.status(200).json({ success: true, message: 'Role updated' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

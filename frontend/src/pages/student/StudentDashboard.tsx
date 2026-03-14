@@ -4,11 +4,26 @@ import { useToast } from '../../context/ToastContext';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import SkeletonCard from '../../components/Skeleton/SkeletonCard';
-import { Briefcase, FileText, CheckCircle, Clock, Star } from 'lucide-react';
+import { 
+    Briefcase, 
+    Clock, 
+    Star, 
+    TrendingUp, 
+    User,
+    Award,
+    Shield
+} from 'lucide-react';
 import api from '../../services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Announcement } from '../../types';
-import { Layers } from 'lucide-react';
+import PageHeader from '../../components/PageHeader/PageHeader';
+import ReadinessMeter from '../../components/Dashboard/ReadinessMeter';
+import NextBestAction from '../../components/Dashboard/NextBestAction';
+import StreakCard from '../../components/Dashboard/StreakCard';
+import { gamificationService } from '../../services/gamificationService';
+import OnlinePeersWidget from './components/OnlinePeersWidget';
+import PredictiveAnalytics from './components/PredictiveAnalytics';
 
 interface StudentStats {
     applicationsSent: number;
@@ -38,6 +53,7 @@ const fetchStudentStats = async (): Promise<StudentStats> => {
 const StudentDashboard = () => {
     const { user } = useAuth();
     const { addToast } = useToast();
+    const navigate = useNavigate();
 
     // Fetch Featured Jobs
     const { data: featuredJobs = [] } = useQuery({
@@ -58,6 +74,27 @@ const StudentDashboard = () => {
     const { data: stats, isPending: sLoading, isError: sError } = useQuery({
         queryKey: ['studentStats'],
         queryFn: fetchStudentStats,
+        enabled: !!user,
+    });
+
+    const { data: readinessData } = useQuery({
+        queryKey: ['readinessScore'],
+        queryFn: async () => {
+            const res = await api.get('/students/readiness-score');
+            return res.data.data;
+        },
+        enabled: !!user,
+    });
+
+    const { data: gamificationStats } = useQuery({
+        queryKey: ['gamificationStats'],
+        queryFn: async () => {
+            // Update streak on every dashboard load (debounced by server logic)
+            await gamificationService.updateStreak();
+            // Check for new badges
+            await gamificationService.checkBadges();
+            return gamificationService.getStats();
+        },
         enabled: !!user,
     });
 
@@ -95,155 +132,217 @@ const StudentDashboard = () => {
     );
 
     return (
-        <div className="flex flex-col gap-8">
-            <div className="animate-fade-in">
-                <h1 className="text-3xl font-bold text-indigo-700 mb-2">Welcome back, {user?.name ? user.name.split(' ')[0] : 'Student'}! 👋</h1>
-                <p className="text-slate-500 text-lg">Here's what's happening with your placements today.</p>
-            </div>
+        <div className="flex flex-col gap-10">
+            <PageHeader 
+                title={`Welcome back, ${user?.name ? user.name.split(' ')[0] : 'Student'}! 👋`}
+                subtitle="Your career trajectory is looking sharp today."
+            />
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                <Card className="flex items-center gap-5 p-6">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 bg-sky-100 text-sky-600">
-                        <Briefcase size={24} />
-                    </div>
-                    <div>
-                        <h3 className="text-3xl font-bold mb-1 leading-none">{stats?.applicationsSent}</h3>
-                        <p className="text-slate-500 text-sm font-medium m-0">Applications Sent</p>
-                    </div>
-                </Card>
+            {/* Main Bento Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[minmax(180px,auto)]">
+                
+                {/* Stats Bento Block - High Priority */}
+                <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Card border className="flex flex-col justify-between p-8 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white shadow-2xl shadow-indigo-500/20">
+                        <div className="flex justify-between items-start">
+                            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                                <Briefcase size={28} />
+                            </div>
+                            <span className="text-xs font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full backdrop-blur-sm">Live Applications</span>
+                        </div>
+                        <div className="mt-8">
+                            <h3 className="text-5xl font-black m-0">{stats?.applicationsSent || 0}</h3>
+                            <p className="text-indigo-100/80 text-sm font-bold mt-2 uppercase tracking-wide">Total Submissions</p>
+                        </div>
+                    </Card>
 
-                <Card className="flex items-center gap-5 p-6">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 bg-orange-100 text-orange-600">
-                        <Clock size={24} />
-                    </div>
-                    <div>
-                        <h3 className="text-3xl font-bold mb-1 leading-none">{stats?.interviewsScheduled}</h3>
-                        <p className="text-slate-500 text-sm font-medium m-0">Interviews Scheduled</p>
-                    </div>
-                </Card>
+                {/* Predictive Analytics Bento block */}
+                <div className="md:col-span-12 lg:col-span-4 h-full">
+                    <PredictiveAnalytics />
+                </div>
+                </div>
 
-                <Card className="flex items-center gap-5 p-6">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 bg-green-100 text-green-600">
-                        <CheckCircle size={24} />
-                    </div>
-                    <div>
-                        <h3 className="text-3xl font-bold mb-1 leading-none">{stats?.offersReceived}</h3>
-                        <p className="text-slate-500 text-sm font-medium m-0">Offers Received</p>
-                    </div>
-                </Card>
+                {/* Gamification Bento block */}
+                <div className="md:col-span-4 h-full flex flex-col gap-4">
+                    {gamificationStats && (
+                        <>
+                            <StreakCard 
+                                streak={gamificationStats.streak.current} 
+                                longest={gamificationStats.streak.longest}
+                                points={gamificationStats.points}
+                            />
+                            
+                            {/* Badges Bento Block */}
+                            <Card className="flex-1 bg-white dark:bg-slate-800 border-none shadow-premium p-6">
+                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <Award size={16} className="text-amber-500" />
+                                    Earned Badges
+                                </h3>
+                                <div className="flex flex-wrap gap-3">
+                                    {gamificationStats.badges.length > 0 ? (
+                                        gamificationStats.badges.map((badge, idx) => (
+                                            <div key={idx} className="group relative">
+                                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 dark:from-amber-900/40 dark:to-amber-800/20 flex items-center justify-center p-2.5 transition-all duration-300 hover:scale-110 hover:-rotate-6 cursor-help border border-amber-200/50 dark:border-amber-700/30">
+                                                    <Shield size={24} className="text-amber-600 dark:text-amber-400" />
+                                                </div>
+                                                {/* Tooltip */}
+                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                                    {badge.type.replace(/_/g, ' ')}
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-4 w-full text-center">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">No badges yet</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </Card>
+                        </>
+                    )}
+                </div>
 
-                <Card className="flex items-center gap-5 p-6">
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 bg-purple-100 text-purple-600">
-                        <FileText size={24} />
-                    </div>
-                    <div>
-                        <h3 className="text-3xl font-bold mb-1 leading-none">{stats?.pendingApplications ?? 0}</h3>
-                        <p className="text-slate-500 text-sm font-medium m-0">Pending Review</p>
-                    </div>
-                </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-
-                {/* Left Column: Recent Activity / Announcements */}
-                <div className="lg:col-span-2">
-                    <Card>
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold m-0 text-slate-800">Latest Announcements</h2>
-                            <Button variant="ghost" size="sm">View All</Button>
+                {/* Announcements - Long Bento Row */}
+                <div className="md:col-span-12 lg:col-span-8">
+                    <Card className="h-full">
+                        <div className="flex justify-between items-center mb-8">
+                            <div>
+                                <h2 className="text-2xl font-black m-0 text-slate-900 dark:text-white">Broadcasts</h2>
+                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Stay updated with placement news</p>
+                            </div>
+                            <Button variant="ghost" size="sm" className="font-black text-xs uppercase tracking-widest hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors">History &rarr;</Button>
                         </div>
 
-                        <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-6">
                             {announcements.length > 0 ? (
                                 announcements.map((ann: any) => (
                                     <div
                                         key={ann._id}
-                                        className={`flex gap-4 p-4 rounded-md border-l-4 transition-all duration-200 hover:translate-x-1 cursor-pointer
+                                        className={`group relative flex gap-6 p-6 rounded-2xl transition-all duration-300 cursor-pointer
                                             ${ann.isRead
-                                                ? 'bg-slate-50 border-slate-300 opacity-80'
-                                                : 'bg-indigo-50/50 border-indigo-500 shadow-sm hover:bg-indigo-50'}`}
+                                                ? 'bg-slate-50/50 dark:bg-slate-900/30 grayscale-[0.5] opacity-60'
+                                                : 'bg-white dark:bg-slate-800 shadow-lg shadow-indigo-500/[0.03] hover:shadow-indigo-500/10 hover:-translate-y-1'}`}
                                         onClick={() => {
                                             if (!ann.isRead) markReadMutation.mutate(ann._id);
                                         }}
                                     >
-                                        <div className="flex flex-col items-center min-w-[50px] shrink-0 mt-0.5">
-                                            <span className="text-xs font-bold text-slate-400 uppercase">
+                                        <div className="flex flex-col items-center justify-center min-w-[64px] h-[64px] shrink-0 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 group-hover:scale-110 transition-transform">
+                                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">
                                                 {new Date(ann.created_at || ann.createdAt || new Date()).toLocaleDateString('en-US', { month: 'short' })}
                                             </span>
-                                            <span className="text-lg font-black text-slate-700">
+                                            <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 leading-none mt-1">
                                                 {new Date(ann.created_at || ann.createdAt || new Date()).getDate()}
                                             </span>
                                         </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="text-base font-bold text-slate-800 m-0">{ann.title}</h4>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 m-0 truncate group-hover:text-indigo-600 transition-colors">{ann.title}</h4>
                                                 {!ann.isRead && (
-                                                    <span className="px-1.5 py-0.5 bg-indigo-600 text-white text-[9px] font-black rounded uppercase tracking-tighter animate-pulse">
-                                                        New
-                                                    </span>
+                                                    <div className="flex h-2 w-2 rounded-full bg-indigo-600 animate-ping" />
                                                 )}
                                             </div>
-                                            <p className="text-sm text-slate-500 m-0 line-clamp-2">{ann.message}</p>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400 m-0 leading-relaxed line-clamp-2">{ann.message}</p>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center p-8 text-slate-500 italic">
-                                    <p>No new announcements at this time.</p>
+                                <div className="text-center py-12 px-6 bg-slate-50/50 dark:bg-slate-900/10 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800/50">
+                                    <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No active broadcasts</p>
                                 </div>
                             )}
                         </div>
                     </Card>
-
-                    {/* Featured Opportunities */}
-                    {featuredJobs.length > 0 && (
-                        <div className="mt-8">
-                            <h2 className="text-xl font-bold mb-4 text-slate-800 flex items-center gap-2">
-                                <Star size={20} className="text-amber-500 fill-amber-500" />
-                                Featured Opportunities
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {featuredJobs.map((job: any) => (
-                                    <Card key={job._id} className="p-5 border-indigo-100 bg-indigo-50/30 hover:shadow-md transition-all cursor-pointer group">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex flex-col">
-                                                <h4 className="font-bold text-slate-800 m-0 group-hover:text-indigo-600 transition-colors">{job.title}</h4>
-                                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-tight">{job.company_name}</p>
-                                            </div>
-                                            <div className="p-1 px-2 rounded bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest">
-                                                Featured
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
-                                            <div className="flex items-center gap-1">
-                                                <span className="font-bold text-indigo-600">₹{job.package_lpa} LPA</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <Clock size={12} /> Ends {new Date(job.deadline).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                        <Button isFullWidth size="sm" variant="ghost" className="bg-white border-indigo-100 text-indigo-600 text-xs font-bold">
-                                            Apply Now &rarr;
-                                        </Button>
-                                    </Card>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
-                {/* Right Column: Quick Actions */}
-                <div className="lg:col-span-1">
-                    <Card>
-                        <h2 className="text-xl font-bold mb-6 text-slate-800">Quick Actions</h2>
-                        <div className="flex flex-col gap-4">
-                            <Button isFullWidth variant="primary" icon={Briefcase}>Browse Jobs</Button>
-                            <Button isFullWidth variant="secondary" icon={FileText}>Upload Resume</Button>
+                {/* Right Actions & Metrics */}
+                <div className="md:col-span-12 lg:col-span-4 flex flex-col gap-6">
+                    {readinessData && (
+                        <ReadinessMeter 
+                            score={readinessData.score}
+                            label={readinessData.label}
+                            recommendations={readinessData.recommendations}
+                        />
+                    )}
+
+                    <div className="flex-1 min-h-[400px]">
+                        <OnlinePeersWidget />
+                    </div>
+                    
+                    <Card border className="bg-slate-900 text-white shadow-2xl">
+                        <h2 className="text-xl font-black mb-6 flex items-center gap-2">
+                             <TrendingUp size={20} className="text-indigo-400" />
+                             Control Center
+                        </h2>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Button 
+                                isFullWidth 
+                                variant="primary" 
+                                className="h-auto py-5 flex-col gap-3 text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-indigo-500/20"
+                                onClick={() => navigate('/student/jobs')}
+                            >
+                                <Briefcase size={22} className="mb-1" />
+                                Browse Jobs
+                            </Button>
+                            <Button 
+                                isFullWidth 
+                                variant="secondary" 
+                                className="h-auto py-5 flex-col gap-3 text-[10px] font-black uppercase tracking-widest rounded-2xl bg-white/10 border-white/10 hover:bg-white/20 transition-all"
+                                onClick={() => navigate('/student/profile')}
+                            >
+                                <User size={22} className="mb-1" />
+                                Edit Profile
+                            </Button>
                         </div>
                     </Card>
+
+                    {stats && <NextBestAction stats={stats} />}
                 </div>
 
+                {/* Featured Opportunities - Wide Row */}
+                {featuredJobs.length > 0 && (
+                    <div className="md:col-span-12 mt-4">
+                        <div className="flex items-center justify-between mb-8 px-2">
+                             <div>
+                                <h2 className="text-2xl font-black text-slate-900 dark:text-white m-0 flex items-center gap-3">
+                                    <Star size={24} className="text-amber-400 fill-amber-400" />
+                                    Elite Picks
+                                </h2>
+                                <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mt-1 ml-9">Exclusively for your profile</p>
+                             </div>
+                             <Button variant="ghost" className="font-extrabold text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors" onClick={() => navigate('/student/jobs')}>FULL BOARD &rarr;</Button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {featuredJobs.map((job: any) => (
+                                <Card 
+                                    key={job._id} 
+                                    hoverable
+                                    className="p-8 border-transparent hover:border-indigo-500/30 transition-all duration-500 cursor-pointer group dark:bg-slate-800/50"
+                                    onClick={() => navigate('/student/jobs')}
+                                >
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none flex items-center justify-center text-2xl font-black text-indigo-600 dark:text-indigo-400 border border-slate-100 dark:border-slate-600 transition-transform group-hover:scale-110">
+                                            {job.company_name?.charAt(0) || 'J'}
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 px-3 py-1 bg-indigo-50 dark:bg-indigo-500/10 rounded-full mb-2">Featured</span>
+                                            <span className="text-lg font-black text-slate-900 dark:text-white leading-none">₹{job.package_lpa} <span className="text-xs font-bold text-slate-400">LPA</span></span>
+                                        </div>
+                                    </div>
+                                    <div className="mb-6">
+                                        <h4 className="text-xl font-bold text-slate-800 dark:text-slate-50 m-0 group-hover:text-indigo-600 transition-colors truncate">{job.title}</h4>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">{job.company_name}</p>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-[11px] font-black text-slate-500 uppercase tracking-tight">
+                                        <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg">
+                                            <Clock size={12} className="text-red-400" />
+                                            Deadline: {new Date(job.deadline).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

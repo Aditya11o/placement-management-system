@@ -103,7 +103,7 @@ const NotificationPanel = () => {
             >
                 <Bell size={20} className={unreadCount > 0 ? 'animate-wiggle' : ''} />
                 {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 border-2 border-white">
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 border-2 border-white shadow-sm animate-premium-pulse">
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}

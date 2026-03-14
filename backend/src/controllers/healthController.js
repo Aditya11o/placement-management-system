@@ -11,7 +11,7 @@ const config = require('../config/config');
  * @route   GET /api/v1/health
  * @access  Public (for uptime monitors) — sensitive metrics gated to Admin via token
  */
-exports.getHealth = async (req, res) => {
+exports.getHealth = async (req, res, next) => {
     const startTime = process.hrtime.bigint();
 
     // ── MongoDB Health ─────────────────────────────────────────────────────────

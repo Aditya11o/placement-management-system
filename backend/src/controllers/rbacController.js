@@ -6,12 +6,12 @@ const Log = require('../models/Log');
  * @desc    List all admin accounts (SUPER_ADMIN only)
  * @route   GET /api/v1/rbac/admins
  */
-exports.listAdmins = async (req, res) => {
+exports.listAdmins = async (req, res, next) => {
     try {
         const admins = await Admin.find({}).select('-password -twofa_secret -api_keys -resetPasswordToken');
         res.status(200).json({ success: true, count: admins.length, data: admins });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -47,7 +47,7 @@ exports.getPermissionManifest = (req, res) => {
  * @route   POST /api/v1/rbac/admins/:id/permissions
  * @access  SUPER_ADMIN only
  */
-exports.grantPermissions = async (req, res) => {
+exports.grantPermissions = async (req, res, next) => {
     try {
         const { permissions } = req.body;
 
@@ -94,7 +94,7 @@ exports.grantPermissions = async (req, res) => {
             data: { id: target._id, email: target.email, sub_role: target.sub_role, permissions: target.permissions }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -103,7 +103,7 @@ exports.grantPermissions = async (req, res) => {
  * @route   DELETE /api/v1/rbac/admins/:id/permissions
  * @access  SUPER_ADMIN only
  */
-exports.revokePermissions = async (req, res) => {
+exports.revokePermissions = async (req, res, next) => {
     try {
         const { permissions } = req.body;
 
@@ -142,7 +142,7 @@ exports.revokePermissions = async (req, res) => {
             data: { id: target._id, email: target.email, permissions: target.permissions }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -151,7 +151,7 @@ exports.revokePermissions = async (req, res) => {
  * @route   PUT /api/v1/rbac/admins/:id/sub-role
  * @access  SUPER_ADMIN only
  */
-exports.setSubRole = async (req, res) => {
+exports.setSubRole = async (req, res, next) => {
     try {
         const { sub_role } = req.body;
         const validRoles = ['SUPER_ADMIN', 'PLACEMENT_COORDINATOR', 'ADMIN'];
@@ -193,7 +193,7 @@ exports.setSubRole = async (req, res) => {
 
         res.status(200).json({ success: true, message: `Sub-role updated to ${sub_role}`, data: target });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -202,7 +202,7 @@ exports.setSubRole = async (req, res) => {
  * @route   POST /api/v1/rbac/admins
  * @access  SUPER_ADMIN only
  */
-exports.createAdmin = async (req, res) => {
+exports.createAdmin = async (req, res, next) => {
     try {
         const { name, email, password, sub_role } = req.body;
 
@@ -251,7 +251,7 @@ exports.createAdmin = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -260,7 +260,7 @@ exports.createAdmin = async (req, res) => {
  * @route   GET /api/v1/rbac/me
  * @access  Private/Admin
  */
-exports.getMyPermissions = async (req, res) => {
+exports.getMyPermissions = async (req, res, next) => {
     try {
         const admin = await Admin.findById(req.user._id).select('name email sub_role permissions');
         if (!admin) return res.status(404).json({ success: false, message: 'Not found' });
@@ -276,6 +276,6 @@ exports.getMyPermissions = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

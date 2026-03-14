@@ -146,6 +146,10 @@ const logRoutes = require('./src/routes/logRoutes');
 const searchRoutes = require('./src/routes/searchRoutes');
 const aiRoutes = require('./src/routes/aiRoutes');
 const teamRoutes = require('./src/routes/teamRoutes');
+const chatRoutes = require('./src/routes/chatRoutes');
+const experienceRoutes = require('./src/routes/experienceRoutes');
+const gamificationRoutes = require('./src/routes/gamificationRoutes');
+const eventRoutes = require('./src/routes/eventRoutes');
 const initCronJobs = require('./src/jobs/index');
 const { initBroadcastScheduler } = require('./src/services/broadcastScheduler');
 const { initDigestCron } = require('./src/services/digestService');
@@ -167,6 +171,11 @@ app.use('/api/v1/logs', logRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/team', teamRoutes);
+app.use('/api/v1/chat', chatRoutes);
+app.use('/api/v1/experiences', experienceRoutes);
+app.use('/api/v1/gamification', gamificationRoutes);
+app.use('/api/v1/events', eventRoutes);
+app.use('/api/v1/public', require('./src/routes/publicRoutes'));
 
 // Basic Route
 app.get('/', (req, res) => {

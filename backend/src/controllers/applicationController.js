@@ -12,7 +12,7 @@ const config = require('../config/config');
 const logger = require('../utils/logger');
 
 
-exports.applyToJob = async (req, res) => {
+exports.applyToJob = async (req, res, next) => {
     try {
         const { job_id } = req.body;
         const job = await Job.findById(job_id);
@@ -59,7 +59,7 @@ exports.applyToJob = async (req, res) => {
 
         res.status(201).json({ success: true, data: application });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -105,7 +105,7 @@ exports.getRecruiterApplications = async (req, res, next) => {
             data: applications
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -115,7 +115,7 @@ exports.getMyApplications = async (req, res, next) => {
             .populate('job_id', 'title company_name status deadline');
         res.status(200).json({ success: true, count: applications.length, data: applications });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -137,11 +137,11 @@ exports.getJobApplicants = async (req, res, next) => {
         
         res.status(200).json({ success: true, count: applications.length, data: applications });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.updateApplicationStatus = async (req, res) => {
+exports.updateApplicationStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
         const validStatuses = ['SUBMITTED', 'REVIEWED', 'SHORTLISTED', 'SELECTED', 'REJECTED'];
@@ -240,11 +240,11 @@ exports.updateApplicationStatus = async (req, res) => {
         res.json({ success: true, data: application });
     } catch (err) {
         console.error("APP_CONTROLLER_ERROR:", err.stack || err.message || err);
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.addScorecard = async (req, res) => {
+exports.addScorecard = async (req, res, next) => {
     try {
         const { communication, technical, culture, overall, comments, round_name, recommendation } = req.body;
         
@@ -299,7 +299,7 @@ exports.addScorecard = async (req, res) => {
  * @route   POST /api/v1/applications/:id/accept
  * @access  Private (Student Only)
  */
-exports.acceptOffer = async (req, res) => {
+exports.acceptOffer = async (req, res, next) => {
     try {
         const application = await Application.findById(req.params.id)
             .populate('job_id')
@@ -345,7 +345,7 @@ exports.acceptOffer = async (req, res) => {
 
         res.json({ success: true, message: 'Congratulations! You have accepted the offer.' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -354,7 +354,7 @@ exports.acceptOffer = async (req, res) => {
  * @route   POST /api/v1/applications/:id/decline
  * @access  Private (Student Only)
  */
-exports.declineOffer = async (req, res) => {
+exports.declineOffer = async (req, res, next) => {
     try {
         const application = await Application.findById(req.params.id)
             .populate('job_id')
@@ -386,6 +386,36 @@ exports.declineOffer = async (req, res) => {
 
         res.json({ success: true, message: 'You have declined the offer.' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
+
+/**
+ * @desc    Update application journal (notes and checklists)
+ * @route   PUT /api/v1/applications/:id/journal
+ * @access  Private (Student Only)
+ */
+exports.updateApplicationJournal = async (req, res, next) => {
+    try {
+        const { student_notes, checklists } = req.body;
+        
+        const application = await Application.findById(req.params.id);
+
+        if (!application) return res.status(404).json({ success: false, message: 'Application not found' });
+
+        // Authorization check
+        if (application.student_id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        if (student_notes !== undefined) application.student_notes = student_notes;
+        if (checklists !== undefined) application.checklists = checklists;
+
+        await application.save();
+
+        res.json({ success: true, data: application });
+    } catch (err) {
+        next(err);
+    }
+};
+

@@ -42,7 +42,7 @@ interface CalendarEvent {
     title: string;
     start: Date;
     end: Date;
-    resource: Interview & { type?: InterviewType };
+    resource: Interview & { type?: string };
 }
 
 // ── RBC Localizer ─────────────────────────────────────────────────────────────

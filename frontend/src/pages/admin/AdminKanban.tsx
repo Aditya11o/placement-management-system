@@ -14,7 +14,7 @@ import { Application } from '../../types';
 
 // The UIApplicant interface matching what KanbanBoard expects
 export interface UIApplicant extends Omit<Application, 'student' | 'job'> {
-    student?: { name: string; email: string; resume_url?: string; branch?: string; profile_image_url?: string; };
+    student?: { _id: string; name: string; email: string; resume_url?: string; branch?: string; profile_image_url?: string; };
     job?: { _id: string; title: string };
     matchScore?: number;
 }
@@ -71,6 +71,14 @@ const AdminKanban: React.FC = () => {
             return matchBranch && matchSearch && matchJob;
         });
 
+    const DEFAULT_COLUMNS = [
+        { id: 'SUBMITTED', title: 'Applied' },
+        { id: 'REVIEWED', title: 'Under Review' },
+        { id: 'SHORTLISTED', title: 'Shortlisted' },
+        { id: 'SELECTED', title: 'Selected' },
+        { id: 'REJECTED', title: 'Rejected' },
+    ];
+
     return (
         <>
             <div className="flex flex-col gap-6 animate-fade-in h-[calc(100vh-6rem)]">
@@ -125,6 +133,7 @@ const AdminKanban: React.FC = () => {
                     ) : (
                         <KanbanBoard
                             applications={filtered}
+                            columns={DEFAULT_COLUMNS}
                             onStatusChange={(appId, newStatus) => statusMutation.mutate({ appId, newStatus })}
                             onViewProfile={setSelectedApplicant}
                         />

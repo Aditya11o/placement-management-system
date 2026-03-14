@@ -56,7 +56,7 @@ function buildFilter(query) {
  *   page, limit, user_id, user_role, action, target_id,
  *   from, to, search, ip, sort (default: -created_at)
  */
-exports.getLogs = async (req, res) => {
+exports.getLogs = async (req, res, next) => {
     try {
         const page = Math.max(1, parseInt(req.query.page, 10) || PAGE_DEFAULT);
         const limit = Math.min(LIMIT_MAX, parseInt(req.query.limit, 10) || LIMIT_DEFAULT);
@@ -96,7 +96,7 @@ exports.getLogs = async (req, res) => {
             data: logs
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -105,7 +105,7 @@ exports.getLogs = async (req, res) => {
  * @route   GET /api/v1/logs/:id
  * @access  Private / Admin
  */
-exports.getLogById = async (req, res) => {
+exports.getLogById = async (req, res, next) => {
     try {
         const log = await Log.findById(req.params.id).lean();
         if (!log) return res.status(404).json({ success: false, message: 'Log entry not found' });
@@ -114,7 +114,7 @@ exports.getLogById = async (req, res) => {
         const actor = await resolveActor(log.user_id, log.user_role);
         res.status(200).json({ success: true, data: { ...log, actor } });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -129,7 +129,7 @@ exports.getLogById = async (req, res) => {
  *  - dailyActivity:   { date, count }[]  (last 30 days)
  *  - topUsers:        { user_id, user_role, count }[]
  */
-exports.getLogStats = async (req, res) => {
+exports.getLogStats = async (req, res, next) => {
     try {
         const dateFilter = buildFilter(req.query);
 
@@ -210,7 +210,7 @@ exports.getLogStats = async (req, res) => {
             data: { actionBreakdown, roleBreakdown, dailyActivity, topUsers }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -219,7 +219,7 @@ exports.getLogStats = async (req, res) => {
  * @route   GET /api/v1/logs/user/:userId
  * @access  Private / Admin
  */
-exports.getUserActivityFeed = async (req, res) => {
+exports.getUserActivityFeed = async (req, res, next) => {
     try {
         const page = Math.max(1, parseInt(req.query.page, 10) || PAGE_DEFAULT);
         const limit = Math.min(LIMIT_MAX, parseInt(req.query.limit, 10) || LIMIT_DEFAULT);
@@ -248,7 +248,7 @@ exports.getUserActivityFeed = async (req, res) => {
             data: logs
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 

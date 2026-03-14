@@ -3,9 +3,9 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-    Menu, X, LayoutDashboard, User, Briefcase,
+    Menu, X, LayoutDashboard, User, Briefcase, MessageCircle,
     FileText, Users, Settings, LogOut, Building, LucideIcon, ShieldCheck, Send, Search,
-    Shield, FileCheck, Activity, Calendar, TrendingUp, Globe
+    Shield, FileCheck, Activity, Calendar, TrendingUp, Globe, ChevronLeft, ChevronRight, Sparkles, BookOpen
 } from 'lucide-react';
 import Loader from '../components/Loader/Loader';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
@@ -17,6 +17,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useHotkeys } from 'react-hotkeys-hook';
 import KeyboardShortcutsModal from '../components/KeyboardShortcutsModal/KeyboardShortcutsModal';
 import PresenceAvatars from '../components/PresenceAvatars/PresenceAvatars';
+import OfflineStatus from '../components/Offline/OfflineStatus';
+import PageTransition from '../components/Transitions/PageTransition';
 
 interface NavItem {
     label: string;
@@ -29,6 +31,10 @@ const MainLayout: React.FC = () => {
     const queryClient = useQueryClient();
     const { logoUrl } = useTheme();
     const [isSidebarOpen, setSidebarOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        const saved = localStorage.getItem('sidebar_collapsed');
+        return saved === 'true';
+    });
     const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
@@ -57,6 +63,14 @@ const MainLayout: React.FC = () => {
     };
 
     const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
+    
+    const toggleCollapse = () => {
+        setIsCollapsed(prev => {
+            const next = !prev;
+            localStorage.setItem('sidebar_collapsed', String(next));
+            return next;
+        });
+    };
 
     // Define navigation configuration based on role
     const getNavItems = (): NavItem[] => {
@@ -68,6 +82,12 @@ const MainLayout: React.FC = () => {
                     { label: 'Resumes', path: '/student/resumes', icon: FileText },
                     { label: 'Job Board', path: '/student/jobs', icon: Briefcase },
                     { label: 'Applications', path: '/student/applications', icon: FileText },
+                    { label: 'Peer Insights', path: '/student/peer-insights', icon: Sparkles },
+                    { label: 'Live Events', path: '/student/live-events', icon: Calendar },
+                    { label: 'Prep Kits', path: '/student/prep-kits', icon: BookOpen },
+                    { label: 'Prep Rooms', path: '/student/prep-rooms', icon: Globe },
+                    { label: 'Alumni Connect', path: '/student/alumni', icon: Users },
+                    { label: 'Messages', path: '/student/messages', icon: MessageCircle },
                 ];
             case 'RECRUITER':
                 return [
@@ -114,26 +134,43 @@ const MainLayout: React.FC = () => {
             )}
 
             {/* Sidebar */}
-            <aside className={`fixed lg:relative w-[260px] h-screen flex flex-col z-50 transition-transform duration-300 bg-white/80 dark:bg-slate-800/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-700/50 shadow-xl lg:shadow-none lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                <div className="h-[70px] flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700/50 shrink-0">
-                    {logoUrl ? (
-                        <img src={logoUrl} alt="Institution Logo" className="h-8 w-auto object-contain" />
-                    ) : (
-                        <h2 className="text-brand-600 dark:text-brand-400 m-0 text-2xl font-bold tracking-tight">TNU</h2>
+            <motion.aside 
+                initial={false}
+                animate={{ width: isCollapsed ? 80 : 260 }}
+                className={`fixed lg:relative h-screen flex flex-col z-50 transition-transform duration-300 bg-white/80 dark:bg-slate-900/90 backdrop-blur-2xl border-r border-slate-200 dark:border-indigo-400/10 shadow-xl lg:shadow-none lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+            >
+                <div className="h-[70px] flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-700/50 shrink-0">
+                    {!isCollapsed && (
+                        logoUrl ? (
+                            <img src={logoUrl} alt="Institution Logo" className="h-8 w-auto object-contain" />
+                        ) : (
+                            <h2 className="text-brand-600 dark:text-brand-400 m-0 text-2xl font-bold tracking-tight px-2">TNU</h2>
+                        )
                     )}
+                    <button className="hidden lg:flex p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors ml-auto" onClick={toggleCollapse}>
+                        {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                    </button>
                     <button className="lg:hidden text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" onClick={toggleSidebar}>
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="flex items-center gap-4 px-5 py-4 mx-4 mt-6 mb-4 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shrink-0">
-                    <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg border border-white/30 shrink-0">
+                <div className={`flex items-center gap-4 px-4 py-4 mx-4 mt-8 mb-6 rounded-2xl bg-slate-900 border border-white/10 text-white shadow-2xl relative overflow-hidden group transition-all duration-300 hover:shadow-indigo-500/20 ${isCollapsed ? 'justify-center mx-2 px-0 mb-4' : ''}`}>
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-indigo-400 to-indigo-600" />
+                    
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-brand-600 flex items-center justify-center font-black text-xl border border-white/30 shrink-0 relative z-10 shadow-lg group-hover:rotate-6 transition-transform">
                         {user?.name?.charAt(0) || 'U'}
                     </div>
-                    <div className="flex flex-col truncate">
-                        <span className="font-semibold truncate text-white">{user?.name || 'User'}</span>
-                        <span className="text-xs uppercase opacity-80 mt-0.5 truncate text-brand-100">{user?.role}</span>
-                    </div>
+                    {!isCollapsed && (
+                        <div className="flex flex-col truncate relative z-10 pt-0.5">
+                            <span className="font-bold truncate text-white tracking-tight">{user?.name || 'User'}</span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgb(16,185,129)]" />
+                                <span className="text-[9px] font-black uppercase opacity-60 truncate text-emerald-400 tracking-widest">{user?.role}</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <nav className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
@@ -142,13 +179,14 @@ const MainLayout: React.FC = () => {
                             <li key={idx}>
                                 <NavLink
                                     to={item.path}
+                                    title={isCollapsed ? item.label : undefined}
                                     className={({ isActive }) =>
-                                        `flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-300 font-medium transition-all duration-200 ${isActive ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 shadow-sm' : 'hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-brand-600 dark:hover:text-brand-400'}`
+                                        `flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-500 dark:text-slate-400 font-bold text-[13px] uppercase tracking-wider transition-all duration-300 relative group overflow-hidden ${isActive ? 'bg-indigo-600 text-white shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)] scale-[1.02]' : 'hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-indigo-600 dark:hover:text-indigo-400'} ${isCollapsed ? 'justify-center' : ''}`
                                     }
                                     onClick={() => window.innerWidth <= 1024 && setSidebarOpen(false)}
                                 >
-                                    <item.icon size={18} className="shrink-0" />
-                                    <span className="truncate">{item.label}</span>
+                                    <item.icon size={20} className="shrink-0" />
+                                    {!isCollapsed && <span className="truncate">{item.label}</span>}
                                 </NavLink>
                             </li>
                         ))}
@@ -157,14 +195,15 @@ const MainLayout: React.FC = () => {
 
                 <div className="p-4 border-t border-slate-200 dark:border-slate-700/50 shrink-0">
                     <button
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300"
+                        title={isCollapsed ? "Sign Out" : undefined}
+                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium transition-all duration-200 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-300 ${isCollapsed ? 'justify-center' : ''}`}
                         onClick={handleLogout}
                     >
-                        <LogOut size={18} className="shrink-0" />
-                        <span>Sign Out</span>
+                        <LogOut size={20} className="shrink-0" />
+                        {!isCollapsed && <span>Sign Out</span>}
                     </button>
                 </div>
-            </aside>
+            </motion.aside>
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
@@ -204,16 +243,9 @@ const MainLayout: React.FC = () => {
 
                     <Suspense fallback={<Loader />}>
                         <AnimatePresence mode="wait">
-                            <motion.div
-                                key={location.pathname}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                className="relative z-10 h-full"
-                            >
+                            <PageTransition key={location.pathname}>
                                 <Outlet />
-                            </motion.div>
+                            </PageTransition>
                         </AnimatePresence>
                     </Suspense>
                 </div>
@@ -228,7 +260,8 @@ const MainLayout: React.FC = () => {
                 onClose={() => setIsShortcutsModalOpen(false)}
             />
 
-        </div >
+            <OfflineStatus />
+        </div>
     );
 };
 

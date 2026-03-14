@@ -90,7 +90,46 @@ const studentSchema = new mongoose.Schema({
         placed_at: Date
     },
     resetPasswordToken: String,
-    resetPasswordExpire: Date
+    resetPasswordExpire: Date,
+    gamification: {
+        streak: {
+            current: { type: Number, default: 0 },
+            last_activity: { type: Date, default: null },
+            longest: { type: Number, default: 0 }
+        },
+        badges: [{
+            type: { type: String, required: true },
+            earned_at: { type: Date, default: Date.now }
+        }],
+        points: { type: Number, default: 0 }
+    },
+    projects: [{
+        title: { type: String, required: true },
+        description: { type: String, required: true },
+        technologies: [String],
+        link: String,
+        duration: String,
+        created_at: { type: Date, default: Date.now }
+    }],
+    internships: [{
+        company: { type: String, required: true },
+        role: { type: String, required: true },
+        description: { type: String, required: true },
+        duration: String,
+        certificate_url: String,
+        created_at: { type: Date, default: Date.now }
+    }],
+    public_profile_slug: {
+        type: String,
+        unique: true,
+        sparse: true,
+        index: true
+    },
+    portfolio_theme: {
+        type: String,
+        enum: ['MINIMALIST', 'CREATIVE', 'TECHNICAL', 'EXECUTIVE'],
+        default: 'MINIMALIST'
+    }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false },
     toJSON: { virtuals: true },

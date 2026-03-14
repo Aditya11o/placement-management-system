@@ -4,7 +4,7 @@ const Log = require('../models/Log');
 const { clearCache } = require('../middlewares/cacheMiddleware');
 const { dispatchToAll, dispatchToRole } = require('../services/notifyDispatcher');
 
-exports.getAnnouncements = async (req, res) => {
+exports.getAnnouncements = async (req, res, next) => {
     try {
         const query = { status: 'SENT' };
 
@@ -29,11 +29,11 @@ exports.getAnnouncements = async (req, res) => {
 
         res.json({ success: true, count: data.length, data });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.createAnnouncement = async (req, res) => {
+exports.createAnnouncement = async (req, res, next) => {
     try {
         const { title, message, scheduled_at, target_roles, status: reqStatus } = req.body;
 
@@ -75,11 +75,11 @@ exports.createAnnouncement = async (req, res) => {
 
         res.status(201).json({ success: true, data: announcement });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.markAnnouncementRead = async (req, res) => {
+exports.markAnnouncementRead = async (req, res, next) => {
     try {
         const status = await AnnouncementStatus.findOneAndUpdate(
             { announcement_id: req.params.id, user_id: req.user._id },
@@ -92,11 +92,11 @@ exports.markAnnouncementRead = async (req, res) => {
 
         res.json({ success: true, data: status });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.getAnnouncementStats = async (req, res) => {
+exports.getAnnouncementStats = async (req, res, next) => {
     try {
         const announcement = await Announcement.findById(req.params.id);
         if (!announcement) {
@@ -129,11 +129,11 @@ exports.getAnnouncementStats = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.deleteAnnouncement = async (req, res) => {
+exports.deleteAnnouncement = async (req, res, next) => {
     try {
         const announcement = await Announcement.findById(req.params.id);
 
@@ -155,6 +155,6 @@ exports.deleteAnnouncement = async (req, res) => {
 
         res.json({ success: true, data: {} });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

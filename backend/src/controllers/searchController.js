@@ -7,7 +7,7 @@ const Job = require('../models/Job');
  * @route   GET /api/v1/search
  * @access  Private
  */
-exports.globalSearch = async (req, res) => {
+exports.globalSearch = async (req, res, next) => {
     try {
         const { q } = req.query;
 
@@ -76,6 +76,6 @@ exports.globalSearch = async (req, res) => {
         });
 
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { X, Building, MapPin, DollarSign, Calendar, Target, GraduationCap, CheckCircle, Send, Users } from 'lucide-react';
+import { X, Building, MapPin, DollarSign, Calendar, Target, GraduationCap, CheckCircle, Send, Users, Sparkles, FileText, BookOpen } from 'lucide-react';
 import Button from '../Button/Button';
-import { Job } from '../../types';
+import { Job, StudentProfile } from '../../types';
+import MatchBreakdown from '../AI/MatchBreakdown';
+import SkillGapRoadmap from '../AI/SkillGapRoadmap';
+import InterviewSimulator from '../Interview/InterviewSimulator';
+import ResumeFitCheck from './components/ResumeFitCheck';
+import ResumeAutoTune from './components/ResumeAutoTune';
+import Modal from '../Modal/Modal';
 
 // Extend Job interface to match the UIJob we use in JobBoard
 export interface UIJob extends Omit<Job, 'min_cgpa' | 'eligible_branch' | 'graduation_year' | 'status' | 'deadline'> {
@@ -22,18 +28,30 @@ export interface UIJob extends Omit<Job, 'min_cgpa' | 'eligible_branch' | 'gradu
     diversity_hiring?: string;
     graduation_year?: number;
     type?: string;
+    matchScore?: number;
 }
 
 interface JobModalProps {
     isOpen: boolean;
     job: UIJob | null;
+    studentProfile?: StudentProfile | null;
     onClose: () => void;
     onApply: (jobId: string) => void;
     isApplying: boolean;
 }
 
-const JobModal: React.FC<JobModalProps> = ({ isOpen, job, onClose, onApply, isApplying }) => {
+const JobModal: React.FC<JobModalProps> = ({ isOpen, job, studentProfile, onClose, onApply, isApplying }) => {
     const [isRendered, setIsRendered] = useState(false);
+    const [activeTab, setActiveTab] = useState<'DETAILS' | 'ROADMAP'>('DETAILS');
+    const [isSimOpen, setIsSimOpen] = useState(false);
+    const [isFitCheckOpen, setIsFitCheckOpen] = useState(false);
+    const [isAutoTuneOpen, setIsAutoTuneOpen] = useState(false);
+
+    const jobSkills = job?.skills_required || [];
+    const studentSkills = studentProfile?.skills || [];
+    const missingSkills = jobSkills.filter(skill => 
+        !studentSkills.some(s => s.toLowerCase() === skill.toLowerCase())
+    );
 
     // Handle animations
     useEffect(() => {
@@ -109,8 +127,28 @@ const JobModal: React.FC<JobModalProps> = ({ isOpen, job, onClose, onApply, isAp
                     </button>
                 </div>
 
+                {/* Tab Switcher (Only if missing skills) */}
+                {missingSkills.length > 0 && (
+                    <div className="flex px-6 pt-2 bg-white border-b border-slate-100 shrink-0">
+                        <button 
+                            onClick={() => setActiveTab('DETAILS')}
+                            className={`px-4 py-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'DETAILS' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        >
+                            Job Details
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('ROADMAP')}
+                            className={`px-4 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${activeTab === 'ROADMAP' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                        >
+                            <Sparkles size={14} /> AI Roadmap
+                        </button>
+                    </div>
+                )}
+
                 {/* Scrollable Content Body */}
                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50/50">
+                    {activeTab === 'DETAILS' ? (
+                        <>
 
                     {/* Quick Stats Grid */}
                     <div className="grid grid-cols-2 gap-4 mb-8">
@@ -143,6 +181,19 @@ const JobModal: React.FC<JobModalProps> = ({ isOpen, job, onClose, onApply, isAp
                             </div>
                         </div>
                     </div>
+                    
+                    {/* AI Match Breakdown Section */}
+                    {job.matchScore !== undefined && (
+                        <div className="mb-8 animate-fade-in">
+                            <MatchBreakdown 
+                                score={job.matchScore || 0}
+                                jobSkills={job.skills_required || []}
+                                studentSkills={studentProfile?.skills || []}
+                                jobMinCgpa={job.min_cgpa}
+                                studentCgpa={studentProfile?.cgpa}
+                            />
+                        </div>
+                    )}
 
                     {/* Eligibility Criteria Box */}
                     <div className="mb-8 bg-indigo-50/50 border border-indigo-100 rounded-xl p-5">
@@ -186,14 +237,19 @@ const JobModal: React.FC<JobModalProps> = ({ isOpen, job, onClose, onApply, isAp
                     </div>
 
                     {/* Job Description */}
-                    <div>
+                    <div className="mt-8">
                         <h3 className="text-lg font-bold text-slate-800 mb-3 border-b border-slate-200 pb-2">Description & Requirements</h3>
                         <div className="prose prose-slate prose-sm sm:prose-base max-w-none text-slate-600 whitespace-pre-wrap leading-relaxed">
                             {job.description || 'No description provided.'}
                         </div>
                     </div>
-
+                </>
+            ) : (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                    <SkillGapRoadmap missingSkills={missingSkills} />
                 </div>
+            )}
+        </div>
 
                 {/* Sticky Footer for CTA */}
                 <div className="flex-shrink-0 border-t border-slate-200 p-6 bg-white flex justify-end gap-3 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
@@ -204,11 +260,94 @@ const JobModal: React.FC<JobModalProps> = ({ isOpen, job, onClose, onApply, isAp
                         onClick={() => onApply(job._id)}
                         disabled={!canApply || isApplying}
                         isLoading={isApplying}
-                        className="w-full sm:w-auto min-w-[160px]"
+                        className="flex-1 sm:flex-none sm:min-w-[160px]"
                     >
                         {job.hasApplied ? 'Already Applied' : isClosed ? 'Applications Closed' : 'Apply Now'}
                     </Button>
+                    <Button
+                        variant="primary"
+                        icon={Sparkles}
+                        onClick={() => setIsSimOpen(true)}
+                        className="bg-gradient-to-r from-violet-600 to-indigo-600 border-none shadow-lg shadow-indigo-200 dark:shadow-none hover:scale-105 transition-transform"
+                    >
+                        AI Practice
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        icon={FileText}
+                        onClick={() => setIsFitCheckOpen(true)}
+                        className="border-slate-200 font-bold"
+                    >
+                        AI Fit-Check
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        icon={Sparkles}
+                        onClick={() => setIsAutoTuneOpen(true)}
+                        className="bg-indigo-50 border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-100"
+                    >
+                        AI Auto-Tune
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        icon={BookOpen}
+                        onClick={() => window.location.href = `/student/prep-kits?company=${encodeURIComponent(job.company?.company_name || '')}`}
+                        className="border-slate-200 text-indigo-600 font-bold hover:bg-indigo-50"
+                    >
+                        Prep Kit
+                    </Button>
                 </div>
+
+                {/* Interview Simulator Modal */}
+                <Modal
+                    isOpen={isSimOpen}
+                    onClose={() => setIsSimOpen(false)}
+                    title="AI Mock Interview"
+                    size="lg"
+                >
+                    <div className="h-[600px]">
+                        <InterviewSimulator 
+                            jobTitle={job.title}
+                            jobDescription={job.description}
+                            skills={job.skills_required}
+                            onClose={() => setIsSimOpen(false)}
+                        />
+                    </div>
+                </Modal>
+
+                {/* Resume Fit-Check Modal */}
+                <Modal
+                    isOpen={isFitCheckOpen}
+                    onClose={() => setIsFitCheckOpen(false)}
+                    title="Resume Optimization"
+                    size="md"
+                >
+                    <div className="h-[650px]">
+                        <ResumeFitCheck
+                            jobTitle={job.title}
+                            jobDescription={job.description}
+                            skills={job.skills_required}
+                            onClose={() => setIsFitCheckOpen(false)}
+                        />
+                    </div>
+                </Modal>
+
+                {/* AI Resume Auto-Tune Modal */}
+                <Modal
+                    isOpen={isAutoTuneOpen}
+                    onClose={() => setIsAutoTuneOpen(false)}
+                    title="AI Resume Auto-Tune"
+                    size="lg"
+                >
+                    <div className="h-[750px]">
+                        <ResumeAutoTune
+                            jobTitle={job.title}
+                            jobDescription={job.description}
+                            skills={job.skills_required}
+                            onClose={() => setIsAutoTuneOpen(false)}
+                        />
+                    </div>
+                </Modal>
             </div>
         </div>
     );

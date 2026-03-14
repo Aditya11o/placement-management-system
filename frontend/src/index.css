@@ -37,6 +37,14 @@
     /* Fuchsia-500 */
     --mesh-color-4: 59, 130, 246;
     /* Blue-500 */
+
+    --selection-bg: rgba(99, 102, 241, 0.2);
+    --selection-color: #4f46e5;
+  }
+
+  ::selection {
+    background: var(--selection-bg);
+    color: var(--selection-color);
   }
 }
 
@@ -66,7 +74,7 @@
 }
 
 .dark .mesh-bg {
-  background-color: var(--color-slate-950);
+  background-color: #020617; /* Slate-950 - Deeper depth */
 }
 
 .mesh-glow {
@@ -131,6 +139,23 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.glass-panel-dark {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+@keyframes premium-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.animate-premium-pulse {
+    animation: premium-pulse 2s infinite;
+}
+
 .glass-card {
   background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(8px);
@@ -139,9 +164,26 @@
 }
 
 .dark .glass-card {
-  background: rgba(30, 41, 59, 0.4);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 23, 42, 0.4); /* Deeper slate for dark mode cards */
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* ── Action Glow Utilities ── */
+.action-glow-indigo {
+  box-shadow: 0 0 20px -5px rgba(99, 102, 241, 0.5);
+}
+
+.action-glow-emerald {
+  box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.5);
+}
+
+.action-glow-amber {
+  box-shadow: 0 0 20px -5px rgba(245, 158, 11, 0.5);
+}
+
+.dark .action-glow-indigo {
+  box-shadow: 0 0 30px -10px rgba(99, 102, 241, 0.8);
 }
 
 .glass-card:hover {

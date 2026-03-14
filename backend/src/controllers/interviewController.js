@@ -11,7 +11,7 @@ const logger = require('../utils/logger');
  * @route   POST /api/v1/interviews
  * @access  Private/Recruiter
  */
-exports.scheduleInterview = async (req, res) => {
+exports.scheduleInterview = async (req, res, next) => {
     try {
         const { application_id, scheduled_at, duration_minutes, type, location_type, location_details, notes } = req.body;
 
@@ -109,7 +109,7 @@ exports.scheduleInterview = async (req, res) => {
 
         res.status(201).json({ success: true, data: interview });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -118,7 +118,7 @@ exports.scheduleInterview = async (req, res) => {
  * @route   PATCH /api/v1/interviews/:id/reschedule
  * @access  Private/Recruiter
  */
-exports.rescheduleInterview = async (req, res) => {
+exports.rescheduleInterview = async (req, res, next) => {
     try {
         const { scheduled_at, duration_minutes, type, reason } = req.body;
 
@@ -175,7 +175,7 @@ exports.rescheduleInterview = async (req, res) => {
 
         res.status(200).json({ success: true, data: interview });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -184,7 +184,7 @@ exports.rescheduleInterview = async (req, res) => {
  * @route   PUT /api/v1/interviews/:id/respond
  * @access  Private/Student
  */
-exports.respondToInterview = async (req, res) => {
+exports.respondToInterview = async (req, res, next) => {
     try {
         const { status } = req.body;
 
@@ -226,7 +226,7 @@ exports.respondToInterview = async (req, res) => {
 
         res.status(200).json({ success: true, data: interview });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -235,7 +235,7 @@ exports.respondToInterview = async (req, res) => {
  * @route   PUT /api/v1/interviews/:id/status
  * @access  Private/Recruiter
  */
-exports.updateInterviewStatus = async (req, res) => {
+exports.updateInterviewStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
 
@@ -271,7 +271,7 @@ exports.updateInterviewStatus = async (req, res) => {
 
         res.status(200).json({ success: true, data: interview });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -280,7 +280,7 @@ exports.updateInterviewStatus = async (req, res) => {
  * @route   GET /api/v1/interviews
  * @access  Private
  */
-exports.getMyInterviews = async (req, res) => {
+exports.getMyInterviews = async (req, res, next) => {
     try {
         let filter = {};
         if (req.user.role === 'STUDENT') {
@@ -303,6 +303,6 @@ exports.getMyInterviews = async (req, res) => {
 
         res.status(200).json({ success: true, count: interviews.length, data: interviews });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

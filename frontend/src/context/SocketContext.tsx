@@ -113,14 +113,8 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     );
 
     useEffect(() => {
-        // Register Service Worker on mount
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').then((registration) => {
-                console.log('Service Worker registered with scope:', registration.scope);
-            }).catch((error) => {
-                console.error('Service Worker registration failed:', error);
-            });
-        }
+        // Service Worker registration is now handled by vite-plugin-pwa in main.tsx
+        // This avoids conflicts between the manual sw.js and the PWA worker.
     }, []);
 
     const registerPush = async () => {
@@ -136,8 +130,8 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
             const registration = await navigator.serviceWorker.ready;
 
-            // Public VAPID Key from Backend
-            const vapidPublicKey = 'BFQ7gj5XjSOzVoJ_mIykyBz6pP7tVF7YO5aKpzs_ASGAW8nD_Ae-DBPC4GyAHqGyw2JO0GKbbZCc6LM-IAYfqpM';
+            // Public VAPID Key from Backend — use env variable with fallback
+            const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BFQ7gj5XjSOzVoJ_mIykyBz6pP7tVF7YO5aKpzs_ASGAW8nD_Ae-DBPC4GyAHqGyw2JO0GKbbZCc6LM-IAYfqpM';
 
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,

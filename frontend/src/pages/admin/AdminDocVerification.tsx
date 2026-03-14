@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-    FileCheck, FileX, ChevronRight, User, Mail, Phone, GraduationCap,
+    FileCheck, User, Mail, Phone, GraduationCap,
     BookOpen, Award, AlertTriangle, Loader2, CheckCircle, XCircle,
-    FileText, Image, ArrowDown, ArrowUp
+    FileText, Image
 } from 'lucide-react';
 import api from '../../services/api';
 import Card from '../../components/Card/Card';
@@ -38,7 +38,7 @@ interface PendingStudent {
 // ── Component ────────────────────────────────────────────────────────────────
 const AdminDocVerification: React.FC = () => {
     const queryClient = useQueryClient();
-    const { showToast } = useToast();
+    const { addToast } = useToast();
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [showRejectModal, setShowRejectModal] = useState(false);
@@ -72,7 +72,7 @@ const AdminDocVerification: React.FC = () => {
             api.put('/admin/users/status', { id, role: 'STUDENT', status }),
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['pending-students'] });
-            showToast(
+            addToast(
                 variables.status === 'APPROVED' ? 'Student approved successfully!' : 'Student rejected',
                 variables.status === 'APPROVED' ? 'success' : 'info'
             );
@@ -81,7 +81,7 @@ const AdminDocVerification: React.FC = () => {
             const next = students[currentIdx + 1] || students[currentIdx - 1];
             setSelectedId(next?._id || null);
         },
-        onError: (err: any) => showToast(err.response?.data?.message || 'Action failed', 'error'),
+        onError: (err: any) => addToast(err.response?.data?.message || 'Action failed', 'error'),
     });
 
     const handleApprove = () => {

@@ -32,8 +32,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (currentToken) {
                 try {
                     const decoded: any = jwtDecode(currentToken);
-                    // Check expiration
-                    if (decoded.exp * 1000 < Date.now()) {
+                    // Check expiration with 30s buffer to prevent mid-request expiry
+                    if (decoded.exp * 1000 < Date.now() + 30000) {
                         logout();
                     } else {
                         // Fetch fresh user profile details
@@ -57,6 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
 
         initializeAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
 
     const login = async (credentials: any): Promise<{ role: string }> => {

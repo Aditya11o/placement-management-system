@@ -145,11 +145,82 @@ function initializeSocket(httpServer) {
             }
             logger.info(`[Socket.io] Disconnected: ${userId} (Reason: ${reason})`);
         });
+
+        // ── Chat Enhancements: Typing Indicators ─────────────────────────────────
+        socket.on('chat:typing', (payload) => {
+            const { conversationId, recipientId, isTyping } = payload;
+            const recipientSockets = connectedUsers.get(recipientId.toString());
+            if (recipientSockets) {
+                recipientSockets.forEach(sId => {
+                    io.to(sId).emit('chat:typing', {
+                        conversationId,
+                        senderId: userId,
+                        isTyping
+                    });
+                });
+            }
+        });
+
+        // ── Collaborative Prep Rooms: WebRTC & Whiteboard ────────────────────────
+        socket.on('prep:join_room', (payload) => {
+            const { roomId, userDetails } = payload;
+            if (!roomId) return;
+
+            const roomName = `prep_${roomId}`;
+            socket.join(roomName);
+            
+            // Notify others that a peer joined
+            socket.to(roomName).emit('prep:peer_joined', {
+                userId: socket.user.id,
+                userDetails,
+                socketId: socket.id
+            });
+
+            logger.info(`[Socket.io] User ${socket.user.id} joined prep room: ${roomId}`);
+        });
+
+        socket.on('prep:signal', (payload) => {
+            const { roomId, targetId, signal } = payload;
+            // TargetId is the specific socket Id of the peer
+            io.to(targetId).emit('prep:signal', {
+                room_id: roomId,
+                senderId: socket.user.id,
+                senderSocketId: socket.id,
+                signal
+            });
+        });
+
+        socket.on('prep:draw', (payload) => {
+            const { roomId, drawingData } = payload;
+            const roomName = `prep_${roomId}`;
+            socket.to(roomName).emit('prep:draw_update', {
+                userId: socket.user.id,
+                drawingData
+            });
+        });
+
+        socket.on('prep:message', (payload) => {
+            const { roomId, text, userDetails } = payload;
+            const roomName = `prep_${roomId}`;
+            io.to(roomName).emit('prep:message', {
+                senderId: socket.user.id,
+                userDetails,
+                text,
+                sent_at: new Date()
+            });
+        });
     });
 
     logger.info('[Socket.io] Real-time notification dispatcher initialized');
     return io;
 }
+
+// ── Presence Check: is user online? ──────────────────────────────────────────
+const isUserOnline = (userId) => {
+    if (!io) return false;
+    const sockets = connectedUsers.get(userId.toString());
+    return !!(sockets && sockets.size > 0);
+};
 
 // ── Targeted Push: deliver to ALL sockets of a specific user ─────────────────
 const notifyUser = (userId, eventName, payload) => {
@@ -200,5 +271,6 @@ module.exports = {
     notifyUser,
     notifyRole,
     notifyAll,
-    getConnectedCount
+    getConnectedCount,
+    isUserOnline
 };

@@ -19,7 +19,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
  * @route   GET /api/v1/notifications
  * @access  Private
  */
-exports.getNotifications = async (req, res) => {
+exports.getNotifications = async (req, res, next) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
@@ -90,7 +90,7 @@ exports.getNotifications = async (req, res) => {
             data: finalData
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -99,7 +99,7 @@ exports.getNotifications = async (req, res) => {
  * @route   PUT /api/v1/notifications/:id/read
  * @access  Private
  */
-exports.markAsRead = async (req, res) => {
+exports.markAsRead = async (req, res, next) => {
     try {
         const notification = await Notification.findById(req.params.id);
 
@@ -123,7 +123,7 @@ exports.markAsRead = async (req, res) => {
             data: notification
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -132,7 +132,7 @@ exports.markAsRead = async (req, res) => {
  * @route   PUT /api/v1/notifications/read-all
  * @access  Private
  */
-exports.markAllAsRead = async (req, res) => {
+exports.markAllAsRead = async (req, res, next) => {
     try {
         await Notification.updateMany(
             { recipientId: req.user._id, isRead: false },
@@ -147,7 +147,7 @@ exports.markAllAsRead = async (req, res) => {
             message: 'All notifications marked as read'
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -156,7 +156,7 @@ exports.markAllAsRead = async (req, res) => {
  * @route   DELETE /api/v1/notifications/:id
  * @access  Private
  */
-exports.deleteNotification = async (req, res) => {
+exports.deleteNotification = async (req, res, next) => {
     try {
         const notification = await Notification.findById(req.params.id);
 
@@ -179,7 +179,7 @@ exports.deleteNotification = async (req, res) => {
             message: 'Notification removed'
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -188,7 +188,7 @@ exports.deleteNotification = async (req, res) => {
  * @route   DELETE /api/v1/notifications
  * @access  Private
  */
-exports.deleteAllNotifications = async (req, res) => {
+exports.deleteAllNotifications = async (req, res, next) => {
     try {
         await Notification.deleteMany({ recipientId: req.user._id });
 
@@ -200,7 +200,7 @@ exports.deleteAllNotifications = async (req, res) => {
             message: 'All notifications cleared'
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -209,7 +209,7 @@ exports.deleteAllNotifications = async (req, res) => {
  * @route   POST /api/v1/notifications/subscribe
  * @access  Private
  */
-exports.subscribePush = async (req, res) => {
+exports.subscribePush = async (req, res, next) => {
     try {
         const { subscription } = req.body;
 
@@ -234,7 +234,7 @@ exports.subscribePush = async (req, res) => {
             message: 'Push subscription successful'
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -243,7 +243,7 @@ exports.subscribePush = async (req, res) => {
  * @route   POST /api/v1/notifications/:id/action
  * @access  Private
  */
-exports.triggerAction = async (req, res) => {
+exports.triggerAction = async (req, res, next) => {
     try {
         const { actionIdx } = req.body;
         const notification = await Notification.findById(req.params.id);
@@ -272,7 +272,7 @@ exports.triggerAction = async (req, res) => {
             action: action
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -281,7 +281,7 @@ exports.triggerAction = async (req, res) => {
  * @route   GET /api/v1/notifications/recruiter/stats
  * @access  Private (Recruiter only)
  */
-exports.getRecruiterNotificationStats = async (req, res) => {
+exports.getRecruiterNotificationStats = async (req, res, next) => {
     try {
         const recruiterJobs = await Job.find({ recruiter: req.user._id }).select('_id');
         const jobIds = recruiterJobs.map(j => j._id.toString());
@@ -317,6 +317,6 @@ exports.getRecruiterNotificationStats = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

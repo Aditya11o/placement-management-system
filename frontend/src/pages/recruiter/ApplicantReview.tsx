@@ -7,16 +7,19 @@ import Button from '../../components/Button/Button';
 import KanbanBoard from '../../components/Kanban/KanbanBoard';
 import SkeletonTable from '../../components/Skeleton/SkeletonTable';
 import StudentProfileDrawer from '../../components/ProfileViewer/StudentProfileDrawer';
-import { Filter, Search, CheckSquare, X, Download, LayoutTemplate } from 'lucide-react';
+import { Filter, Search, CheckSquare, X, Download } from 'lucide-react';
 import api from '../../services/api';
 import { exportToCSV } from '../../utils/export';
 import ComposeMessageModal, { MessageRecipient, TEMPLATES } from '../../components/Modal/ComposeMessageModal';
 import ManagePipelineModal, { PipelineStage } from '../../components/Modal/ManagePipelineModal';
 import CompareCandidatesModal from '../../components/Modal/CompareCandidatesModal';
 import { Job, Application } from '../../types';
+import ApplicantFilters from './components/ApplicantFilters';
+import BulkActionsBar from './components/BulkActionsBar';
+import { useMemo } from 'react';
 
 interface UIApplicant extends Omit<Application, 'student' | 'job'> {
-    student?: { name: string; email: string; resume_url?: string; cgpa?: number; skills?: string[] };
+    student?: { _id: string; name: string; email: string; resume_url?: string; cgpa?: number; skills?: string[] };
     job?: { _id: string; title: string };
     matchScore?: number;
     createdAt?: string;
@@ -212,20 +215,22 @@ const ApplicantReview: React.FC = () => {
     };
 
     // ── Derived: filtered + sorted list ─────────────────────────────────────
-    const filtered = applications
-        .filter((app) => {
-            const matchJob = selectedJob === 'ALL' || app.job?._id === selectedJob;
-            const matchScoreCheck = (app.matchScore ?? 0) >= minMatchScore;
+    const filtered = useMemo(() => {
+        return applications
+            .filter((app) => {
+                const matchJob = selectedJob === 'ALL' || app.job?._id === selectedJob;
+                const matchScoreCheck = (app.matchScore ?? 0) >= minMatchScore;
 
-            const q = searchTerm.toLowerCase();
-            const matchSearch =
-                app.student?.name?.toLowerCase().includes(q) ||
-                app.job?.title?.toLowerCase().includes(q) ||
-                app.student?.email?.toLowerCase().includes(q);
+                const q = searchTerm.toLowerCase();
+                const matchSearch =
+                    app.student?.name?.toLowerCase().includes(q) ||
+                    app.job?.title?.toLowerCase().includes(q) ||
+                    app.student?.email?.toLowerCase().includes(q);
 
-            return matchJob && matchScoreCheck && matchSearch;
-        })
-        .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+                return matchJob && matchScoreCheck && matchSearch;
+            })
+            .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+    }, [applications, selectedJob, minMatchScore, searchTerm]);
 
     const toggleApplicantSelection = (appId: string) => {
         setSelectedApplicantsForBulk(prev =>
@@ -290,90 +295,23 @@ const ApplicantReview: React.FC = () => {
                     </div>
                 </div>
 
-                {isBulkMode && selectedApplicantsForBulk.length > 0 && (
-                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 dark:bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-6 z-40 animate-slide-up border border-slate-700">
-                        <span className="font-semibold text-indigo-400">{selectedApplicantsForBulk.length} Selected</span>
-                        <div className="w-px h-6 bg-slate-700"></div>
-                        <div className="flex gap-2">
-                            <Button size="sm" variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-700" onClick={() => handleBulkActionRequest('COMPARE')}>Compare</Button>
-                            <Button size="sm" variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-700" onClick={() => handleBulkActionRequest('SEND_MESSAGE')}>Message</Button>
-                            <div className="w-px h-6 bg-slate-700 mx-1"></div>
-                            <Button size="sm" variant="ghost" className="text-red-400 hover:text-white hover:bg-red-900/40" onClick={() => handleBulkActionRequest('REJECTED')}>Reject</Button>
-                            <Button size="sm" variant="primary" className="bg-indigo-500 hover:bg-indigo-400 border-none text-white shadow-none font-bold" onClick={() => handleBulkActionRequest('SHORTLISTED')}>Shortlist</Button>
-                        </div>
-                    </div>
-                )}
+                <BulkActionsBar 
+                    selectedCount={selectedApplicantsForBulk.length}
+                    onAction={handleBulkActionRequest}
+                />
 
-                <Card className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 p-4 lg:px-6">
-                    {/* Search & Basic Filters */}
-                    <div className="flex flex-wrap items-center gap-4 flex-grow">
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <Button
-                                variant="ghost"
-                                className="bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                                onClick={() => setIsPipelineModalOpen(true)}
-                                icon={LayoutTemplate}
-                            >
-                                Edit Pipeline
-                            </Button>
-                            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                                <button
-                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${!isBulkMode ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                                    onClick={() => setIsBulkMode(false)}
-                                >
-                                    Kanban View
-                                </button>
-                                <button
-                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${isBulkMode ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                                    onClick={() => setIsBulkMode(true)}
-                                >
-                                    Bulk Actions
-                                </button>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-md border border-slate-200 flex-grow max-w-[300px]">
-                            <Search size={18} className="text-slate-400 shrink-0" />
-                            <input
-                                type="text"
-                                placeholder="Search candidates..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-transparent border-none outline-none text-[15px] text-slate-800 font-sans cursor-text"
-                            />
-                        </div>
-
-                        <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-md border border-slate-200">
-                            <Filter size={18} className="text-slate-400 shrink-0" />
-                            <select
-                                value={selectedJob}
-                                onChange={(e) => setSelectedJob(e.target.value)}
-                                className="bg-transparent border-none outline-none text-[15px] text-slate-800 font-sans cursor-pointer focus:ring-0 max-w-[200px]"
-                            >
-                                <option value="ALL">All Jobs</option>
-                                {jobs.map((j) => (
-                                    <option key={j._id} value={j._id}>{j.title}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Advanced Filters */}
-                    <div className="flex items-center gap-4 bg-indigo-50/50 px-5 py-3 rounded-lg border border-indigo-100 shrink-0">
-                        <span className="text-sm font-semibold text-indigo-900 whitespace-nowrap">
-                            Min Match Score:
-                        </span>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="5"
-                            value={minMatchScore}
-                            onChange={(e) => setMinMatchScore(Number(e.target.value))}
-                            className="w-[120px] accent-indigo-600"
-                        />
-                        <span className="text-sm font-bold w-10 text-right text-indigo-700">{minMatchScore}%+</span>
-                    </div>
-                </Card>
+                <ApplicantFilters 
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    selectedJob={selectedJob}
+                    setSelectedJob={setSelectedJob}
+                    minMatchScore={minMatchScore}
+                    setMinMatchScore={setMinMatchScore}
+                    jobs={jobs}
+                    isBulkMode={isBulkMode}
+                    setIsBulkMode={setIsBulkMode}
+                    onOpenPipelineModal={() => setIsPipelineModalOpen(true)}
+                />
 
                 <div className="flex flex-col gap-4">
                     {isLoading ? (

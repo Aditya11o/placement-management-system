@@ -73,23 +73,6 @@ const deadlineBadgeClass = {
     grey: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
-/** Generate a realistic job description template when AI is unavailable */
-const generateDescriptionMock = (title: string): string =>
-    `We are looking for a talented ${title} to join our growing team.
-
-**Responsibilities:**
-• Design, develop, and maintain high-quality software solutions
-• Collaborate with cross-functional teams to define and implement new features
-• Write clean, scalable, and well-documented code
-• Participate in code reviews and mentor junior engineers
-• Contribute to architectural decisions
-
-**What We Offer:**
-• Competitive salary and performance bonuses
-• Flexible working environment (Hybrid/Remote options)
-• Opportunity to work on cutting-edge technology
-• Fast-track career growth in a dynamic startup environment`;
-
 // ── Component ─────────────────────────────────────────────────────────────────
 const RecruiterJobs: React.FC = () => {
     const { addToast } = useToast();

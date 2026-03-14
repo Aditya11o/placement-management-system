@@ -19,7 +19,7 @@ const MAX_RESUME_VERSIONS = 10;
  *   4. Marks the new version as `is_active: true`, deactivating all others
  *   5. Prunes oldest version if the cap (10) is exceeded
  */
-exports.uploadResume = async (req, res) => {
+exports.uploadResume = async (req, res, next) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'Please upload a file' });
@@ -85,7 +85,7 @@ exports.uploadResume = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -94,7 +94,7 @@ exports.uploadResume = async (req, res) => {
  * @route   GET /api/v1/upload/resume/history
  * @access  Private/Student
  */
-exports.getResumeHistory = async (req, res) => {
+exports.getResumeHistory = async (req, res, next) => {
     try {
         const student = await Student.findById(req.user._id).select('resume_versions');
         if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
@@ -108,7 +108,7 @@ exports.getResumeHistory = async (req, res) => {
             data: versions
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -117,7 +117,7 @@ exports.getResumeHistory = async (req, res) => {
  * @route   PUT /api/v1/upload/resume/history/:versionId/activate
  * @access  Private/Student
  */
-exports.activateResumeVersion = async (req, res) => {
+exports.activateResumeVersion = async (req, res, next) => {
     try {
         const student = await Student.findById(req.user._id);
         if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
@@ -149,7 +149,7 @@ exports.activateResumeVersion = async (req, res) => {
             data: target
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -158,7 +158,7 @@ exports.activateResumeVersion = async (req, res) => {
  * @route   DELETE /api/v1/upload/resume/history/:versionId
  * @access  Private/Student
  */
-exports.deleteResumeVersion = async (req, res) => {
+exports.deleteResumeVersion = async (req, res, next) => {
     try {
         const student = await Student.findById(req.user._id);
         if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
@@ -192,7 +192,7 @@ exports.deleteResumeVersion = async (req, res) => {
             data: { remainingVersions: student.resume_versions.length }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -201,7 +201,7 @@ exports.deleteResumeVersion = async (req, res) => {
  * @route   POST /api/v1/upload/logo
  * @access  Private/Recruiter
  */
-exports.uploadLogo = async (req, res) => {
+exports.uploadLogo = async (req, res, next) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'Please upload a file' });
@@ -228,7 +228,7 @@ exports.uploadLogo = async (req, res) => {
             data: recruiter.logo_url
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -237,7 +237,7 @@ exports.uploadLogo = async (req, res) => {
  * @route   POST /api/v1/upload/profile-photo
  * @access  Private/Student
  */
-exports.uploadProfilePhoto = async (req, res) => {
+exports.uploadProfilePhoto = async (req, res, next) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'Please upload an image file' });
@@ -264,6 +264,6 @@ exports.uploadProfilePhoto = async (req, res) => {
             data: student.profile_image_url
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

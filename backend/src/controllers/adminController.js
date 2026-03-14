@@ -25,11 +25,11 @@ exports.getUsers = async (req, res, next) => {
         req.advancedFilter = { role }; // Just in case, wouldn't hurt, but the router binds to the specific model
         res.status(200).json(res.advancedResults);
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.updateUserStatus = async (req, res) => {
+exports.updateUserStatus = async (req, res, next) => {
     try {
         const { id, role, status } = req.body;
         if (!['PENDING', 'APPROVED', 'BLOCKED'].includes(status)) {
@@ -78,11 +78,11 @@ exports.updateUserStatus = async (req, res) => {
 
         res.json({ success: true, data: user });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.getDashboardStats = async (req, res) => {
+exports.getDashboardStats = async (req, res, next) => {
     try {
         const studentCount = await Student.countDocuments();
         const pendingStudents = await Student.countDocuments({ status: 'PENDING' });
@@ -115,11 +115,11 @@ exports.getDashboardStats = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
-exports.exportData = async (req, res) => {
+exports.exportData = async (req, res, next) => {
     try {
         const { type } = req.body;
         if (!['students', 'applications'].includes(type)) {
@@ -143,7 +143,7 @@ exports.exportData = async (req, res) => {
             message: `Export for ${type} has been queued. An email with the download link will be sent to ${req.user.email} shortly.`
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -164,7 +164,7 @@ exports.exportData = async (req, res) => {
  * The JSON output format is identical to the old version, so the frontend/download
  * behaviour is fully backward-compatible.
  */
-exports.exportMasterData = async (req, res) => {
+exports.exportMasterData = async (req, res, next) => {
     try {
         // Log the high-privilege action
         await Log.create({
@@ -233,11 +233,11 @@ exports.exportMasterData = async (req, res) => {
  * @route   GET /api/v1/admin/logs
  * @access  Private/Admin
  */
-exports.getLogs = async (req, res) => {
+exports.getLogs = async (req, res, next) => {
     try {
         res.status(200).json(res.advancedResults);
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -250,7 +250,7 @@ exports.getLogs = async (req, res) => {
  * @route   POST /api/v1/admin/api-keys
  * @access  Private/Admin
  */
-exports.generateApiKey = async (req, res) => {
+exports.generateApiKey = async (req, res, next) => {
     try {
         const { name } = req.body;
         if (!name) return res.status(400).json({ success: false, message: 'Please provide a descriptive name for this key' });
@@ -282,7 +282,7 @@ exports.generateApiKey = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -291,7 +291,7 @@ exports.generateApiKey = async (req, res) => {
  * @route   GET /api/v1/admin/api-keys
  * @access  Private/Admin
  */
-exports.listApiKeys = async (req, res) => {
+exports.listApiKeys = async (req, res, next) => {
     try {
         const admin = await Admin.findById(req.user._id).select('+api_keys');
         const keys = admin.api_keys.map(k => ({
@@ -302,7 +302,7 @@ exports.listApiKeys = async (req, res) => {
 
         res.status(200).json({ success: true, count: keys.length, data: keys });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -311,7 +311,7 @@ exports.listApiKeys = async (req, res) => {
  * @route   DELETE /api/v1/admin/api-keys/:id
  * @access  Private/Admin
  */
-exports.revokeApiKey = async (req, res) => {
+exports.revokeApiKey = async (req, res, next) => {
     try {
         const admin = await Admin.findById(req.user._id);
         const originalLength = admin.api_keys.length;
@@ -331,7 +331,7 @@ exports.revokeApiKey = async (req, res) => {
 
         res.status(200).json({ success: true, message: 'API Key revoked successfully' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -347,7 +347,7 @@ const streamifier = require('streamifier');
  * @route   POST /api/v1/admin/bulk
  * @access  Private/Admin
  */
-exports.bulkOperations = async (req, res) => {
+exports.bulkOperations = async (req, res, next) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'Please upload a valid CSV file' });
@@ -402,7 +402,7 @@ exports.bulkOperations = async (req, res) => {
             });
 
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -411,7 +411,7 @@ exports.bulkOperations = async (req, res) => {
  * @route   GET /api/v1/admin/bulk/:jobId
  * @access  Private/Admin
  */
-exports.getBulkJobStatus = async (req, res) => {
+exports.getBulkJobStatus = async (req, res, next) => {
     try {
         // Since BulkQueue returns standard BullMQ Job shapes, we can read straight from Cache
         if (config.get('env') === 'test') { return res.status(200).json({ success: true, data: { status: 'completed' } }); } // Mock trap
@@ -438,7 +438,7 @@ exports.getBulkJobStatus = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -448,7 +448,7 @@ exports.getBulkJobStatus = async (req, res) => {
  * @route   GET /api/v1/admin/settings
  * @access  Private/Admin
  */
-exports.getSettings = async (req, res) => {
+exports.getSettings = async (req, res, next) => {
     try {
         let settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
 
@@ -458,7 +458,7 @@ exports.getSettings = async (req, res) => {
 
         res.status(200).json({ success: true, data: settings });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -467,7 +467,7 @@ exports.getSettings = async (req, res) => {
  * @route   PUT /api/v1/admin/settings
  * @access  Private/Admin
  */
-exports.updateSettings = async (req, res) => {
+exports.updateSettings = async (req, res, next) => {
     try {
         const oldSettings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
 
@@ -498,7 +498,7 @@ exports.updateSettings = async (req, res) => {
 
         res.status(200).json({ success: true, data: settings });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -507,7 +507,7 @@ exports.updateSettings = async (req, res) => {
  * @route   GET /api/v1/admin/audit-logs
  * @access  Private/Admin
  */
-exports.getAuditLogs = async (req, res) => {
+exports.getAuditLogs = async (req, res, next) => {
     try {
         const { search, user_id, action, ip_address } = req.query;
 
@@ -539,7 +539,7 @@ exports.getAuditLogs = async (req, res) => {
 
         res.status(200).json({ success: true, count: logs.length, data: logs });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -551,7 +551,7 @@ exports.getAuditLogs = async (req, res) => {
  */
 const { uploadToCloudinary } = require('../utils/cloudinary');
 
-exports.uploadLogo = async (req, res) => {
+exports.uploadLogo = async (req, res, next) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'Please provide an image file' });
@@ -584,7 +584,7 @@ exports.uploadLogo = async (req, res) => {
  * @route   POST /api/v1/admin/settings/favicon
  * @access  Private/Admin
  */
-exports.uploadFavicon = async (req, res) => {
+exports.uploadFavicon = async (req, res, next) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'Please provide an icon or image file' });
@@ -735,11 +735,11 @@ exports.sendTestTemplateEmail = async (req, res, next) => {
  * @route   GET /api/v1/admin/jobs
  * @access  Private/Admin
  */
-exports.getJobs = async (req, res) => {
+exports.getJobs = async (req, res, next) => {
     try {
         res.status(200).json(res.advancedResults);
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -748,7 +748,7 @@ exports.getJobs = async (req, res) => {
  * @route   PUT /api/v1/admin/jobs/:id/status
  * @access  Private/Admin
  */
-exports.updateJobStatus = async (req, res) => {
+exports.updateJobStatus = async (req, res, next) => {
     try {
         const { is_approved, is_featured } = req.body;
 
@@ -775,7 +775,7 @@ exports.updateJobStatus = async (req, res) => {
 
         res.status(200).json({ success: true, data: job });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -784,11 +784,11 @@ exports.updateJobStatus = async (req, res) => {
  * @route   GET /api/v1/admin/applications
  * @access  Private/Admin
  */
-exports.getApplications = async (req, res) => {
+exports.getApplications = async (req, res, next) => {
     try {
         res.status(200).json(res.advancedResults);
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -797,7 +797,7 @@ exports.getApplications = async (req, res) => {
  * @route   PUT /api/v1/admin/applications/:id/status
  * @access  Private/Admin
  */
-exports.updateApplicationStatus = async (req, res) => {
+exports.updateApplicationStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
 
@@ -829,7 +829,7 @@ exports.updateApplicationStatus = async (req, res) => {
 
         return res.status(200).json({ success: true, data: application });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -838,7 +838,7 @@ exports.updateApplicationStatus = async (req, res) => {
  * @route   GET /api/v1/admin/jobs/:id/matches
  * @access  Private/Admin
  */
-exports.getJobMatches = async (req, res) => {
+exports.getJobMatches = async (req, res, next) => {
     try {
         const Job = require('../models/Job');
         const Student = require('../models/Student');
@@ -873,7 +873,7 @@ exports.getJobMatches = async (req, res) => {
             data: matchedCandidates
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -882,7 +882,7 @@ exports.getJobMatches = async (req, res) => {
  * @route   GET /api/v1/admin/pulse
  * @access  Private/Admin
  */
-exports.getLatestPulse = async (req, res) => {
+exports.getLatestPulse = async (req, res, next) => {
     try {
         // Fetch the 20 most recent non-ADMIN logs to seed the dashboard feed
         const logs = await Log.find({ user_role: { $ne: 'ADMIN' } })
@@ -896,7 +896,7 @@ exports.getLatestPulse = async (req, res) => {
             data: logs
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -905,7 +905,7 @@ exports.getLatestPulse = async (req, res) => {
  * @route   GET /api/v1/admin/interviews
  * @access  Private/Admin
  */
-exports.getAllInterviews = async (req, res) => {
+exports.getAllInterviews = async (req, res, next) => {
     try {
         const Interview = require('../models/Interview');
 
@@ -913,7 +913,7 @@ exports.getAllInterviews = async (req, res) => {
         // (Assuming advancedResults middleware is attached in the route mapping)
         res.status(200).json(res.advancedResults);
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -922,12 +922,12 @@ exports.getAllInterviews = async (req, res) => {
  * @route   GET /api/v1/admin/campaigns
  * @access  Private/Admin
  */
-exports.getCampaigns = async (req, res) => {
+exports.getCampaigns = async (req, res, next) => {
     try {
         const Campaign = require('../models/Campaign');
         res.status(200).json(res.advancedResults);
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -936,7 +936,7 @@ exports.getCampaigns = async (req, res) => {
  * @route   POST /api/v1/admin/campaigns
  * @access  Private/Admin
  */
-exports.createCampaign = async (req, res) => {
+exports.createCampaign = async (req, res, next) => {
     try {
         const { title, subject, target_audience, target_filters, channels, html_content } = req.body;
         const Campaign = require('../models/Campaign');
@@ -1042,7 +1042,7 @@ exports.createCampaign = async (req, res) => {
             data: campaign,
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -1051,7 +1051,7 @@ exports.createCampaign = async (req, res) => {
  * @route   GET /api/v1/admin/system-health
  * @access  Private/Admin
  */
-exports.getSystemHealth = async (req, res) => {
+exports.getSystemHealth = async (req, res, next) => {
     try {
         const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
         const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
@@ -1079,7 +1079,7 @@ exports.getSystemHealth = async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -1088,7 +1088,7 @@ exports.getSystemHealth = async (req, res) => {
  * @route   POST /api/v1/admin/purge
  * @access  Private/Admin
  */
-exports.purgeData = async (req, res) => {
+exports.purgeData = async (req, res, next) => {
     try {
         const { type } = req.body; // 'LOGS', 'APPLICATIONS', 'STUDENTS'
         const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
@@ -1134,7 +1134,7 @@ exports.purgeData = async (req, res) => {
             deletedCount: result.deletedCount
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
