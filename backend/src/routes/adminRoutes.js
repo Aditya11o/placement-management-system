@@ -7,6 +7,8 @@ const {
     exportData,
     getSettings,
     updateSettings,
+    getAllSessions,
+    revokeSession,
     getEmailTemplates,
     updateEmailTemplate,
     sendTestTemplateEmail,
@@ -30,7 +32,8 @@ const {
     revokeApiKey,
     exportMasterData,
     getSystemHealth,
-    purgeData
+    purgeData,
+    updateUserInternalNotes
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
@@ -124,6 +127,7 @@ router.get('/users', checkPermission('manage_students'), usersAdvancedResults, g
  *         description: Status updated successfully
  */
 router.put('/users/status', checkPermission('manage_students'), validateUserStatusUpdate, validate, updateUserStatus);
+router.put('/users/notes', checkPermission('manage_students'), updateUserInternalNotes);
 
 /**
  * @swagger
@@ -277,5 +281,9 @@ const Campaign = require('../models/Campaign');
 router.route('/campaigns')
     .get(advancedResults(Campaign, { path: 'created_by', select: 'name' }), getCampaigns)
     .post(createCampaign);
+
+// --- Session Management ---
+router.get('/sessions', getAllSessions);
+router.delete('/sessions/:id', revokeSession);
 
 module.exports = router;

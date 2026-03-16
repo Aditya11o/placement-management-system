@@ -64,7 +64,21 @@ if (config.get('https')) {
 initializeSocket(server);
 
 // Middleware
-app.use(helmet());  // Set security headers
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com"],
+            connectSrc: ["'self'", "https://*.sentry.io", "wss:", "ws:"],
+            frameSrc: ["'none'"],
+            objectSrc: ["'none'"],
+        },
+    },
+    crossOriginEmbedderPolicy: false, // Required for Cloudinary images
+}));  // Set security headers
 const { checkBlocklist, banIp } = require('./src/middlewares/blocklistMiddleware');
 app.use(checkBlocklist); // Instantly drop banned IPs connection
 app.use(morganMiddleware);
@@ -148,6 +162,36 @@ app.use(hpp());
 const { tenantMiddleware } = require('./src/middlewares/tenantMiddleware');
 app.use(tenantMiddleware);
 
+// ── BullMQ Monitoring Dashboard (Admin Only) ────────────────────────────────
+if (config.get('env') !== 'test') {
+    const { createBullBoard } = require('@bull-board/api');
+    const { BullMQAdapter } = require('@bull-board/api/bullMQAdapter');
+    const { ExpressAdapter } = require('@bull-board/express');
+    const { protect, authorize } = require('./src/middlewares/authMiddleware');
+
+    const { emailQueue } = require('./src/utils/emailQueue');
+    const { webhookQueue } = require('./src/utils/webhookQueue');
+    const { dataExportQueue } = require('./src/utils/dataExportQueue');
+    const { bulkQueue } = require('./src/utils/bulkQueue');
+
+    const serverAdapter = new ExpressAdapter();
+    serverAdapter.setBasePath('/admin/queues');
+
+    createBullBoard({
+        queues: [
+            new BullMQAdapter(emailQueue, { readOnlyMode: false }),
+            new BullMQAdapter(webhookQueue, { readOnlyMode: false }),
+            new BullMQAdapter(dataExportQueue, { readOnlyMode: false }),
+            new BullMQAdapter(bulkQueue, { readOnlyMode: false }),
+        ],
+        serverAdapter,
+    });
+
+    // Protected: requires JWT + ADMIN role
+    app.use('/admin/queues', protect, authorize('ADMIN'), serverAdapter.getRouter());
+    logger.info('📊 Bull Board dashboard mounted at /admin/queues');
+}
+
 // Routes
 const authRoutes = require('./src/routes/authRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
@@ -159,11 +203,11 @@ const uploadRoutes = require('./src/routes/uploadRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const interviewRoutes = require('./src/routes/interviewRoutes');
+const aiRoutes = require('./src/routes/aiRoutes');
 const notificationPrefsRoutes = require('./src/routes/notificationPrefsRoutes');
 const rbacRoutes = require('./src/routes/rbacRoutes');
 const logRoutes = require('./src/routes/logRoutes');
 const searchRoutes = require('./src/routes/searchRoutes');
-const aiRoutes = require('./src/routes/aiRoutes');
 const teamRoutes = require('./src/routes/teamRoutes');
 const chatRoutes = require('./src/routes/chatRoutes');
 const experienceRoutes = require('./src/routes/experienceRoutes');
@@ -183,12 +227,12 @@ app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/interviews', interviewRoutes);
+app.use('/api/v1/ai', aiRoutes);
 // app.use('/api/v1/health', healthRoutes); // Moved up to exempt from rate limiting
 app.use('/api/v1/notification-prefs', notificationPrefsRoutes);
 app.use('/api/v1/rbac', rbacRoutes);
 app.use('/api/v1/logs', logRoutes);
 app.use('/api/v1/search', searchRoutes);
-app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/team', teamRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/experiences', experienceRoutes);

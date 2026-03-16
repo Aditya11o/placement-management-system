@@ -40,7 +40,9 @@ exports.getPrefs = async (req, res, next) => {
                 userId: req.user._id,
                 role: req.user.role,
                 preferences: prefs.toObject(),
-                availableEvents: events
+                availableEvents: events,
+                emailFrequency: prefs.emailFrequency,
+                quietHours: prefs.quietHours
             }
         });
     } catch (err) {
@@ -64,9 +66,18 @@ exports.updatePrefs = async (req, res, next) => {
         const allowedEvents = (CONFIGURABLE_EVENTS[req.user.role.toLowerCase()] || [])
             .map(e => e.key);
 
-        // Whitelist only recognised event keys from the body — reject unknown fields
+        // Whitelist recognized event keys and top-level fields
         const updates = {};
         for (const [key, value] of Object.entries(req.body)) {
+            if (key === 'emailFrequency') {
+                if (['IMMEDIATE', 'DAILY', 'WEEKLY'].includes(value)) updates.emailFrequency = value;
+                continue;
+            }
+            if (key === 'quietHours') {
+                updates.quietHours = { ...req.user.quietHours, ...value };
+                continue;
+            }
+
             if (!allowedEvents.includes(key)) continue;
 
             // Accept either boolean (simple toggle) or { push, email } objects

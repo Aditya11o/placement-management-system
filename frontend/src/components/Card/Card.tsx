@@ -25,11 +25,11 @@ const Card: React.FC<CardProps> = ({ children, className = '', hoverable = false
         mouseY.set(clientY - top);
     }
 
-    const baseClasses = `relative overflow-hidden p-6 bg-white/80 dark:bg-slate-800/90 backdrop-blur-xl ${border ? 'border-indigo-500/20 dark:border-indigo-400/20' : 'border-white/20 dark:border-slate-700/50'} border rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] transition-all duration-300`;
+    const baseClasses = `relative overflow-hidden p-6 bg-white dark:bg-slate-800/90 backdrop-blur-xl ${border ? 'border-indigo-500/20 dark:border-indigo-400/20' : 'border-slate-100 dark:border-slate-700/50'} border rounded-2xl shadow-sm dark:shadow-none transition-all duration-300`;
 
     // We use framer-motion's whileHover for the spring effect instead of Tailwind classes
-    const hoverScale = hoverable ? 1.015 : 1;
-    const hoverY = hoverable ? -4 : 0;
+    const hoverScale = hoverable ? 1.01 : 1;
+    const hoverY = hoverable ? -2 : 0;
 
     return (
         <motion.div
@@ -40,9 +40,10 @@ const Card: React.FC<CardProps> = ({ children, className = '', hoverable = false
             whileHover={{
                 scale: hoverScale,
                 y: hoverY,
-                boxShadow: hoverable ? "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" : undefined
+                boxShadow: hoverable ? "0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05)" : undefined,
+                borderColor: hoverable ? "rgba(99, 102, 241, 0.3)" : undefined
             }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
             className={`${baseClasses} ${className}`}
             {...props}
         >

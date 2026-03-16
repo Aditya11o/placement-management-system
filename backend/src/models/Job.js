@@ -109,6 +109,10 @@ const jobSchema = new mongoose.Schema({
     views: {
         type: Number,
         default: 0
+    },
+    location: {
+        type: String,
+        default: 'Remote'
     }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }

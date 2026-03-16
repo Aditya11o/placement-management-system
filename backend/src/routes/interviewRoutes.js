@@ -4,7 +4,8 @@ const {
     respondToInterview,
     updateInterviewStatus,
     rescheduleInterview,
-    getMyInterviews
+    getMyInterviews,
+    enterInterviewRoom
 } = require('../controllers/interviewController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { validate } = require('../middlewares/validate');
@@ -64,5 +65,14 @@ router.route('/:id/status').put(authorize('RECRUITER'), validateInterviewStatusU
  *     tags: [Interviews]
  */
 router.route('/:id/reschedule').patch(authorize('RECRUITER'), rescheduleInterview);
+
+/**
+ * @swagger
+ * /api/v1/interviews/{id}/join:
+ *   get:
+ *     summary: Join internal video interview room
+ *     tags: [Interviews]
+ */
+router.route('/:id/join').get(enterInterviewRoom);
 
 module.exports = router;

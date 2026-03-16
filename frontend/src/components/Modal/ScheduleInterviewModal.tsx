@@ -8,6 +8,7 @@ import Input from '../Input/Input';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
 import { format, addMinutes, parseISO } from 'date-fns';
+import { useAuth } from '../../context/AuthContext';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 const scheduleInterviewSchema = z.object({
@@ -64,6 +65,8 @@ const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
     jobTitle,
     onSuccess
 }) => {
+    const { user } = useAuth();
+    const isCalendarConnected = !!(user as any)?.calendar_tokens;
     const { addToast } = useToast();
     const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
     const smartDefaults = useMemo(() => getSmartDefaults(), []);
@@ -271,6 +274,25 @@ const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
                                 {...register('notes')}
                             />
                         </div>
+
+                        {/* Calendar Sync Status */}
+                        {isCalendarConnected ? (
+                            <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
+                                <CheckCircle size={18} className="text-emerald-500 shrink-0" />
+                                <div className="text-xs">
+                                    <p className="font-bold text-emerald-700 dark:text-emerald-400">Google Calendar Connected</p>
+                                    <p className="text-emerald-600 dark:text-emerald-500/80">Student and recruiter will receive calendar invites automatically.</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl">
+                                <Info size={18} className="text-amber-500 shrink-0" />
+                                <div className="text-xs">
+                                    <p className="font-bold text-amber-700 dark:text-amber-400">Calendar Not Connected</p>
+                                    <p className="text-amber-600 dark:text-amber-500/80">Connect your Google Calendar in Profile settings to send automated invites.</p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Live Summary Preview */}
                         {(watchDate || watchTime || watchLocation) && (

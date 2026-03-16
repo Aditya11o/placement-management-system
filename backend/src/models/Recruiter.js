@@ -68,7 +68,16 @@ const recruiterSchema = new mongoose.Schema({
         default: false,
     },
     resetPasswordToken: String,
-    resetPasswordExpire: Date
+    resetPasswordExpire: Date,
+    calendar_tokens: {
+        type: Object,
+        default: null,
+        select: false // Keep sensitive tokens hidden by default
+    },
+    internal_notes: {
+        type: String,
+        default: ''
+    }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }
 });

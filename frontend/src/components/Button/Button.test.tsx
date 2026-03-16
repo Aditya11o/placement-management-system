@@ -1,11 +1,24 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { axe } from 'vitest-axe';
 import Button from './Button';
 
 describe('Button Component', () => {
     it('renders the button with text', () => {
         render(<Button variant="primary">Click Me</Button>);
         expect(screen.getByText('Click Me')).toBeInTheDocument();
+    });
+
+    it('has no accessibility violations', async () => {
+        const { container } = render(<Button variant="primary">Click Me</Button>);
+        const results = await axe(container);
+        expect(results).toHaveNoViolations();
+    });
+
+    it('has no accessibility violations when loading', async () => {
+        const { container } = render(<Button variant="primary" isLoading>Loading...</Button>);
+        const results = await axe(container);
+        expect(results).toHaveNoViolations();
     });
 
     it('calls onClick handler when clicked', () => {

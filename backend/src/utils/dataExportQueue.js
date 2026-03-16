@@ -2,6 +2,7 @@ const { Queue, Worker } = require('bullmq');
 const exceljs = require('exceljs');
 const Student = require('../models/Student');
 const Application = require('../models/Application');
+const Recruiter = require('../models/Recruiter');
 const { uploadToCloudinary } = require('./cloudinary');
 const { emailQueue } = require('./emailQueue');
 const logger = require('./logger');
@@ -35,7 +36,7 @@ if (config.get('env') !== 'test') {
 
     dataExportWorker = new Worker('data-export-queue', async (job) => {
         try {
-            const { adminEmail, exportType } = job.data;
+            const { adminEmail, exportType, userIds } = job.data;
             logger.info(`Processing Data Export job ${job.id} for ${exportType}`);
 
             const workbook = new exceljs.Workbook();
@@ -59,7 +60,8 @@ if (config.get('env') !== 'test') {
                     { header: 'Active Backlogs', key: 'backlogs', width: 15 }
                 ];
 
-                dataCursor = Student.find().lean().cursor();
+                const query = userIds && userIds.length > 0 ? { _id: { $in: userIds } } : {};
+                dataCursor = Student.find(query).lean().cursor();
             } else if (exportType === 'applications') {
                 worksheet.columns = [
                     { header: 'Application ID', key: 'appId', width: 30 },
@@ -71,7 +73,20 @@ if (config.get('env') !== 'test') {
                     { header: 'Applied On', key: 'appliedOn', width: 20 }
                 ];
 
-                dataCursor = Application.find().populate('job_id').populate('student_id').lean().cursor();
+                const query = userIds && userIds.length > 0 ? { _id: { $in: userIds } } : {};
+                dataCursor = Application.find(query).populate('job_id').populate('student_id').lean().cursor();
+            } else if (exportType === 'recruiters') {
+                worksheet.columns = [
+                    { header: 'Company Name', key: 'companyName', width: 25 },
+                    { header: 'Contact Person', key: 'contactPerson', width: 25 },
+                    { header: 'Email', key: 'email', width: 30 },
+                    { header: 'Phone', key: 'phone', width: 15 },
+                    { header: 'Status', key: 'status', width: 15 },
+                    { header: 'Registered On', key: 'created_at', width: 20 }
+                ];
+
+                const query = userIds && userIds.length > 0 ? { _id: { $in: userIds } } : {};
+                dataCursor = Recruiter.find(query).lean().cursor();
             } else {
                 throw new Error('Unknown export type');
             }
@@ -114,6 +129,15 @@ if (config.get('env') !== 'test') {
                         company: doc.job_id?.company_name || 'N/A',
                         status: doc.status,
                         appliedOn: new Date(doc.applied_at).toLocaleDateString()
+                    });
+                } else if (exportType === 'recruiters') {
+                    worksheet.addRow({
+                        companyName: doc.company_name,
+                        contactPerson: doc.contact_person,
+                        email: doc.email,
+                        phone: doc.phone,
+                        status: doc.status,
+                        created_at: new Date(doc.created_at).toLocaleDateString()
                     });
                 }
             }
@@ -177,3 +201,4 @@ if (config.get('env') !== 'test') {
     };
 }
 
+module.exports = { dataExportQueue, dataExportWorker };

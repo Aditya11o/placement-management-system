@@ -11,6 +11,7 @@ const { emailQueue } = require('../utils/emailQueue');
 
 const GlobalSettings = require('../models/GlobalSettings');
 const EmailTemplate = require('../models/EmailTemplate');
+const Session = require('../models/Session');
 const config = require('../config/config');
 const logger = require('../utils/logger');
 const { dispatchToUser, dispatchToRole } = require('../services/notifyDispatcher');
@@ -82,6 +83,37 @@ exports.updateUserStatus = async (req, res, next) => {
     }
 };
 
+exports.updateUserInternalNotes = async (req, res, next) => {
+    try {
+        const { id, role, notes } = req.body;
+        
+        let user;
+        if (role === 'STUDENT') {
+            user = await Student.findByIdAndUpdate(id, { internal_notes: notes }, { new: true }).select('-password');
+        } else if (role === 'RECRUITER') {
+            user = await Recruiter.findByIdAndUpdate(id, { internal_notes: notes }, { new: true }).select('-password');
+        } else if (role === 'ADMIN') {
+            user = await Admin.findByIdAndUpdate(id, { internal_notes: notes }, { new: true }).select('-password');
+        } else {
+            return res.status(400).json({ success: false, message: 'Invalid role' });
+        }
+
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'UPDATE_INTERNAL_NOTES',
+            target_id: user._id,
+            description: `Updated internal notes for ${role}: ${user.name || user.company_name}`
+        });
+
+        res.json({ success: true, data: user });
+    } catch (err) {
+        next(err);
+    }
+};
+
 exports.getDashboardStats = async (req, res, next) => {
     try {
         const studentCount = await Student.countDocuments();
@@ -121,21 +153,24 @@ exports.getDashboardStats = async (req, res, next) => {
 
 exports.exportData = async (req, res, next) => {
     try {
-        const { type } = req.body;
-        if (!['students', 'applications'].includes(type)) {
-            return res.status(400).json({ success: false, message: 'Invalid export type. Must be students or applications' });
+        const { type, justification, userIds } = req.body;
+        if (!['students', 'applications', 'recruiters'].includes(type)) {
+            return res.status(400).json({ success: false, message: 'Invalid export type. Must be students, applications or recruiters' });
         }
 
         await dataExportQueue.add('export-data', {
             adminEmail: req.user.email,
-            exportType: type
+            exportType: type,
+            justification: justification || 'No justification provided',
+            userIds: userIds || []
         });
 
         await Log.create({
             user_id: req.user._id,
             user_role: 'ADMIN',
             action: 'EXPORT_DATA',
-            description: `Requested async CSV export for ${type}`
+            description: `Requested async CSV export for ${type}`,
+            metadata: { justification }
         });
 
         res.status(202).json({
@@ -166,12 +201,17 @@ exports.exportData = async (req, res, next) => {
  */
 exports.exportMasterData = async (req, res, next) => {
     try {
+        const { justification } = req.body;
+        // master export is sometimes triggered via GET link from dashboard, but should ideally be POST with justification
+        // If it's a GET request, we might not have a body. In a real SaaS, this would be a POST.
+        
         // Log the high-privilege action
         await Log.create({
             user_id: req.user._id,
             user_role: 'ADMIN',
             action: 'EXPORT_MASTER_DATA',
-            description: 'Initiated full system data export (streamed)'
+            description: 'Initiated full system data export (streamed)',
+            metadata: { justification: justification || 'Full system download triggered' }
         });
 
         const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
@@ -1132,6 +1172,57 @@ exports.purgeData = async (req, res, next) => {
             success: true,
             message: description,
             deletedCount: result.deletedCount
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Get all active sessions for monitoring
+ * @route   GET /api/v1/admin/sessions
+ * @access  Private/Admin
+ */
+exports.getAllSessions = async (req, res, next) => {
+    try {
+        const sessions = await Session.find()
+            .sort({ created_at: -1 })
+            .limit(200)
+            .populate('user_id', 'name email contact_person company_name');
+        
+        res.status(200).json({
+            success: true,
+            count: sessions.length,
+            data: sessions
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Revoke a specific session
+ * @route   DELETE /api/v1/admin/sessions/:id
+ * @access  Private/Admin
+ */
+exports.revokeSession = async (req, res, next) => {
+    try {
+        const session = await Session.findByIdAndDelete(req.params.id);
+
+        if (!session) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
+        }
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'REVOKE_SESSION',
+            description: `Forcefully revoked session for user ${session.user_id} (${session.ip_address})`
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Session revoked successfully'
         });
     } catch (err) {
         next(err);

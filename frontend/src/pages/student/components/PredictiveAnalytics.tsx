@@ -73,12 +73,12 @@ const PredictiveAnalytics: React.FC = () => {
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{tier.label}</span>
                                 <span className="text-[9px] font-bold text-slate-400 opacity-60">({tier.package})</span>
                             </div>
-                            <span className={`text-xs font-black ${tier.text}`}>{predictor?.odds[tier.key as keyof typeof predictor.odds] || 0}%</span>
+                            <span className={`text-xs font-black ${tier.text}`}>{predictor?.odds?.[tier.key as keyof typeof predictor.odds] || 0}%</span>
                         </div>
                         <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                             <motion.div 
                                 initial={{ width: 0 }}
-                                animate={{ width: `${predictor?.odds[tier.key as keyof typeof predictor.odds] || 0}%` }}
+                                animate={{ width: `${predictor?.odds?.[tier.key as keyof typeof predictor.odds] || 0}%` }}
                                 transition={{ duration: 1, ease: "easeOut" }}
                                 className={`h-full ${tier.color} rounded-full shadow-[0_0_10px_rgba(0,0,0,0.1)]`}
                             />
@@ -97,11 +97,11 @@ const PredictiveAnalytics: React.FC = () => {
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Readiness Timeline</span>
                             <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">
-                                {predictor?.timeline.daysToReady === 0 ? 'ELITE READY' : `${predictor?.timeline.daysToReady} DAYS LEFT`}
+                                {predictor?.timeline?.daysToReady === 0 ? 'ELITE READY' : `${predictor?.timeline?.daysToReady || 0} DAYS LEFT`}
                             </span>
                         </div>
                         <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                            {predictor?.timeline.daysToReady === 0 
+                            {predictor?.timeline?.daysToReady === 0 
                                 ? 'You are peaking for Super Dream roles!' 
                                 : `Targeting Dream roles by next month.`}
                         </h4>

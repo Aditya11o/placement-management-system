@@ -7,18 +7,18 @@ import api from '../../services/api';
 import VirtualizedDataTable from '../../components/DataTable/VirtualizedDataTable';
 import { Column } from '../../components/DataTable/DataTable';
 import FilterBar from '../../components/FilterBar/FilterBar';
-import StatusBadge from '../../components/StatusBadge/StatusBadge';
 import StudentProfileDrawer from '../../components/ProfileViewer/StudentProfileDrawer';
 import BulkActionBar from '../../components/BulkActionBar/BulkActionBar';
 import BulkImportModal from '../../components/BulkImportModal/BulkImportModal';
 import Button from '../../components/Button/Button';
+import ExportReportsModal from '../../components/ExportReportsModal/ExportReportsModal';
 import { UserPlus } from 'lucide-react';
 
 const AdminStudents = () => {
     const { addToast } = useToast();
     const queryClient = useQueryClient();
 
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const studentIdFromUrl = searchParams.get('id');
     const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
 
@@ -29,6 +29,7 @@ const AdminStudents = () => {
     const [page, setPage] = useState(1);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [selectedKeys, setSelectedKeys] = useState<(string | number)[]>([]);
+    const [isExportJustifyOpen, setIsExportJustifyOpen] = useState(false);
 
     // Increased the page limit dramatically from 20 to 200 to demonstrate 
     // the massive performance gains of DOM Virtualization
@@ -66,13 +67,27 @@ const AdminStudents = () => {
     const students = queryData?.data || [];
     const totalPages = queryData?.total ? Math.ceil(queryData.total / limit) : 1;
 
-    // Auto-open drawer if ID is in URL
+    // Synchronize drawer with URL parameter
+    // We omit selectedStudent from dependencies to prevent re-opening loops 
+    // when the drawer is manually closed (which triggers a re-render while the URL still has the ID)
     useEffect(() => {
-        if (studentIdFromUrl && students.length > 0 && !selectedStudent) {
+        if (studentIdFromUrl && students.length > 0) {
             const student = students.find((s: any) => s._id === studentIdFromUrl);
-            if (student) setSelectedStudent(student);
+            if (student) {
+                setSelectedStudent((prev: any) => {
+                    // Only update if it's a different student
+                    if (prev?._id === student._id) return prev;
+                    return { ...student, _openedFromUrl: true };
+                });
+            }
+        } else if (!studentIdFromUrl) {
+            // If the URL ID is removed, and we have a student open that was triggered from a URL, close it.
+            setSelectedStudent((prev: any) => {
+                if (prev?._openedFromUrl) return null;
+                return prev;
+            });
         }
-    }, [studentIdFromUrl, students, selectedStudent]);
+    }, [studentIdFromUrl, students]);
 
     // In a real prod environment, search term should also be pushed to the backend `?name[regex]=term`
     // using MongoDB regex filtering if supported by advancedResults. For now, we apply local filtering
@@ -107,6 +122,21 @@ const AdminStudents = () => {
         onError: () => addToast('Failed to process bulk action', 'error'),
     });
 
+    const exportMutation = useMutation({
+        mutationFn: async ({ type, justification, userIds }: { type: 'students' | 'applications' | 'recruiters', justification: string, userIds?: string[] }) => {
+            const res = await api.post('/admin/export', { type, justification, userIds });
+            return res.data;
+        },
+        onSuccess: (data) => {
+            addToast(data.message || 'Export queued successfully. You will receive an email shortly.', 'success');
+            setIsExportJustifyOpen(false);
+            setSelectedKeys([]); // Clear selection after export
+        },
+        onError: (err: any) => {
+            addToast(err.response?.data?.message || 'Failed to generate export report.', 'error');
+        }
+    });
+
     const filteredStudents = students.filter((student: any) => {
         const s = searchTerm.toLowerCase();
         const matchSearch =
@@ -132,8 +162,8 @@ const AdminStudents = () => {
                         {s.name?.charAt(0) || 'S'}
                     </div>
                     <div className="flex flex-col">
-                        <strong className="text-slate-800 text-[15px] font-semibold mb-0.5">{s.name}</strong>
-                        <span className="text-xs text-slate-500">{s.email}</span>
+                        <strong className="text-slate-800 dark:text-slate-100 text-[15px] font-semibold mb-0.5">{s.name}</strong>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{s.email}</span>
                     </div>
                 </div>
             ),
@@ -141,18 +171,28 @@ const AdminStudents = () => {
         {
             header: 'Branch',
             cell: (s) => (
-                <span className="inline-block px-2.5 py-1 bg-slate-100 text-slate-600 rounded text-[13px] font-medium">
+                <span className="inline-block px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-[13px] font-medium border border-slate-200 dark:border-slate-700/50">
                     {s.studentProfile?.branch || 'N/A'}
                 </span>
             ),
         },
         {
             header: 'CGPA',
-            cell: (s) => <strong>{s.studentProfile?.cgpa || 'N/A'}</strong>,
+            cell: (s) => <strong className="text-slate-700 dark:text-slate-300">{s.studentProfile?.cgpa || 'N/A'}</strong>,
         },
         {
             header: 'Status',
-            cell: (s) => <StatusBadge status={s.status} />,
+            cell: (s: any) => (
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
+                    s.status === 'APPROVED' 
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                        : s.status === 'PENDING'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
+                        : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
+                }`}>
+                    {s.status}
+                </span>
+            ),
         },
         {
             header: 'Actions',
@@ -160,7 +200,7 @@ const AdminStudents = () => {
                 <div className="flex gap-2">
                     {s.status === 'APPROVED' ? (
                         <button
-                            className="inline-flex items-center gap-1 h-8 px-3 rounded text-[13px] font-semibold border text-red-600 bg-white border-red-200 hover:bg-red-50 disabled:opacity-50 transition-all"
+                            className="inline-flex items-center gap-1 h-8 px-3 rounded text-[13px] font-semibold border text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-900 border-rose-200 dark:border-rose-500/30 hover:bg-rose-50 dark:hover:bg-rose-500/10 disabled:opacity-50 transition-all"
                             onClick={() => statusMutation.mutate({ userId: s._id, newStatus: false })}
                             disabled={statusMutation.isPending}
                         >
@@ -168,7 +208,7 @@ const AdminStudents = () => {
                         </button>
                     ) : (
                         <button
-                            className="inline-flex items-center gap-1 h-8 px-3 rounded text-[13px] font-semibold border text-indigo-600 bg-white border-indigo-200 hover:bg-indigo-50 disabled:opacity-50 transition-all"
+                            className="inline-flex items-center gap-1 h-8 px-3 rounded text-[13px] font-semibold border text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 disabled:opacity-50 transition-all"
                             onClick={() => statusMutation.mutate({ userId: s._id, newStatus: true })}
                             disabled={statusMutation.isPending}
                         >
@@ -184,8 +224,8 @@ const AdminStudents = () => {
         <div className="flex flex-col gap-6 animate-fade-in">
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-3xl font-bold text-indigo-700 mb-1">Student Directory</h1>
-                    <p className="text-slate-500 text-base m-0">Manage all registered students on the platform.</p>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">Student Directory</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-base m-0">Manage all registered students on the platform.</p>
                 </div>
                 <Button
                     variant="primary"
@@ -253,7 +293,14 @@ const AdminStudents = () => {
 
             <StudentProfileDrawer
                 isOpen={!!selectedStudent}
-                onClose={() => setSelectedStudent(null)}
+                onClose={() => {
+                    setSelectedStudent(null); // Immediate closure for snappy UX
+                    if (searchParams.has('id')) {
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.delete('id');
+                        setSearchParams(newParams);
+                    }
+                }}
                 applicant={selectedStudent ? {
                     _id: selectedStudent._id,
                     job: { _id: 'admin', title: 'Admin View' },
@@ -285,7 +332,16 @@ const AdminStudents = () => {
                 onClearSelection={() => setSelectedKeys([])}
                 onApprove={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: true })}
                 onReject={() => bulkMutation.mutate({ userIds: selectedKeys as string[], newStatus: false })}
-                isProcessing={bulkMutation.isPending}
+                onExport={() => setIsExportJustifyOpen(true)}
+                isProcessing={bulkMutation.isPending || exportMutation.isPending}
+            />
+
+            <ExportReportsModal
+                isOpen={isExportJustifyOpen}
+                onClose={() => setIsExportJustifyOpen(false)}
+                isExporting={exportMutation.isPending}
+                onExport={(type: 'students' | 'applications' | 'recruiters', justification: string) => 
+                    exportMutation.mutate({ type, justification, userIds: selectedKeys as string[] })}
             />
 
             <BulkImportModal

@@ -15,6 +15,7 @@ import * as z from 'zod';
 import NotificationSettings from '../../components/NotificationSettings/NotificationSettings';
 import TagInput from '../../components/Input/TagInput';
 import CompanyProfilePreviewModal from '../../components/Modal/CompanyProfilePreviewModal';
+import CalendarConnect from './components/CalendarConnect';
 
 const recruiterProfileSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -498,8 +499,9 @@ const RecruiterProfile: React.FC = () => {
                         </Card>
                     </div>
 
-                    {/* Placeholder for future right column widgets */}
+                    {/* Right column widgets */}
                     <div className="hidden lg:block space-y-6">
+                        <CalendarConnect />
                     </div>
                 </div>
             ) : (

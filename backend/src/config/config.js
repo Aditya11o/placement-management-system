@@ -192,6 +192,27 @@ const config = convict({
         format: String,
         default: 'http://localhost:3000',
         env: 'FRONTEND_URL'
+    },
+    google_oauth: {
+        client_id: {
+            doc: 'Google OAuth Client ID.',
+            format: String,
+            default: '',
+            env: 'GOOGLE_CLIENT_ID'
+        },
+        client_secret: {
+            doc: 'Google OAuth Client Secret.',
+            format: String,
+            default: '',
+            env: 'GOOGLE_CLIENT_SECRET',
+            sensitive: true
+        },
+        redirect_uri: {
+            doc: 'Google OAuth Redirect URI.',
+            format: String,
+            default: 'http://localhost:5000/api/v1/auth/google/callback',
+            env: 'GOOGLE_REDIRECT_URI'
+        }
     }
 });
 

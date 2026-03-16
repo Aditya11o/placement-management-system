@@ -37,6 +37,45 @@ exports.applyToJob = async (req, res, next) => {
             });
         }
 
+        // ── Placement Policy Enforcement ────────────────────────────────────
+        const settings = await GlobalSettings.findOne({ singletonId: 'tnu_settings' });
+        if (settings) {
+            // Block same-company duplicate applications
+            if (settings.blockMultipleApplicationsSameCompany) {
+                const sameCompanyApp = await Application.findOne({
+                    student_id: req.user._id,
+                    job_id: { $in: await Job.find({ company_name: job.company_name }).select('_id') }
+                });
+                if (sameCompanyApp) {
+                    return res.status(400).json({ success: false, message: 'You have already applied to this company through another role.' });
+                }
+            }
+
+            // Max offers policy (skip if dream upgrade eligible)
+            if (settings.maxOffersPerStudent > 0) {
+                const acceptedOffers = await Application.countDocuments({
+                    student_id: req.user._id,
+                    status: { $in: ['SELECTED', 'OFFER_ACCEPTED'] }
+                });
+                if (acceptedOffers >= settings.maxOffersPerStudent) {
+                    // Check dream upgrade eligibility
+                    const currentBest = await Application.findOne({
+                        student_id: req.user._id,
+                        status: { $in: ['SELECTED', 'OFFER_ACCEPTED'] }
+                    }).populate('job_id', 'package_lpa');
+
+                    const currentPackage = currentBest?.job_id?.package_lpa || 0;
+                    if (job.package_lpa <= settings.dreamUpgradeThresholdLPA || job.package_lpa <= currentPackage) {
+                        return res.status(400).json({
+                            success: false,
+                            message: `You already have ${acceptedOffers} offer(s). New applications require a package above ₹${settings.dreamUpgradeThresholdLPA} LPA (Dream Upgrade Policy).`
+                        });
+                    }
+                }
+            }
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         const application = await Application.create({ student_id: req.user._id, job_id });
 
         await Log.create({
@@ -419,3 +458,74 @@ exports.updateApplicationJournal = async (req, res, next) => {
     }
 };
 
+/**
+ * @desc    Send bulk email to selected candidates
+ * @route   POST /api/v1/applications/bulk-email
+ * @access  Private (Recruiter Only)
+ */
+exports.bulkEmailCandidates = async (req, res, next) => {
+    try {
+        const { applicationIds, subject, body: emailBody, templateId } = req.body;
+
+        if (!applicationIds || !Array.isArray(applicationIds) || applicationIds.length === 0) {
+            return res.status(400).json({ success: false, message: 'Please provide an array of application IDs' });
+        }
+
+        if (applicationIds.length > 100) {
+            return res.status(400).json({ success: false, message: 'Maximum 100 candidates per batch' });
+        }
+
+        if (!subject || !emailBody) {
+            return res.status(400).json({ success: false, message: 'Email subject and body are required' });
+        }
+
+        const recruiter = await Recruiter.findById(req.user._id);
+        const applications = await Application.find({
+            _id: { $in: applicationIds }
+        })
+            .populate('student_id', 'name email')
+            .populate('job_id', 'company_id company_name title');
+
+        // Verify all applications belong to this recruiter's company
+        const unauthorized = applications.filter(
+            app => app.job_id.company_id.toString() !== recruiter.company_id.toString()
+        );
+        if (unauthorized.length > 0) {
+            return res.status(403).json({ success: false, message: 'Some applications do not belong to your company' });
+        }
+
+        // Queue emails
+        let queued = 0;
+        for (const app of applications) {
+            if (app.student_id?.email) {
+                await emailQueue.add('bulk-recruiter-email', {
+                    email: app.student_id.email,
+                    subject,
+                    template: 'generic',
+                    context: {
+                        name: app.student_id.name,
+                        body: emailBody,
+                        companyName: app.job_id.company_name,
+                        jobTitle: app.job_id.title
+                    }
+                });
+                queued++;
+            }
+        }
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'RECRUITER',
+            action: 'BULK_EMAIL',
+            description: `Sent bulk email to ${queued} candidates. Subject: ${subject}`
+        });
+
+        res.json({
+            success: true,
+            message: `Email queued for ${queued} candidate(s).`,
+            data: { queued, total: applicationIds.length }
+        });
+    } catch (err) {
+        next(err);
+    }
+};

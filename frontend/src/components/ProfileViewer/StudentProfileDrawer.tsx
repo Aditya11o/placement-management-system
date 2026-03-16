@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { X, Briefcase, GraduationCap, Link as LinkIcon, Phone, Mail, Award, FileText, Maximize2, Minimize2, Calendar, Star, Send, ShieldCheck } from 'lucide-react';
+import { X, Briefcase, GraduationCap, Link as LinkIcon, Phone, Mail, Award, FileText, Maximize2, Minimize2, Calendar, Star, Send, ShieldCheck, StickyNote, Save, Clock } from 'lucide-react';
 import JobSelectionModal from '../Modal/JobSelectionModal';
 import { UIApplicant } from '../Kanban/KanbanCard';
 import ScheduleInterviewModal from '../Modal/ScheduleInterviewModal';
 import ComposeMessageModal from '../Modal/ComposeMessageModal';
 import ScorecardForm from '../Scorecard/ScorecardForm';
+import ActivityTimeline from '../Timeline/ActivityTimeline';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 export interface ScorecardResponse {
     _id: string;
@@ -36,18 +38,19 @@ const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({ isOpen, onC
     const [isInviting, setIsInviting] = useState(false);
 
     const { addToast } = useToast();
+    const { user: currentUser } = useAuth();
     const [scorecards, setScorecards] = useState<ScorecardResponse[]>([]);
     const [isSubmittingScorecard, setIsSubmittingScorecard] = useState(false);
+    const [internalNotes, setInternalNotes] = useState<string>('');
+    const [isSavingNotes, setIsSavingNotes] = useState(false);
 
     // Load scorecards when applicant changes
     useEffect(() => {
         if (applicant?._id) {
-            // Because scorecards are tied to the application model, we need to fetch the app or 
-            // use the pre-populated scorecards if they exist on the UIApplicant object.
-            // Let's assume the backend populates them in `applications/recruiter`.
-            // For real-time updates without refetching the whole board, we'll keep local state sync.
             // @ts-ignore - scorecards injected by backend
             setScorecards(applicant.scorecards || []);
+            // @ts-ignore - internal_notes on student model
+            setInternalNotes(applicant.student?.internal_notes || '');
         }
     }, [applicant?._id, applicant]);
 
@@ -108,6 +111,23 @@ const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({ isOpen, onC
             addToast(error.response?.data?.message || 'Failed to send invitation', 'error');
         } finally {
             setIsInviting(false);
+        }
+    };
+
+    const handleSaveNotes = async () => {
+        if (!applicant?.student?._id) return;
+        setIsSavingNotes(true);
+        try {
+            await api.put('/admin/users/notes', {
+                id: applicant.student._id,
+                role: 'STUDENT',
+                internal_notes: internalNotes
+            });
+            addToast('Internal notes updated successfully.', 'success');
+        } catch (error: any) {
+            addToast(error.response?.data?.message || 'Failed to update internal notes.', 'error');
+        } finally {
+            setIsSavingNotes(false);
         }
     };
 
@@ -261,6 +281,33 @@ const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({ isOpen, onC
                                 </div>
                             </div>
                         </div>
+
+                        {/* Internal Notes (Admins & Recruiters Only) */}
+                        {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'RECRUITER') && (
+                            <div className="bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-xl p-5">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-sm font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                                        <StickyNote size={18} /> Internal Notes
+                                    </h3>
+                                    <button
+                                        onClick={handleSaveNotes}
+                                        disabled={isSavingNotes}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold uppercase rounded-lg transition-all disabled:opacity-50"
+                                    >
+                                        {isSavingNotes ? 'Saving...' : <><Save size={12} /> Save</>}
+                                    </button>
+                                </div>
+                                <textarea
+                                    value={internalNotes}
+                                    onChange={(e) => setInternalNotes(e.target.value)}
+                                    placeholder="Add private evaluation notes, candidate concerns, or specific highlights for other team members..."
+                                    className="w-full h-32 p-3 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 placeholder:text-slate-400 resize-none transition-all"
+                                />
+                                <p className="mt-2 text-[10px] text-amber-700/60 dark:text-amber-500/40 italic">
+                                    Only visible to admins and recruiters. Students cannot see this.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Skills */}
                         <div>
@@ -433,6 +480,15 @@ const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({ isOpen, onC
                             </div>
                         </div>
 
+                        {/* Audit Trail & Activity Timeline */}
+                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-6 flex items-center gap-2">
+                                <Clock size={18} className="text-indigo-500" /> Activity Timeline
+                            </h3>
+                            <div className="px-1">
+                                <ActivityTimeline userId={applicant.student._id} />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Footer Action */}

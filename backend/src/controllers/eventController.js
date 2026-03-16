@@ -50,6 +50,10 @@ exports.joinEvent = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Event not found' });
         }
 
+        if (!event.attendees) {
+            event.attendees = [];
+        }
+
         if (event.attendees.includes(req.user._id)) {
             return res.status(400).json({ success: false, message: 'Already joined this event' });
         }

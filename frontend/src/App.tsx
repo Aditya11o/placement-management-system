@@ -58,12 +58,13 @@ const AdminDocVerification = lazy(() => import('./pages/admin/AdminDocVerificati
 const AdminSystemHealth = lazy(() => import('./pages/admin/AdminSystemHealth'));
 const AdminCommunication = lazy(() => import('./pages/admin/AdminCommunication'));
 const AdminAnalyticsDeepDive = lazy(() => import('./pages/admin/AdminAnalyticsDeepDive'));
+const AdminSessions = lazy(() => import('./pages/admin/AdminSessions'));
 
+const InterviewRoom = lazy(() => import('./pages/shared/InterviewRoom'));
 const NotificationCenter = lazy(() => import('./pages/shared/NotificationCenter'));
+const NotFound = lazy(() => import('./pages/shared/NotFound'));
+const Unauthorized = lazy(() => import('./pages/shared/Unauthorized'));
 
-// Provisional Page imports
-const Unauthorized = () => <div style={{ padding: '2rem' }}><h1>403 - Unauthorized Access</h1></div>;
-const NotFound = () => <div style={{ padding: '2rem' }}><h1>404 - Page Not Found</h1></div>;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -148,9 +149,11 @@ const App = () => {
                             <Route path="/admin/system-health" element={<AdminSystemHealth />} />
                             <Route path="/admin/communication" element={<AdminCommunication />} />
                             <Route path="/admin/analytics-deep-dive" element={<AdminAnalyticsDeepDive />} />
+                            <Route path="/admin/sessions" element={<AdminSessions />} />
                           </Route>
 
                           {/* Shared Activity Routes */}
+                          <Route path="/interviews/:id/room" element={<InterviewRoom />} />
                           <Route path="/notifications" element={<NotificationCenter />} />
 
                         </Route>

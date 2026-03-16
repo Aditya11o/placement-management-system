@@ -371,7 +371,7 @@ exports.getOnlinePeers = async (req, res, next) => {
         const peers = await Student.find({ 
             _id: { $ne: req.user._id },
             status: 'APPROVED'
-        }).limit(5).select('name profile_image_url branch is_placed');
+        }).limit(5).select('name profile_image_url branch is_placed skills');
 
         res.status(200).json({
             success: true,
@@ -395,23 +395,37 @@ exports.getPlacementPredictor = async (req, res, next) => {
     try {
         const student = await Student.findById(req.user._id);
         
-        // Mocking a basic "prediction" logic
-        const baseProb = 65;
-        const skillBonus = (student.skills?.length || 0) * 5;
-        const cgpaBonus = student.cgpa > 8 ? 10 : 0;
+        // Advanced "prediction" logic for premium dashboard
+        const cgpa = student.cgpa || 0;
+        const skillsCount = student.skills?.length || 0;
         
-        const probability = Math.min(95, baseProb + skillBonus + cgpaBonus);
+        // Logic for Odds
+        const massOdds = Math.min(98, 40 + (cgpa * 5) + (skillsCount * 2));
+        const dreamOdds = Math.min(85, 20 + (cgpa * 8) + (skillsCount * 4));
+        const superDreamOdds = Math.min(60, 5 + (cgpa * 5) + (skillsCount * 6));
+
+        // Logic for Timeline
+        const graduationYear = student.graduation_year || new Date().getFullYear() + 1;
+        const currentYear = new Date().getFullYear();
+        const daysToReady = Math.max(0, (graduationYear - currentYear) * 180 + (100 - (cgpa * 10)));
+        
+        // Logic for Skill Gaps (Mocked vs common requirements)
+        const commonDreamSkills = ['React', 'Node.js', 'MongoDB', 'Docker', 'System Design'];
+        const skillGaps = commonDreamSkills.filter(s => !student.skills?.includes(s)).slice(0, 2);
 
         res.status(200).json({
             success: true,
             data: {
-                probability: `${probability}%`,
-                status: probability > 80 ? 'High' : 'Moderate',
-                tips: [
-                    'Complete 2 more mock interviews to increase score',
-                    'Update resume with latest project details',
-                    'Practice Data Structures and Algorithms'
-                ]
+                odds: {
+                    mass: massOdds,
+                    dream: dreamOdds,
+                    superDream: superDreamOdds
+                },
+                timeline: {
+                    daysToReady: Math.round(daysToReady),
+                    progress: Math.min(100, (skillsCount / 10) * 100)
+                },
+                skillGaps: skillGaps.length > 0 ? skillGaps : ['Advanced System Design', 'Cloud Architecture']
             }
         });
     } catch (err) {

@@ -56,7 +56,11 @@ const adminSchema = new mongoose.Schema({
         createdAt: { type: Date, default: Date.now }
     }],
     resetPasswordToken: String,
-    resetPasswordExpire: Date
+    resetPasswordExpire: Date,
+    internal_notes: {
+        type: String,
+        default: ''
+    }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }
 });

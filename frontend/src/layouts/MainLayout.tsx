@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
     Menu, X, LayoutDashboard, User, Briefcase, MessageCircle,
     FileText, Users, Settings, LogOut, Building, LucideIcon, ShieldCheck, Send, Search,
-    Shield, FileCheck, Activity, Calendar, TrendingUp, Globe, ChevronLeft, ChevronRight, Sparkles, BookOpen
+    Shield, FileCheck, Activity, Calendar, TrendingUp, Globe, ChevronLeft, ChevronRight, Sparkles, BookOpen, ShieldAlert
 } from 'lucide-react';
 import Loader from '../components/Loader/Loader';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
@@ -19,11 +19,13 @@ import KeyboardShortcutsModal from '../components/KeyboardShortcutsModal/Keyboar
 import PresenceAvatars from '../components/PresenceAvatars/PresenceAvatars';
 import OfflineStatus from '../components/Offline/OfflineStatus';
 import PageTransition from '../components/Transitions/PageTransition';
+import AIChatbot from '../components/AI/AIChatbot';
 
 interface NavItem {
     label: string;
     path: string;
     icon: LucideIcon;
+    category?: string;
 }
 
 const MainLayout: React.FC = () => {
@@ -40,24 +42,15 @@ const MainLayout: React.FC = () => {
     const navigate = useNavigate();
 
     // ── Global Keyboard Shortcuts ───────────────────────────────────────────
-    // Prevent default browser behavior for shortcuts mapping to navigation
-    // react-hotkeys-hook automatically ignores keypresses inside inputs/textareas
-
     // Toggle Help Modal
     useHotkeys(['?', 'shift+?'], () => setIsShortcutsModalOpen(prev => !prev), { preventDefault: true });
 
-    // Admin Navigation Sequences (Pro-mode)
+    // Admin Navigation Sequences
     const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
     useHotkeys('g d', () => isAdmin && navigate('/admin/dashboard'), { preventDefault: true, enabled: isAdmin });
     useHotkeys('g a', () => isAdmin && navigate('/admin/approvals'), { preventDefault: true, enabled: isAdmin });
-    useHotkeys('g s', () => isAdmin && navigate('/admin/students'), { preventDefault: true, enabled: isAdmin });
-    useHotkeys('g r', () => isAdmin && navigate('/admin/recruiters'), { preventDefault: true, enabled: isAdmin });
-    useHotkeys('g j', () => isAdmin && navigate('/admin/jobs'), { preventDefault: true, enabled: isAdmin });
 
     const handleLogout = () => {
-        // IMPORTANT: Clear all React Query cache FIRST to stop all active queries,
-        // then call logout to clear auth state. This prevents the infinite refetch
-        // loop where queries fire with no token after the user navigates away.
         queryClient.clear();
         logout();
     };
@@ -78,42 +71,42 @@ const MainLayout: React.FC = () => {
             case 'STUDENT':
                 return [
                     { label: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
-                    { label: 'My Profile', path: '/student/profile', icon: User },
-                    { label: 'Resumes', path: '/student/resumes', icon: FileText },
-                    { label: 'Job Board', path: '/student/jobs', icon: Briefcase },
-                    { label: 'Applications', path: '/student/applications', icon: FileText },
-                    { label: 'Peer Insights', path: '/student/peer-insights', icon: Sparkles },
-                    { label: 'Live Events', path: '/student/live-events', icon: Calendar },
-                    { label: 'Prep Kits', path: '/student/prep-kits', icon: BookOpen },
-                    { label: 'Prep Rooms', path: '/student/prep-rooms', icon: Globe },
-                    { label: 'Alumni Connect', path: '/student/alumni', icon: Users },
-                    { label: 'Messages', path: '/student/messages', icon: MessageCircle },
+                    { label: 'Job Board', path: '/student/jobs', icon: Briefcase, category: 'Career' },
+                    { label: 'Applications', path: '/student/applications', icon: FileText, category: 'Career' },
+                    { label: 'Resumes', path: '/student/resumes', icon: FileText, category: 'Career' },
+                    { label: 'Prep Kits', path: '/student/prep-kits', icon: BookOpen, category: 'Preparation' },
+                    { label: 'Prep Rooms', path: '/student/prep-rooms', icon: Globe, category: 'Preparation' },
+                    { label: 'Peer Insights', path: '/student/peer-insights', icon: Sparkles, category: 'Preparation' },
+                    { label: 'Alumni Connect', path: '/student/alumni', icon: Users, category: 'Community' },
+                    { label: 'Live Events', path: '/student/live-events', icon: Calendar, category: 'Community' },
+                    { label: 'Messages', path: '/student/messages', icon: MessageCircle, category: 'Community' },
+                    { label: 'My Profile', path: '/student/profile', icon: User, category: 'Settings' },
                 ];
             case 'RECRUITER':
                 return [
                     { label: 'Dashboard', path: '/recruiter/dashboard', icon: LayoutDashboard },
-                    { label: 'Company Profile', path: '/recruiter/profile', icon: Building },
-                    { label: 'Manage Jobs', path: '/recruiter/jobs', icon: Briefcase },
-                    { label: 'Review Applicants', path: '/recruiter/applicants', icon: Users },
-                    { label: 'Interviews', path: '/recruiter/interviews', icon: Calendar },
-                    { label: 'Candidate Database', path: '/recruiter/database', icon: Globe },
-                    { label: 'Recruiting Team', path: '/recruiter/team', icon: Users },
+                    { label: 'Company Profile', path: '/recruiter/profile', icon: Building, category: 'Organization' },
+                    { label: 'Manage Jobs', path: '/recruiter/jobs', icon: Briefcase, category: 'Hiring' },
+                    { label: 'Review Applicants', path: '/recruiter/applicants', icon: Users, category: 'Hiring' },
+                    { label: 'Interviews', path: '/recruiter/interviews', icon: Calendar, category: 'Scheduling' },
+                    { label: 'Candidate Database', path: '/recruiter/database', icon: Globe, category: 'Talent Pool' },
+                    { label: 'Recruiting Team', path: '/recruiter/team', icon: Users, category: 'Organization' },
                 ];
             case 'ADMIN':
             case 'SUPER_ADMIN':
                 return [
                     { label: 'Overview Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-                    { label: 'Analytics Deep Dive', path: '/admin/analytics-deep-dive', icon: TrendingUp },
-                    { label: 'Approval Center', path: '/admin/approvals', icon: ShieldCheck },
-                    { label: 'Manage Students', path: '/admin/students', icon: Users },
-                    { label: 'Manage Recruiters', path: '/admin/recruiters', icon: Briefcase },
-                    { label: 'Unified Calendar', path: '/admin/calendar', icon: Calendar },
-                    { label: 'Communication Center', path: '/admin/communication', icon: Send },
-                    { label: 'Roles & Permissions', path: '/admin/rbac', icon: Shield },
-                    { label: 'Custom Reports', path: '/admin/report-builder', icon: FileText },
-                    { label: 'Doc Verification', path: '/admin/doc-verification', icon: FileCheck },
-                    { label: 'System Health', path: '/admin/system-health', icon: Activity },
-                    { label: 'System Settings', path: '/admin/settings', icon: Settings },
+                    { label: 'Analytics', path: '/admin/analytics-deep-dive', icon: TrendingUp, category: 'Intelligence' },
+                    { label: 'Approval Center', path: '/admin/approvals', icon: ShieldCheck, category: 'Operations' },
+                    { label: 'Students', path: '/admin/students', icon: Users, category: 'Users' },
+                    { label: 'Recruiters', path: '/admin/recruiters', icon: Briefcase, category: 'Users' },
+                    { label: 'Unified Calendar', path: '/admin/calendar', icon: Calendar, category: 'Operations' },
+                    { label: 'Communicator', path: '/admin/communication', icon: Send, category: 'Operations' },
+                    { label: 'Doc Verification', path: '/admin/doc-verification', icon: FileCheck, category: 'Operations' },
+                    { label: 'RBAC', path: '/admin/rbac', icon: Shield, category: 'System' },
+                    { label: 'System Health', path: '/admin/system-health', icon: Activity, category: 'System' },
+                    { label: 'Settings', path: '/admin/settings', icon: Settings, category: 'System' },
+                    { label: 'Active Sessions', path: '/admin/sessions', icon: ShieldAlert, category: 'System' },
                 ];
             default:
                 return [];
@@ -125,19 +118,31 @@ const MainLayout: React.FC = () => {
     return (
         <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
 
-            {/* Mobile Sidebar Overlay */}
-            {isSidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden backdrop-blur-sm"
-                    onClick={toggleSidebar}
-                ></div>
-            )}
+            {/* Sidebar Overlay */}
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-slate-900/60 z-[60] lg:hidden backdrop-blur-md"
+                        onClick={toggleSidebar}
+                        aria-hidden="true"
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Sidebar */}
             <motion.aside 
                 initial={false}
-                animate={{ width: isCollapsed ? 80 : 260 }}
-                className={`fixed lg:relative h-screen flex flex-col z-50 transition-transform duration-300 bg-white/80 dark:bg-slate-900/90 backdrop-blur-2xl border-r border-slate-200 dark:border-indigo-400/10 shadow-xl lg:shadow-none lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                animate={{ 
+                    width: isCollapsed ? 80 : 260,
+                    x: (isSidebarOpen || window.innerWidth >= 1024) ? 0 : -320
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                role="navigation"
+                aria-label="Main Navigation"
+                className="fixed lg:relative h-screen flex flex-col z-[70] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-indigo-400/10 shadow-2xl lg:shadow-none"
             >
                 <div className="h-[70px] flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-700/50 shrink-0">
                     {!isCollapsed && (
@@ -147,10 +152,18 @@ const MainLayout: React.FC = () => {
                             <h2 className="text-brand-600 dark:text-brand-400 m-0 text-2xl font-bold tracking-tight px-2">TNU</h2>
                         )
                     )}
-                    <button className="hidden lg:flex p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors ml-auto" onClick={toggleCollapse}>
+                    <button 
+                        className="hidden lg:flex p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors ml-auto" 
+                        onClick={toggleCollapse}
+                        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    >
                         {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                     </button>
-                    <button className="lg:hidden text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" onClick={toggleSidebar}>
+                    <button 
+                        className="lg:hidden text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" 
+                        onClick={toggleSidebar}
+                        aria-label="Close menu"
+                    >
                         <X size={20} />
                     </button>
                 </div>
@@ -174,20 +187,38 @@ const MainLayout: React.FC = () => {
                 </div>
 
                 <nav className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
-                    <ul className="space-y-1">
-                        {navItems.map((item, idx) => (
-                            <li key={idx}>
-                                <NavLink
-                                    to={item.path}
-                                    title={isCollapsed ? item.label : undefined}
-                                    className={({ isActive }) =>
-                                        `flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-500 dark:text-slate-400 font-bold text-[13px] uppercase tracking-wider transition-all duration-300 relative group overflow-hidden ${isActive ? 'bg-indigo-600 text-white shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)] scale-[1.02]' : 'hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-indigo-600 dark:hover:text-indigo-400'} ${isCollapsed ? 'justify-center' : ''}`
-                                    }
-                                    onClick={() => window.innerWidth <= 1024 && setSidebarOpen(false)}
-                                >
-                                    <item.icon size={20} className="shrink-0" />
-                                    {!isCollapsed && <span className="truncate">{item.label}</span>}
-                                </NavLink>
+                    <ul className="space-y-6">
+                        {/* Group items by category */}
+                        {Object.entries(
+                            navItems.reduce((acc, item) => {
+                                const cat = item.category || 'General';
+                                if (!acc[cat]) acc[cat] = [];
+                                acc[cat].push(item);
+                                return acc;
+                            }, {} as Record<string, NavItem[]>)
+                        ).map(([category, items], catIdx) => (
+                            <li key={catIdx} className="space-y-1">
+                                {!isCollapsed && category !== 'General' && (
+                                    <h3 className="px-4 mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                                        {category}
+                                    </h3>
+                                )}
+                                <div className="space-y-1">
+                                    {items.map((item, idx) => (
+                                        <NavLink
+                                            key={idx}
+                                            to={item.path}
+                                            title={isCollapsed ? item.label : undefined}
+                                            className={({ isActive }) =>
+                                                `flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-500 dark:text-slate-400 font-bold text-[13px] uppercase tracking-wider transition-all duration-300 relative group overflow-hidden ${isActive ? 'bg-indigo-600 text-white shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)] scale-[1.02]' : 'hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-indigo-600 dark:hover:text-indigo-400'} ${isCollapsed ? 'justify-center' : ''}`
+                                            }
+                                            onClick={() => window.innerWidth <= 1024 && setSidebarOpen(false)}
+                                        >
+                                            <item.icon size={20} className="shrink-0" />
+                                            {!isCollapsed && <span className="truncate">{item.label}</span>}
+                                        </NavLink>
+                                    ))}
+                                </div>
                             </li>
                         ))}
                     </ul>
@@ -206,15 +237,23 @@ const MainLayout: React.FC = () => {
             </motion.aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
+            <main className="flex-1 flex flex-col h-screen overflow-hidden min-w-0" role="main">
                 {/* Top Header */}
-                <header className="h-[70px] flex items-center justify-between px-6 bg-white/80 dark:bg-slate-800/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-700/50 z-30 shrink-0 shadow-sm transition-colors duration-300">
+                {/* Header */}
+                <header className="h-[70px] sticky top-0 z-[40] bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between px-4 lg:px-8 shrink-0 shadow-sm">
                     <div className="flex items-center gap-4">
-                        <button className="lg:hidden p-2 -ml-2 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" onClick={toggleSidebar}>
+                        <button 
+                            className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                            onClick={toggleSidebar}
+                        >
                             <Menu size={24} />
                         </button>
-                        <h1 className="font-semibold text-slate-800 dark:text-slate-100 text-lg sm:text-xl m-0 truncate hidden sm:block transition-colors">Placement Management System</h1>
-                        <h1 className="font-semibold text-slate-800 dark:text-slate-100 text-lg m-0 truncate sm:hidden transition-colors">TNU Portal</h1>
+                        <h1 className="text-sm font-black uppercase tracking-widest text-slate-400 hidden sm:block">
+                            {user?.role?.replace(/_/g, ' ')} Portal
+                        </h1>
+                        <h1 className="font-semibold text-slate-800 dark:text-slate-100 text-lg m-0 truncate sm:hidden transition-colors px-2">
+                            {user?.role === 'STUDENT' ? 'Student' : (user?.role === 'RECRUITER' ? 'Recruiter' : 'Admin')} Portal
+                        </h1>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -260,6 +299,7 @@ const MainLayout: React.FC = () => {
                 onClose={() => setIsShortcutsModalOpen(false)}
             />
 
+            <AIChatbot />
             <OfflineStatus />
         </div>
     );

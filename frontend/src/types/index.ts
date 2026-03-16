@@ -112,7 +112,8 @@ export interface Application {
     _id: string;
     student: string | User;
     job: string | Job;
-    status: 'SUBMITTED' | 'REVIEWED' | 'SHORTLISTED' | 'SELECTED' | 'REJECTED' | 'OFFER_ACCEPTED' | 'OFFER_DECLINED';
+    status: 'SUBMITTED' | 'REVIEWED' | 'SHORTLISTED' | 'INTERVIEW' | 'SELECTED' | 'REJECTED' | 'OFFER_ACCEPTED' | 'OFFER_DECLINED';
+    appliedAt?: string;
     resume_url: string;
     notes?: string;
     scorecards?: Array<{

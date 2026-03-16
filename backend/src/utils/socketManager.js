@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const logger = require('./logger');
 const config = require('../config/config');
+const { handleSignaling: handleVideoSignaling } = require('../services/videoInterviewService');
 
 let io;
 
@@ -209,6 +210,9 @@ function initializeSocket(httpServer) {
                 sent_at: new Date()
             });
         });
+
+        // ── Video Interview Signaling ─────────────────────────────────────────────
+        handleVideoSignaling(socket, io, connectedUsers);
     });
 
     logger.info('[Socket.io] Real-time notification dispatcher initialized');

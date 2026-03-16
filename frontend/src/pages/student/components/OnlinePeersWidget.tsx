@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../../services/api';
-import Card from '../../Card/Card';
+import Card from '../../../components/Card/Card';
 import { Users, Video, MessageSquare, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -94,7 +94,7 @@ const OnlinePeersWidget: React.FC = () => {
                             <div className="flex-1 min-w-0">
                                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate flex items-center gap-1.5">
                                     {peer.name}
-                                    {peer.skills.includes('React') && <Sparkles size={10} className="text-amber-400" />}
+                                    {peer.skills?.includes('React') && <Sparkles size={10} className="text-amber-400" />}
                                 </h4>
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{peer.branch}</p>
                             </div>

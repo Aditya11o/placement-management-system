@@ -188,7 +188,7 @@ const NotificationSettings: React.FC = () => {
                                 </div>
                                 <div>
                                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Quiet Hours</span>
-                                    {data.data.quietHours.enabled && (
+                                    {data?.data?.quietHours?.enabled && (
                                         <p className="text-[10px] text-indigo-600 font-bold">
                                             Silenced {data.data.quietHours.start} - {data.data.quietHours.end}
                                         </p>
@@ -199,9 +199,9 @@ const NotificationSettings: React.FC = () => {
                                 <input
                                     type="checkbox"
                                     className="sr-only peer"
-                                    checked={data.data.quietHours.enabled}
+                                    checked={data?.data?.quietHours?.enabled || false}
                                     onChange={() => updateMutation.mutate({
-                                        quietHours: { ...data.data.quietHours, enabled: !data.data.quietHours.enabled }
+                                        quietHours: { ...(data?.data?.quietHours || {}), enabled: !data?.data?.quietHours?.enabled }
                                     })}
                                 />
                                 <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
@@ -211,7 +211,7 @@ const NotificationSettings: React.FC = () => {
                 </Card>
 
                 {/* Quiet Hours Settings Grid Segment - NEW */}
-                {data.data.quietHours.enabled && (
+                {data?.data?.quietHours?.enabled && (
                     <Card className="p-5 border-slate-200 dark:border-slate-800 col-span-1 border-l-4 border-l-indigo-500 bg-indigo-50/10 animate-fade-in">
                         <div className="flex flex-col gap-4">
                             <div className="flex items-center gap-2 mb-1">
@@ -224,9 +224,9 @@ const NotificationSettings: React.FC = () => {
                                     <input
                                         type="time"
                                         className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                        value={data.data.quietHours.start}
+                                        value={data?.data?.quietHours?.start || '22:00'}
                                         onChange={(e) => updateMutation.mutate({
-                                            quietHours: { ...data.data.quietHours, start: e.target.value }
+                                            quietHours: { ...(data?.data?.quietHours || {}), start: e.target.value }
                                         })}
                                     />
                                 </div>
@@ -235,9 +235,9 @@ const NotificationSettings: React.FC = () => {
                                     <input
                                         type="time"
                                         className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                        value={data.data.quietHours.end}
+                                        value={data?.data?.quietHours?.end || '08:00'}
                                         onChange={(e) => updateMutation.mutate({
-                                            quietHours: { ...data.data.quietHours, end: e.target.value }
+                                            quietHours: { ...(data?.data?.quietHours || {}), end: e.target.value }
                                         })}
                                     />
                                 </div>
@@ -288,7 +288,7 @@ const NotificationSettings: React.FC = () => {
                         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
                             <button
                                 onClick={() => updateMutation.mutate({ emailFrequency: 'IMMEDIATE' })}
-                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${data.data.emailFrequency === 'IMMEDIATE'
+                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${data?.data?.emailFrequency === 'IMMEDIATE'
                                     ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm'
                                     : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                                     }`}
@@ -298,7 +298,7 @@ const NotificationSettings: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => updateMutation.mutate({ emailFrequency: 'DAILY' })}
-                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${data.data.emailFrequency === 'DAILY'
+                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${data?.data?.emailFrequency === 'DAILY'
                                     ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm'
                                     : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                                     }`}
@@ -308,7 +308,7 @@ const NotificationSettings: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => updateMutation.mutate({ emailFrequency: 'WEEKLY' })}
-                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${data.data.emailFrequency === 'WEEKLY'
+                                className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${data?.data?.emailFrequency === 'WEEKLY'
                                     ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm'
                                     : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                                     }`}

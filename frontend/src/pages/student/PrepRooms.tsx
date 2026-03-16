@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Clock, Video, Layout, Sparkles, Hash, Target } from 'lucide-react';
+import { 
+    Plus, Video, Layout, Sparkles, Hash, Target, 
+    MessageSquare, Activity, Globe, Zap, ArrowRight,
+    X
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import { useNavigate } from 'react-router-dom';
+import PrepRoomCard from './components/PrepRoomCard';
 
 interface PrepRoom {
     _id: string;
@@ -61,83 +66,286 @@ const PrepRooms: React.FC = () => {
         }
     };
 
-    const topicColors: Record<string, string> = {
-        TECHNICAL: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 dark:text-indigo-400',
-        BEHAVIORAL: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400',
-        SYSTEM_DESIGN: 'text-purple-600 bg-purple-50 dark:bg-purple-500/10 dark:text-purple-400',
-        HR_CHITCHAT: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400'
-    };
+    const templates = [
+        { title: 'Google Technical Practice', topic: 'TECHNICAL', icon: Target, desc: 'DSA & Coding rounds' },
+        { title: 'System Design deep-dive', topic: 'SYSTEM_DESIGN', icon: Layout, desc: 'High-level architecture' },
+        { title: 'HR & Behavorial Mock', topic: 'BEHAVIORAL', icon: MessageSquare, desc: 'STAR method practice' },
+    ];
 
     return (
-        <div className="p-8 max-w-7xl mx-auto min-h-screen bg-slate-50 dark:bg-slate-900/40">
-            {/* Hero Section */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12">
-                <div className="max-w-2xl">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase tracking-widest mb-4">
-                        <Sparkles size={12} />
-                        <span>Real-time Collaboration</span>
-                    </div>
-                    <h1 className="text-5xl font-black text-slate-900 dark:text-white mb-4 leading-tight tracking-tight">Collaborative Prep Rooms</h1>
-                    <p className="text-lg text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                        Don't study alone. Join a virtual room to practice mock interviews, 
-                        brainstorm system design, or whiteboard technical problems with your peers.
-                    </p>
+        <div className="space-y-12 animate-in fade-in duration-700 pb-20 p-4 lg:p-10 bg-slate-50 dark:bg-slate-900/10 min-h-screen">
+            
+            {/* Immersive Hero Section */}
+            <div className="relative rounded-[3.5rem] overflow-hidden shadow-2xl bg-slate-900 min-h-[400px] flex items-center p-8 lg:p-20">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/30 via-slate-900 to-emerald-600/20" />
+                <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
+                    <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-indigo-500 rounded-full blur-[140px]" />
+                    <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-emerald-500 rounded-full blur-[120px]" />
                 </div>
-                <Button 
-                    size="lg" 
-                    className="h-16 px-8 rounded-2xl shadow-2xl shadow-indigo-200 dark:shadow-none font-black text-lg group"
-                    onClick={() => setIsCreating(true)}
-                >
-                    <Plus className="mr-2 group-hover:rotate-90 transition-transform" /> Create Private Room
-                </Button>
+
+                <div className="relative z-10 w-full flex flex-col lg:flex-row items-center justify-between gap-12">
+                    <div className="max-w-2xl text-center lg:text-left">
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-8 backdrop-blur-md"
+                        >
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                            </span>
+                            Live Collaboration Workspace
+                        </motion.div>
+                        
+                        <h1 className="text-5xl lg:text-7xl font-black text-white m-0 tracking-tighter leading-[0.9] italic">
+                            Don't Prep <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">Alone.</span>
+                        </h1>
+                        
+                        <p className="text-slate-400 text-lg lg:text-xl mt-8 font-bold leading-relaxed max-w-lg">
+                            Join real-time Huddles to solve DSA, brainstorm System Design, or practice mock behaviorals with your peers.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col gap-6 w-full lg:w-auto">
+                        <Button 
+                            variant="primary" 
+                            size="lg" 
+                            className="px-10 py-8 rounded-[2rem] bg-indigo-600 hover:bg-white hover:text-indigo-600 shadow-2xl shadow-indigo-500/20 font-black text-xl group h-20 uppercase tracking-widest border-none transition-all"
+                            onClick={() => setIsCreating(true)}
+                        >
+                            <Plus className="mr-3 group-hover:rotate-90 transition-transform" strokeWidth={3} /> Launch New Room
+                        </Button>
+                        <div className="flex items-center justify-center lg:justify-start gap-4 px-6 text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                            <Activity size={14} className="text-indigo-400" /> Currently Active: {rooms.length} Sessions
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Create Room Modal/Overlay */}
+            <div className="max-w-7xl mx-auto space-y-16">
+                
+                {/* Presence Bar */}
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 p-8 flex flex-wrap items-center justify-between gap-8 shadow-sm">
+                    <div className="flex items-center gap-6">
+                        <div className="flex -space-x-3">
+                            {[1,2,3,4,5].map(i => (
+                                <div key={i} className="w-12 h-12 rounded-2xl border-4 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-black text-slate-300">
+                                    {(String.fromCharCode(64 + i))}
+                                </div>
+                            ))}
+                            <div className="w-12 h-12 rounded-2xl border-4 border-white dark:border-slate-900 bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black">
+                                +12
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-sm font-black text-slate-800 dark:text-white">Active Peers</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live in technical sessions</div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                        {['All Rooms', 'Technical', 'System Design', 'HR Mock'].map(tab => (
+                            <button key={tab} className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                tab === 'All Rooms' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:bg-slate-100'
+                            }`}>
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Rooms Grid */}
+                <div>
+                    <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-10 tracking-tight italic flex items-center gap-4">
+                        <Globe className="text-indigo-500" /> Active Huddles
+                    </h2>
+                    
+                    {loading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {[1,2,3].map(i => <div key={i} className="h-80 bg-white dark:bg-slate-900 animate-pulse rounded-[2.5rem] border border-slate-100 dark:border-slate-800" />)}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {rooms.map((room) => (
+                                <PrepRoomCard 
+                                    key={room._id} 
+                                    room={room} 
+                                    onJoin={handleJoinRoom} 
+                                />
+                            ))}
+
+                            {/* "Empty" Card for Room Creation CTA */}
+                            {rooms.length > 0 && (
+                                <motion.div
+                                    whileHover={{ scale: 0.98 }}
+                                    className="relative rounded-[2.5rem] border-4 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center p-12 text-center group cursor-pointer hover:border-indigo-500 transition-colors"
+                                    onClick={() => setIsCreating(true)}
+                                >
+                                    <div className="w-16 h-16 rounded-[2rem] bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all mb-6">
+                                        <Plus size={32} />
+                                    </div>
+                                    <h4 className="text-xl font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-800 dark:group-hover:text-white transition-colors">Launch Yours</h4>
+                                    <p className="text-xs font-bold text-slate-400 mt-2">Set your own topic & goal</p>
+                                </motion.div>
+                            )}
+                        </div>
+                    )}
+
+                    {rooms.length === 0 && !loading && (
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="col-span-full py-32 text-center bg-white dark:bg-slate-900 rounded-[3.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800"
+                        >
+                            <div className="w-24 h-24 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-8 text-indigo-400">
+                                <Layout size={48} />
+                            </div>
+                            <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-3 tracking-tight italic uppercase">Quiet in the Vault</h3>
+                            <p className="text-slate-500 font-bold max-w-sm mx-auto leading-relaxed">
+                                No huddles are active. Be the catalyst—start a room and your peers will join shortly.
+                            </p>
+                            <Button className="mt-10 px-12 rounded-full h-14 uppercase tracking-widest font-black" onClick={() => setIsCreating(true)}>
+                                Start First Session
+                            </Button>
+                        </motion.div>
+                    )}
+                </div>
+
+                {/* Platform Features */}
+                <div className="pt-10">
+                    <div className="flex items-center gap-6 mb-12">
+                         <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight italic uppercase">Workspace Utilities</h2>
+                         <div className="flex-1 h-[2px] bg-slate-100 dark:bg-slate-800" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {[
+                            { icon: Video, title: 'Encrypted Video', desc: 'Secure P2P communication logic.', color: 'text-indigo-500', bg: 'bg-indigo-50' },
+                            { icon: Layout, title: 'Collaborative Canvas', desc: 'Shared whiteboards for diagrams.', color: 'text-purple-500', bg: 'bg-purple-50' },
+                            { icon: Hash, title: 'Snippets & Code', desc: 'In-room real-time code sharing.', color: 'text-emerald-500', bg: 'bg-emerald-50' },
+                            { icon: Activity, title: 'Low Latency', desc: 'Optimized for remote collaboration.', color: 'text-amber-500', bg: 'bg-amber-50' }
+                        ].map((feature, i) => (
+                            <Card key={i} className="p-10 border-slate-200/60 dark:border-slate-800/60 hover:shadow-2xl hover:-translate-y-2 transition-all rounded-[2.5rem] bg-white dark:bg-slate-900 group">
+                                <div className={`w-14 h-14 rounded-2xl ${feature.bg} dark:bg-white/5 flex items-center justify-center ${feature.color} mb-6 group-hover:scale-110 transition-transform`}>
+                                    <feature.icon size={28} />
+                                </div>
+                                <h4 className="font-black text-slate-800 dark:text-white mb-2 text-lg tracking-tight uppercase italic">{feature.title}</h4>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 font-bold leading-relaxed">{feature.desc}</p>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Create Room Modal */}
             <AnimatePresence>
                 {isCreating && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 lg:p-12">
                         <motion.div 
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
+                            onClick={() => setIsCreating(false)}
+                        />
+                        <motion.div 
+                            initial={{ y: 50, opacity: 0, scale: 0.95 }}
+                            animate={{ y: 0, opacity: 1, scale: 1 }}
+                            exit={{ y: 50, opacity: 0, scale: 0.95 }}
+                            className="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 border border-white/20"
                         >
-                            <div className="p-8">
-                                <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-6">Create Prep Room</h2>
-                                <form onSubmit={handleCreateRoom} className="space-y-5">
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Room Title</label>
+                            {/* Left Side: Creative Hero */}
+                            <div className="hidden lg:flex bg-slate-900 p-16 flex-col justify-between relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-emerald-600/20" />
+                                <div className="relative z-10">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white mb-10">
+                                        <Zap size={24} />
+                                    </div>
+                                    <h2 className="text-4xl font-black text-white leading-tight italic uppercase tracking-tighter">
+                                        Set the Stage for <br /><span className="text-indigo-400">Success.</span>
+                                    </h2>
+                                    <p className="text-slate-400 font-bold mt-6 leading-relaxed">
+                                        Choose a template or customize your huddle. Rooms with specific titles attract 2x more participants.
+                                    </p>
+                                </div>
+                                
+                                <div className="relative z-10 space-y-4">
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quick Templates</div>
+                                    {templates.map(t => (
+                                        <button 
+                                            key={t.title}
+                                            onClick={() => setNewRoom({...newRoom, title: t.title, topic: t.topic as any})}
+                                            className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-left hover:bg-white/10 transition-all group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                                                    <t.icon size={18} />
+                                                </div>
+                                                <div>
+                                                    <div className="text-xs font-black text-white uppercase italic">{t.title}</div>
+                                                    <div className="text-[10px] text-slate-500 font-bold">{t.desc}</div>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Right Side: Form */}
+                            <div className="p-10 lg:p-20">
+                                <div className="flex justify-between items-center mb-10">
+                                    <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Launch Huddle</h2>
+                                    <button onClick={() => setIsCreating(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                                        <X size={24} className="text-slate-400" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleCreateRoom} className="space-y-8">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                            <Target size={14} className="text-indigo-500" /> Room Identity
+                                        </label>
                                         <input 
                                             type="text" 
-                                            placeholder="e.g. Amazon L4 Technical Prep"
-                                            className="w-full px-4 py-4 bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-700 rounded-2xl outline-none focus:border-indigo-500 font-bold"
+                                            placeholder="Room Title (e.g. SDE-1 Brainstorming)"
+                                            className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800/50 border-2 border-slate-100 dark:border-slate-800 rounded-[1.5rem] outline-none focus:border-indigo-500 font-black text-lg transition-all"
                                             value={newRoom.title}
                                             onChange={e => setNewRoom({...newRoom, title: e.target.value})}
                                             required
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Focus Topic</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {['TECHNICAL', 'BEHAVIORAL', 'SYSTEM_DESIGN', 'HR_CHITCHAT'].map((t) => (
+
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                            <Sparkles size={14} className="text-purple-500" /> Topic Concentration
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                                { id: 'TECHNICAL', icon: Target },
+                                                { id: 'BEHAVIORAL', icon: MessageSquare },
+                                                { id: 'SYSTEM_DESIGN', icon: Layout },
+                                                { id: 'HR_CHITCHAT', icon: Hash }
+                                            ].map((t) => (
                                                 <button
-                                                    key={t}
+                                                    key={t.id}
                                                     type="button"
-                                                    onClick={() => setNewRoom({...newRoom, topic: t as any})}
-                                                    className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all border-2 ${
-                                                        newRoom.topic === t 
-                                                        ? 'bg-indigo-600 border-indigo-600 text-white' 
-                                                        : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-500'
+                                                    onClick={() => setNewRoom({...newRoom, topic: t.id as any})}
+                                                    className={`px-4 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all border-2 flex flex-col items-center gap-2 ${
+                                                        newRoom.topic === t.id 
+                                                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-500/20' 
+                                                        : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-200'
                                                     }`}
                                                 >
-                                                    {t.replace('_', ' ')}
+                                                    <t.icon size={16} />
+                                                    {t.id.replace('_', ' ')}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="flex gap-3 pt-4">
-                                        <Button variant="ghost" isFullWidth onClick={() => setIsCreating(false)}>Cancel</Button>
-                                        <Button isFullWidth type="submit">Launch Room</Button>
+
+                                    <div className="pt-6">
+                                        <Button isFullWidth type="submit" size="lg" className="h-16 rounded-[2rem] font-black uppercase tracking-[0.2em] bg-slate-900 group">
+                                            Rocket Launch <ArrowRight size={18} className="ml-2 group-hover:translate-x-2 transition-transform" />
+                                        </Button>
                                     </div>
                                 </form>
                             </div>
@@ -145,116 +353,6 @@ const PrepRooms: React.FC = () => {
                     </div>
                 )}
             </AnimatePresence>
-
-            {/* Rooms Grid */}
-            {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1,2,3].map(i => <div key={i} className="h-64 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-3xl" />)}
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {rooms.map((room) => (
-                        <motion.div
-                            key={room._id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            whileHover={{ y: -5 }}
-                        >
-                            <Card className="p-0 overflow-hidden border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 rounded-3xl h-full flex flex-col group">
-                                <div className="p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${topicColors[room.topic]}`}>
-                                            {room.topic}
-                                        </div>
-                                        <div className="flex -space-x-2">
-                                            {room.participants.length > 0 && [...Array(Math.min(room.participants.length, 3))].map((_, i) => (
-                                                <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-400">
-                                                    P{i+1}
-                                                </div>
-                                            ))}
-                                            {room.participants.length > 3 && (
-                                                <div className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[8px] font-black text-slate-400">
-                                                    +{room.participants.length - 3}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2 leading-tight group-hover:text-indigo-600 transition-colors">
-                                        {room.title}
-                                    </h3>
-                                    
-                                    <div className="flex items-center gap-3 text-sm font-bold text-slate-400 mb-6">
-                                        <div className="flex items-center gap-1.5">
-                                            <Users size={16} />
-                                            <span>{room.participants.length} / {room.max_participants}</span>
-                                        </div>
-                                        <div className="w-1 h-1 rounded-full bg-slate-300" />
-                                        <div className="flex items-center gap-1.5">
-                                            <Clock size={16} />
-                                            <span>{new Date(room.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl mb-6">
-                                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-700 shadow-sm">
-                                            {room.host.profile_image_url ? (
-                                                <img src={room.host.profile_image_url} alt={room.host.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="text-xs font-black text-slate-300">{room.host.name.charAt(0)}</span>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <div className="text-[10px] uppercase font-black tracking-widest text-slate-400">Host</div>
-                                            <div className="text-xs font-black text-slate-700 dark:text-slate-200">{room.host.name}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mt-auto p-2 bg-slate-50/50 dark:bg-slate-800/20 border-t border-slate-100 dark:border-slate-800">
-                                    <Button 
-                                        isFullWidth 
-                                        className="rounded-2xl font-black h-12"
-                                        onClick={() => handleJoinRoom(room._id)}
-                                        disabled={room.participants.length >= room.max_participants}
-                                    >
-                                        {room.participants.length >= room.max_participants ? 'Room Full' : 'Join Session'}
-                                    </Button>
-                                </div>
-                            </Card>
-                        </motion.div>
-                    ))}
-
-                    {rooms.length === 0 && !loading && (
-                        <div className="col-span-full py-20 text-center">
-                            <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
-                                <Layout size={48} />
-                            </div>
-                            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">No Active Rooms</h3>
-                            <p className="text-slate-500 max-w-sm mx-auto">Be the first to start a collaboration session and invite your batchmates.</p>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Quick Tips */}
-            <div className="mt-20">
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-8">Features of Prep Rooms</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                        { icon: Video, title: 'Video Calls', desc: 'Secure audio/video calling within the browser.' },
-                        { icon: Layout, title: 'Shared Whiteboard', desc: 'Solve system design problems on a mutual canvas.' },
-                        { icon: Hash, title: 'Session Chat', desc: 'Exchange links and snippets in real-time.' },
-                        { icon: Target, title: 'Industry Topics', desc: 'Focused rooms for Tech, HR, or System Design.' }
-                    ].map((feature, i) => (
-                        <Card key={i} className="p-6 border-slate-100 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all rounded-3xl">
-                            <feature.icon className="text-indigo-600 mb-4" size={28} />
-                            <h4 className="font-black text-slate-800 dark:text-white mb-2">{feature.title}</h4>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-normal">{feature.desc}</p>
-                        </Card>
-                    ))}
-                </div>
-            </div>
         </div>
     );
 };

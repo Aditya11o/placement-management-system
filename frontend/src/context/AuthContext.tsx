@@ -54,9 +54,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         });
                         setToken(currentToken);
                     }
-                } catch (error) {
-                    console.error('Invalid token or failed to fetch user');
-                    logout();
+                } catch (error: any) {
+                    console.error('Initialization error:', error.message);
+                    // Only logout if it's explicitly an Auth error (401)
+                    // or if the token was fatally invalid (handled by jwtDecode above)
+                    if (error.response?.status === 401) {
+                        logout();
+                    }
                 }
             }
             setIsLoading(false);

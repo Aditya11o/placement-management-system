@@ -3,8 +3,11 @@ const Application = require('../models/Application');
 const Log = require('../models/Log');
 const { emailQueue } = require('../utils/emailQueue');
 const { dispatchToUser } = require('../services/notifyDispatcher');
+const googleCalendar = require('../utils/googleCalendar');
+const Recruiter = require('../models/Recruiter');
 const config = require('../config/config');
 const logger = require('../utils/logger');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * @desc    Schedule a new interview
@@ -74,8 +77,35 @@ exports.scheduleInterview = async (req, res, next) => {
             type: type || 'Technical',
             location_type,
             location_details,
-            notes
+            notes,
+            internal_room_id: location_type === 'VIRTUAL' ? uuidv4() : null
         });
+
+        // 📅 Google Calendar Sync
+        const recruiter = await Recruiter.findById(req.user._id).select('+calendar_tokens');
+        if (recruiter.calendar_tokens) {
+            try {
+                const eventData = await googleCalendar.createEvent(recruiter.calendar_tokens, {
+                    summary: `Interview: ${application.job_id.title} - ${application.student_id.name}`,
+                    location: location_details,
+                    description: `Interview for ${application.job_id.title} at ${application.job_id.company_name}.\nNotes: ${notes || 'N/A'}`,
+                    start: scheduledAt.toISOString(),
+                    end: endTime.toISOString(),
+                    attendees: [
+                        { email: application.student_id.email },
+                        { email: recruiter.email }
+                    ]
+                });
+
+                interview.calendar_provider = 'GOOGLE';
+                interview.external_event_id = eventData.id;
+                interview.meeting_link = eventData.hangoutLink || eventData.conferenceData?.entryPoints?.[0]?.uri || null;
+                await interview.save();
+            } catch (calErr) {
+                logger.error(`Calendar Sync Failed: ${calErr.message}`);
+                // Don't fail the whole request if calendar sync fails
+            }
+        }
 
         // 🚀 Dispatch across all channels: persistent DB, WebSocket, Email, Webhooks, and SMS (Critical)
         await dispatchToUser({
@@ -87,7 +117,8 @@ exports.scheduleInterview = async (req, res, next) => {
             type: 'INFO',
             link: `/interviews/${interview._id}`,
             metadata: {
-                isCritical: true // Interviews are time-sensitive
+                isCritical: true, // Interviews are time-sensitive
+                meeting_link: interview.meeting_link
             },
             emailOptions: {
                 subject: `Interview Scheduled for ${application.job_id.title}`,
@@ -97,10 +128,26 @@ exports.scheduleInterview = async (req, res, next) => {
                     company: application.job_id.company_name,
                     date: new Date(scheduled_at).toLocaleString(),
                     type: location_type,
-                    location: location_details
+                    location: interview.meeting_link || location_details
                 }
             }
         });
+
+        // ⏰ Schedule 24h Reminder (BullMQ)
+        const reminderTime = new Date(scheduledAt.getTime() - 24 * 60 * 60 * 1000);
+        if (reminderTime > new Date()) {
+            await emailQueue.add('interview-reminder', {
+                email: application.student_id.email,
+                subject: 'Reminder: Upcoming Interview Tomorrow',
+                template: 'interview_reminder',
+                context: {
+                    name: application.student_id.name,
+                    jobTitle: application.job_id.title,
+                    company: application.job_id.company_name,
+                    time: new Date(scheduled_at).toLocaleTimeString()
+                }
+            }, { delay: reminderTime.getTime() - Date.now() });
+        }
 
         await Log.create({
             user_id: req.user._id, user_role: 'RECRUITER',
@@ -144,6 +191,31 @@ exports.rescheduleInterview = async (req, res, next) => {
         }
         
         await interview.save();
+
+        // 📅 Update Google Calendar
+        if (interview.calendar_provider === 'GOOGLE' && interview.external_event_id) {
+            const recruiter = await Recruiter.findById(req.user._id).select('+calendar_tokens');
+            if (recruiter && recruiter.calendar_tokens) {
+                try {
+                    const scheduledAt = new Date(interview.scheduled_at);
+                    const endTime = new Date(scheduledAt.getTime() + interview.duration_minutes * 60000);
+                    
+                    await googleCalendar.updateEvent(recruiter.calendar_tokens, interview.external_event_id, {
+                        summary: `RESCHEDULED: Interview: ${interview.job_id.title} - ${interview.student_id.name}`,
+                        location: interview.location_details,
+                        description: `Note: ${reason || 'Time updated'}`,
+                        start: scheduledAt.toISOString(),
+                        end: endTime.toISOString(),
+                        attendees: [
+                            { email: interview.student_id.email },
+                            { email: recruiter.email }
+                        ]
+                    });
+                } catch (calErr) {
+                    logger.error(`Calendar Reschedule Failed: ${calErr.message}`);
+                }
+            }
+        }
 
         // 🚀 Dispatch across channels with 'reason' for reschedule
         await dispatchToUser({
@@ -256,6 +328,18 @@ exports.updateInterviewStatus = async (req, res, next) => {
         interview.status = status;
         await interview.save();
 
+        // 📅 Delete Google Calendar Event on Cancellation
+        if (status === 'CANCELED' && interview.calendar_provider === 'GOOGLE' && interview.external_event_id) {
+            const recruiter = await Recruiter.findById(req.user._id).select('+calendar_tokens');
+            if (recruiter && recruiter.calendar_tokens) {
+                try {
+                    await googleCalendar.deleteEvent(recruiter.calendar_tokens, interview.external_event_id);
+                } catch (calErr) {
+                    logger.error(`Calendar Delete Failed: ${calErr.message}`);
+                }
+            }
+        }
+
         // 🚀 Notify student of cancellation with a live push
         if (status === 'CANCELED') {
             await dispatchToUser({
@@ -302,6 +386,63 @@ exports.getMyInterviews = async (req, res, next) => {
             .populate('student_id', 'name email');
 
         res.status(200).json({ success: true, count: interviews.length, data: interviews });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Get room details and authorize join for a video interview
+ * @route   GET /api/v1/interviews/:id/join
+ * @access  Private (Participant only)
+ */
+exports.enterInterviewRoom = async (req, res, next) => {
+    try {
+        const interview = await Interview.findById(req.params.id)
+            .populate('job_id', 'title company_name')
+            .populate('student_id', 'name email profile_image_url')
+            .populate('recruiter_id', 'name company_name');
+
+        if (!interview) {
+            return res.status(404).json({ success: false, message: 'Interview not found' });
+        }
+
+        // Authorization check
+        const isParticipant = 
+            interview.student_id._id.toString() === req.user._id.toString() || 
+            interview.recruiter_id._id.toString() === req.user._id.toString();
+
+        if (!isParticipant) {
+            return res.status(403).json({ success: false, message: 'Not authorized to join this interview' });
+        }
+
+        if (interview.location_type !== 'VIRTUAL') {
+            return res.status(400).json({ success: false, message: 'This is not a virtual interview' });
+        }
+
+        // Check if the interview is for today (allow 30 min early entry)
+        const now = new Date();
+        const scheduledTime = new Date(interview.scheduled_at);
+        const diff = scheduledTime - now;
+
+        if (diff > 30 * 60 * 1000 && config.get('env') !== 'development') {
+            return res.status(400).json({ 
+                success: false, 
+                message: `You can only join 30 minutes before the scheduled time (${scheduledTime.toLocaleTimeString()})`
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                room_id: interview.internal_room_id,
+                job_title: interview.job_id.title,
+                student_name: interview.student_id.name,
+                recruiter_name: interview.recruiter_id.name,
+                scheduled_at: interview.scheduled_at,
+                duration: interview.duration_minutes
+            }
+        });
     } catch (err) {
         next(err);
     }

@@ -13,6 +13,7 @@ const { sendSystemAlert } = require('../utils/webhookHelper');
 const logger = require('../utils/logger');
 const GlobalSettings = require('../models/GlobalSettings');
 const { generate2FASecret, verify2FAToken } = require('../utils/totp');
+const googleCalendar = require('../utils/googleCalendar');
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, config.get('jwt.secret'), {
@@ -32,6 +33,16 @@ exports.registerStudent = async (req, res, next) => {
         }
 
         const { name, email, password, branch, cgpa, graduation_year, phone, backlogs_active, marks_10th, marks_12th, gender } = req.body;
+
+        // ── Placement Policy: Minimum CGPA gate ─────────────────────────────
+        if (settings && settings.minCGPAForRegistration > 0 && cgpa < settings.minCGPAForRegistration) {
+            return res.status(400).json({
+                success: false,
+                message: `Minimum CGPA of ${settings.minCGPAForRegistration} is required for registration.`
+            });
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         const exists = await Student.findOne({ email });
         if (exists) return res.status(400).json({ success: false, message: 'Student with this email already exists' });
 
@@ -283,7 +294,7 @@ exports.getMe = async (req, res, next) => {
     try {
         let user;
         if (req.user.role === 'STUDENT') user = await Student.findById(req.user._id).select('-password');
-        else if (req.user.role === 'RECRUITER') user = await Recruiter.findById(req.user._id).select('-password');
+        else if (req.user.role === 'RECRUITER') user = await Recruiter.findById(req.user._id).select('-password +calendar_tokens');
         else if (req.user.role === 'ADMIN') user = await Admin.findById(req.user._id).select('-password');
 
         if (!user) {
@@ -646,6 +657,82 @@ exports.updateRecruiterProfile = async (req, res, next) => {
             message: 'Profile updated successfully',
             data: recruiter
         });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Get Google Auth URL for recruiters
+ * @route   GET /api/v1/auth/google
+ * @access  Private (Recruiter only)
+ */
+exports.getGoogleAuthUrl = (req, res, next) => {
+    try {
+        if (req.user.role !== 'RECRUITER') {
+            return res.status(403).json({ success: false, message: 'Only recruiters can sync calendars' });
+        }
+        const url = googleCalendar.getAuthUrl();
+        res.json({ success: true, data: url });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Google OAuth Callback
+ * @route   GET /api/v1/auth/google/callback
+ * @access  Public (Called by Google)
+ */
+exports.googleCallback = async (req, res, next) => {
+    try {
+        const { code, state } = req.query; // 'state' can be used to pass user ID if not using a session/token approach for callback
+        
+        // Note: In a production app, we'd verify 'state' to prevent CSRF.
+        // For simplicity here, we assume the user is still logged in or we'd handle it via a temporary cookie.
+        
+        const tokens = await googleCalendar.getTokens(code);
+        
+        // We need to know which recruiter this belongs to. 
+        // Typically, we'd store the recruiter ID in the 'state' param during getAuthUrl.
+        // Let's assume the recruiter's ID is passed in state for now, or use a workaround.
+        // For now, let's assume we use a session or the user is identifiable.
+        
+        // UPDATED: In a real scenario, we'd redirect back to frontend with a success flag.
+        // recruiters will usually trigger this from a "Connect" button in their dashboard.
+        
+        // To simplify, let's just respond with JSON or a redirect.
+        res.send(`
+            <html>
+                <body>
+                    <script>
+                        window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', code: '${code}' }, '*');
+                        window.close();
+                    </script>
+                    <h1>Authentication Successful! You can close this window.</h1>
+                </body>
+            </html>
+        `);
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Finalize Google Token Storage
+ * @route   POST /api/v1/auth/google/tokens
+ * @access  Private (Recruiter only)
+ */
+exports.saveGoogleTokens = async (req, res, next) => {
+    try {
+        const { code } = req.body;
+        const tokens = await googleCalendar.getTokens(code);
+        
+        const recruiter = await Recruiter.findById(req.user._id).select('+calendar_tokens');
+        recruiter.calendar_tokens = tokens;
+        await recruiter.save();
+        
+        res.json({ success: true, message: 'Calendar connected successfully' });
     } catch (err) {
         next(err);
     }

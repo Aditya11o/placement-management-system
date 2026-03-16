@@ -62,12 +62,13 @@ import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import api from '../../services/api';
 import AiActionCenter from '../../components/AiActionCenter/AiActionCenter';
+import PlacementMap from '../../components/Charts/PlacementMap';
 import SortableWidget from '../../components/SortableWidget/SortableWidget'; // We will create this
 
 const AdminAnalytics = () => {
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
     // Define the initial order of widgets
-    const [widgetOrder, setWidgetOrder] = useState(['branch-salary', 'placement-rate', 'hiring-trends', 'predictive-analysis', 'ai-readiness']);
+    const [widgetOrder, setWidgetOrder] = useState(['branch-salary', 'placement-rate', 'hiring-trends', 'geographic-distribution', 'predictive-analysis', 'ai-readiness']);
 
     // Fetch Branch Placement Stats
     const { data: branchData, isLoading: isBranchLoading, refetch: refetchBranch } = useQuery({
@@ -114,12 +115,22 @@ const AdminAnalytics = () => {
         }
     });
 
+    // Fetch Geographic Stats
+    const { data: geoData, isLoading: isGeoLoading, refetch: refetchGeo } = useQuery({
+        queryKey: ['geoAnalytics'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/geography');
+            return res.data.data;
+        }
+    });
+
     const refreshAll = () => {
         refetchBranch();
         refetchSalary();
         refetchTrends();
         refetchPredictive();
         refetchReadiness();
+        refetchGeo();
     };
 
     const sensors = useSensors(
@@ -311,6 +322,14 @@ const AdminAnalytics = () => {
                                         );
                                     }
 
+                                    if (id === 'geographic-distribution') {
+                                        return (
+                                            <SortableWidget id={id}>
+                                                <PlacementMap data={geoData} isLoading={isGeoLoading} />
+                                            </SortableWidget>
+                                        );
+                                    }
+
                                     if (id === 'placement-rate') {
                                         return (
                                             <SortableWidget id={id}>
@@ -428,6 +447,14 @@ const AdminAnalytics = () => {
                                         );
                                     }
 
+                                    if (id === 'geographic-distribution') {
+                                        return (
+                                            <SortableWidget id={id}>
+                                                <PlacementMap data={geoData} isLoading={isGeoLoading} />
+                                            </SortableWidget>
+                                        );
+                                    }
+
                                     if (id === 'predictive-analysis') {
                                         return (
                                             <div className="flex flex-col gap-6 pt-10 border-t border-slate-200 dark:border-slate-800">
@@ -442,10 +469,10 @@ const AdminAnalytics = () => {
                                                     <SortableWidget id={`${id}-skills`}>
                                                         <Card className="p-8 border-slate-200/60 shadow-sm h-full glass-card">
                                                             <div className="flex justify-between items-center mb-10">
-                                                                <div className="flex flex-col gap-1">
-                                                                    <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Rising Skills Demand</h3>
-                                                                    <p className="text-sm text-slate-500 m-0">Top 10 most frequently requested skills in active job postings.</p>
-                                                                </div>
+                                                                 <div className="flex flex-col gap-1">
+                                                                     <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">Rising Skills Demand</h3>
+                                                                     <p className="text-sm text-slate-500 m-0">Top 10 most frequently requested skills in active job postings.</p>
+                                                                 </div>
                                                             </div>
 
                                                             <div className="h-[350px] w-full">

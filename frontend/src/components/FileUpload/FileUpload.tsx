@@ -3,6 +3,8 @@ import { UploadCloud, CheckCircle, FileText, X, ImageIcon } from 'lucide-react';
 
 interface FileUploadProps {
     label: string;
+    id?: string;
+    title?: string;
     accept?: string;
     description?: string;
     currentFileUrl?: string; // Optional: show currently active file/image
@@ -12,6 +14,8 @@ interface FileUploadProps {
 
 const FileUpload: React.FC<FileUploadProps> = ({
     label,
+    id,
+    title,
     accept = '*/*',
     description,
     currentFileUrl,
@@ -97,8 +101,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
             <div
                 className={`
-                    relative w-full rounded-xl border-2 border-dashed transition-all duration-200 overflow-hidden
-                    ${isDragging ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400'}
+                    relative w-full rounded-2xl border-2 border-dashed transition-all duration-500 overflow-hidden group
+                    ${isDragging ? 'border-indigo-500 bg-indigo-50/50 scale-[1.01] shadow-xl' : 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:border-indigo-300 hover:shadow-lg'}
                     ${isUploading ? 'opacity-70 pointer-events-none' : 'cursor-pointer'}
                 `}
                 onDragEnter={handleDrag}
@@ -106,8 +110,12 @@ const FileUpload: React.FC<FileUploadProps> = ({
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
             >
+                {/* Animated Background Pulse */}
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                
                 <input
                     type="file"
+                    id={id}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     accept={accept}
                     onChange={handleChange}
@@ -115,12 +123,12 @@ const FileUpload: React.FC<FileUploadProps> = ({
                     aria-label={`Upload ${label}`}
                 />
 
-                <div className="flex flex-col sm:flex-row items-center gap-6 p-6 md:p-8">
+                <div className="flex flex-col sm:flex-row items-center gap-8 p-8 md:p-10 relative z-10">
 
                     {/* Visual Indicator (Avatar / Document Icon) */}
                     <div className="shrink-0 relative">
                         {isImageMode ? (
-                            <div className={`w-24 h-24 rounded-full border-4 border-white shadow-md bg-slate-200 flex items-center justify-center overflow-hidden transition-all ${isUploading ? 'animate-pulse' : ''}`}>
+                            <div className={`w-24 h-24 rounded-full border-4 border-white dark:border-slate-700 shadow-xl bg-slate-200 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:scale-110 ${isUploading ? 'animate-pulse' : ''}`}>
                                 {activeDisplayUrl ? (
                                     <img src={activeDisplayUrl} alt="Preview" className="w-full h-full object-cover" />
                                 ) : (
@@ -128,8 +136,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
                                 )}
                             </div>
                         ) : (
-                            <div className={`w-16 h-20 rounded border-2 shadow-sm flex items-center justify-center transition-all ${activeDisplayUrl ? 'bg-indigo-50 border-indigo-200 text-indigo-500' : 'bg-white border-slate-200 text-slate-400'} ${isUploading ? 'animate-pulse' : ''}`}>
-                                {activeDisplayUrl ? <CheckCircle size={28} /> : <FileText size={32} />}
+                            <div className={`w-20 h-24 rounded-xl border-2 shadow-lg flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${activeDisplayUrl ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 text-indigo-500' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-300'} ${isUploading ? 'animate-pulse' : ''}`}>
+                                {activeDisplayUrl ? <CheckCircle size={32} /> : <FileText size={40} />}
                             </div>
                         )}
 
@@ -137,10 +145,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
                         {selectedFile && !isUploading && (
                             <button
                                 onClick={clearSelection}
-                                className="absolute -top-2 -right-2 w-6 h-6 bg-slate-800 text-white rounded-full flex items-center justify-center z-20 hover:bg-red-500 transition-colors"
+                                className="absolute -top-3 -right-3 w-8 h-8 bg-slate-900 dark:bg-slate-700 text-white rounded-full flex items-center justify-center z-20 hover:bg-rose-500 transition-colors shadow-lg border-2 border-white dark:border-slate-800"
                                 title="Clear selection"
                             >
-                                <X size={14} />
+                                <X size={16} />
                             </button>
                         )}
                     </div>
@@ -149,24 +157,27 @@ const FileUpload: React.FC<FileUploadProps> = ({
                     <div className="flex-1 text-center sm:text-left">
                         {isUploading ? (
                             <>
-                                <h4 className="text-lg font-bold text-slate-800 mb-1">Uploading...</h4>
-                                <div className="w-full h-2 bg-slate-200 rounded-full mt-3 overflow-hidden">
-                                    <div className="h-full bg-indigo-500 rounded-full w-2/3 animate-[pulse_1s_ease-in-out_infinite]"></div>
+                                <h4 className="text-xl font-black text-slate-900 dark:text-white mb-2">Analyzing your credentials...</h4>
+                                <div className="w-full h-3 bg-slate-100 dark:bg-slate-700/50 rounded-full mt-4 overflow-hidden border border-slate-200/50 dark:border-slate-700">
+                                    <div className="h-full bg-indigo-500 rounded-full w-full animate-[shimmer_2s_infinite] origin-left bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_100%] shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
                                 </div>
+                                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-3">AI Engine Processing</p>
                             </>
                         ) : selectedFile ? (
                             <>
-                                <h4 className="text-lg font-bold text-slate-800 mb-1 truncate max-w-[200px] sm:max-w-[300px]">{selectedFile.name}</h4>
-                                <p className="text-sm text-slate-500 m-0">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Ready to upload</p>
+                                <h4 className="text-xl font-black text-slate-900 dark:text-white mb-2 truncate max-w-[200px] sm:max-w-xs">{selectedFile.name}</h4>
+                                <p className="text-sm font-bold text-emerald-500 dark:text-emerald-400 m-0">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Verification Complete</p>
                             </>
                         ) : (
                             <>
-                                <h4 className="text-lg font-bold text-slate-800 mb-1 flex items-center justify-center sm:justify-start gap-2">
-                                    <UploadCloud className="text-indigo-500" size={20} />
-                                    Drop file here
+                                <h4 className="text-xl font-black text-slate-900 dark:text-white mb-2 flex items-center justify-center sm:justify-start gap-3">
+                                    <div className="p-2 bg-indigo-500 rounded-lg text-white shadow-lg shadow-indigo-500/20 group-hover:animate-bounce">
+                                        <UploadCloud size={20} />
+                                    </div>
+                                    {title || `Drag & Drop ${label.split(' ')[0] || 'File'}`}
                                 </h4>
-                                <p className="text-sm text-slate-500 m-0">
-                                    {description || `or click to browse ${accept !== '*/*' ? `(${accept})` : ''}`}
+                                <p className="text-sm font-medium text-slate-400 dark:text-slate-500 m-0 leading-relaxed">
+                                    {description || `or click to browse your system drive`}
                                 </p>
                             </>
                         )}

@@ -67,6 +67,23 @@ const interviewSchema = new mongoose.Schema({
     external_event_id: {
         type: String,
         default: null
+    },
+    meeting_link: {
+        type: String,
+        default: null
+    },
+    internal_room_id: {
+        type: String,
+        default: null,
+        index: true
+    },
+    session_start_actual: {
+        type: Date,
+        default: null
+    },
+    session_end_actual: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true

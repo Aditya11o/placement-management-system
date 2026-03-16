@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerStudent, registerRecruiter, login, getMe, forgotPassword, resetPassword, refreshToken, getSessions, logout, logoutAll, configureWebhook, updateRecruiterProfile, generate2FA, enable2FA, verify2FALogin, disable2FA } = require('../controllers/authController');
+const { registerStudent, registerRecruiter, login, getMe, forgotPassword, resetPassword, refreshToken, getSessions, logout, logoutAll, configureWebhook, updateRecruiterProfile, generate2FA, enable2FA, verify2FALogin, disable2FA, getGoogleAuthUrl, googleCallback, saveGoogleTokens } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const { validate } = require('../middlewares/validate');
 const { validateStudentRegister, validateRecruiterRegister, validateLogin } = require('../validations/authValidator');
@@ -293,5 +293,10 @@ router.post('/2fa/generate', protect, generate2FA);
 router.post('/2fa/enable', protect, enable2FA);
 router.post('/2fa/verify-login', verify2FALogin);
 router.post('/2fa/disable', protect, disable2FA);
+
+// Google Calendar OAuth
+router.get('/google', protect, getGoogleAuthUrl);
+router.get('/google/callback', googleCallback);
+router.post('/google/tokens', protect, saveGoogleTokens);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import {
@@ -131,6 +132,7 @@ const TYPE_COLORS: Record<string, string> = {
 const RecruiterInterviews: React.FC = () => {
     const { user } = useAuth();
     const { addToast } = useToast();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
 
     const [currentView, setCurrentView] = useState<View>('week');
@@ -391,6 +393,7 @@ const RecruiterInterviews: React.FC = () => {
                     onReschedule={openReschedule}
                     onCancel={() => setIsCancelConfirmOpen(true)}
                     onStatusChange={(status) => patchStatus(selectedInterview._id, status)}
+                    onJoin={() => navigate(`/interviews/${selectedInterview._id}/room`)}
                     isUpdating={isUpdating}
                 />
             )}
@@ -524,8 +527,9 @@ const InterviewDetailModal: React.FC<{
     onReschedule: () => void;
     onCancel: () => void;
     onStatusChange: (status: InterviewStatus) => void;
+    onJoin: () => void;
     isUpdating: boolean;
-}> = ({ interview, onClose, onReschedule, onCancel, onStatusChange, isUpdating }) => {
+}> = ({ interview, onClose, onReschedule, onCancel, onStatusChange, onJoin, isUpdating }) => {
     const cfg = STATUS_CONFIG[interview.status];
     const isOnline = interview.location.includes('http');
     const start = parseISO(interview.scheduledAt);
@@ -586,6 +590,21 @@ const InterviewDetailModal: React.FC<{
                     <InfoRow icon={<User size={16} className="text-slate-500" />} label="Email">
                         {interview.studentEmail}
                     </InfoRow>
+
+                    {/* Join Button for Virtual Interivews */}
+                    {isOnline && canAct && (
+                        <div className="pt-2">
+                            <Button 
+                                variant="primary" 
+                                isFullWidth 
+                                icon={Video} 
+                                onClick={onJoin}
+                                className="h-12 text-sm font-bold shadow-indigo-500/20"
+                            >
+                                Join Video Room
+                            </Button>
+                        </div>
+                    )}
 
                     {/* Status actions */}
                     {canAct && (

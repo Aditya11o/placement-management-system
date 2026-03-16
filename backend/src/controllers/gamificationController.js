@@ -11,6 +11,15 @@ exports.updateStreak = async (req, res, next) => {
         const student = await Student.findById(req.user.id);
         if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
 
+        // Ensure gamification object exists
+        if (!student.gamification) {
+            student.gamification = {
+                streak: { current: 0, last_activity: null, longest: 0 },
+                badges: [],
+                points: 0
+            };
+        }
+
         const now = new Date();
         const lastActivity = student.gamification?.streak?.last_activity;
         
@@ -65,10 +74,21 @@ exports.updateStreak = async (req, res, next) => {
 exports.checkBadges = async (req, res, next) => {
     try {
         const student = await Student.findById(req.user.id);
+        if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
+
+        // Ensure gamification object exists
+        if (!student.gamification) {
+            student.gamification = {
+                streak: { current: 0, last_activity: null, longest: 0 },
+                badges: [],
+                points: 0
+            };
+        }
+
         const Experience = require('../models/Experience');
         
         const insightsCount = await Experience.countDocuments({ student: student._id });
-        const existingBadges = student.gamification.badges.map(b => b.type);
+        const existingBadges = (student.gamification.badges || []).map(b => b.type);
         const newBadges = [];
 
         // 1. Insight Guru (5 peer insights)
@@ -76,14 +96,14 @@ exports.checkBadges = async (req, res, next) => {
             newBadges.push({ type: 'INSIGHT_GURU' });
         }
 
-        // 2. Profile Pro (Profile completion check - simplified)
-        const isProfileComplete = !!(student.skills.length > 0 && student.resume_versions.length > 0);
+        // 2. Profile Pro (Profile completion check - based on schema fields)
+        const isProfileComplete = student.skills.length > 0 && student.resume_versions?.length > 0;
         if (isProfileComplete && !existingBadges.includes('PROFILE_PRO')) {
             newBadges.push({ type: 'PROFILE_PRO' });
         }
 
         // 3. Streak Master (7 day streak)
-        if (student.gamification.streak.current >= 7 && !existingBadges.includes('STREAK_MASTER')) {
+        if ((student.gamification.streak?.current || 0) >= 7 && !existingBadges.includes('STREAK_MASTER')) {
             newBadges.push({ type: 'STREAK_MASTER' });
         }
 
@@ -96,9 +116,10 @@ exports.checkBadges = async (req, res, next) => {
         res.status(200).json({
             success: true,
             newBadges: newBadges.map(b => b.type),
-            totalBadges: student.gamification.badges
+            totalBadges: student.gamification.badges || []
         });
     } catch (error) {
+        logger.error(`Gamification Check Error: ${error.message}`);
         next(error);
     }
 };

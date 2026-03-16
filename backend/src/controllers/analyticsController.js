@@ -670,3 +670,177 @@ exports.getPlacementReadiness = async (req, res, next) => {
         next(err);
     }
 };
+
+/**
+ * @desc    Get placement comparison across multiple graduation years (seasons)
+ * @route   GET /api/v1/analytics/seasons
+ * @access  Private/Admin
+ */
+exports.getSeasonComparison = async (req, res, next) => {
+    try {
+        const seasonStats = await Student.aggregate([
+            { $match: { status: 'APPROVED' } },
+            {
+                $lookup: {
+                    from: 'applications',
+                    localField: '_id',
+                    foreignField: 'student_id',
+                    as: 'apps',
+                    pipeline: [
+                        { $match: { status: 'SELECTED' } }
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: '$studentProfile.graduation_year',
+                    totalStudents: { $sum: 1 },
+                    placedStudents: { $sum: { $cond: [{ $gt: [{ $size: '$apps' }, 0] }, 1, 0] } }
+                }
+            },
+            {
+                $project: {
+                    season: '$_id',
+                    totalStudents: 1,
+                    placedStudents: 1,
+                    placementRate: {
+                        $round: [
+                            {
+                                $multiply: [
+                                    { $divide: ['$placedStudents', { $cond: [{ $gt: ['$totalStudents', 0] }, '$totalStudents', 1] }] },
+                                    100
+                                ]
+                            },
+                            2
+                        ]
+                    },
+                    _id: 0
+                }
+            },
+            { $sort: { season: 1 } }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: seasonStats
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Identify at-risk students based on engagement/academic metrics
+ * @route   GET /api/v1/analytics/risk-assessment
+ * @access  Private/Admin
+ */
+exports.getRiskAssessment = async (req, res, next) => {
+    try {
+        const students = await Student.aggregate([
+            { $match: { status: 'APPROVED' } },
+            {
+                $lookup: {
+                    from: 'applications',
+                    localField: '_id',
+                    foreignField: 'student_id',
+                    as: 'apps'
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    email: 1,
+                    branch: 1,
+                    cgpa: 1,
+                    resume_versions: 1,
+                    applicationsCount: { $size: '$apps' },
+                    rejectionsCount: {
+                        $size: {
+                            $filter: {
+                                input: '$apps',
+                                as: 'app',
+                                cond: { $eq: ['$$app.status', 'REJECTED'] }
+                            }
+                        }
+                    },
+                    isPlaced: { $in: ['SELECTED', '$apps.status'] }
+                }
+            }
+        ]);
+
+        const atRiskStudents = students.filter(s => !s.isPlaced).map(s => {
+            const riskFactors = [];
+            let riskScore = 0;
+
+            if (s.cgpa < 6.5) {
+                riskFactors.push('Low academic performance (CGPA < 6.5)');
+                riskScore += 40;
+            }
+            if ((s.resume_versions?.length || 0) === 0) {
+                riskFactors.push('No resume uploaded');
+                riskScore += 30;
+            }
+            if (s.applicationsCount === 0) {
+                riskFactors.push('Zero job applications');
+                riskScore += 20;
+            }
+            if (s.rejectionsCount >= 5) {
+                riskFactors.push(`High rejection rate (${s.rejectionsCount} rejections)`);
+                riskScore += 10;
+            }
+
+            return {
+                id: s._id,
+                name: s.name,
+                email: s.email,
+                branch: s.branch,
+                riskScore,
+                riskFactors,
+                level: riskScore >= 70 ? 'CRITICAL' : riskScore >= 40 ? 'MEDIUM' : 'LOW'
+            };
+        }).filter(s => s.riskScore > 0).sort((a, b) => b.riskScore - a.riskScore);
+
+        res.status(200).json({
+            success: true,
+            data: atRiskStudents.slice(0, 20) // Top 20 at-risk
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Get geographic distribution of job offers
+ * @route   GET /api/v1/analytics/geography
+ * @access  Private/Admin
+ */
+exports.getGeographicStats = async (req, res, next) => {
+    try {
+        const geoStats = await Job.aggregate([
+            { $match: { status: 'ACTIVE' } },
+            {
+                $group: {
+                    _id: '$location',
+                    count: { $sum: 1 },
+                    avgPackage: { $avg: '$package_lpa' }
+                }
+            },
+            {
+                $project: {
+                    location: '$_id',
+                    count: 1,
+                    avgPackage: { $round: ['$avgPackage', 1] },
+                    _id: 0
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: geoStats
+        });
+    } catch (err) {
+        next(err);
+    }
+};

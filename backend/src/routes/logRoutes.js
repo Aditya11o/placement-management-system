@@ -1,5 +1,5 @@
 const express = require('express');
-const { getLogs, getLogById, getLogStats, getUserActivityFeed } = require('../controllers/logController');
+const { getLogs, getLogById, getLogStats, getUserActivityFeed, getUserTimeline } = require('../controllers/logController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const checkPermission = require('../middlewares/checkPermission');
 
@@ -147,6 +147,7 @@ router.get('/stats', getLogStats);
  *         description: Paginated activity feed for the user, with enriched actor info
  */
 router.get('/user/:userId', getUserActivityFeed);
+router.get('/user/:userId/timeline', getUserTimeline);
 
 /**
  * @swagger

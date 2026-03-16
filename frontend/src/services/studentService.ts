@@ -4,8 +4,8 @@ import { StudentProfile, ApiResponse, Job, Application } from '../types';
 export const studentService = {
     // ... existing methods
     // Jobs
-    getEligibleJobs: async (params: URLSearchParams): Promise<ApiResponse<Job[]>> => {
-        const res = await api.get(`/jobs?${params.toString()}`);
+    getEligibleJobs: async (params?: URLSearchParams): Promise<ApiResponse<Job[]>> => {
+        const res = await api.get(`/jobs${params ? '?' + params.toString() : ''}`);
         return res.data;
     },
 

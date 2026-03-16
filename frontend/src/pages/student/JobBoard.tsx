@@ -3,14 +3,14 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import { useToast } from '../../context/ToastContext';
 import Loader from '../../components/Loader/Loader';
 import SkeletonJobCard from '../../components/Skeleton/SkeletonJobCard';
-import { Search } from 'lucide-react';
+import { Search, Grid, List, Sparkles, Zap, Briefcase as BriefcaseIcon, IndianRupee } from 'lucide-react';
 import JobModal, { UIJob } from '../../components/JobModal/JobModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import { studentService } from '../../services/studentService';
 import EmptyState from '../../components/EmptyState/EmptyState';
 import PageHeader from '../../components/PageHeader/PageHeader';
 
-import { motion, Variants, useInView } from 'framer-motion';
+import { motion, Variants, useInView, AnimatePresence } from 'framer-motion';
 import { useRef, useEffect, useCallback, useMemo } from 'react';
 import JobCard from './components/JobCard';
 import JobFilters from './components/JobFilters';
@@ -20,6 +20,10 @@ const JOB_TYPES = ['Full-time', 'Part-time', 'Internship', 'Contract'];
 const JobBoard: React.FC = () => {
     const { addToast } = useToast();
     const queryClient = useQueryClient();
+
+    // Layout & View State
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
 
     // Pagination & General State
     const limit = 12;
@@ -49,12 +53,11 @@ const JobBoard: React.FC = () => {
     const { 
         data: infiniteData, 
         isLoading, 
-        isFetching, 
         isFetchingNextPage, 
         fetchNextPage, 
         hasNextPage 
     } = useInfiniteQuery({
-        queryKey: ['studentJobs', debouncedSearchTerm, selectedTypes, minSalary, locationSearch, sortBy],
+        queryKey: ['studentJobs', debouncedSearchTerm, selectedTypes, minSalary, locationSearch, sortBy, activeQuickFilter],
         queryFn: async ({ pageParam = 1 }) => {
             const params = new URLSearchParams({
                 page: (pageParam as number).toString(),
@@ -75,6 +78,16 @@ const JobBoard: React.FC = () => {
             if (debouncedSearchTerm.trim()) {
                 params.append('title[regex]', debouncedSearchTerm.trim());
                 params.append('title[options]', 'i');
+            }
+
+            // Quick Filters Logic
+            if (activeQuickFilter === 'Remote') {
+                params.append('location[regex]', 'Remote');
+                params.append('location[options]', 'i');
+            } else if (activeQuickFilter === 'Internship') {
+                params.append('type', 'Internship');
+            } else if (activeQuickFilter === 'High Salary') {
+                params.append('salary_package[gte]', '15');
             }
 
             return await studentService.getEligibleJobs(params);
@@ -156,23 +169,30 @@ const JobBoard: React.FC = () => {
         hidden: { opacity: 0 },
         show: {
             opacity: 1,
-            transition: { staggerChildren: 0.1 }
+            transition: { staggerChildren: 0.05 }
         }
     };
 
     const itemVariants: Variants = {
-        hidden: { opacity: 0, y: 20 },
-        show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+        hidden: { opacity: 0, scale: 0.95, y: 10 },
+        show: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 25 } }
     };
 
+    const quickFilters = [
+        { label: 'Remote', icon: Zap },
+        { label: 'Internship', icon: BriefcaseIcon },
+        { label: 'High Salary', icon: IndianRupee },
+        { label: 'AI Matched', icon: Sparkles },
+    ];
+
     return (
-        <div className="flex flex-col gap-6 relative">
+        <div className="flex flex-col gap-8 relative pb-20">
             <PageHeader
-                title="Job Board"
-                subtitle="Discover career opportunities from top companies."
+                title="Career Opportunities"
+                subtitle="Your AI-powered bridge to the world's most innovative companies."
             />
 
-            <div className="flex flex-col lg:flex-row gap-8 relative">
+            <div className="flex flex-col lg:flex-row gap-10 relative">
 
                 {/* ─── SIDEBAR FILTERS ───────────────────────────────────────── */}
                 <JobFilters 
@@ -188,100 +208,175 @@ const JobBoard: React.FC = () => {
                         setMinSalary(0);
                         setLocationSearch('');
                         setSearchTerm('');
+                        setActiveQuickFilter(null);
                     }}
                     jobTypes={JOB_TYPES}
                 />
 
-                {/* ─── MAIN GRID AREA ─────────────────────────────────────────── */}
-                <div className="flex flex-col flex-1 w-full min-w-0 gap-6 relative">
+                {/* ─── MAIN CONTENT AREA ─────────────────────────────────────────── */}
+                <div className="flex flex-col flex-1 w-full min-w-0 gap-8 relative">
 
-                    {/* Top Row: Search & Sort */}
-                    <div className="flex flex-col sm:flex-row justify-between gap-4 z-10 w-full bg-slate-50 dark:bg-slate-900 sticky top-0 py-2">
-                        {/* Search Input */}
-                        <div className="relative w-full sm:max-w-[400px]">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input
-                                type="text"
-                                placeholder="Search by job title..."
-                                className="w-full py-2.5 pr-4 pl-11 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-[15px] text-slate-800 dark:text-slate-200 shadow-sm transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 outline-none"
-                                value={searchTerm}
-                                onChange={(e) => { setSearchTerm(e.target.value); }}
-                            />
+                    {/* Top Control Bar */}
+                    <div className="flex flex-col gap-6 sticky top-0 z-20 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl py-4 -mt-4">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                            {/* Command Search */}
+                            <div className="relative w-full md:max-w-2xl group">
+                                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 group-focus-within:scale-110 transition-all duration-300" size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="Search by role, skill, or company..."
+                                    className="w-full py-4 pr-6 pl-14 rounded-2xl border-none bg-white dark:bg-slate-800 text-[16px] text-slate-800 dark:text-slate-200 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all focus:ring-4 focus:ring-indigo-500/10 outline-none placeholder:text-slate-400 font-medium"
+                                    value={searchTerm}
+                                    onChange={(e) => { setSearchTerm(e.target.value); }}
+                                />
+                                <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+                                    <kbd className="hidden sm:inline-flex h-6 items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 text-[10px] font-medium text-slate-400">
+                                        <span className="text-xs">⌘</span>K
+                                    </kbd>
+                                </div>
+                            </div>
+
+                            {/* View & Sort Controls */}
+                            <div className="flex items-center gap-4 shrink-0 w-full md:w-auto justify-end">
+                                {/* Layout Toggle */}
+                                <div className="flex items-center bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                    <button 
+                                        onClick={() => setViewMode('grid')}
+                                        className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                    >
+                                        <Grid size={18} />
+                                    </button>
+                                    <button 
+                                        onClick={() => setViewMode('list')}
+                                        className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                    >
+                                        <List size={18} />
+                                    </button>
+                                </div>
+
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => { setSortBy(e.target.value); }}
+                                    className="py-3 pl-5 pr-12 rounded-xl border-none bg-white dark:bg-slate-800 text-[14px] text-slate-600 dark:text-slate-300 font-bold shadow-sm transition-all focus:ring-4 focus:ring-indigo-500/10 outline-none appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M6%209L12%2015L18%209%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[center_right_15px] cursor-pointer"
+                                >
+                                    <option value="-createdAt">NEWEST FIRST</option>
+                                    <option value="-salary_package">HIGHEST SALARY</option>
+                                    <option value="deadline">ENDING SOON</option>
+                                </select>
+                            </div>
                         </div>
 
-                        {/* Sort Dropdown */}
-                        <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-sm font-medium text-slate-500 dark:text-slate-400 hidden sm:block">Sort by:</span>
-                            <select
-                                value={sortBy}
-                                onChange={(e) => { setSortBy(e.target.value); }}
-                                className="py-2.5 pl-4 pr-10 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-[14px] text-slate-800 dark:text-slate-200 font-medium shadow-sm transition-all outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M6%209L12%2015L18%209%22%20stroke%3D%22%2394A3B8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[center_right_10px]"
-                            >
-                                <option value="-createdAt">Newest First</option>
-                                <option value="-salary_package">Highest Salary</option>
-                                <option value="deadline">Deadline Approaching</option>
-                            </select>
+                        {/* Quick Filter Chips */}
+                        <div className="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0 mr-2">Quick Filter:</span>
+                            {quickFilters.map((filter) => {
+                                const Icon = filter.icon;
+                                const isActive = activeQuickFilter === filter.label;
+                                return (
+                                    <button
+                                        key={filter.label}
+                                        onClick={() => setActiveQuickFilter(isActive ? null : filter.label)}
+                                        className={`flex items-center gap-2.5 px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-wider transition-all border whitespace-nowrap ${
+                                            isActive 
+                                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/20 scale-105' 
+                                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-600'
+                                        }`}
+                                    >
+                                        <Icon size={14} className={isActive ? 'animate-pulse' : ''} />
+                                        {filter.label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
-                    {/* Loading Overlay when fetching new data for filters */}
-                    {isFetching && !isLoading && (
-                        <div className="absolute inset-0 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-[1px] z-10 rounded-xl flex items-start justify-center pt-24">
-                            <div className="bg-white dark:bg-slate-800 p-3 rounded-full shadow-lg border border-slate-200 dark:border-slate-700 text-indigo-500">
-                                <Loader />
+                    {/* Results Count & Status */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex -space-x-2">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="w-8 h-8 rounded-full border-2 border-slate-50 bg-slate-200 animate-pulse" />
+                                ))}
                             </div>
+                            <span className="text-sm font-bold text-slate-500">
+                                <span className="text-indigo-600 dark:text-indigo-400">{jobs.length}</span> opportunities found for you
+                            </span>
                         </div>
-                    )}
+                    </div>
 
-                    {isLoading ? (
-                        <SkeletonJobCard count={6} />
-                    ) : (
-                        <motion.div
-                            variants={containerVariants}
-                            initial="hidden"
-                            animate="show"
-                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
-                        >
-                            {jobs.length === 0 ? (
-                                <div className="col-span-1 md:col-span-2 xl:col-span-3">
+                    {/* Results Display */}
+                    <div className="relative">
+                        <AnimatePresence mode="wait">
+                            {isLoading ? (
+                                <motion.div
+                                    key="skeleton"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                >
+                                    <SkeletonJobCard count={6} />
+                                </motion.div>
+                            ) : jobs.length === 0 ? (
+                                <motion.div
+                                    key="empty"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    className="pt-12"
+                                >
                                     <EmptyState 
-                                        illustration="/src/assets/illustrations/empty_jobs.png"
-                                        title="No matching jobs found"
-                                        description="Try adjusting your filters, location, or search terms to find more opportunities."
-                                        actionLabel="Clear All Filters"
+                                        variant="jobs"
+                                        title="No Opportunities Match Your Current Search"
+                                        description="We couldn't find any roles matching your exact filters. Try broadening your search or adjusting the salary range."
+                                        actionLabel="Reset Search Engine"
                                         onAction={() => {
-                                            setSelectedTypes([]); setMinSalary(0); setLocationSearch(''); setSearchTerm('');
+                                            setSelectedTypes([]); setMinSalary(0); setLocationSearch(''); setSearchTerm(''); setActiveQuickFilter(null);
                                         }}
                                     />
-                                </div>
+                                </motion.div>
                             ) : (
-                                jobs.map((job: UIJob) => (
-                                    <JobCard 
-                                        key={job._id}
-                                        job={job}
-                                        onApply={handleApply}
-                                        onToggleSave={toggleSaveJob}
-                                        onSelect={setSelectedJob}
-                                        onPrefetch={prefetchJob}
-                                        isApplying={applyingTo === job._id}
-                                        isSaved={savedJobs.has(job._id)}
-                                        variants={itemVariants}
-                                    />
-                                ))
+                                <motion.div
+                                    key={viewMode}
+                                    variants={containerVariants}
+                                    initial="hidden"
+                                    animate="show"
+                                    className={viewMode === 'grid' 
+                                        ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" 
+                                        : "flex flex-col gap-4"
+                                    }
+                                >
+                                    {jobs.map((job: UIJob) => (
+                                        <JobCard 
+                                            key={job._id}
+                                            job={job}
+                                            onApply={handleApply}
+                                            onToggleSave={toggleSaveJob}
+                                            onSelect={setSelectedJob}
+                                            onPrefetch={prefetchJob}
+                                            isApplying={applyingTo === job._id}
+                                            isSaved={savedJobs.has(job._id)}
+                                            variants={itemVariants}
+                                            viewMode={viewMode}
+                                        />
+                                    ))}
+                                </motion.div>
                             )}
-                        </motion.div>
-                    )}
+                        </AnimatePresence>
+                    </div>
 
                     {/* Infinite Scroll Sentinel */}
-                    <div ref={observerRef} className="w-full h-8 flex items-center justify-center mt-4">
+                    <div ref={observerRef} className="w-full h-12 flex items-center justify-center mt-8">
                         {isFetchingNextPage && (
-                            <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm tracking-wide">
+                            <div className="flex items-center gap-3 text-indigo-600 font-black text-xs uppercase tracking-widest">
                                 <Loader />
-                                <span>Loading more opportunities...</span>
+                                <span>Syncing more opportunities...</span>
                             </div>
                         )}
                         {!hasNextPage && jobs.length > 0 && (
-                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">You've reached the end of the board</p>
+                            <div className="flex flex-col items-center gap-4 py-8 border-t border-slate-100 dark:border-slate-800 w-full">
+                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">End of Transmission</p>
+                                <div className="h-1.5 w-12 bg-indigo-500/20 rounded-full" />
+                            </div>
                         )}
                     </div>
                 </div>

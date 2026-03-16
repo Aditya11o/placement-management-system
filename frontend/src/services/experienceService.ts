@@ -59,5 +59,17 @@ export const experienceService = {
     getPrepKit: async (companyName: string) => {
         const res = await api.get(`/experiences/prep-kit/${companyName}`);
         return res.data.data as PrepKit;
+    },
+
+    getTrendingCompanies: async () => {
+        // Mock data for discovery phase
+        return [
+            { id: '1', name: 'Google', slug: 'google', difficulty: 'Hard', kitsCount: 42, icon: 'google' },
+            { id: '2', name: 'Amazon', slug: 'amazon', difficulty: 'Medium', kitsCount: 85, icon: 'amazon' },
+            { id: '3', name: 'Microsoft', slug: 'microsoft', difficulty: 'Medium', kitsCount: 64, icon: 'microsoft' },
+            { id: '4', name: 'Netflix', slug: 'netflix', difficulty: 'Hard', kitsCount: 12, icon: 'netflix' },
+            { id: '5', name: 'Apple', slug: 'apple', difficulty: 'Medium', kitsCount: 31, icon: 'apple' },
+            { id: '6', name: 'Meta', slug: 'meta', difficulty: 'Hard', kitsCount: 28, icon: 'meta' },
+        ];
     }
 };

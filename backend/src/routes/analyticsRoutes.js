@@ -10,7 +10,10 @@ const {
     getPredictiveAnalytics,
     getCohortAnalysis,
     getEngagementStats,
-    getPlacementReadiness
+    getPlacementReadiness,
+    getSeasonComparison,
+    getRiskAssessment,
+    getGeographicStats
 } = require('../controllers/analyticsController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -257,5 +260,23 @@ router.get('/engagement', getEngagementStats);
  * @route   GET /api/v1/analytics/placement-readiness
  */
 router.get('/placement-readiness', getPlacementReadiness);
+
+/**
+ * @desc    Get placement comparison across seasons (graduation years)
+ * @route   GET /api/v1/analytics/seasons
+ */
+router.get('/seasons', getSeasonComparison);
+
+/**
+ * @desc    Get at-risk student assessment
+ * @route   GET /api/v1/analytics/risk-assessment
+ */
+router.get('/risk-assessment', getRiskAssessment);
+
+/**
+ * @desc    Get geographic distribution of job offers
+ * @route   GET /api/v1/analytics/geography
+ */
+router.get('/geography', getGeographicStats);
 
 module.exports = router;

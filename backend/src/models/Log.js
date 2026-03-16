@@ -26,6 +26,10 @@ const logSchema = new mongoose.Schema({
     },
     ip_address: {
         type: String,
+    },
+    metadata: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }

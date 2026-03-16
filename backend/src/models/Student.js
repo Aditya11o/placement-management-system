@@ -130,6 +130,10 @@ const studentSchema = new mongoose.Schema({
         type: String,
         enum: ['MINIMALIST', 'CREATIVE', 'TECHNICAL', 'EXECUTIVE'],
         default: 'MINIMALIST'
+    },
+    internal_notes: {
+        type: String,
+        default: ''
     }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false },

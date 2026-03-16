@@ -95,6 +95,27 @@ const GlobalSettingsSchema = new mongoose.Schema({
     meshGradientColors: {
         type: [String],
         default: ['#6366f1', '#8b5cf6', '#d946ef', '#3b82f6'] // Indigo, Violet, Fuchsia, Blue
+    },
+    // --- Placement Policies ---
+    maxOffersPerStudent: {
+        type: Number,
+        default: 1 // 1 = one company policy, 0 = unlimited
+    },
+    dreamUpgradeThresholdLPA: {
+        type: Number,
+        default: 10 // Students with an offer < this can still apply to higher packages
+    },
+    minCGPAForRegistration: {
+        type: Number,
+        default: 0 // 0 = no restriction
+    },
+    blockMultipleApplicationsSameCompany: {
+        type: Boolean,
+        default: true
+    },
+    allowDataImport: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

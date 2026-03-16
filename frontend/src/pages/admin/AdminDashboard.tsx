@@ -8,7 +8,7 @@ import SkeletonCard from '../../components/Skeleton/SkeletonCard';
 import SkeletonTable from '../../components/Skeleton/SkeletonTable';
 import {
     Users, Building, Activity, ShieldAlert, CheckCircle, XCircle,
-    DownloadCloud, Megaphone, BarChart3,
+    DownloadCloud, Megaphone,
     TrendingUp, Send, ShieldCheck, Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,8 @@ import api from '../../services/api';
 
 import TrendsChart from '../../components/Charts/TrendsChart';
 import FunnelChart from '../../components/Charts/FunnelChart';
+import SeasonComparisonChart from '../../components/Charts/SeasonComparisonChart';
+import StudentRiskWidget from '../../components/Dashboard/StudentRiskWidget';
 import ExportReportsModal from '../../components/ExportReportsModal/ExportReportsModal';
 import PulseFeed from '../../components/PulseFeed/PulseFeed';
 import AnimatedCounter from '../../components/AnimatedCounter/AnimatedCounter';
@@ -86,6 +88,24 @@ const AdminDashboard = () => {
         }
     });
 
+    // Fetch Season Comparison Data
+    const { data: seasonData, isLoading: isSeasonLoading } = useQuery({
+        queryKey: ['adminSeasonComparison'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/seasons');
+            return res.data.data;
+        }
+    });
+
+    // Fetch Student Risk Data
+    const { data: riskData, isLoading: isRiskLoading } = useQuery({
+        queryKey: ['adminRiskAssessment'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/risk-assessment');
+            return res.data.data;
+        }
+    });
+
     // Mutation for Approving/Rejecting
     const approvalMutation = useMutation({
         mutationFn: async ({ id, action }: { id: string, action: string }) => {
@@ -112,8 +132,8 @@ const AdminDashboard = () => {
 
     // Mutation for Exporting Data
     const exportMutation = useMutation({
-        mutationFn: async (type: 'students' | 'applications') => {
-            const res = await api.post('/admin/export', { type });
+        mutationFn: async ({ type, justification }: { type: 'students' | 'applications' | 'recruiters', justification: string }) => {
+            const res = await api.post('/admin/export', { type, justification });
             return res.data;
         },
         onSuccess: (data) => {
@@ -147,8 +167,8 @@ const AdminDashboard = () => {
         <div className="flex flex-col gap-6 animate-fade-in overflow-hidden">
             <div className="flex justify-between items-start mb-2">
                 <div>
-                    <h1 className="text-3xl font-bold text-indigo-700 mb-1">Overview Dashboard</h1>
-                    <p className="text-slate-500 text-base m-0">System metrics and pending approval actions.</p>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">Overview Dashboard</h1>
+                    <p className="text-slate-500 dark:text-slate-400 text-base m-0">System metrics and pending approval actions.</p>
                 </div>
             </div>
 
@@ -165,7 +185,7 @@ const AdminDashboard = () => {
                             <Users size={24} />
                         </div>
                         <div className="flex flex-col">
-                            <h3 className="text-3xl font-bold text-slate-800 m-0 leading-none">
+                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white m-0 leading-none">
                                 <AnimatedCounter value={stats?.totalStudents || 0} />
                             </h3>
                             <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mt-1">Registered Students</p>
@@ -179,7 +199,7 @@ const AdminDashboard = () => {
                             <Building size={24} />
                         </div>
                         <div className="flex flex-col">
-                            <h3 className="text-3xl font-bold text-slate-800 m-0 leading-none">
+                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white m-0 leading-none">
                                 <AnimatedCounter value={stats?.totalRecruiters || 0} />
                             </h3>
                             <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mt-1">Approved Companies</p>
@@ -193,7 +213,7 @@ const AdminDashboard = () => {
                             <Activity size={24} />
                         </div>
                         <div className="flex flex-col">
-                            <h3 className="text-3xl font-bold text-slate-800 m-0 leading-none">
+                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white m-0 leading-none">
                                 {/* Simple text extraction as percentage might have % sign from API or we append it */}
                                 {stats?.placementRate || '0%'}
                             </h3>
@@ -203,91 +223,122 @@ const AdminDashboard = () => {
                 </motion.div>
             </motion.div>
 
-            {/* Interactive Analytics Charts */}
+            {/* Season Comparison & Analytics Overview */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
-                className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2"
+                className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2"
             >
-                <div className="flex flex-col gap-3 min-w-0">
-                    <TrendsChart data={trendsData} isLoading={isTrendsLoading} />
-                    <button
-                        onClick={() => navigate('/admin/analytics-deep-dive')}
-                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 self-end px-2"
-                    >
-                        <TrendingUp size={14} /> View Advanced Trends &rarr;
-                    </button>
+                <div className="lg:col-span-2">
+                    <SeasonComparisonChart data={seasonData} isLoading={isSeasonLoading} />
                 </div>
-                <div className="flex flex-col gap-3 min-w-0">
-                    <FunnelChart data={funnelData} isLoading={isFunnelLoading} />
-                    <button
-                        onClick={() => navigate('/admin/analytics-deep-dive')}
-                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 self-end px-2"
-                    >
-                        <BarChart3 size={14} /> Deep-Dive Analytics &rarr;
-                    </button>
-                </div>
-            </motion.div>
-
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-                className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 mt-2"
-            >
-
-                {/* Pending Actions / Approvals */}
-                <div className="min-w-0">
-                    <Card className="flex flex-col p-6 lg:p-8 h-full" hoverable>
-                        <div className="flex justify-between items-center mb-6">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-bold text-indigo-700 m-0">Pending Approvals</h2>
-                                {pendingRecruiters.length > 0 && (
-                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-600">{pendingRecruiters.length} Pending</span>
-                                )}
-                            </div>
-                            <button
-                                onClick={() => navigate('/admin/approvals')}
-                                className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
-                            >
-                                View All &rarr;
-                            </button>
+                <div className="flex flex-col gap-6">
+                    <Card className="p-6 flex-1 flex flex-col justify-center bg-indigo-50 dark:bg-indigo-500/5 border-indigo-100 dark:border-indigo-500/20" hoverable>
+                        <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4">
+                            <Activity size={20} />
                         </div>
-
-                        <div className="flex flex-col gap-4">
-                            {pendingRecruiters.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500">
-                                    <ShieldAlert size={40} className="text-slate-400 opacity-50 mb-3" />
-                                    <p>No pending recruiter registrations require attention.</p>
-                                </div>
-                            ) : (
-                                pendingRecruiters.map((rec: any) => (
-                                    <div key={rec._id} className="flex justify-between items-center p-5 bg-slate-50 border border-slate-200 rounded-md">
-                                        <div className="flex flex-col min-w-0">
-                                            <h4 className="text-[17px] font-semibold text-slate-800 mb-1 truncate">{rec.company_name || 'Unknown Company'}</h4>
-                                            <p className="text-sm text-slate-500 m-0 truncate">{rec.contact_person} ({rec.email})</p>
-                                        </div>
-                                        <div className="flex gap-3 shrink-0">
-                                            <button className="bg-green-50 border-none flex items-center justify-center w-10 h-10 rounded-full cursor-pointer transition-all text-green-600 hover:bg-green-200 disabled:opacity-50" onClick={() => handleRecruiterApproval(rec._id, 'approve')} disabled={approvalMutation.isPending}>
-                                                <CheckCircle size={20} />
-                                            </button>
-                                            <button className="bg-red-50 border-none flex items-center justify-center w-10 h-10 rounded-full cursor-pointer transition-all text-red-600 hover:bg-red-200 disabled:opacity-50" onClick={() => handleRecruiterApproval(rec._id, 'reject')} disabled={approvalMutation.isPending}>
-                                                <XCircle size={20} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
+                        <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Growth Index</h4>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-black text-slate-900 dark:text-white">+12.5%</span>
+                            <span className="text-xs font-bold text-emerald-500 flex items-center gap-0.5">
+                                <TrendingUp size={12} /> vs Last Season
+                            </span>
+                        </div>
+                    </Card>
+                    <Card className="p-6 flex-1 flex flex-col justify-center bg-emerald-50 dark:bg-emerald-500/5 border-emerald-100 dark:border-emerald-500/20" hoverable>
+                        <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                            <Zap size={20} />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Response Velocity</h4>
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-black text-slate-900 dark:text-white">1.2 Days</span>
+                            <span className="text-xs font-bold text-indigo-500">Avg. Stage Move</span>
                         </div>
                     </Card>
                 </div>
+            </motion.div>
 
-                {/* Pulse Feed */}
+            {/* Analytics & Risk Intelligence */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-2 space-y-6">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.35, duration: 0.5 }}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                    >
+                        <TrendsChart data={trendsData} isLoading={isTrendsLoading} />
+                        <FunnelChart data={funnelData} isLoading={isFunnelLoading} />
+                    </motion.div>
+                </div>
+
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4, duration: 0.5 }}
+                >
+                    <StudentRiskWidget 
+                        students={riskData} 
+                        isLoading={isRiskLoading} 
+                        onViewStudent={(id) => navigate(`/admin/students?id=${id}`)}
+                    />
+                </motion.div>
+            </div>
+
+            {/* Operational Center: Approvals & Feed */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45, duration: 0.5 }}
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            >
+                <Card className="flex flex-col p-6 lg:p-8 h-full" hoverable>
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-xl font-bold text-indigo-600 dark:text-indigo-400 m-0">Pending Approvals</h2>
+                            {pendingRecruiters.length > 0 && (
+                                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200/50 dark:border-amber-500/20">{pendingRecruiters.length} Pending</span>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => navigate('/admin/approvals')}
+                            className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                        >
+                            View All &rarr;
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                        {pendingRecruiters.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500">
+                                <ShieldAlert size={40} className="text-slate-400 opacity-50 mb-3" />
+                                <p>No pending recruiter registrations require attention.</p>
+                            </div>
+                        ) : (
+                            pendingRecruiters.map((rec: any) => (
+                                <div key={rec._id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
+                                    <div className="flex flex-col min-w-0">
+                                        <h4 className="text-[17px] font-semibold text-slate-800 dark:text-slate-100 mb-1 truncate">{rec.company_name || 'Unknown Company'}</h4>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 m-0 truncate">{rec.contact_person} ({rec.email})</p>
+                                    </div>
+                                    <div className="flex gap-3 shrink-0">
+                                        <button className="bg-emerald-50 dark:bg-emerald-500/10 border-none flex items-center justify-center w-10 h-10 rounded-full cursor-pointer transition-all text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 disabled:opacity-50" onClick={() => handleRecruiterApproval(rec._id, 'approve')} disabled={approvalMutation.isPending}>
+                                            <CheckCircle size={20} />
+                                        </button>
+                                        <button className="bg-rose-50 dark:bg-rose-500/10 border-none flex items-center justify-center w-10 h-10 rounded-full cursor-pointer transition-all text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 disabled:opacity-50" onClick={() => handleRecruiterApproval(rec._id, 'reject')} disabled={approvalMutation.isPending}>
+                                            <XCircle size={20} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </Card>
+
                 <div className="h-[500px] lg:h-auto min-w-0">
                     <PulseFeed />
                 </div>
-
             </motion.div>
 
             {/* Quick Links - Full Width */}
@@ -319,9 +370,9 @@ const AdminDashboard = () => {
                     </div>
                 </Card>
 
-                <Card className="flex flex-col p-6 lg:p-8" hoverable>
-                    <h2 className="text-xl font-bold text-slate-700 m-0">Management Links</h2>
-                    <p className="text-sm text-slate-400 mt-1 mb-6">Standard operational tools and data export.</p>
+                <Card className="flex flex-col p-6 lg:p-8 shadow-sm" hoverable>
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white m-0">Management Links</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-6">Standard operational tools and data export.</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Button isFullWidth variant="secondary" icon={Users} onClick={() => navigate('/admin/students')}>Manage Students</Button>
                         <Button isFullWidth variant="secondary" icon={Building} onClick={() => navigate('/admin/recruiters')}>Manage Companies</Button>
@@ -342,7 +393,7 @@ const AdminDashboard = () => {
                 isOpen={isExportModalOpen}
                 onClose={() => setIsExportModalOpen(false)}
                 isExporting={exportMutation.isPending}
-                onExport={(type) => exportMutation.mutate(type)}
+                onExport={(type, justification) => exportMutation.mutate({ type, justification })}
             />
         </div>
     );

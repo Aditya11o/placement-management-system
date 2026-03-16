@@ -252,6 +252,44 @@ exports.getUserActivityFeed = async (req, res, next) => {
     }
 };
 
+/**
+ * @desc    Get the combined activity timeline for a user (Actor OR Target)
+ * @route   GET /api/v1/logs/user/:userId/timeline
+ * @access  Private / Admin
+ */
+exports.getUserTimeline = async (req, res, next) => {
+    try {
+        const userId = req.params.userId;
+        const page = Math.max(1, parseInt(req.query.page, 10) || PAGE_DEFAULT);
+        const limit = Math.min(LIMIT_MAX, parseInt(req.query.limit, 10) || LIMIT_DEFAULT);
+        const skip = (page - 1) * limit;
+
+        const filter = {
+            $or: [
+                { user_id: userId },
+                { target_id: userId }
+            ]
+        };
+
+        const [logs, total] = await Promise.all([
+            Log.find(filter).sort('-created_at').skip(skip).limit(limit).lean(),
+            Log.countDocuments(filter)
+        ]);
+
+        res.status(200).json({
+            success: true,
+            pagination: {
+                page, limit, total,
+                totalPages: Math.ceil(total / limit)
+            },
+            count: logs.length,
+            data: logs
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // ── Private Helpers ───────────────────────────────────────────────────────────
 /** Fetches actor display info (name + email) based on user_id + user_role */
 async function resolveActor(userId, userRole) {
