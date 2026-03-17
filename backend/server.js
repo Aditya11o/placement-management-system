@@ -162,6 +162,27 @@ app.use(hpp());
 const { tenantMiddleware } = require('./src/middlewares/tenantMiddleware');
 app.use(tenantMiddleware);
 
+// --- MAINTENANCE & SECURITY ENFORCEMENT ---
+const maintenanceMode = require('./src/middlewares/maintenanceMiddleware');
+const ipWhitelist = require('./src/middlewares/ipWhitelistMiddleware');
+
+// Apply IP Whitelist to ALL Admin and RBAC routes
+app.use(['/api/v1/admin', '/api/v1/rbac'], ipWhitelist);
+
+// Apply Maintenance Mode to Student and Recruiter facing routes
+// (Excludes auth, public, and admin routes)
+app.use([
+    '/api/v1/students',
+    '/api/v1/jobs',
+    '/api/v1/applications',
+    '/api/v1/interviews',
+    '/api/v1/ai',
+    '/api/v1/chat',
+    '/api/v1/experiences',
+    '/api/v1/gamification',
+    '/api/v1/events'
+], maintenanceMode);
+
 // ── BullMQ Monitoring Dashboard (Admin Only) ────────────────────────────────
 if (config.get('env') !== 'test') {
     const { createBullBoard } = require('@bull-board/api');
