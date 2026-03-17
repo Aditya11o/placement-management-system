@@ -218,7 +218,16 @@ const AdminSessions: React.FC = () => {
                                             <div className="flex flex-col gap-1">
                                                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                                                     <Clock size={12} />
-                                                    <span className="text-[12px] font-medium">Logged in {format(new Date(session.created_at), 'MMM d, p')}</span>
+                                                    <span className="text-[12px] font-medium">
+                                                        Logged in {(() => {
+                                                            try {
+                                                                const date = new Date(session.created_at);
+                                                                return isNaN(date.getTime()) ? 'Time Unknown' : format(date, 'MMM d, p');
+                                                            } catch (e) {
+                                                                return 'Time Unknown';
+                                                            }
+                                                        })()}
+                                                    </span>
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

@@ -33,7 +33,8 @@ const {
     exportMasterData,
     getSystemHealth,
     purgeData,
-    updateUserInternalNotes
+    updateUserInternalNotes,
+    bulkUpdateUserStatus
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
@@ -127,6 +128,7 @@ router.get('/users', checkPermission('manage_students'), usersAdvancedResults, g
  *         description: Status updated successfully
  */
 router.put('/users/status', checkPermission('manage_students'), validateUserStatusUpdate, validate, updateUserStatus);
+router.put('/users/bulk-status', checkPermission('manage_students'), bulkUpdateUserStatus);
 router.put('/users/notes', checkPermission('manage_students'), updateUserInternalNotes);
 
 /**

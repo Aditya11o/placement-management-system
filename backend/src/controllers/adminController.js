@@ -83,6 +83,61 @@ exports.updateUserStatus = async (req, res, next) => {
     }
 };
 
+exports.bulkUpdateUserStatus = async (req, res, next) => {
+    try {
+        const { ids, role, status } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ success: false, message: 'Please provide an array of user IDs' });
+        }
+        if (!['PENDING', 'APPROVED', 'BLOCKED'].includes(status)) {
+            return res.status(400).json({ success: false, message: 'Invalid status' });
+        }
+
+        let model;
+        if (role === 'STUDENT') model = Student;
+        else if (role === 'RECRUITER') model = Recruiter;
+        else return res.status(400).json({ success: false, message: 'Invalid role' });
+
+        const result = await model.updateMany(
+            { _id: { $in: ids } },
+            { $set: { status } }
+        );
+
+        // Audit Log
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'BULK_UPDATE_STATUS',
+            description: `Bulk updated ${result.modifiedCount} ${role}s to ${status}`,
+            metadata: { count: result.modifiedCount, ids }
+        });
+
+        // Async: Dispatch notifications for approved users
+        if (status === 'APPROVED') {
+            const users = await model.find({ _id: { $in: ids } }).select('_id name email company_name');
+            for (const user of users) {
+                const eventName = role === 'STUDENT' ? 'application_status_update' : 'new_application_received';
+                dispatchToUser({
+                    recipientId: user._id,
+                    recipientModel: role.charAt(0).toUpperCase() + role.slice(1).toLowerCase(),
+                    eventName: eventName,
+                    title: 'Account Approved!',
+                    message: `Your ${role.toLowerCase()} account has been verified and approved.`,
+                    type: 'SUCCESS',
+                    link: '/login'
+                }).catch(err => logger.error(`Bulk Notify Error: ${err.message}`));
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `Successfully updated ${result.modifiedCount} users to ${status}`
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 exports.updateUserInternalNotes = async (req, res, next) => {
     try {
         const { id, role, notes } = req.body;

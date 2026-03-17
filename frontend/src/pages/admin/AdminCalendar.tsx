@@ -261,7 +261,14 @@ const AdminCalendar: React.FC = () => {
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-slate-800 dark:text-white">{selectedEvent.resource.status}</span>
                                     <span className="text-xs text-slate-500">
-                                        {format(new Date(selectedEvent.resource.scheduled_at), "EEEE, MMMM do yyyy 'at' h:mm a")}
+                                        {(() => {
+                                            try {
+                                                const date = new Date(selectedEvent.resource.scheduled_at);
+                                                return isNaN(date.getTime()) ? 'Time Unknown' : format(date, "EEEE, MMMM do yyyy 'at' h:mm a");
+                                            } catch (e) {
+                                                return 'Time Unknown';
+                                            }
+                                        })()}
                                     </span>
                                 </div>
                             </div>

@@ -111,8 +111,7 @@ const AdminStudents = () => {
     const bulkMutation = useMutation({
         mutationFn: async ({ userIds, newStatus }: { userIds: string[]; newStatus: boolean }) => {
             const status = newStatus ? 'APPROVED' : 'BLOCKED';
-            const promises = userIds.map(id => api.put('/admin/users/status', { id, role: 'STUDENT', status }));
-            return await Promise.all(promises);
+            return api.put('/admin/users/bulk-status', { ids: userIds, role: 'STUDENT', status });
         },
         onSuccess: (_, { newStatus, userIds }) => {
             addToast(`${userIds.length} students ${newStatus ? 'approved' : 'blocked'}`, 'success');

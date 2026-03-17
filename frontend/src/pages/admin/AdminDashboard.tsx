@@ -21,6 +21,7 @@ import StudentRiskWidget from '../../components/Dashboard/StudentRiskWidget';
 import ExportReportsModal from '../../components/ExportReportsModal/ExportReportsModal';
 import PulseFeed from '../../components/PulseFeed/PulseFeed';
 import AnimatedCounter from '../../components/AnimatedCounter/AnimatedCounter';
+import AiStrategicInsights from '../../components/Dashboard/AiStrategicInsights';
 import { motion, Variants } from 'framer-motion';
 
 // Framer Motion Variants for Staggered List Animation
@@ -104,6 +105,25 @@ const AdminDashboard = () => {
             const res = await api.get('/analytics/risk-assessment');
             return res.data.data;
         }
+    });
+
+    // Fetch Extended Dashboard Stats
+    const { data: extendedStats, isLoading: isExtendedLoading } = useQuery({
+        queryKey: ['adminExtendedStats'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/dashboard-extended');
+            return res.data.data;
+        }
+    });
+
+    // Fetch AI Strategic Insights
+    const { data: aiInsights, isLoading: isAiInsightsLoading } = useQuery({
+        queryKey: ['adminAiInsights'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/ai-insights');
+            return res.data.data;
+        },
+        staleTime: 1000 * 60 * 60 // 1 hour stale time for AI calls
     });
 
     // Mutation for Approving/Rejecting
@@ -240,9 +260,11 @@ const AdminDashboard = () => {
                         </div>
                         <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Growth Index</h4>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-black text-slate-900 dark:text-white">+12.5%</span>
+                            <span className="text-3xl font-black text-slate-900 dark:text-white">
+                                {isExtendedLoading ? '...' : `+${extendedStats?.growthIndex || '0.0'}%`}
+                            </span>
                             <span className="text-xs font-bold text-emerald-500 flex items-center gap-0.5">
-                                <TrendingUp size={12} /> vs Last Season
+                                <TrendingUp size={12} /> vs Last Month
                             </span>
                         </div>
                     </Card>
@@ -252,7 +274,9 @@ const AdminDashboard = () => {
                         </div>
                         <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Response Velocity</h4>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-black text-slate-900 dark:text-white">1.2 Days</span>
+                            <span className="text-3xl font-black text-slate-900 dark:text-white">
+                                {isExtendedLoading ? '...' : extendedStats?.responseVelocity || '0h'}
+                            </span>
                             <span className="text-xs font-bold text-indigo-500">Avg. Stage Move</span>
                         </div>
                     </Card>
@@ -277,7 +301,9 @@ const AdminDashboard = () => {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.4, duration: 0.5 }}
+                    className="space-y-6"
                 >
+                    <AiStrategicInsights data={aiInsights} isLoading={isAiInsightsLoading} />
                     <StudentRiskWidget 
                         students={riskData} 
                         isLoading={isRiskLoading} 

@@ -13,7 +13,9 @@ const {
     getPlacementReadiness,
     getSeasonComparison,
     getRiskAssessment,
-    getGeographicStats
+    getGeographicStats,
+    getDashboardExtendedStats,
+    getAIStrategicInsights
 } = require('../controllers/analyticsController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -278,5 +280,15 @@ router.get('/risk-assessment', getRiskAssessment);
  * @route   GET /api/v1/analytics/geography
  */
 router.get('/geography', getGeographicStats);
+
+/**
+ * @desc    Get extended dashboard stats
+ */
+router.get('/dashboard-extended', getDashboardExtendedStats);
+
+/**
+ * @desc    Get AI strategic insights
+ */
+router.get('/ai-insights', getAIStrategicInsights);
 
 module.exports = router;

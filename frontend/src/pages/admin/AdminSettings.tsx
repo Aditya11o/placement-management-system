@@ -7,6 +7,7 @@ import api from '../../services/api';
 import EmailTemplateEditor from '../../components/EmailTemplateEditor/EmailTemplateEditor';
 import AdminAuditLogs from './AdminAuditLogs';
 import LottieSuccessModal from '../../components/LottieSuccessModal/LottieSuccessModal';
+import ThemePreview from '../../components/Dashboard/ThemePreview';
 
 interface AdminSettingsType {
     allowStudentRegistration: boolean;
@@ -519,6 +520,9 @@ const AdminSettings = () => {
                                             <Palette size={22} />
                                         </div>
                                         <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 m-0">Branding & Theming</h2>
+                                    </div>
+                                    <div className="hidden lg:block w-64">
+                                        <ThemePreview primaryColor={settings.primaryColor} meshColors={settings.meshGradientColors} />
                                     </div>
                                 </div>
 

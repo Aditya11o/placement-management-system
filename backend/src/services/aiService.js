@@ -422,3 +422,49 @@ exports.autoTuneResume = async (resumeUrl, { title, description, skills }) => {
         throw err;
     }
 };
+/**
+ * Generates high-level strategic insights for administrators based on placement data.
+ * @param {Object} data - Aggregated analytics data (stats, trends, funnel)
+ * @returns {Promise<Object>} - Strategic insights and recommendations
+ */
+exports.generateStrategicInsights = async (data) => {
+    try {
+        if (!config.get('gemini.api_key')) throw new Error('AI functionality not configured.');
+
+        const genAI = new GoogleGenerativeAI(config.get('gemini.api_key'));
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+        const prompt = `
+        You are a senior strategic advisor for a University Placement Cell. 
+        Analyze the following placement data and provide 3-4 high-level strategic insights.
+
+        **Placement Data Summary:**
+        ${JSON.stringify(data)}
+
+        **Instructions:**
+        1. Identify trends (e.g., "Placement rate is up 15% but response velocity from recruiters is slowing down").
+        2. Identify bottlenecks in the funnel.
+        3. Provide 3 specific, actionable "Strategic Recommendations".
+        4. Format as JSON: 
+           { 
+             "summary": string, 
+             "insights": [ { "title": string, "description": string, "type": "trend" | "warning" | "opportunity" } ],
+             "recommendations": [ string ]
+           }
+        5. Return ONLY the JSON string.
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const rawOutput = response.text() || '';
+        const jsonStr = rawOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(jsonStr);
+    } catch (err) {
+        logger.error(`AI Strategic Insights Failed: ${err.message}`);
+        return {
+            summary: "Unable to generate AI insights at this time.",
+            insights: [],
+            recommendations: ["Ensure your Gemini API key is active and data is sufficient."]
+        };
+    }
+};
