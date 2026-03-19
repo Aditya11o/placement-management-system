@@ -125,6 +125,15 @@ const AdminAnalytics = () => {
         }
     });
 
+    // Fetch Placement Forecast
+    const { data: forecastData, isLoading: isForecastLoading, refetch: refetchForecast } = useQuery({
+        queryKey: ['placementForecast'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/forecast');
+            return res.data.data;
+        }
+    });
+
     const refreshAll = () => {
         refetchBranch();
         refetchSalary();
@@ -132,6 +141,7 @@ const AdminAnalytics = () => {
         refetchPredictive();
         refetchReadiness();
         refetchGeo();
+        refetchForecast();
     };
 
     const sensors = useSensors(
@@ -525,6 +535,76 @@ const AdminAnalytics = () => {
                                                                         <p className="font-medium text-sm">Not enough active job data to plot radar.</p>
                                                                     </div>
                                                                 )}
+                                                            </div>
+                                                        </Card>
+                                                    </SortableWidget>
+
+                                                    {/* Placement Forecast Section */}
+                                                    <SortableWidget id={`${id}-forecast`}>
+                                                        <Card className="p-8 border-slate-200/60 shadow-sm h-full glass-card relative overflow-hidden group">
+                                                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                                                <TrendingUp size={120} />
+                                                            </div>
+                                                            <div className="flex justify-between items-start mb-8 relative z-10">
+                                                                <div className="flex flex-col gap-1">
+                                                                    <h3 className="text-xl font-extrabold text-slate-800 dark:text-white m-0 tracking-tight">30-Day Placement Projection</h3>
+                                                                    <p className="text-sm text-slate-500 m-0">Expected selections based on current {forecastData?.currentShortlisted || 0} shortlisted candidates.</p>
+                                                                </div>
+                                                                <div className="flex flex-col items-end">
+                                                                    <div className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-black uppercase tracking-widest border border-emerald-500/20">
+                                                                        Confidence: {forecastData?.conversionRate || 0}%
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="h-[300px] w-full relative z-10">
+                                                                {isForecastLoading ? (
+                                                                    <div className="w-full h-full bg-slate-50 dark:bg-slate-800/50 animate-pulse rounded-lg" />
+                                                                ) : (
+                                                                    <ResponsiveContainer width="100%" height="100%">
+                                                                        <AreaChart data={forecastData?.timeSeries}>
+                                                                            <defs>
+                                                                                <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
+                                                                                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.1} />
+                                                                                    <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                                                                </linearGradient>
+                                                                            </defs>
+                                                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                                                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11, fontWeight: 'bold' }} />
+                                                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 11 }} />
+                                                                            <Tooltip
+                                                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                                                                cursor={{ stroke: '#10B981', strokeWidth: 2, strokeDasharray: '5 5' }}
+                                                                            />
+                                                                            <Area
+                                                                                type="monotone"
+                                                                                dataKey="projected"
+                                                                                name="Projected Selections"
+                                                                                stroke="#10B981"
+                                                                                strokeWidth={3}
+                                                                                strokeDasharray="5 5"
+                                                                                fillOpacity={1}
+                                                                                fill="url(#colorProjected)"
+                                                                                animationDuration={2000}
+                                                                            />
+                                                                        </AreaChart>
+                                                                    </ResponsiveContainer>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="mt-6 flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 relative z-10">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+                                                                        <Zap size={20} />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 m-0">AI Target</p>
+                                                                        <p className="text-sm font-bold text-slate-800 dark:text-white m-0">Reach {forecastData?.totalProjected || 0} Successful Placements</p>
+                                                                    </div>
+                                                                </div>
+                                                                <button className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors">
+                                                                    Run Simulation
+                                                                </button>
                                                             </div>
                                                         </Card>
                                                     </SortableWidget>

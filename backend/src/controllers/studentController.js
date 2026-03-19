@@ -435,3 +435,51 @@ exports.getPlacementPredictor = async (req, res, next) => {
         });
     }
 };
+
+/**
+ * @desc    Send a manual nudge to a student (Admin only - Rule-based)
+ * @route   POST /api/v1/students/:id/nudge
+ * @access  Private/Admin
+ */
+exports.sendManualNudge = async (req, res, next) => {
+    try {
+        const Student = require('../models/Student');
+        const Notification = require('../models/Notification');
+
+        const student = await Student.findById(req.params.id);
+        if (!student) {
+            return res.status(404).json({ success: false, message: 'Student not found' });
+        }
+
+        const reason = req.body.reason || "General improvement needed";
+        const nudgeContent = `Dear ${student.name}, our records suggest you could boost your placement success by focusing on: ${reason}. Please update your profile and check recommended jobs.`;
+
+        // 1. Create In-App Notification
+        await Notification.create({
+            recipient_id: student._id,
+            type: 'SYSTEM',
+            title: 'Action Recommended',
+            message: nudgeContent,
+            priority: 'HIGH'
+        });
+
+        // 2. Log the action
+        const Log = require('../models/Log');
+        await Log.create({
+            user_id: req.user.id,
+            action: 'STUDENT_NUDGE_MANUAL',
+            details: `Sent manual nudge to ${student.name} for ${reason}`,
+            ip_address: req.ip
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                message: "Nudge sent successfully",
+                draft: nudgeContent
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};

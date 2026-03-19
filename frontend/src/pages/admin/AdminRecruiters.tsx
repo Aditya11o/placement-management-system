@@ -49,6 +49,7 @@ const AdminRecruiters = () => {
         }
     });
 
+
     const recruiters = queryData?.data || [];
     const totalPages = queryData?.total ? Math.ceil(queryData.total / limit) : 1;
 
@@ -228,6 +229,7 @@ const AdminRecruiters = () => {
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">Company Directory</h1>
                 <p className="text-slate-500 dark:text-slate-400 text-base m-0">Manage recruiter accounts and business verifications.</p>
             </div>
+
 
             <FilterBar
                 searchPlaceholder="Search loaded recruiters..."

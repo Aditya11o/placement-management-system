@@ -9,6 +9,7 @@ import ActivityTimeline from '../Timeline/ActivityTimeline';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import PIIMaskedText from '../PII/PIIMaskedText';
 
 export interface ScorecardResponse {
     _id: string;
@@ -382,9 +383,12 @@ const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({ isOpen, onC
                                         <Mail size={14} className="text-slate-500" />
                                     </div>
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                                        <a href={`mailto:${student.email}`} className="text-slate-700 dark:text-slate-300 font-medium hover:text-indigo-600 transition-colors truncate block flex-1">
-                                            {student.email}
-                                        </a>
+                                        <PIIMaskedText 
+                                            text={student.email} 
+                                            type="email" 
+                                            label={student.name} 
+                                            className="min-w-0 flex-1"
+                                        />
                                         <button
                                             onClick={() => setIsMessageModalOpen(true)}
                                             className="px-3 py-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md shrink-0 transition-colors"
@@ -398,9 +402,11 @@ const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({ isOpen, onC
                                         <div className="w-8 h-8 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
                                             <Phone size={14} className="text-slate-500" />
                                         </div>
-                                        <a href={`tel:${student.phone}`} className="text-slate-700 dark:text-slate-300 font-medium hover:text-indigo-600 transition-colors">
-                                            {student.phone}
-                                        </a>
+                                        <PIIMaskedText 
+                                            text={student.phone} 
+                                            type="phone" 
+                                            label={student.name} 
+                                        />
                                     </div>
                                 )}
                             </div>

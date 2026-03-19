@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../context/ToastContext';
-import { Shield, Ban } from 'lucide-react';
+import { Shield, Ban, Zap } from 'lucide-react';
 import api from '../../services/api';
 import VirtualizedDataTable from '../../components/DataTable/VirtualizedDataTable';
 import { Column } from '../../components/DataTable/DataTable';
@@ -106,6 +106,15 @@ const AdminStudents = () => {
             }
         },
         onError: () => addToast('Failed to change account status', 'error'),
+    });
+
+    const nudgeMutation = useMutation({
+        mutationFn: async ({ studentId, reason }: { studentId: string; reason: string }) =>
+            api.post(`/students/${studentId}/nudge`, { reason }),
+        onSuccess: () => {
+            addToast('Nudge sent successfully!', 'success');
+        },
+        onError: (err: any) => addToast(err.response?.data?.message || 'Failed to send nudge', 'error'),
     });
 
     const bulkMutation = useMutation({
@@ -214,6 +223,17 @@ const AdminStudents = () => {
                             <Shield size={14} /> Approve
                         </button>
                     )}
+                    <button
+                        className="inline-flex items-center gap-1 h-8 px-3 rounded text-[13px] font-semibold border text-amber-600 dark:text-amber-400 bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-500/10 disabled:opacity-50 transition-all"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            nudgeMutation.mutate({ studentId: s._id, reason: 'Improve placement readiness' });
+                        }}
+                        disabled={nudgeMutation.isPending}
+                        title="Send manual nudge"
+                    >
+                        <Zap size={14} className="fill-amber-500/10" /> Nudge
+                    </button>
                 </div>
             ),
         },

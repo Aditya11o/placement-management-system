@@ -1,5 +1,4 @@
 const InterviewExperience = require('../models/InterviewExperience');
-const aiService = require('../services/aiService');
 const logger = require('../utils/logger');
 
 /**
@@ -108,7 +107,6 @@ exports.getPrepKit = async (req, res, next) => {
     try {
         const { companyName } = req.params;
 
-        // Fetch experiences for this company (case-insensitive)
         const experiences = await InterviewExperience.find({ 
             company_name: new RegExp(`^${companyName}$`, 'i') 
         }).populate('student', 'name');
@@ -120,20 +118,13 @@ exports.getPrepKit = async (req, res, next) => {
             });
         }
 
-        let summary = null;
-        // Only trigger AI summary if we have enough context (at least 3 experiences)
-        if (experiences.length >= 3) {
-            summary = await aiService.generatePrepKitSummary(companyName, experiences);
-        }
-
         res.status(200).json({
             success: true,
             data: {
                 companyName,
                 experienceCount: experiences.length,
-                summary,
-                experiences: experiences.length > 5 ? experiences.slice(0, 5) : experiences,
-                message: experiences.length < 3 ? 'Not enough peer data for AI insights yet. Add more experiences!' : undefined
+                summary: "Standard Prep Kit: Review previous student experiences for common questions and difficulty levels.",
+                experiences: experiences.length > 5 ? experiences.slice(0, 5) : experiences
             }
         });
 

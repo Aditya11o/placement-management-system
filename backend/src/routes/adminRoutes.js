@@ -36,6 +36,7 @@ const {
     updateUserInternalNotes,
     bulkUpdateUserStatus
 } = require('../controllers/adminController');
+const { getRecruiterPerformance } = require('../controllers/recruiterController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { apiKeyAuth } = require('../middlewares/apiKeyMiddleware');
 const ipWhitelist = require('../middlewares/ipWhitelistMiddleware');
@@ -173,6 +174,7 @@ router.get('/api-keys', blockApiKeys, checkPermission('manage_api_keys'), listAp
 router.delete('/api-keys/:id', blockApiKeys, checkPermission('manage_api_keys'), revokeApiKey);
 
 router.get('/dashboard', getDashboardStats);
+router.get('/recruiters/performance', getRecruiterPerformance);
 
 /**
  * @swagger

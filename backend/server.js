@@ -176,7 +176,6 @@ app.use([
     '/api/v1/jobs',
     '/api/v1/applications',
     '/api/v1/interviews',
-    '/api/v1/ai',
     '/api/v1/chat',
     '/api/v1/experiences',
     '/api/v1/gamification',
@@ -224,7 +223,6 @@ const uploadRoutes = require('./src/routes/uploadRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const interviewRoutes = require('./src/routes/interviewRoutes');
-const aiRoutes = require('./src/routes/aiRoutes');
 const notificationPrefsRoutes = require('./src/routes/notificationPrefsRoutes');
 const rbacRoutes = require('./src/routes/rbacRoutes');
 const logRoutes = require('./src/routes/logRoutes');
@@ -248,7 +246,6 @@ app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/interviews', interviewRoutes);
-app.use('/api/v1/ai', aiRoutes);
 // app.use('/api/v1/health', healthRoutes); // Moved up to exempt from rate limiting
 app.use('/api/v1/notification-prefs', notificationPrefsRoutes);
 app.use('/api/v1/rbac', rbacRoutes);

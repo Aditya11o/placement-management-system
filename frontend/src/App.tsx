@@ -59,6 +59,7 @@ const AdminSystemHealth = lazy(() => import('./pages/admin/AdminSystemHealth'));
 const AdminCommunication = lazy(() => import('./pages/admin/AdminCommunication'));
 const AdminAnalyticsDeepDive = lazy(() => import('./pages/admin/AdminAnalyticsDeepDive'));
 const AdminSessions = lazy(() => import('./pages/admin/AdminSessions'));
+const AdminSecurityHub = lazy(() => import('./pages/admin/AdminSecurityHub'));
 
 const InterviewRoom = lazy(() => import('./pages/shared/InterviewRoom'));
 const NotificationCenter = lazy(() => import('./pages/shared/NotificationCenter'));
@@ -150,6 +151,7 @@ const App = () => {
                             <Route path="/admin/communication" element={<AdminCommunication />} />
                             <Route path="/admin/analytics-deep-dive" element={<AdminAnalyticsDeepDive />} />
                             <Route path="/admin/sessions" element={<AdminSessions />} />
+                            <Route path="/admin/security-hub" element={<AdminSecurityHub />} />
                           </Route>
 
                           {/* Shared Activity Routes */}

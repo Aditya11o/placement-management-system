@@ -2,7 +2,7 @@ const express = require('express');
 const { 
     getStudentProfile, updateStudentProfile, getStudents, inviteStudent, 
     getReadinessScore, getAlumniDirectory, getCareerAnalytics, updatePortfolioTheme,
-    getOnlinePeers, getPlacementPredictor
+    getOnlinePeers, getPlacementPredictor, sendManualNudge
 } = require('../controllers/studentController');
 const { createRoom, getRooms, getRoomById, joinRoom } = require('../controllers/prepRoomController');
 const { initiatePeerChat, getPeerConversations, sendPeerMessage, getPeerMessages } = require('../controllers/peerChatController');
@@ -24,6 +24,7 @@ router.get('/', authorize('RECRUITER', 'ADMIN'), advancedResults(Student), getSt
  * @desc Invite student (Recruiters only)
  */
 router.post('/:id/invite', authorize('RECRUITER'), inviteStudent);
+router.post('/:id/nudge', authorize('ADMIN'), sendManualNudge);
 
 /**
  * @desc Get logged-in student profile (Student only)

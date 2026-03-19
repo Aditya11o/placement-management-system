@@ -936,7 +936,7 @@ exports.updateApplicationStatus = async (req, res, next) => {
 };
 
 /**
- * @desc    Get AI ranked candidate matches for a specific job
+ * @desc    Get ranked candidate matches for a specific job (Rule-based)
  * @route   GET /api/v1/admin/jobs/:id/matches
  * @access  Private/Admin
  */
@@ -944,30 +944,51 @@ exports.getJobMatches = async (req, res, next) => {
     try {
         const Job = require('../models/Job');
         const Student = require('../models/Student');
-        const { rankCandidatesForJob } = require('../utils/aiMatcher');
 
         const job = await Job.findById(req.params.id);
         if (!job) {
             return res.status(404).json({ success: false, message: 'Job not found' });
         }
 
-        // Pre-filter students to save AI tokens (e.g., must be approved, could filter by branch if job specifies)
-        const students = await Student.find({ status: 'APPROVED' }).select('name email branch cgpa skills profile_image_url resume_url');
+        // 1. Fetch eligible students
+        const students = await Student.find({ status: 'APPROVED' })
+            .select('name email branch studentProfile profile_image_url');
 
-        // Get AI Rankings
-        const aiRankings = await rankCandidatesForJob(job, students);
+        // 2. Simple Heuristic Matching (Non-AI)
+        const jobSkills = job.skills_required.map(s => s.toLowerCase());
+        
+        const matchedCandidates = students.map(student => {
+            const studentSkills = (student.studentProfile?.skills || []).map(s => s.toLowerCase());
+            
+            // Skill Match Count
+            const overlap = studentSkills.filter(s => jobSkills.includes(s)).length;
+            const skillScore = (overlap / Math.max(jobSkills.length, 1)) * 100;
 
-        // Merge AI scores with full student profiles
-        const matchedCandidates = aiRankings.map(ranking => {
-            const studentData = students.find(s => s._id.toString() === ranking.studentId);
-            if (!studentData) return null; // Should not happen if AI is accurate
+            // CGPA Factor (normalized to 100)
+            const cgpaScore = (student.studentProfile?.cgpa || 0) * 10;
+
+            // Branch Match
+            const branchMatch = job.eligible_branches.includes(student.studentProfile?.branch);
+            const branchScore = branchMatch ? 100 : 0;
+
+            // Simple weighted average: 60% Skills, 30% CGPA, 10% Branch
+            const finalScore = (skillScore * 0.6) + (cgpaScore * 0.3) + (branchScore * 0.1);
 
             return {
-                student: studentData,
-                matchScore: ranking.score,
-                matchReason: ranking.reasoning
+                student: {
+                    _id: student._id,
+                    name: student.name,
+                    email: student.email,
+                    branch: student.studentProfile?.branch,
+                    cgpa: student.studentProfile?.cgpa,
+                },
+                matchScore: Math.round(finalScore),
+                matchReason: `Skill Overlap: ${overlap}/${jobSkills.length} matches. ${branchMatch ? 'Branch matches' : 'Branch mismatch'}.`
             };
-        }).filter(item => item !== null).sort((a, b) => b.matchScore - a.matchScore); // Sort highest first
+        })
+        .filter(c => c.matchScore > 30) // Minimum threshold
+        .sort((a, b) => b.matchScore - a.matchScore)
+        .slice(0, 50); // Limit results
 
         res.status(200).json({
             success: true,

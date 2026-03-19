@@ -290,6 +290,32 @@ exports.getUserTimeline = async (req, res, next) => {
     }
 };
 
+/**
+ * @desc    Log a PII "Reveal" action for audit purposes
+ * @route   POST /api/v1/logs/pii-access
+ * @access  Private / Admin
+ */
+exports.logPIIAccess = async (req, res, next) => {
+    try {
+        const { target_id, target_role, pii_field, reason } = req.body;
+
+        await Log.create({
+            user_id: req.user.id,
+            user_role: req.user.role,
+            action: 'PII_REVEAL',
+            target_id,
+            target_role,
+            description: `Accessed PII field [${pii_field}] for ${target_role}. Reason: ${reason || 'Not specified'}`,
+            ip_address: req.ip,
+            user_agent: req.headers['user-agent']
+        });
+
+        res.status(201).json({ success: true, message: 'PII access logged' });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // ── Private Helpers ───────────────────────────────────────────────────────────
 /** Fetches actor display info (name + email) based on user_id + user_role */
 async function resolveActor(userId, userRole) {

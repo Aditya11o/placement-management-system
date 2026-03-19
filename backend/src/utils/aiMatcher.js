@@ -3,86 +3,102 @@ const logger = require('./logger');
 const config = require('../config/config');
 
 /**
- * Ranks a list of students against a specific job description using Gemini AI.
- * @param {Object} job - The job posting details (title, description, required skills, etc.)
- * @param {Array} students - Array of eligible student objects (id, name, skills, cgpa, etc.)
- * @returns {Promise<Array>} - Array of objects: { studentId, score, reasoning }
+ * Ranks a list of students against a specific job description using a hybrid logic.
+ * 1. Heuristic keyword overlap (Pre-filter)
+ * 2. Gemini AI deep analysis (Final ranking)
+ * 
+ * @param {Object} job - Job document
+ * @param {Array} students - Array of Student documents
+ * @returns {Promise<Array>} - Standardized ranked candidates: [{ student, matchScore, matchReason }]
  */
 exports.rankCandidatesForJob = async (job, students) => {
     try {
-        if (!config.get('gemini.api_key')) {
-            logger.warn('Skipping AI Matching: GEMINI_API_KEY is not configured in configuration');
-            return [];
-        }
-
         if (!students || students.length === 0) return [];
 
-        // Initialize Gemini SDK lazily
-        const genAI = new GoogleGenerativeAI(config.get('gemini.api_key'));
-        const model = genAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
-            generationConfig: {
-                responseMimeType: "application/json",
-            }
+        // 1. Initial Heuristic Scoring (Keyword Overlap)
+        const jobKeywords = (job.title + ' ' + (job.description || '') + ' ' + (job.skills_required || []).join(' ')).toLowerCase();
+        
+        const heuristicRanked = students.map(student => {
+            let score = 0;
+            const studentSkills = (student.skills || []).join(' ').toLowerCase();
+            
+            // Skill overlap scoring
+            (student.skills || []).forEach(skill => {
+                if (jobKeywords.includes(skill.toLowerCase())) {
+                    score += 15; // Weighted higher for specific skill matches
+                }
+            });
+
+            // Academic boost (max 20 points from CGPA)
+            score += Math.min((student.cgpa || 0) * 2, 20);
+
+            return {
+                student,
+                score,
+                studentId: student._id.toString()
+            };
         });
 
-        // Prepare minimized data payloads to save tokens
-        const jobContext = `
-        Role: ${job.title}
-        Company: ${job.company?.name || 'Unknown'}
-        Type: ${job.job_type}
-        Salary/Package (LPA): ${job.package_lpa || 'Not specified'}
-        Job Description: ${job.description.substring(0, 1500)} // Limiting to core requirements
-        `;
+        // Take top 10 for AI analysis to save tokens
+        const topCandidates = heuristicRanked
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
 
-        const studentsContext = students.map(s => ({
-            id: s._id.toString(),
-            cgpa: s.cgpa || 0,
-            skills: s.skills || [],
-            branch: s.branch || 'Unknown'
-        }));
+        // 2. AI Analysis with Gemini (if API Key is available)
+        if (config.get('gemini.api_key')) {
+            try {
+                const genAI = new GoogleGenerativeAI(config.get('gemini.api_key'));
+                const model = genAI.getGenerativeModel({ 
+                    model: 'gemini-1.5-flash',
+                    generationConfig: { responseMimeType: "application/json" }
+                });
 
-        const prompt = `
-        You are an elite automated Applicant Tracking System (ATS). Your task is to analyze a pool of candidates against a specific Job Description.
-        
-        ### Job Context
-        ${jobContext}
+                const candidatesData = topCandidates.map(c => ({
+                    id: c.studentId,
+                    name: c.student.name,
+                    skills: c.student.skills,
+                    cgpa: c.student.cgpa,
+                    branch: c.student.branch
+                }));
 
-        ### Candidate Pool (JSON)
-        ${JSON.stringify(studentsContext)}
+                const prompt = `
+                    Analyze these candidates for the following job:
+                    Title: ${job.title}
+                    Requirements: ${job.description.substring(0, 1000)}
+                    
+                    Candidates:
+                    ${JSON.stringify(candidatesData)}
+                    
+                    Task: Rank them 0-100 based on fit. Provide a 1-sentence reasoning.
+                    Return JSON: [{"id": "...", "score": 0-100, "reasoning": "..."}]
+                `;
 
-        ### Instructions
-        1. Evaluate each candidate's suitability for the Job Context based primarily on their skills, but also consider their CGPA and branch relevance.
-        2. Assign a "matchScore" between 0 and 100 for each candidate.
-        3. Provide a single, concise sentence "reasoning" for the score (e.g., "Strong React skills match core requirements, but lacks backend experience.").
-        4. Return ONLY a pure JSON array of objects. Do not include markdown formatting like \`\`\`json or trailing text.
-
-        ### Expected Output Format
-        [
-            { "studentId": "id_string_here", "score": 85, "reasoning": "Excellent match due to complete overlap in desired Python skills." },
-            ...
-        ]
-        `;
-
-        // Query Gemini
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const rawOutput = response.text() || '[]';
-
-        let rankedResults = [];
-        try {
-            rankedResults = JSON.parse(rawOutput);
-        } catch (parseErr) {
-            logger.error(`AI Matcher JSON Parse Failed. Raw Output: ${rawOutput}`);
-            throw parseErr;
+                const result = await model.generateContent(prompt);
+                const aiResponse = JSON.parse(result.response.text());
+                
+                return topCandidates.map(c => {
+                    const aiInfo = aiResponse.find(r => r.id === c.studentId);
+                    return {
+                        student: c.student,
+                        matchScore: aiInfo ? aiInfo.score : Math.min(Math.round(c.score), 100),
+                        matchReason: aiInfo ? aiInfo.reasoning : "Strong baseline match based on skill overlap."
+                    };
+                }).sort((a, b) => b.matchScore - a.matchScore);
+            } catch (aiErr) {
+                logger.error("AI Matching Stage 2 Failed (Gemini):", aiErr);
+                // Fallback to heuristic results if AI fails
+            }
         }
 
-        logger.info(`Successfully ranked ${rankedResults.length}/${students.length} candidates for job ${job._id}`);
-        return rankedResults;
+        // Fallback or No API Key: Use heuristic scores
+        return topCandidates.map(c => ({
+            student: c.student,
+            matchScore: Math.min(Math.round(c.score), 100),
+            matchReason: "Ranked based on skill alignment and academic performance (AI processing skipped)."
+        })).sort((a, b) => b.matchScore - a.matchScore);
 
     } catch (err) {
-        logger.error(`AI Candidate Matching Failed: ${err.message}`);
-        // Return null/empty array to gracefully degrade instead of crashing the endpoint
+        logger.error(`Unified Matching Failed: ${err.message}`);
         return [];
     }
 };

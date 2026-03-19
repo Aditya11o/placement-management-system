@@ -15,8 +15,12 @@ const {
     getRiskAssessment,
     getGeographicStats,
     getDashboardExtendedStats,
-    getAIStrategicInsights,
-    getAIRiskAssessment
+    getStrategicInsights,
+    getDailyBriefing,
+    getCandidateMatches,
+    getPlacementForecast,
+    getSecurityHubStats,
+    getSystemHealthOverview
 } = require('../controllers/analyticsController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -288,13 +292,34 @@ router.get('/geography', getGeographicStats);
 router.get('/dashboard-extended', getDashboardExtendedStats);
 
 /**
- * @desc    Get AI strategic insights
+ * @desc    Get strategic insights for Admin Dashboard (Rule-based)
  */
-router.get('/ai-insights', getAIStrategicInsights);
+router.get('/insights', getStrategicInsights);
 
 /**
- * @desc    Get deep AI-powered risk analysis for top at-risk students
+ * @desc    Get risk assessment for top at-risk students (Rule-based)
  */
-router.get('/ai-risk-assessment', getAIRiskAssessment);
+router.get('/risk-assessment', getRiskAssessment);
+
+/**
+ * @desc    Get daily briefing for Admin Dashboard (Rule-based)
+ */
+router.get('/daily-briefing', getDailyBriefing);
+
+/**
+ * @desc    Get candidate matches for a specific job (Heuristic-based)
+ */
+router.get('/match-candidates/:jobId', getCandidateMatches);
+
+/**
+ * @desc    30-Day Placement Projection (Statistical)
+ */
+router.get('/forecast', getPlacementForecast);
+
+/**
+ * @desc    Security Observability Hub
+ */
+router.get('/security-hub', getSecurityHubStats);
+router.get('/system-health', getSystemHealthOverview);
 
 module.exports = router;

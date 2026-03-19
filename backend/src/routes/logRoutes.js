@@ -1,5 +1,5 @@
 const express = require('express');
-const { getLogs, getLogById, getLogStats, getUserActivityFeed, getUserTimeline } = require('../controllers/logController');
+const { getLogs, getLogById, getLogStats, getUserActivityFeed, getUserTimeline, logPIIAccess } = require('../controllers/logController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const checkPermission = require('../middlewares/checkPermission');
 
@@ -170,5 +170,10 @@ router.get('/user/:userId/timeline', getUserTimeline);
  *         description: Log entry not found
  */
 router.get('/:id', getLogById);
+
+/**
+ * @desc    Log a PII "Reveal" action for audit purposes
+ */
+router.post('/pii-access', logPIIAccess);
 
 module.exports = router;

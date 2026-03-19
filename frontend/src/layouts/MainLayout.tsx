@@ -104,9 +104,10 @@ const MainLayout: React.FC = () => {
                     { label: 'Communicator', path: '/admin/communication', icon: Send, category: 'Operations' },
                     { label: 'Doc Verification', path: '/admin/doc-verification', icon: FileCheck, category: 'Operations' },
                     { label: 'RBAC', path: '/admin/rbac', icon: Shield, category: 'System' },
+                    { label: 'Security Hub', path: '/admin/security-hub', icon: ShieldAlert, category: 'System' },
                     { label: 'System Health', path: '/admin/system-health', icon: Activity, category: 'System' },
                     { label: 'Settings', path: '/admin/settings', icon: Settings, category: 'System' },
-                    { label: 'Active Sessions', path: '/admin/sessions', icon: ShieldAlert, category: 'System' },
+                    { label: 'Active Sessions', path: '/admin/sessions', icon: Globe, category: 'System' },
                 ];
             default:
                 return [];

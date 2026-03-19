@@ -107,6 +107,7 @@ const AdminSystemHealth: React.FC = () => {
         retry: false,
     });
 
+
     const lastUpdated = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : '—';
 
     if (isLoading) {
@@ -170,6 +171,7 @@ const AdminSystemHealth: React.FC = () => {
                     </div>
                 </div>
             </div>
+
 
             {/* ── Service Status Cards ───────────────────────────────────────── */}
             <motion.div

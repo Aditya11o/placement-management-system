@@ -170,15 +170,6 @@ const config = convict({
             sensitive: true
         }
     },
-    gemini: {
-        api_key: {
-            doc: 'Google Gemini API key.',
-            format: String,
-            default: '',
-            env: 'GEMINI_API_KEY',
-            sensitive: true
-        }
-    },
     sentry: {
         dsn: {
             doc: 'Sentry DSN for error tracking.',
