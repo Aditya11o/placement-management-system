@@ -38,6 +38,26 @@ const APPLICATION_FIELDS: FieldDef[] = [
     { key: 'created_at', label: 'Applied On', type: 'date' },
 ];
 
+const RECRUITER_FIELDS: FieldDef[] = [
+    { key: 'company_name', label: 'Company Name', type: 'string' },
+    { key: 'contact_person', label: 'Contact Person', type: 'string' },
+    { key: 'email', label: 'Email', type: 'string' },
+    { key: 'phone', label: 'Phone', type: 'string' },
+    { key: 'status', label: 'Status', type: 'string' },
+    { key: 'website', label: 'Website', type: 'string' },
+    { key: 'created_at', label: 'Joined On', type: 'date' },
+];
+
+const JOB_FIELDS: FieldDef[] = [
+    { key: 'title', label: 'Job Title', type: 'string' },
+    { key: 'company_name', label: 'Company', type: 'string' },
+    { key: 'job_type', label: 'Type', type: 'string' },
+    { key: 'salary_package', label: 'Package', type: 'number' },
+    { key: 'location', label: 'Location', type: 'string' },
+    { key: 'deadline', label: 'Deadline', type: 'date' },
+    { key: 'status', label: 'Status', type: 'string' },
+];
+
 const OPERATORS: Record<string, { label: string; types: string[] }> = {
     'eq': { label: '=', types: ['string', 'number', 'date'] },
     'ne': { label: '≠', types: ['string', 'number'] },
@@ -54,7 +74,7 @@ interface FilterRow {
     value: string;
 }
 
-type DataSource = 'students' | 'applications';
+type DataSource = 'students' | 'applications' | 'recruiters' | 'jobs';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const getNestedValue = (obj: any, path: string): any => {
@@ -83,12 +103,21 @@ const AdminReportBuilder: React.FC = () => {
     const [showPreview, setShowPreview] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    const fields = dataSource === 'students' ? STUDENT_FIELDS : APPLICATION_FIELDS;
+    const fields = dataSource === 'students' 
+        ? STUDENT_FIELDS 
+        : dataSource === 'applications' 
+            ? APPLICATION_FIELDS 
+            : dataSource === 'recruiters' 
+                ? RECRUITER_FIELDS 
+                : JOB_FIELDS;
 
     // Reset selections when data source changes
     const handleDataSourceChange = (source: DataSource) => {
         setDataSource(source);
-        setSelectedFields(source === 'students' ? ['name', 'email', 'branch', 'cgpa'] : ['student_id.name', 'job_id.title', 'status']);
+        if (source === 'students') setSelectedFields(['name', 'email', 'branch', 'cgpa']);
+        else if (source === 'applications') setSelectedFields(['student_id.name', 'job_id.title', 'status']);
+        else if (source === 'recruiters') setSelectedFields(['company_name', 'email', 'status']);
+        else setSelectedFields(['title', 'company_name', 'salary_package', 'status']);
         setFilters([]);
         setShowPreview(false);
     };
@@ -138,7 +167,10 @@ const AdminReportBuilder: React.FC = () => {
     const { data: previewData, isLoading, refetch } = useQuery({
         queryKey: ['report-preview', dataSource, buildQueryParams()],
         queryFn: async () => {
-            const endpoint = dataSource === 'students' ? '/admin/users?role=STUDENT' : '/admin/applications';
+            let endpoint = '/admin/users?role=STUDENT';
+            if (dataSource === 'applications') endpoint = '/admin/applications';
+            else if (dataSource === 'recruiters') endpoint = '/admin/users?role=RECRUITER';
+            else if (dataSource === 'jobs') endpoint = '/admin/jobs';
             const params = buildQueryParams();
             const res = await api.get(endpoint, { params });
             return res.data?.data || [];
@@ -204,17 +236,17 @@ const AdminReportBuilder: React.FC = () => {
                         <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
                             <Database size={16} /> Data Source
                         </h3>
-                        <div className="flex gap-2">
-                            {(['students', 'applications'] as DataSource[]).map(src => (
+                        <div className="flex flex-wrap gap-2">
+                            {(['students', 'applications', 'recruiters', 'jobs'] as DataSource[]).map(src => (
                                 <button
                                     key={src}
                                     onClick={() => handleDataSourceChange(src)}
-                                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${dataSource === src
+                                    className={`flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${dataSource === src
                                         ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
                                         : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'
                                         }`}
                                 >
-                                    {src === 'students' ? 'Students' : 'Applications'}
+                                    {src.charAt(0).toUpperCase() + src.slice(1)}
                                 </button>
                             ))}
                         </div>

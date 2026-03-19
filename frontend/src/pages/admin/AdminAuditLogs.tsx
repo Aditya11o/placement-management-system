@@ -19,6 +19,7 @@ import { Link } from 'react-router-dom';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import api from '../../services/api';
+import AuditDiffModal from '../../components/Admin/AuditDiffModal';
 
 const ACTION_TYPES = [
     { value: '', label: 'All Actions' },
@@ -41,6 +42,14 @@ const AdminAuditLogs = ({ embedded = false }: { embedded?: boolean }) => {
         user_id: '',
         ip_address: ''
     });
+
+    const [selectedLog, setSelectedLog] = useState<any>(null);
+    const [isDiffOpen, setIsDiffOpen] = useState(false);
+
+    const openDiff = (log: any) => {
+        setSelectedLog(log);
+        setIsDiffOpen(true);
+    };
 
     // Build query params
     const getQueryParams = () => {
@@ -369,9 +378,19 @@ const AdminAuditLogs = ({ embedded = false }: { embedded?: boolean }) => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-5">
-                                            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed italic border-l-2 border-slate-100 dark:border-slate-800 pl-3">
-                                                {log.description}
-                                            </p>
+                                            <div className="flex flex-col gap-1.5 group-hover:pr-2">
+                                                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed italic border-l-2 border-slate-100 dark:border-slate-800 pl-3 m-0">
+                                                    {log.description}
+                                                </p>
+                                                {log.metadata && (Object.keys(log.metadata).length > 0) && (
+                                                    <button 
+                                                        onClick={() => openDiff(log)}
+                                                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 ml-3 flex items-center gap-1 transition-colors"
+                                                    >
+                                                        <History size={10} /> View Precise Changes
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -418,6 +437,12 @@ const AdminAuditLogs = ({ embedded = false }: { embedded?: boolean }) => {
                     Audit logs are immutable and cryptographically indexed for security compliance.
                 </p>
             </div>
+
+            <AuditDiffModal 
+                isOpen={isDiffOpen} 
+                onClose={() => setIsDiffOpen(false)} 
+                log={selectedLog} 
+            />
         </div>
     );
 };

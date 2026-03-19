@@ -5,7 +5,8 @@ import { useTheme } from '../../context/ThemeContext';
 import {
     Search, LayoutDashboard, User, Briefcase, Users, Settings,
     ShieldCheck, Calendar, Send, Moon, Sun, 
-    Loader2, ArrowRight, Zap, Sparkles, BookOpen, MessageCircle, FileText
+    Loader2, ArrowRight, Zap, Sparkles, BookOpen, MessageCircle, FileText,
+    TrendingUp, FileCheck, Activity, Shield, ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
@@ -100,9 +101,15 @@ const CommandPalette: React.FC = () => {
         { id: 'nav-admin-dashboard', label: 'Go to Admin Dashboard', icon: LayoutDashboard, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/dashboard'); closePalette(); } },
         { id: 'nav-admin-students', label: 'Manage Students', icon: Users, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/students'); closePalette(); } },
         { id: 'nav-admin-recruiters', label: 'Manage Recruiters', icon: Briefcase, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/recruiters'); closePalette(); } },
+        { id: 'nav-admin-analytics', label: 'Advanced Analytics', icon: TrendingUp, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/analytics-deep-dive'); closePalette(); } },
         { id: 'nav-admin-approvals', label: 'Approval Center', icon: ShieldCheck, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/approvals'); closePalette(); } },
         { id: 'nav-admin-calendar', label: 'Unified Calendar', icon: Calendar, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/calendar'); closePalette(); } },
-        { id: 'nav-admin-campaigns', label: 'Outreach Campaigns', icon: Send, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/campaigns'); closePalette(); } },
+        { id: 'nav-admin-communication', label: 'Communication Center', icon: Send, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/communication'); closePalette(); } },
+        { id: 'nav-admin-docs', label: 'Document Verification', icon: FileCheck, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/doc-verification'); closePalette(); } },
+        { id: 'nav-admin-audit', label: 'Audit Logs', icon: Activity, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/audit-logs'); closePalette(); } },
+        { id: 'nav-admin-rbac', label: 'RBAC Management', icon: Shield, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/rbac'); closePalette(); } },
+        { id: 'nav-admin-health', label: 'System Health', icon: Activity, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/system-health'); closePalette(); } },
+        { id: 'nav-admin-sessions', label: 'Active Sessions', icon: ShieldAlert, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/sessions'); closePalette(); } },
         { id: 'nav-admin-settings', label: 'System Settings', icon: Settings, category: 'Navigation', roles: ['ADMIN', 'SUPER_ADMIN'], action: () => { navigate('/admin/settings'); closePalette(); } },
 
         // Navigation - Recruiter

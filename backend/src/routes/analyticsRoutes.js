@@ -15,7 +15,8 @@ const {
     getRiskAssessment,
     getGeographicStats,
     getDashboardExtendedStats,
-    getAIStrategicInsights
+    getAIStrategicInsights,
+    getAIRiskAssessment
 } = require('../controllers/analyticsController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
@@ -290,5 +291,10 @@ router.get('/dashboard-extended', getDashboardExtendedStats);
  * @desc    Get AI strategic insights
  */
 router.get('/ai-insights', getAIStrategicInsights);
+
+/**
+ * @desc    Get deep AI-powered risk analysis for top at-risk students
+ */
+router.get('/ai-risk-assessment', getAIRiskAssessment);
 
 module.exports = router;

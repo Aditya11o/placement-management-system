@@ -88,6 +88,7 @@ const AdminCampaigns: React.FC = () => {
             case 'COMPLETED': return <CheckCircle size={16} className="text-emerald-500" />;
             case 'SENDING': return <Clock size={16} className="text-amber-500 animate-pulse" />;
             case 'FAILED': return <AlertCircle size={16} className="text-red-500" />;
+            case 'SCHEDULED': return <Clock size={16} className="text-indigo-500" />;
             default: return <Clock size={16} className="text-slate-400" />;
         }
     };

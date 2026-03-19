@@ -2,6 +2,9 @@ const Student = require('../models/Student');
 const Recruiter = require('../models/Recruiter');
 const Job = require('../models/Job');
 const Application = require('../models/Application');
+const aiRiskAnalyzer = require('../utils/aiRiskAnalyzer');
+const campaignService = require('../services/campaignService');
+const mongoose = require('mongoose');
 const Log = require('../models/Log');
 const crypto = require('crypto');
 const Admin = require('../models/Admin');
@@ -587,7 +590,11 @@ exports.updateSettings = async (req, res, next) => {
                 user_role: req.user.role,
                 action: 'SETTINGS_UPDATE',
                 description: `Admin updated system settings: ${changes.join(', ')}`,
-                ip_address: req.ip
+                ip_address: req.ip,
+                metadata: {
+                    old_value: oldSettings,
+                    new_value: settings
+                }
             });
         }
 
@@ -1033,36 +1040,18 @@ exports.getCampaigns = async (req, res, next) => {
  */
 exports.createCampaign = async (req, res, next) => {
     try {
-        const { title, subject, target_audience, target_filters, channels, html_content } = req.body;
+        const { title, subject, target_audience, target_filters, channels, html_content, scheduled_for } = req.body;
         const Campaign = require('../models/Campaign');
         const Student = require('../models/Student');
         const Recruiter = require('../models/Recruiter');
 
-        // 1. Build Dynamic Filter Query
-        let query = {};
-        let targetModel = Student;
+        // 1. Build Dynamic Filter Query using specialized service
+        const { query, targetModel } = await campaignService.buildTargetQuery(target_audience, target_filters);
 
-        if (target_audience === 'ALL_STUDENTS') {
-            query = {};
-        } else if (target_audience === 'APPROVED_STUDENTS') {
-            query = { status: 'APPROVED' };
-        } else if (target_audience === 'UNPLACED_STUDENTS') {
-            // In a real system, we'd check an 'is_placed' flag. 
-            // Here we'll simulate by checking students without 'SELECTED' applications.
-            const placedIds = await require('../models/Application').distinct('student_id', { status: 'SELECTED' });
-            query = { status: 'APPROVED', _id: { $nin: placedIds } };
-        } else if (target_audience === 'ALL_RECRUITERS') {
-            targetModel = Recruiter;
-            query = {};
-        } else if (target_audience === 'CUSTOM') {
-            // Apply granular filters
-            if (target_filters.branch) query.branch = target_filters.branch;
-            if (target_filters.graduation_year) query.graduation_year = target_filters.graduation_year;
-            if (target_filters.cgpa_min) query.cgpa = { $gte: Number(target_filters.cgpa_min) };
-            if (target_filters.backlogs_max !== undefined) query.backlogs_active = { $lte: Number(target_filters.backlogs_max) };
-            query.status = 'APPROVED'; // Custom campaigns only target approved users
-        } else {
-            return res.status(400).json({ success: false, message: 'Invalid target audience' });
+        const recipientsCount = await targetModel.countDocuments(query);
+
+        if (recipientsCount === 0) {
+            return res.status(400).json({ success: false, message: 'No recipients found for the selected cohort.' });
         }
 
         const recipients = await targetModel.find(query).select('email name company_name phone');
@@ -1079,57 +1068,26 @@ exports.createCampaign = async (req, res, next) => {
             target_filters,
             channels: channels || ['EMAIL'],
             html_content,
-            status: 'SENDING',
+            status: scheduled_for ? 'SCHEDULED' : 'SENDING',
             total_recipients: recipients.length,
             sent_count: 0,
+            scheduled_for,
             created_by: req.user._id
         });
 
-        // 3. Simulated Multi-channel Dispatch
-        // In production, this would hand off to a background worker (BullMQ) 
-        // that handles rate-limiting and provider-specific retries.
+        // 3. If scheduled for later, we stop here
+        if (scheduled_for) {
+            return res.status(201).json({
+                success: true,
+                message: `Campaign scheduled for ${new Date(scheduled_for).toLocaleString()} to ${recipientsCount} recipients.`,
+                data: campaign
+            });
+        }
+
+        // 4. Dispatch Deliveries (for immediate campaigns)
+        // Background hand-off to specialized service
         setImmediate(async () => {
-            let successCount = 0;
-            const chosenChannels = campaign.channels;
-
-            for (const person of recipients) {
-                try {
-                    const name = person.name || person.company_name;
-
-                    // A. Email Dispatch (Real)
-                    if (chosenChannels.includes('EMAIL')) {
-                        await emailQueue.add('campaign-email', {
-                            email: person.email,
-                            subject: campaign.subject,
-                            template: 'alert',
-                            context: {
-                                title: campaign.title,
-                                name: name,
-                                message: campaign.html_content,
-                                cta: { text: 'View Updates', url: `${config.get('frontend_url')}/dashboard` }
-                            }
-                        });
-                    }
-
-                    // B. Push/SMS Dispatch (Simulated)
-                    // We log these to the system for visibility
-                    if (chosenChannels.includes('PUSH') || chosenChannels.includes('SMS')) {
-                        logger.info(`[CAMPAIGN] Simulated ${chosenChannels.filter(c => c !== 'EMAIL').join('/')} to ${person.email}`);
-                    }
-
-                    successCount++;
-                } catch (err) {
-                    logger.error(`Campaign dispatch error for ${person.email}: ${err.message}`);
-                }
-            }
-
-            // Mark completed
-            campaign.status = 'COMPLETED';
-            campaign.sent_count = successCount;
-            await campaign.save();
-
-            // Notify admin via Socket (if implemented) or just log
-            logger.info(`Campaign ${campaign._id} finished: ${successCount}/${recipients.length} sent.`);
+            await campaignService.dispatchCampaign(campaign);
         });
 
         res.status(202).json({

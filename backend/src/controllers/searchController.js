@@ -22,16 +22,19 @@ exports.globalSearch = async (req, res, next) => {
             Student.find({
                 $or: [
                     { name: regex },
-                    { email: regex }
+                    { email: regex },
+                    { branch: regex },
+                    { skills: { $in: [regex] } }
                 ]
-            }).select('name email profile_image_url').limit(5),
+            }).select('name email branch profile_image_url').limit(8),
 
             Recruiter.find({
                 $or: [
                     { company_name: regex },
-                    { contact_person: regex }
+                    { contact_person: regex },
+                    { email: regex }
                 ]
-            }).select('company_name contact_person email profile_image_url').limit(5),
+            }).select('company_name contact_person email logo_url').limit(5),
 
             Job.find({
                 $or: [
@@ -47,7 +50,7 @@ exports.globalSearch = async (req, res, next) => {
                 id: s._id,
                 type: 'student',
                 label: s.name,
-                sublabel: s.email,
+                sublabel: `${s.branch} • ${s.email}`,
                 image: s.profile_image_url,
                 category: 'Students'
             })),
@@ -56,7 +59,7 @@ exports.globalSearch = async (req, res, next) => {
                 type: 'recruiter',
                 label: r.company_name,
                 sublabel: r.contact_person,
-                image: r.profile_image_url,
+                image: r.logo_url,
                 category: 'Companies'
             })),
             ...jobs.map(j => ({

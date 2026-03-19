@@ -63,12 +63,13 @@ import Button from '../../components/Button/Button';
 import api from '../../services/api';
 import AiActionCenter from '../../components/AiActionCenter/AiActionCenter';
 import PlacementMap from '../../components/Charts/PlacementMap';
-import SortableWidget from '../../components/SortableWidget/SortableWidget'; // We will create this
+import SortableWidget from '../../components/SortableWidget/SortableWidget';
+import AIStudentRiskAssessment from '../../components/Admin/AIStudentRiskAssessment';
 
 const AdminAnalytics = () => {
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
     // Define the initial order of widgets
-    const [widgetOrder, setWidgetOrder] = useState(['branch-salary', 'placement-rate', 'hiring-trends', 'geographic-distribution', 'predictive-analysis', 'ai-readiness']);
+    const [widgetOrder, setWidgetOrder] = useState(['ai-risk-matrix', 'branch-salary', 'placement-rate', 'hiring-trends', 'geographic-distribution', 'predictive-analysis', 'ai-readiness']);
 
     // Fetch Branch Placement Stats
     const { data: branchData, isLoading: isBranchLoading, refetch: refetchBranch } = useQuery({
@@ -654,7 +655,14 @@ const AdminAnalytics = () => {
                                             </div>
                                         );
                                     }
-                                    return null;
+                                     if (id === 'ai-risk-matrix') {
+                                         return (
+                                             <div className="lg:col-span-2 pt-10 border-t border-slate-200 dark:border-slate-800">
+                                                <AIStudentRiskAssessment />
+                                             </div>
+                                         );
+                                     }
+                                     return null;
                                 })()}
                             </motion.div>
                         ))}

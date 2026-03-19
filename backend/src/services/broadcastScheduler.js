@@ -1,5 +1,7 @@
 const cron = require('node-cron');
 const Announcement = require('../models/Announcement');
+const Campaign = require('../models/Campaign');
+const campaignService = require('./campaignService');
 const { dispatchToRole } = require('./notifyDispatcher');
 const { clearCache } = require('../middlewares/cacheMiddleware');
 
@@ -43,8 +45,25 @@ const initBroadcastScheduler = () => {
                 console.log(`[Scheduler] Broadcasted announcement: ${ann.title}`);
             }
 
-            // Clear cache since we updated statuses
-            await clearCache('/api/v1/announcements');
+            // 2. Find Campaigns that are SCHEDULED and their time has passed
+            const pendingCampaigns = await Campaign.find({
+                status: 'SCHEDULED',
+                scheduled_for: { $lte: now }
+            });
+
+            if (pendingCampaigns.length > 0) {
+                console.log(`[Scheduler] Found ${pendingCampaigns.length} campaigns to dispatch.`);
+                for (const camp of pendingCampaigns) {
+                    // We don't await here to avoid blocking other campaigns if one is large
+                    // dispatchCampaign handles its own status updates
+                    campaignService.dispatchCampaign(camp);
+                }
+            }
+
+            // Clear cache since we updated statuses (Announcements)
+            if (pendingAnnouncements.length > 0) {
+                await clearCache('/api/v1/announcements');
+            }
 
         } catch (err) {
             console.error('[Scheduler] Error in broadcast scheduler:', err.message);

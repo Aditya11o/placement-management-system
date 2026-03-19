@@ -2,6 +2,7 @@ const Student = require('../models/Student');
 const Recruiter = require('../models/Recruiter');
 const Job = require('../models/Job');
 const Application = require('../models/Application');
+const aiRiskAnalyzer = require('../utils/aiRiskAnalyzer');
 
 // ── Shared Helper ─────────────────────────────────────────────────────────────
 /**
@@ -803,6 +804,60 @@ exports.getRiskAssessment = async (req, res, next) => {
         res.status(200).json({
             success: true,
             data: atRiskStudents.slice(0, 20) // Top 20 at-risk
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Get deep AI-powered risk analysis for top at-risk students
+ * @route   GET /api/v1/analytics/ai-risk-assessment
+ * @access  Private/Admin
+ */
+exports.getAIRiskAssessment = async (req, res, next) => {
+    try {
+        // 1. Get heuristic candidates (reusing existing logic logic)
+        const students = await Student.find({ status: 'APPROVED' })
+            .select('name email branch cgpa skills resume_versions backlogs_active')
+            .lean();
+
+        const allApps = await Application.find({}).select('student_id status job_id').populate('job_id', 'title').lean();
+
+        const scoredStudents = students.map(s => {
+            const studentApps = allApps.filter(a => a.student_id.toString() === s._id.toString());
+            const isPlaced = studentApps.some(a => a.status === 'SELECTED');
+            if (isPlaced) return null;
+
+            const rejectionsCount = studentApps.filter(a => a.status === 'REJECTED').length;
+            
+            let riskScore = 0;
+            if (s.cgpa < 6.5) riskScore += 40;
+            if ((s.resume_versions?.length || 0) === 0) riskScore += 30;
+            if (studentApps.length === 0) riskScore += 20;
+            if (rejectionsCount >= 5) riskScore += 10;
+
+            return { ...s, riskScore, studentApps };
+        }).filter(s => s && s.riskScore >= 40) // Only focus on Medium/High risk for AI analysis
+          .sort((a, b) => b.riskScore - a.riskScore)
+          .slice(0, 5); // Analyze top 5 synchronously for now
+
+        // 2. Enrich with AI Analysis
+        const aiAnalyzed = await Promise.all(scoredStudents.map(async (s) => {
+            const aiResult = await aiRiskAnalyzer.analyzeStudentRisk(s, s.studentApps);
+            return {
+                ...s,
+                aiAnalysis: aiResult || { 
+                    riskLevel: s.riskScore >= 70 ? 'CRITICAL' : 'MEDIUM',
+                    reasoning: 'AI analysis unavailable. Heuristic suggests elevated risk.',
+                    suggestedInterventions: ['Manual review required']
+                }
+            };
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: aiAnalyzed
         });
     } catch (err) {
         next(err);

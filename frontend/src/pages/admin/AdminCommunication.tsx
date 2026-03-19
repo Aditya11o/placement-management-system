@@ -22,10 +22,11 @@ interface Campaign {
     title: string;
     subject: string;
     target_audience: string;
-    status: 'DRAFT' | 'SENDING' | 'COMPLETED' | 'FAILED';
+    status: 'DRAFT' | 'SCHEDULED' | 'SENDING' | 'COMPLETED' | 'FAILED';
     total_recipients: number;
     sent_count: number;
     channels: string[];
+    scheduled_for?: string;
     created_at: string;
 }
 
@@ -45,7 +46,11 @@ const AdminCommunication: React.FC = () => {
             branch: '',
             cgpa_min: '0',
             graduation_year: new Date().getFullYear().toString(),
-        }
+            skills: [] as string[],
+            inactive_days: '',
+        },
+        isScheduled: false,
+        scheduled_for: ''
     });
 
     // Fetch Campaign History
@@ -73,7 +78,11 @@ const AdminCommunication: React.FC = () => {
                     branch: '',
                     cgpa_min: '0',
                     graduation_year: new Date().getFullYear().toString(),
-                }
+                    skills: [],
+                    inactive_days: '',
+                },
+                isScheduled: false,
+                scheduled_for: ''
             });
             setActiveTab('history');
             queryClient.invalidateQueries({ queryKey: ['adminCampaigns'] });
@@ -152,8 +161,33 @@ const AdminCommunication: React.FC = () => {
                                         rows={10}
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
                                         value={formData.html_content}
-                                        onChange={(e) => setFormData({ ...formData, html_content: e.target.value })}
                                     />
+                                </div>
+                                <div className="flex flex-col gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Clock size={16} className="text-indigo-500" />
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Schedule for later</span>
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                            checked={formData.isScheduled}
+                                            onChange={(e) => setFormData({ ...formData, isScheduled: e.target.checked })}
+                                        />
+                                    </div>
+                                    {formData.isScheduled && (
+                                        <div className="animate-fade-in">
+                                            <input
+                                                type="datetime-local"
+                                                min={new Date().toISOString().slice(0, 16)}
+                                                className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                                value={formData.scheduled_for}
+                                                onChange={(e) => setFormData({ ...formData, scheduled_for: e.target.value })}
+                                            />
+                                            <p className="text-[10px] text-slate-400 mt-1.5 ml-1">Campaign will be automatically dispatched at the selected time.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </Card>
@@ -163,11 +197,18 @@ const AdminCommunication: React.FC = () => {
                             <Button
                                 variant="primary"
                                 icon={Send}
-                                onClick={() => createMutation.mutate(formData)}
+                                onClick={() => {
+                                    const { isScheduled, ...payload } = formData;
+                                    if (isScheduled && !formData.scheduled_for) {
+                                        addToast('Please select a schedule time', 'error');
+                                        return;
+                                    }
+                                    createMutation.mutate(payload as any);
+                                }}
                                 isLoading={createMutation.isPending}
-                                disabled={!formData.title || !formData.subject || !formData.html_content}
+                                disabled={!formData.title || !formData.subject || !formData.html_content || (formData.isScheduled && !formData.scheduled_for)}
                             >
-                                Launch Campaign
+                                {formData.isScheduled ? 'Schedule Campaign' : 'Launch Campaign'}
                             </Button>
                         </div>
                     </div>
@@ -235,6 +276,36 @@ const AdminCommunication: React.FC = () => {
                                             </select>
                                         </div>
                                         <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Required Skills (Comma separated)</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. React, Python, AWS"
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                                value={formData.target_filters.skills.join(', ')}
+                                                onChange={(e) => setFormData({ 
+                                                    ...formData, 
+                                                    target_filters: { 
+                                                        ...formData.target_filters, 
+                                                        skills: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '') 
+                                                    } 
+                                                })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Inactivity Period</label>
+                                            <select
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none cursor-pointer"
+                                                value={formData.target_filters.inactive_days}
+                                                onChange={(e) => setFormData({ ...formData, target_filters: { ...formData.target_filters, inactive_days: e.target.value } })}
+                                            >
+                                                <option value="">No Inactivity Filter</option>
+                                                <option value="7">Inactive for {'>'} 7 days</option>
+                                                <option value="15">Inactive for {'>'} 15 days</option>
+                                                <option value="30">Inactive for {'>'} 30 days</option>
+                                                <option value="60">Inactive for {'>'} 60 days</option>
+                                            </select>
+                                        </div>
+                                        <div>
                                             <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1 flex justify-between">
                                                 <span>Min CGPA</span>
                                                 <span className="text-indigo-600">{formData.target_filters.cgpa_min}+</span>
@@ -276,9 +347,15 @@ const AdminCommunication: React.FC = () => {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-3 mb-1">
                                                 <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate m-0">{camp.title}</h3>
-                                                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-500">{camp.target_audience}</span>
+                                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                                    camp.status === 'SCHEDULED' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                                }`}>
+                                                    {camp.status} • {camp.target_audience}
+                                                </span>
                                             </div>
-                                            <p className="text-sm text-slate-500 truncate m-0">{camp.subject}</p>
+                                            <p className="text-sm text-slate-500 truncate m-0">
+                                                {camp.status === 'SCHEDULED' ? `Scheduled for: ${new Date(camp.scheduled_for!).toLocaleString()}` : camp.subject}
+                                            </p>
                                         </div>
                                         <div className="text-right hidden sm:block">
                                             <p className="text-base font-bold text-slate-800 dark:text-slate-100 m-0">{camp.sent_count} / {camp.total_recipients}</p>
