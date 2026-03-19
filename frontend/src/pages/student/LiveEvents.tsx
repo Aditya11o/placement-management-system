@@ -13,7 +13,6 @@ import {
     ArrowRight, 
     Play, 
     Star,
-    Sparkles,
     Users
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
@@ -286,22 +285,22 @@ const LiveEvents: React.FC = () => {
                 </div>
             </div>
 
-            {/* AI Maximizer (Refined Integration) */}
+            {/* Career Growth Protocol */}
             <Card className="bg-indigo-600 border-none relative overflow-hidden p-12 rounded-[4rem] group shadow-2xl">
                 <div className="flex flex-col lg:flex-row items-center gap-12 relative z-10">
                     <div className="flex-1 text-center lg:text-left">
                         <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-[9px] font-black uppercase tracking-widest mb-6">
-                            <Sparkles size={14} className="text-amber-400" />
-                            AI Catalyst
+                            <Zap size={14} className="text-amber-400" />
+                            Strategic Prep
                         </div>
-                        <h2 className="text-4xl lg:text-5xl font-black text-white mb-6 italic tracking-tight leading-[0.9] uppercase">Catalyze Your <br />Network Equity.</h2>
+                        <h2 className="text-4xl lg:text-5xl font-black text-white mb-6 italic tracking-tight leading-[0.9] uppercase">Maximize Your <br />Network Equity.</h2>
                         <p className="text-indigo-100/70 text-lg font-bold max-w-2xl italic leading-relaxed">
-                            Our AI suggests preparing at least 3 thoughtful questions about the role's tech stack and team culture before joining any Pre-Placement Talk.
+                            System research suggests preparing at least 3 thoughtful questions about the role's tech stack and team culture before joining any Pre-Placement Talk.
                         </p>
                     </div>
                     <div className="flex-shrink-0">
                          <Button className="bg-white text-indigo-900 hover:bg-slate-900 hover:text-white px-10 h-16 rounded-[1.5rem] font-black uppercase tracking-widest italic transition-all shadow-2xl">
-                            Unlock AI Cheat Sheet
+                            Unlock Prep Checklist
                          </Button>
                     </div>
                 </div>

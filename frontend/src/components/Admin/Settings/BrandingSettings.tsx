@@ -1,4 +1,4 @@
-import { Palette, Image as ImageIcon, Loader2, Sparkles } from 'lucide-react';
+import { Palette, Image as ImageIcon, Loader2, Sun } from 'lucide-react';
 import Card from '../../Card/Card';
 import ThemePreview from '../../Dashboard/ThemePreview';
 import { useMutation } from '@tanstack/react-query';
@@ -226,7 +226,7 @@ const BrandingSettings: React.FC<BrandingSettingsProps> = ({
                 {/* Mesh Gradient Customizer */}
                 <div className="flex flex-col gap-4 pt-6 mt-4 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
-                        <Sparkles size={18} className="text-amber-500" />
+                        <Sun size={18} className="text-amber-500" />
                         <h4 className="font-semibold text-slate-800 dark:text-slate-200">Ambient Background Layout</h4>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Customize the four-color mesh gradient used in the dashboard background.</p>

@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { 
     Trophy, ArrowUpRight, CheckCircle2, 
-    AlertCircle, Sparkles, TrendingUp,
+    AlertCircle, Zap, TrendingUp,
     Shield
 } from 'lucide-react';
 import Card from '../Card/Card';
@@ -99,7 +99,7 @@ const ReadinessMeter: React.FC<ReadinessMeterProps> = ({ score, label, recommend
                     <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">
                         Improvement roadmap
                     </h4>
-                    <Sparkles size={14} className="text-amber-400" />
+                    <Zap size={14} className="text-indigo-400" />
                 </div>
 
                 <div className="space-y-3">

@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    X, Sparkles, User, GraduationCap, 
+    X, User, GraduationCap, 
     ChevronRight, ExternalLink, Zap, 
     CheckCircle2, AlertCircle 
 } from 'lucide-react';
@@ -62,7 +62,7 @@ const CandidateMatchModal = ({ isOpen, onClose, jobId, jobTitle }: CandidateMatc
                     <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
-                                <Sparkles size={24} />
+                                <Zap size={24} />
                             </div>
                             <div>
                                 <h2 className="text-xl font-black text-slate-900 dark:text-white m-0 tracking-tight">Talent Matching Engine</h2>
@@ -84,7 +84,7 @@ const CandidateMatchModal = ({ isOpen, onClose, jobId, jobTitle }: CandidateMatc
                                 <div className="relative">
                                     <div className="w-16 h-16 rounded-full border-4 border-slate-100 dark:border-slate-800 border-t-indigo-600 animate-spin" />
                                     <div className="absolute inset-0 flex items-center justify-center text-indigo-600">
-                                        <Sparkles size={24} className="animate-pulse" />
+                                        <Zap size={24} className="animate-pulse" />
                                     </div>
                                 </div>
                                 <p className="text-slate-500 dark:text-slate-400 font-medium animate-pulse">Calculating candidate suitability...</p>
@@ -165,7 +165,7 @@ const CandidateMatchModal = ({ isOpen, onClose, jobId, jobTitle }: CandidateMatc
                     {/* Footer */}
                     <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                            <Sparkles size={12} className="text-indigo-500" />
+                             <CheckCircle2 size={12} className="text-indigo-500" />
                             Heuristic Based Suggestions
                          </div>
                          <Button variant="secondary" onClick={onClose}>Close Matcher</Button>

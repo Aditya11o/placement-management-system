@@ -48,7 +48,6 @@ import {
     Filter,
     RefreshCw,
     GraduationCap,
-    TrendingDown,
     Target,
     Lightbulb,
     Radar as RadarIcon,
@@ -61,15 +60,27 @@ import { Link } from 'react-router-dom';
 import Card from '../../components/Card/Card';
 import Button from '../../components/Button/Button';
 import api from '../../services/api';
-import AiActionCenter from '../../components/AiActionCenter/AiActionCenter';
+
 import PlacementMap from '../../components/Charts/PlacementMap';
 import SortableWidget from '../../components/SortableWidget/SortableWidget';
-import AIStudentRiskAssessment from '../../components/Admin/AIStudentRiskAssessment';
+import StudentEngagementMatrix from '../../components/Admin/StudentEngagementMatrix';
+import TopCompaniesChart from '../../components/Charts/TopCompaniesChart';
+import FunnelChart from '../../components/Charts/FunnelChart';
 
 const AdminAnalytics = () => {
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
     // Define the initial order of widgets
-    const [widgetOrder, setWidgetOrder] = useState(['ai-risk-matrix', 'branch-salary', 'placement-rate', 'hiring-trends', 'geographic-distribution', 'predictive-analysis', 'ai-readiness']);
+    const [widgetOrder, setWidgetOrder] = useState([
+        'engagement-matrix', 
+        'placement-funnel', 
+        'top-companies', 
+        'branch-salary', 
+        'placement-rate', 
+        'hiring-trends', 
+        'geographic-distribution', 
+        'predictive-analysis', 
+        'readiness-engine'
+    ]);
 
     // Fetch Branch Placement Stats
     const { data: branchData, isLoading: isBranchLoading, refetch: refetchBranch } = useQuery({
@@ -107,11 +118,38 @@ const AdminAnalytics = () => {
         }
     });
 
-    // Fetch AI Placement Readiness
+    // Fetch Placement Readiness Engine
     const { data: readinessData, isLoading: isReadinessLoading, refetch: refetchReadiness } = useQuery({
         queryKey: ['placementReadiness'],
         queryFn: async () => {
             const res = await api.get('/analytics/placement-readiness');
+            return res.data.data;
+        }
+    });
+
+    // Fetch Top Companies
+    const { data: topCompaniesData, isLoading: isTopCompaniesLoading, refetch: refetchTopCompanies } = useQuery({
+        queryKey: ['topCompanies', dateRange],
+        queryFn: async () => {
+            const res = await api.get(`/analytics/top-companies?from=${dateRange.from}&to=${dateRange.to}`);
+            return res.data.data;
+        }
+    });
+
+    // Fetch Placement Funnel
+    const { data: funnelData, isLoading: isFunnelLoading, refetch: refetchFunnel } = useQuery({
+        queryKey: ['placementFunnel', dateRange],
+        queryFn: async () => {
+            const res = await api.get(`/analytics/funnel?from=${dateRange.from}&to=${dateRange.to}`);
+            return res.data.data;
+        }
+    });
+
+    // Fetch Extended Dashboard Metrics (Growth etc)
+    const { data: extendedStats, refetch: refetchExtended } = useQuery({
+        queryKey: ['dashboard-extended'],
+        queryFn: async () => {
+            const res = await api.get('/analytics/dashboard-extended');
             return res.data.data;
         }
     });
@@ -142,6 +180,9 @@ const AdminAnalytics = () => {
         refetchReadiness();
         refetchGeo();
         refetchForecast();
+        refetchTopCompanies();
+        refetchFunnel();
+        refetchExtended();
     };
 
     const sensors = useSensors(
@@ -254,7 +295,7 @@ const AdminAnalytics = () => {
                 {[
                     { label: 'Avg. CTC', icon: TrendingUp, color: 'blue', value: `₹${salaryData?.reduce((acc: any, s: any) => acc + s.avgSalary, 0) / (salaryData?.length || 1) > 0 ? (salaryData.reduce((acc: any, s: any) => acc + s.avgSalary, 0) / salaryData.length).toFixed(2) : '0.00'} LPA`, extra: '+12.5% from last year', extraIcon: TrendingUp, extraColor: 'text-green-500', bgIcon: BarChart3 },
                     { label: 'Placed Count', icon: Users, color: 'indigo', value: salaryData?.reduce((acc: any, s: any) => acc + s.placedCount, 0) || 0, extra: 'Students finalized till date', extraColor: 'text-slate-400', bgIcon: GraduationCap },
-                    { label: 'Platform Goal', icon: Activity, color: 'emerald', value: '85%', extra: '5% below quarterly target', extraIcon: TrendingDown, extraColor: 'text-amber-500', bgIcon: Target },
+                    { label: 'Growth Index', icon: Activity, color: 'emerald', value: `${extendedStats?.growthIndex || 0}%`, extra: `${extendedStats?.jobGrowth || 0}% Job Volume Spike`, extraIcon: TrendingUp, extraColor: 'text-emerald-500', bgIcon: Target },
                     { label: 'Highest Offer', icon: DollarSign, color: 'amber', value: `₹${salaryData?.length > 0 ? Math.max(...salaryData.map((s: any) => s.maxSalary)) : '0'} LPA`, extra: 'Active recruiters on platform', extraColor: 'text-slate-400', bgIcon: Briefcase }
                 ].map((card, i) => (
                     <motion.div key={i} variants={itemVariants}>
@@ -279,8 +320,6 @@ const AdminAnalytics = () => {
                 ))}
             </div>
 
-            {/* AI Action Center */}
-            <AiActionCenter />
 
             {/* Main Content Area (Draggable) */}
             <DndContext
@@ -473,7 +512,7 @@ const AdminAnalytics = () => {
                                                     <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white m-0 tracking-tight flex items-center gap-2">
                                                         <Lightbulb className="text-amber-500" /> Predictive Success Analysis
                                                     </h2>
-                                                    <p className="text-slate-500 dark:text-slate-400 text-sm m-0 ml-8">AI-driven insights on rising skills and branch demand to guide training programs.</p>
+                                                    <p className="text-slate-500 dark:text-slate-400 text-sm m-0 ml-8">Data-driven insights on rising skills and branch demand to guide training programs.</p>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -531,7 +570,7 @@ const AdminAnalytics = () => {
                                                                     </ResponsiveContainer>
                                                                 ) : (
                                                                     <div className="w-full h-full flex flex-col gap-3 items-center justify-center text-slate-500">
-                                                                        <RadarIcon size={48} className="text-slate-300 opacity-50" />
+                                                                        <RadarIcon size={48} className="mb-2 opacity-20" />
                                                                         <p className="font-medium text-sm">Not enough active job data to plot radar.</p>
                                                                     </div>
                                                                 )}
@@ -598,11 +637,11 @@ const AdminAnalytics = () => {
                                                                         <Zap size={20} />
                                                                     </div>
                                                                     <div>
-                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 m-0">AI Target</p>
-                                                                        <p className="text-sm font-bold text-slate-800 dark:text-white m-0">Reach {forecastData?.totalProjected || 0} Successful Placements</p>
-                                                                    </div>
+                                                                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 m-0">Strategic Target</p>
+                                                                         <p className="text-sm font-bold text-slate-800 dark:text-white m-0">Reach {forecastData?.totalProjected || 0} Successful Placements</p>
+                                                                     </div>
                                                                 </div>
-                                                                <button className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors">
+                                                                <button className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:text-indigo-300 transition-colors">
                                                                     Run Simulation
                                                                 </button>
                                                             </div>
@@ -612,7 +651,7 @@ const AdminAnalytics = () => {
                                             </div>
                                         );
                                     }
-                                    if (id === 'ai-readiness') {
+                                    if (id === 'readiness-engine') {
                                         const COLORS = { High: '#10B981', Moderate: '#F59E0B', Low: '#EF4444' };
                                         const pieData = readinessData?.distribution ? [
                                             { name: 'High', value: readinessData.distribution.High },
@@ -624,7 +663,7 @@ const AdminAnalytics = () => {
                                             <div className="flex flex-col gap-6 pt-10 border-t border-slate-200 dark:border-slate-800 lg:col-span-2">
                                                 <div className="flex flex-col gap-1 mb-2">
                                                     <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white m-0 tracking-tight flex items-center gap-2">
-                                                        <Zap className="text-indigo-500 fill-indigo-500" /> AI Placement Readiness
+                                                        <Zap className="text-indigo-500 fill-indigo-500" /> Placement Readiness Engine
                                                     </h2>
                                                     <p className="text-slate-500 dark:text-slate-400 text-sm m-0 ml-8">Real-time student categorization based on weighted academic and professional metrics.</p>
                                                 </div>
@@ -726,7 +765,7 @@ const AdminAnalytics = () => {
                                                             {readinessData?.topLeads?.length === 0 && (
                                                                 <div className="col-span-2 py-12 flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
                                                                     <Search size={32} className="mb-2 opacity-20" />
-                                                                    <p className="text-sm font-medium">No top leads identified yet.</p>
+                                                                    <p className="font-medium text-sm">No top leads identified yet.</p>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -735,14 +774,28 @@ const AdminAnalytics = () => {
                                             </div>
                                         );
                                     }
-                                     if (id === 'ai-risk-matrix') {
-                                         return (
-                                             <div className="lg:col-span-2 pt-10 border-t border-slate-200 dark:border-slate-800">
-                                                <AIStudentRiskAssessment />
-                                             </div>
-                                         );
-                                     }
-                                     return null;
+                                    if (id === 'engagement-matrix') {
+                                        return (
+                                            <div className="lg:col-span-2 pt-10 border-t border-slate-200 dark:border-slate-800">
+                                                <StudentEngagementMatrix />
+                                            </div>
+                                        );
+                                    }
+                                    if (id === 'placement-funnel') {
+                                        return (
+                                            <SortableWidget id={id}>
+                                                <FunnelChart data={funnelData} isLoading={isFunnelLoading} />
+                                            </SortableWidget>
+                                        );
+                                    }
+                                    if (id === 'top-companies') {
+                                        return (
+                                            <SortableWidget id={id}>
+                                                <TopCompaniesChart data={topCompaniesData} isLoading={isTopCompaniesLoading} />
+                                            </SortableWidget>
+                                        );
+                                    }
+                                    return null;
                                 })()}
                             </motion.div>
                         ))}

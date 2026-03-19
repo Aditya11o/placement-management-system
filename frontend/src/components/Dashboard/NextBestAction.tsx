@@ -1,62 +1,65 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Briefcase, Target, Star, Zap, ChevronRight, Sparkles } from 'lucide-react';
+import { Briefcase, Target, Star, Zap, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { aiService } from '../../services/aiService';
 import Card from '../Card/Card';
 
 interface NextBestActionProps {
     stats: any;
 }
 
-const iconMap = {
+const iconMap: any = {
     Briefcase: Briefcase,
     Target: Target,
     Star: Star,
     Zap: Zap
 };
 
-const NextBestAction: React.FC<NextBestActionProps> = ({ stats }) => {
-    const navigate = useNavigate();
+/** Heuristic-based action generator */
+const getRuleBasedActions = (stats: any) => {
+    const actions = [];
     
-    const { data: actions = [], isLoading } = useQuery({
-        queryKey: ['nextActions', stats],
-        queryFn: () => aiService.getNextActions(stats),
-        staleTime: 1000 * 60 * 10, // 10 minutes
-    });
+    if (!stats) return [
+        { title: 'Post a Job', description: 'Start your first recruitment drive.', icon: 'Briefcase', link: '/recruiter/jobs' }
+    ];
 
-    if (isLoading) {
-        return (
-            <Card className="border-indigo-100 bg-indigo-50/20">
-                <div className="flex items-center gap-2 mb-4">
-                    <Sparkles className="text-indigo-500 w-5 h-5" />
-                    <h2 className="text-lg font-bold text-slate-800 m-0">AI Next Steps</h2>
-                </div>
-                <div className="space-y-3">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="h-16 rounded-lg bg-slate-100 animate-pulse" />
-                    ))}
-                </div>
-            </Card>
-        );
+    if (stats.activeJobs === 0) {
+        actions.push({ title: 'Post a New Job', description: 'You have no active drives. Create one to find talent.', icon: 'Briefcase', link: '/recruiter/jobs' });
+    }
+    
+    if (stats.pendingApplications > 5) {
+        actions.push({ title: 'Review Applications', description: `${stats.pendingApplications} students are waiting for feedback.`, icon: 'Target', link: '/recruiter/applications' });
     }
 
-    if (actions.length === 0) return null;
+    if (stats.upcomingInterviews > 0) {
+        actions.push({ title: 'Interview Schedule', description: `Prepare for ${stats.upcomingInterviews} interviews today.`, icon: 'Star', link: '/recruiter/interviews' });
+    }
+
+    // Default catch-all
+    if (actions.length < 2) {
+        actions.push({ title: 'System Healthy', description: 'All clear! Keep track of your placement metrics.', icon: 'Zap', link: '/recruiter/dashboard' });
+    }
+
+    return actions;
+};
+
+const NextBestAction: React.FC<NextBestActionProps> = ({ stats }) => {
+    const navigate = useNavigate();
+    const actions = getRuleBasedActions(stats);
 
     return (
         <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/50 to-white overflow-hidden relative">
             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                <Sparkles size={80} className="text-indigo-600" />
+                <Target size={80} className="text-indigo-600" />
             </div>
 
             <div className="flex items-center gap-2 mb-6">
                 <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
-                    <Sparkles className="text-white w-4 h-4" />
+                    <Target className="text-white w-4 h-4" />
                 </div>
                 <div>
-                    <h2 className="text-lg font-bold text-slate-800 m-0 leading-tight">AI Navigator</h2>
-                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest m-0">Personalized for you</p>
+                    <h2 className="text-lg font-bold text-slate-800 m-0 leading-tight">Action Center</h2>
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest m-0">System Recommendations</p>
                 </div>
             </div>
 
@@ -90,8 +93,8 @@ const NextBestAction: React.FC<NextBestActionProps> = ({ stats }) => {
             </div>
 
             <div className="mt-6 pt-4 border-t border-indigo-100/50 flex justify-between items-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Powered by Gemini AI</span>
-                <button className="text-[10px] font-bold text-indigo-600 hover:underline uppercase tracking-widest">Refresh Actions</button>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Deterministic Prioritization</span>
+                <button className="text-[10px] font-bold text-indigo-600 hover:underline uppercase tracking-widest">Refresh</button>
             </div>
         </Card>
     );

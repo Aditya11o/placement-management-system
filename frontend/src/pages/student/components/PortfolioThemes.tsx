@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Card from '../../../components/Card/Card';
 import Button from '../../../components/Button/Button';
-import { Palette, Check, ExternalLink, Layout, Eye, Copy, Sparkles } from 'lucide-react';
+import { Palette, Check, ExternalLink, Layout, Eye, Copy, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
@@ -101,7 +101,7 @@ const PortfolioThemes: React.FC<PortfolioThemesProps> = ({ currentTheme, slug })
                             <div className="absolute top-4 left-4 w-1/2 h-3 bg-slate-200/50 dark:bg-slate-700 rounded-full" />
                             <div className="absolute top-10 left-4 w-3/4 h-2 bg-slate-100/50 dark:bg-slate-800 rounded-full" />
                             <div className="absolute bottom-4 right-4 w-10 h-10 rounded-2xl bg-indigo-600 shadow-2xl flex items-center justify-center text-white">
-                                 <Sparkles size={16} />
+                                 <Zap size={16} />
                             </div>
                         </div>
                         

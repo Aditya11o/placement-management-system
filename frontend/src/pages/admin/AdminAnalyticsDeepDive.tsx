@@ -208,7 +208,7 @@ const AdminAnalyticsDeepDive: React.FC = () => {
                         <p className="text-xs text-slate-400 mt-1 font-medium">Measuring responsiveness and quality of hiring cycles per company.</p>
                     </div>
 
-                    {/* AI-Style Search / Filter Bar */}
+                    {/* Advanced Search / Filter Bar */}
                     <div className="relative w-full md:w-80 group">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors">
                             <Search size={16} />

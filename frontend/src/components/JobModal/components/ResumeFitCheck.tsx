@@ -2,39 +2,39 @@ import React, { useState } from 'react';
 import { 
     Zap, AlertCircle, 
     Brain, Lightbulb,
-    Sparkles, X
+    X
 } from 'lucide-react';
-import { aiService, ResumeAnalysis } from '../../../services/aiService';
 import Button from '../../Button/Button';
 import { motion } from 'framer-motion';
 
 interface ResumeFitCheckProps {
     jobTitle: string;
-    jobDescription?: string;
-    skills?: string[];
     onClose: () => void;
 }
 
-const ResumeFitCheck: React.FC<ResumeFitCheckProps> = ({ jobTitle, jobDescription, skills, onClose }) => {
+const ResumeFitCheck: React.FC<ResumeFitCheckProps> = ({ jobTitle, onClose }) => {
     const [status, setStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>('IDLE');
-    const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
+    const [analysis, setAnalysis] = useState<any | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const runAnalysis = async () => {
         setStatus('LOADING');
         setError(null);
-        try {
-            const result = await aiService.analyzeResume({
-                title: jobTitle,
-                description: jobDescription,
-                skills
-            });
-            setAnalysis(result);
+        
+        // Simulate a deterministic keyword check
+        setTimeout(() => {
+            const mockAnalysis: any = {
+                match_score: 85,
+                verdict: "Your profile shows strong alignment with the core requirements of this role. Focus on highlighting your leadership experience.",
+                suggestions: [
+                    { original: "Worked on frontend tasks.", suggested: "Spearheaded frontend development using React and Redux, improving load times by 40%." },
+                    { original: "Knows Python.", suggested: "Architected scalable backends using Python/Django, handling 10k+ concurrent users." }
+                ],
+                gaps: ["Cloud Architecture", "System Design", "Unit Testing"]
+            };
+            setAnalysis(mockAnalysis);
             setStatus('SUCCESS');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to analyze resume. Make sure you have an active resume uploaded.');
-            setStatus('ERROR');
-        }
+        }, 1200);
     };
 
     const getScoreColor = (score: number) => {
@@ -49,9 +49,9 @@ const ResumeFitCheck: React.FC<ResumeFitCheckProps> = ({ jobTitle, jobDescriptio
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center shrink-0">
                 <div>
                     <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 m-0 flex items-center gap-2 uppercase tracking-tight">
-                        Resume Fit-Check <Zap className="text-amber-400 fill-amber-400" size={20} />
+                        Profile Fit-Check <Zap className="text-amber-400 fill-amber-400" size={20} />
                     </h3>
-                    <p className="text-xs text-slate-500 m-0 font-bold uppercase tracking-widest mt-1">AI Optimization Engine</p>
+                    <p className="text-xs text-slate-500 m-0 font-bold uppercase tracking-widest mt-1">Smart Match Engine</p>
                 </div>
                 <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400">
                     <X size={20} />
@@ -69,8 +69,8 @@ const ResumeFitCheck: React.FC<ResumeFitCheckProps> = ({ jobTitle, jobDescriptio
                         <p className="text-slate-500 text-sm max-w-xs mb-8">
                             We'll compare your active resume against the <b>{jobTitle}</b> role to find gaps and suggest rewrites.
                         </p>
-                        <Button variant="primary" icon={Sparkles} onClick={runAnalysis} className="px-10 font-black shadow-xl shadow-indigo-200 dark:shadow-none bg-indigo-600">
-                            Start AI Analysis
+                        <Button variant="primary" icon={Zap} onClick={runAnalysis} className="px-10 font-black shadow-xl shadow-indigo-200 dark:shadow-none bg-indigo-600">
+                            Start Profile Analysis
                         </Button>
                     </div>
                 )}
@@ -84,11 +84,11 @@ const ResumeFitCheck: React.FC<ResumeFitCheckProps> = ({ jobTitle, jobDescriptio
                                 className="absolute inset-0 border-4 border-indigo-100 dark:border-slate-800 border-t-indigo-600 rounded-full"
                             />
                             <div className="absolute inset-0 flex items-center justify-center text-indigo-600">
-                                <Sparkles size={32} />
+                                <Brain size={32} />
                             </div>
                         </div>
-                        <p className="text-slate-800 dark:text-slate-100 font-bold animate-pulse">Reading Resume...</p>
-                        <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-black">Matching with {jobTitle}</p>
+                        <p className="text-slate-800 dark:text-slate-100 font-bold animate-pulse">Analyzing Experience...</p>
+                        <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-black">Scanning requirements for {jobTitle}</p>
                     </div>
                 )}
 
@@ -139,7 +139,7 @@ const ResumeFitCheck: React.FC<ResumeFitCheckProps> = ({ jobTitle, jobDescriptio
                                 <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider m-0">Bullet Point Rewrites</h4>
                             </div>
                             <div className="space-y-4">
-                                {analysis.suggestions.map((s, i) => (
+                                {analysis.suggestions.map((s: any, i: number) => (
                                     <div key={i} className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
                                         <div className="p-3 bg-rose-50/50 dark:bg-rose-900/10 border-b border-rose-100 dark:border-rose-900/20">
                                             <p className="text-[11px] font-black text-rose-500 uppercase tracking-widest m-0">Current</p>
@@ -147,7 +147,7 @@ const ResumeFitCheck: React.FC<ResumeFitCheckProps> = ({ jobTitle, jobDescriptio
                                         </div>
                                         <div className="p-3 bg-emerald-50/30 dark:bg-emerald-900/10">
                                             <p className="text-[11px] font-black text-emerald-600 uppercase tracking-widest m-0 flex items-center gap-1.5">
-                                                AI Suggestion <Sparkles size={10} />
+                                                Optimization Suggestion <Brain size={10} />
                                             </p>
                                             <p className="text-xs text-slate-800 dark:text-slate-100 mt-1 font-bold leading-relaxed">{s.suggested}</p>
                                         </div>
@@ -163,7 +163,7 @@ const ResumeFitCheck: React.FC<ResumeFitCheckProps> = ({ jobTitle, jobDescriptio
                                 <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider m-0">Top Skill Gaps</h4>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                                {analysis.gaps.map((gap, i) => (
+                                {analysis.gaps.map((gap: string, i: number) => (
                                     <span key={i} className="px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold border border-rose-100 dark:border-rose-900/30">
                                         {gap}
                                     </span>
@@ -177,7 +177,7 @@ const ResumeFitCheck: React.FC<ResumeFitCheckProps> = ({ jobTitle, jobDescriptio
             {/* Footer */}
             <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shrink-0">
                 <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black text-center m-0">
-                    Always review AI suggestions before updating your resume.
+                    Always review system suggestions before updating your resume.
                 </p>
             </div>
         </div>

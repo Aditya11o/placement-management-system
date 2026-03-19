@@ -161,7 +161,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                                 <div className="w-full h-3 bg-slate-100 dark:bg-slate-700/50 rounded-full mt-4 overflow-hidden border border-slate-200/50 dark:border-slate-700">
                                     <div className="h-full bg-indigo-500 rounded-full w-full animate-[shimmer_2s_infinite] origin-left bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_100%] shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
                                 </div>
-                                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-3">AI Engine Processing</p>
+                                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-3">Parsing Data Analytics</p>
                             </>
                         ) : selectedFile ? (
                             <>

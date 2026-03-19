@@ -16,15 +16,17 @@ const logger = require('../utils/logger');
  * @param {Object} options.student   - { name, email } — populated from Application
  * @param {Object} options.job       - { title, company_name, location, package_lpa } — populated Job doc
  * @param {string} options.applicationId - MongoDB Application _id (string)
+ * @param {Date} [options.issueDate]     - Optional custom issue date
+ * @param {Date} [options.expiryDate]    - Optional custom expiry date
  * @returns {Promise<string|null>}    - Cloudinary secure URL of the PDF, or null on failure
  */
-exports.generateOfferLetter = async ({ student, job, applicationId }) => {
+exports.generateOfferLetter = async ({ student, job, applicationId, issueDate, expiryDate }) => {
     try {
         // ── Step 1: Generate PDF in-memory using PDFKit ─────────────────────────
-        const pdfBuffer = await buildOfferLetterPDF({ student, job });
+        const pdfBuffer = await buildOfferLetterPDF({ student, job, issueDate, expiryDate });
 
         // ── Step 2: Upload PDF buffer to Cloudinary ─────────────────────────────
-        const uploadResult = await uploadToCloudinary(pdfBuffer, 'offer-letters', 'raw', `offer_${applicationId}`);
+        const uploadResult = await uploadToCloudinary(pdfBuffer, 'offer-letters', 'raw', `offer_${applicationId}_${Date.now()}`);
 
         const pdfUrl = uploadResult.secure_url;
         logger.info(`[OfferLetter] Generated for app ${applicationId}: ${pdfUrl}`);
@@ -62,7 +64,7 @@ exports.generateOfferLetter = async ({ student, job, applicationId }) => {
  * Builds the full offer letter PDF as a Buffer using PDFKit.
  * Returns a Promise<Buffer> so callers can await it cleanly.
  */
-function buildOfferLetterPDF({ student, job }) {
+function buildOfferLetterPDF({ student, job, issueDate, expiryDate }) {
     return new Promise((resolve, reject) => {
         const doc = new PDFDocument({ margin: 60, size: 'A4' });
         const chunks = [];
@@ -71,9 +73,13 @@ function buildOfferLetterPDF({ student, job }) {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
 
-        const issuedDate = new Date().toLocaleDateString('en-IN', {
+        const issuedDateStr = (issueDate ? new Date(issueDate) : new Date()).toLocaleDateString('en-IN', {
             day: 'numeric', month: 'long', year: 'numeric'
         });
+
+        const expiryDateStr = expiryDate ? new Date(expiryDate).toLocaleDateString('en-IN', {
+            day: 'numeric', month: 'long', year: 'numeric'
+        }) : '7 days from receipt';
 
         // ── Header bar (dark navy) ─────────────────────────────────────────────
         doc.rect(0, 0, doc.page.width, 90).fill('#0f172a');
@@ -95,7 +101,7 @@ function buildOfferLetterPDF({ student, job }) {
             .fillColor('#64748b')
             .font('Helvetica')
             .fontSize(9)
-            .text(`Date: ${issuedDate}   |   Ref: OFFER-${Date.now()}`, { align: 'right' });
+            .text(`Date: ${issuedDateStr}   |   Ref: OFFER-${Date.now()}`, { align: 'right' });
 
         doc.moveDown(1.5);
 
@@ -155,7 +161,7 @@ function buildOfferLetterPDF({ student, job }) {
             .text(
                 `This offer is contingent upon the successful completion of your degree, verification ` +
                 `of academic credentials, and satisfactory background checks. Kindly confirm your ` +
-                `acceptance by responding to this letter within 7 days of receipt.`,
+                `acceptance by responding to this letter by **${expiryDateStr}**.`,
                 { lineGap: 4 }
             );
 

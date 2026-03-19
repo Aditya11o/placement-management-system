@@ -8,6 +8,8 @@ const Recruiter = require('../models/Recruiter');
 const config = require('../config/config');
 const logger = require('../utils/logger');
 const { v4: uuidv4 } = require('uuid');
+const InterviewSlot = require('../models/InterviewSlot');
+const InterviewFeedback = require('../models/InterviewFeedback');
 
 /**
  * @desc    Schedule a new interview
@@ -443,6 +445,144 @@ exports.enterInterviewRoom = async (req, res, next) => {
                 duration: interview.duration_minutes
             }
         });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Student books an available slot
+ * @route   POST /api/v1/interviews/slots/:id/book
+ * @access  Private/Student
+ */
+exports.bookSlot = async (req, res, next) => {
+    try {
+        const { application_id } = req.body;
+
+        const slot = await InterviewSlot.findById(req.params.id);
+        if (!slot || slot.is_booked) {
+            return res.status(400).json({ success: false, message: 'Slot is no longer available' });
+        }
+
+        const application = await Application.findById(application_id)
+            .populate('job_id')
+            .populate('student_id', 'name email');
+
+        if (!application || application.student_id._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: 'Not authorized for this application' });
+        }
+
+        // Create the interview
+        const interview = await Interview.create({
+            application_id,
+            student_id: req.user._id,
+            job_id: slot.job_id,
+            recruiter_id: slot.recruiter_id,
+            scheduled_at: slot.start_time,
+            duration_minutes: Math.round((slot.end_time - slot.start_time) / 60000),
+            location_type: 'VIRTUAL', // Default for self-booked slots
+            location_details: 'Virtual Meeting Room',
+            status: 'CONFIRMED', // Auto-confirmed because student picked it
+            internal_room_id: uuidv4()
+        });
+
+        // Mark slot as booked
+        slot.is_booked = true;
+        slot.application_id = application_id;
+        await slot.save();
+
+        // Update Application Status to INTERVIEW
+        application.status = 'INTERVIEW';
+        await application.save();
+
+        // 📅 Google Calendar Sync
+        const recruiter = await Recruiter.findById(slot.recruiter_id).select('+calendar_tokens');
+        if (recruiter && recruiter.calendar_tokens) {
+            try {
+                const eventData = await googleCalendar.createEvent(recruiter.calendar_tokens, {
+                    summary: `Interview: ${application.job_id.title} - ${application.student_id.name}`,
+                    location: interview.location_details,
+                    description: `Automated booking via Placement Management System.`,
+                    start: slot.start_time.toISOString(),
+                    end: slot.end_time.toISOString(),
+                    attendees: [
+                        { email: application.student_id.email },
+                        { email: recruiter.email }
+                    ]
+                });
+
+                interview.calendar_provider = 'GOOGLE';
+                interview.external_event_id = eventData.id;
+                interview.meeting_link = eventData.hangoutLink || eventData.conferenceData?.entryPoints?.[0]?.uri || null;
+                await interview.save();
+            } catch (calErr) {
+                logger.error(`Calendar Sync Failed: ${calErr.message}`);
+            }
+        }
+
+        // Notify Recruiter
+        await dispatchToUser({
+            recipientId: slot.recruiter_id,
+            recipientModel: 'Recruiter',
+            eventName: 'interview_booked',
+            title: 'New Interview Booked',
+            message: `${application.student_id.name} has booked a slot for ${application.job_id.title}.`,
+            type: 'SUCCESS',
+            link: `/interviews/${interview._id}`
+        });
+
+        res.status(201).json({ success: true, data: interview });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Submit interview feedback
+ * @route   POST /api/v1/interviews/:id/feedback
+ * @access  Private/Recruiter
+ */
+exports.submitFeedback = async (req, res, next) => {
+    try {
+        const { scores, comments, recommendation } = req.body;
+
+        const interview = await Interview.findById(req.params.id);
+        if (!interview) {
+            return res.status(404).json({ success: false, message: 'Interview not found' });
+        }
+
+        if (interview.recruiter_id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        const feedback = await InterviewFeedback.create({
+            interview_id: interview._id,
+            recruiter_id: req.user._id,
+            student_id: interview.student_id,
+            scores,
+            comments,
+            recommendation
+        });
+
+        // Mark interview as completed
+        interview.status = 'COMPLETED';
+        await interview.save();
+
+        // Optional: Update Application based on recommendation?
+        // For now, keeping it as INTERVIEW until explicit recruiter action in Application view
+        // unless we want to automate 'SELECTED' for 'HIRE'.
+        const application = await Application.findById(interview.application_id);
+        if (application && recommendation === 'HIRE') {
+            // application.status = 'SELECTED'; // Auto-select? Maybe too aggressive.
+            // Let's just log it for now.
+        }
+
+        await Log.create({
+            user_id: req.user._id, user_role: 'RECRUITER',
+            action: 'SUBMIT_FEEDBACK', target_id: feedback._id
+        });
+
+        res.status(201).json({ success: true, data: feedback });
     } catch (err) {
         next(err);
     }

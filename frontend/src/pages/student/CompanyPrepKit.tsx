@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     Search, BookOpen, 
     Zap, Shield, CheckCircle2,
-    TrendingUp, Sparkles,
-    ArrowRight, Brain, Lightbulb,
+    TrendingUp, 
+    ArrowRight, Lightbulb,
     Target, Clock, Globe, Fingerprint,
     Command,
-    X
+    X,
+    Trophy
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -75,7 +76,7 @@ const CompanyPrepKit: React.FC = () => {
     ).slice(0, 5) || [];
 
     return (
-        <div className="space-y-12 animate-in fade-in duration-700 pb-20">
+        <div className="space-y-12 animate-in fade-in duration-700 pb-20 p-4 lg:p-10">
             {/* Immersive Hero Section */}
             <div className="relative rounded-[3rem] overflow-hidden shadow-2xl bg-slate-900 min-h-[450px] flex items-center justify-center p-8 lg:p-16">
                 {/* Background Effects */}
@@ -91,7 +92,7 @@ const CompanyPrepKit: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mb-8 backdrop-blur-md"
                     >
-                        <Brain size={14} /> AI-Powered Interview Intelligence
+                        <Zap size={14} /> Expert-Curated Interview Intelligence
                     </motion.div>
                     
                     <motion.h1 
@@ -108,7 +109,7 @@ const CompanyPrepKit: React.FC = () => {
                         transition={{ delay: 0.2 }}
                         className="text-slate-400 text-lg lg:text-xl mt-6 font-bold max-w-2xl mx-auto leading-relaxed"
                     >
-                        Access crowdsourced "Inside Intelligence" and AI-optimized question banks for top-tier tech companies.
+                        Access crowdsourced "Inside Intelligence" and curated question banks for top-tier tech companies.
                     </motion.p>
                     
                     {/* Intelligent Search Bar */}
@@ -185,7 +186,7 @@ const CompanyPrepKit: React.FC = () => {
                                         )) : (
                                             <div className="p-8 text-center">
                                                 <Fingerprint size={32} className="mx-auto text-slate-200 mb-2" />
-                                                <p className="text-xs font-bold text-slate-400 italic">No existing kit found. AI will generate one for "{searchTerm}"</p>
+                                                <p className="text-xs font-bold text-slate-400 italic">No existing kit found. System will generate one for "{searchTerm}"</p>
                                             </div>
                                         )}
                                     </div>
@@ -227,30 +228,6 @@ const CompanyPrepKit: React.FC = () => {
                                 ))}
                             </div>
                         )}
-
-                        {/* Interactive Insights Banner */}
-                        <div className="p-1 calc:p-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 rounded-[2.5rem] mt-10 shadow-2xl">
-                             <div className="p-10 bg-slate-900 rounded-[2.25rem] flex flex-col lg:flex-row items-center justify-between gap-10">
-                                <div className="max-w-xl text-center lg:text-left">
-                                    <h3 className="text-3xl font-black text-white m-0 tracking-tight italic">
-                                        Missing a Company?
-                                    </h3>
-                                    <p className="text-slate-400 font-bold mt-4 leading-relaxed">
-                                        Our AI engine can synthesize custom prep kits in seconds by analyzing millions of interview artifacts. Just type any company name in the search above.
-                                    </p>
-                                </div>
-                                <div className="flex gap-4">
-                                     <div className="w-24 h-24 rounded-3xl bg-white/5 flex flex-col items-center justify-center border border-white/10 group hover:border-indigo-500 transition-colors">
-                                        <TrendingUp className="text-indigo-400 group-hover:scale-110 transition-transform" size={32} />
-                                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-2">Scale kit</span>
-                                     </div>
-                                      <div className="w-24 h-24 rounded-3xl bg-white/5 flex flex-col items-center justify-center border border-white/10 group hover:border-purple-500 transition-colors">
-                                        <Target className="text-purple-400 group-hover:scale-110 transition-transform" size={32} />
-                                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-2">Targeted</span>
-                                     </div>
-                                </div>
-                             </div>
-                        </div>
                     </div>
                 )}
 
@@ -295,11 +272,11 @@ const CompanyPrepKit: React.FC = () => {
                     >
                         {/* Summary Column */}
                         <div className="lg:col-span-2 space-y-10">
-                            {/* AI Summary Card */}
+                            {/* Summary Card */}
                             {prepKit.summary ? (
                                 <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200/60 dark:border-slate-800/60 p-12 shadow-sm relative overflow-hidden group">
                                     <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity rotate-12 group-hover:rotate-6 duration-700">
-                                        <Brain size={240} />
+                                        <Target size={240} />
                                     </div>
                                     
                                     <div className="flex flex-wrap items-center justify-between gap-8 mb-12 relative z-10">
@@ -309,7 +286,7 @@ const CompanyPrepKit: React.FC = () => {
                                             </div>
                                             <div>
                                                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-500/20">
-                                                    <Sparkles size={12} fill="currentColor" /> Premium AI Kit
+                                                    <Zap size={12} fill="currentColor" /> Premium Prep Kit
                                                 </div>
                                                 <h2 className="text-5xl font-black text-slate-900 dark:text-white m-0 mt-3 tracking-tighter uppercase italic">
                                                     {prepKit.companyName}
@@ -342,7 +319,7 @@ const CompanyPrepKit: React.FC = () => {
                                             </h4>
                                             <div className="relative pl-8 space-y-8">
                                                 <div className="absolute left-[15px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-indigo-500/50 via-slate-100 dark:via-slate-800 to-transparent" />
-                                                {prepKit.summary.round_patterns.map((round, i) => (
+                                                {prepKit.summary.round_patterns.map((round: string, i: number) => (
                                                     <div key={i} className="relative flex items-center gap-6 group/item">
                                                         <div className="absolute -left-[31px] w-8 h-8 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 flex items-center justify-center z-10 group-hover/item:border-indigo-500 group-hover/item:text-indigo-500 transition-all font-black text-[10px]">
                                                             0{i + 1}
@@ -377,7 +354,7 @@ const CompanyPrepKit: React.FC = () => {
                                                     Strategic Playbook
                                                 </h4>
                                                 <ul className="space-y-4 p-0 m-0 list-none">
-                                                    {prepKit.summary.top_tips.map((tip, i) => (
+                                                    {prepKit.summary.top_tips.map((tip: string, i: number) => (
                                                         <li key={i} className="flex gap-4 p-4 bg-amber-500/[0.03] dark:bg-amber-500/[0.05] rounded-2xl border border-amber-500/10 hover:border-amber-500/30 transition-colors">
                                                             <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
                                                                 <CheckCircle2 size={14} />
@@ -397,9 +374,9 @@ const CompanyPrepKit: React.FC = () => {
                                     <div className="w-24 h-24 bg-amber-50 dark:bg-amber-900/10 rounded-full flex items-center justify-center mx-auto mb-8 text-amber-500 group-hover:scale-110 group-hover:rotate-12 transition-all duration-700">
                                         <Zap size={48} />
                                     </div>
-                                    <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Intelligence Engine Locked</h3>
+                                    <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight italic">Master Kit Locked</h3>
                                     <p className="text-slate-500 font-bold max-w-sm mx-auto mt-4 leading-relaxed">
-                                        {prepKit.message || 'We need a threshold of 5 community insights to synthesize an AI Master Kit. Share your experience to help us reach the goal.'}
+                                        {prepKit.message || 'We need a threshold of 5 community insights to synthesize a Master Kit. Share your experience to help us reach the goal.'}
                                     </p>
                                     <Button className="mt-8 rounded-full" variant="outline" onClick={() => navigate('/student/peer-insights')}>Contribute Experiences</Button>
                                 </div>
@@ -418,7 +395,7 @@ const CompanyPrepKit: React.FC = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {(prepKit.summary?.master_questions || []).map((q, i) => (
+                                    {(prepKit.summary?.master_questions || []).map((q: string, i: number) => (
                                         <div key={i} className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex gap-5 group hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:border-indigo-100 dark:hover:border-slate-700 transition-all">
                                             <div className="flex flex-col items-center gap-2 shrink-0">
                                                 <span className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase">Step</span>
@@ -456,7 +433,7 @@ const CompanyPrepKit: React.FC = () => {
                             </div>
 
                             <div className="space-y-4">
-                                {prepKit.experiences.map((exp, i) => (
+                                {prepKit.experiences.map((exp: any, i: number) => (
                                     <motion.div
                                         key={i}
                                         whileHover={{ x: 5 }}
@@ -516,7 +493,7 @@ const CompanyPrepKit: React.FC = () => {
                             {/* Sidebar Tip */}
                             <div className="p-8 bg-indigo-600 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group/tip">
                                 <div className="absolute top-0 left-0 p-4 opacity-10 group-hover/tip:rotate-12 transition-transform duration-700">
-                                    <Sparkles size={120} />
+                                    <Lightbulb size={120} />
                                 </div>
                                 <h4 className="font-black text-[10px] uppercase tracking-widest mb-4 opacity-80">Pro Prep Tip</h4>
                                 <p className="text-sm font-bold leading-relaxed relative z-10 italic">

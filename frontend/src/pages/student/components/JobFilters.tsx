@@ -1,5 +1,5 @@
 import React from 'react';
-import { Filter, MapPin, Briefcase, IndianRupee, X, Sparkles } from 'lucide-react';
+import { Filter, MapPin, Briefcase, IndianRupee, X, Lightbulb } from 'lucide-react';
 import Card from '../../../components/Card/Card';
 
 interface JobFiltersProps {
@@ -126,11 +126,11 @@ const JobFilters: React.FC<JobFiltersProps> = ({
                     </div>
                 </div>
 
-                {/* AI Tip */}
+                {/* Pro Tip */}
                 <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/10">
                     <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 mb-2">
-                        <Sparkles size={14} className="animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">AI Expert Tip</span>
+                        <Lightbulb size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Pro Placement Tip</span>
                     </div>
                     <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-medium italic">
                         "Enabling **Remote** and **High Salary** filters highlights our most competitive global roles."

@@ -225,7 +225,7 @@ const CareerAnalytics: React.FC = () => {
                     </div>
                 </Card>
 
-                {/* AI Recommendations */}
+                {/* Recommended Skills */}
                 <div className="space-y-6">
                     <h2 className="text-2xl font-black text-slate-900 dark:text-white px-2">Next Steps for Growth</h2>
                     <div className="grid grid-cols-1 gap-4">

@@ -2,7 +2,7 @@ import React from 'react';
 import Card from '../../../components/Card/Card';
 import Input from '../../../components/Input/Input';
 import Button from '../../../components/Button/Button';
-import { Code, X, Plus, Sparkles, Loader2, Zap, Star, ShieldCheck } from 'lucide-react';
+import { Code, X, Plus, Lightbulb, Loader2, Zap, Star, ShieldCheck } from 'lucide-react';
 
 interface SkillSectionProps {
     isEditing: boolean;
@@ -116,11 +116,11 @@ const SkillSection: React.FC<SkillSectionProps> = ({
                     </div>
 
                     {suggestedSkills.length > 0 && (
-                        <div className="bg-indigo-600 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group/ai">
+                        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group/suggestions border border-white/10">
                              <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-6">
-                                    <Sparkles className="text-amber-400 animate-pulse" size={20} />
-                                    <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] italic">AI Optimization Cluster</span>
+                                    <Lightbulb className="text-amber-400" size={20} />
+                                    <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] italic">Community Suggested Cluster</span>
                                     {isSuggestionsLoading && <Loader2 className="w-4 h-4 animate-spin text-white/50" />}
                                 </div>
                                 <div className="flex flex-wrap gap-3">
@@ -136,7 +136,7 @@ const SkillSection: React.FC<SkillSectionProps> = ({
                                     ))}
                                 </div>
                              </div>
-                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[50px] -mr-16 -mt-16" />
+                             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-[50px] -mr-16 -mt-16" />
                         </div>
                     )}
                 </div>

@@ -187,7 +187,7 @@ const AdminJobs = () => {
                                         <button
                                             onClick={() => handleOpenMatches(job._id, job.title)}
                                             className="p-2.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400 transition-all font-bold group"
-                                            title="Find Candidates using AI"
+                                            title="Find Candidates using Heuristics"
                                         >
                                             <Target size={20} className="group-hover:animate-pulse" />
                                         </button>
@@ -264,7 +264,7 @@ const AdminJobs = () => {
                 </div>
             </div>
 
-            {/* AI Candidate Matching Drawer */}
+            {/* Heuristic Candidate Matching Drawer */}
             <JobMatchesDrawer
                 isOpen={matchesDrawerOpen}
                 onClose={() => setMatchesDrawerOpen(false)}

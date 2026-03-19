@@ -9,7 +9,7 @@ import {
     GraduationCap, 
     MapPin, 
     CheckCircle2,
-    Sparkles,
+    Zap,
     ArrowRight,
     PlayCircle
 } from 'lucide-react';
@@ -178,7 +178,7 @@ const EventIdentityCard: React.FC<EventIdentityCardProps> = memo(({ event, onJoi
                             {isRegistered ? (
                                 <><CheckCircle2 size={16} className="mr-3" /> Registered</>
                             ) : isLive ? (
-                                <><Sparkles size={16} className="mr-3 animate-pulse text-amber-400" /> Join Session Now</>
+                                <><Zap size={16} className="mr-3 animate-pulse text-amber-400" /> Join Session Now</>
                             ) : (
                                 <><ArrowRight size={16} className="mr-3 group-hover/btn:translate-x-1 transition-transform" /> Register & RSVP</>
                             )}

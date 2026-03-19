@@ -7,7 +7,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248.svg)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Redis-Caching-DC382D.svg)](https://redis.io/)
 
-A premium, full-stack placement automation platform designed for modern universities. **TNU PMS** bridges the gap between students, recruiters, and administrators, providing a seamless, AI-enhanced workflow for campus recruitments.
+A premium, full-stack placement automation platform designed for modern universities. **TNU PMS** bridges the gap between students, recruiters, and administrators, providing a seamless, deterministic workflow for campus recruitments.
 
 ---
 
@@ -27,7 +27,7 @@ A premium, full-stack placement automation platform designed for modern universi
 
 ### 👨‍🎓 Student Dashboard
 - **Dynamic Profiles**: Manage academic records, CGPA, and personal details.
-- **Smart Job Feed**: View and search job opportunities with real-time status tracking.
+- **Job Matching**: View job opportunities with real-time status tracking and heuristic-based compatibility scores.
 - **One-Click Applications**: Apply for jobs and track your journey from "Applied" to "Selected".
 - **Resume Management**: Upload and maintain multiple versions of your professional resume.
 
@@ -40,7 +40,7 @@ A premium, full-stack placement automation platform designed for modern universi
 ### 🛠 Administrative Command Center
 - **Dynamic Branding**: Custom University Logo and Primary Theme color pickers.
 - **User Verification**: Approve/Reject Student and Recruiter registrations.
-- **Bulk Operations**: Intelligent CSV/Excel import for mass student onboarding.
+- **Bulk Operations**: High-performance CSV/Excel import for mass student onboarding.
 - **Global Announcements**: Broadcast urgent notifications with real-time global toasts.
 - **Webhooks**: Integration with Slack/Discord for placement alerts.
 
@@ -61,7 +61,7 @@ A premium, full-stack placement automation platform designed for modern universi
 - **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose 8](https://mongoosejs.com/)
 - **Caching**: [Redis](https://redis.io/) (High-performance query caching)
 - **Background Jobs**: [BullMQ](https://docs.bullmq.io/) (Handling exports & email queues)
-- **AI Integration**: [Google Gemini AI](https://ai.google.dev/) (Semantic matching)
+- **Matching Engine**: Custom deterministic scoring (Skills + Academic + Eligibility)
 
 ### Infrastructure & Security
 - **File Storage**: [Cloudinary](https://cloudinary.com/) (For Logos and Resumes)
@@ -100,7 +100,6 @@ JWT_SECRET=your_jwt_secret
 CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
-GEMINI_API_KEY=...
 ```
 
 ### 3. Running Locally
@@ -126,7 +125,7 @@ cd frontend && npm run dev
 - [x] Global Announcement System
 - [x] Dynamic University Branding
 - [x] Webhook Integrations (Slack/Discord)
-- [ ] AI Resume Scoring & Feedback
+- [x] Deterministic Talent Matching Engine
 - [ ] Direct Peer-to-Peer Messaging
 - [ ] Automated Interview Scheduling
 

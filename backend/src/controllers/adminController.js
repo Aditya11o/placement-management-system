@@ -18,6 +18,7 @@ const Session = require('../models/Session');
 const config = require('../config/config');
 const logger = require('../utils/logger');
 const { dispatchToUser, dispatchToRole } = require('../services/notifyDispatcher');
+const { generateOfferLetter } = require('../services/offerLetterService');
 
 exports.getUsers = async (req, res, next) => {
     try {
@@ -167,6 +168,65 @@ exports.updateUserInternalNotes = async (req, res, next) => {
         });
 
         res.json({ success: true, data: user });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Manually trigger offer letter generation for a student
+ * @route   POST /api/v1/admin/applications/:id/generate-offer
+ * @access  Private/Admin
+ */
+exports.generateManualOfferLetter = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { issueDate, expiryDate } = req.body;
+
+        const application = await Application.findById(id)
+            .populate('job_id')
+            .populate('student_id', 'name email');
+
+        if (!application) {
+            return res.status(404).json({ success: false, message: 'Application not found' });
+        }
+
+        // TPO can generate offer letters even if status isn't yet SELECTED (manual override)
+        // or re-generate if already SELECTED.
+        
+        const pdfUrl = await generateOfferLetter({
+            student: { name: application.student_id.name, email: application.student_id.email },
+            job: application.job_id,
+            applicationId: application._id.toString(),
+            issueDate,
+            expiryDate
+        });
+
+        if (!pdfUrl) {
+            return res.status(500).json({ success: false, message: 'Failed to generate PDF offer letter' });
+        }
+
+        // Update application
+        await Application.findByIdAndUpdate(id, {
+            offer_letter_url: pdfUrl,
+            offer_letter_generated_at: new Date(),
+            offer_issued_at: issueDate || new Date(),
+            offer_expires_at: expiryDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        });
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'GENERATE_OFFER_LETTER',
+            target_id: application._id,
+            description: `Manually generated offer letter for ${application.student_id.name}`
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Offer letter generated successfully',
+            data: { pdfUrl }
+        });
     } catch (err) {
         next(err);
     }
@@ -447,59 +507,65 @@ const streamifier = require('streamifier');
  */
 exports.bulkOperations = async (req, res, next) => {
     try {
+        const { type, duplicateStrategy = 'SKIP' } = req.body;
         if (!req.file) {
-            return res.status(400).json({ success: false, message: 'Please upload a valid CSV file' });
+            return res.status(400).json({ success: false, message: 'Please upload a CSV or Excel file' });
         }
 
-        const { type } = req.body;
-        const validTypes = ['students', 'applications', 'eligibility', 'student_import'];
+        let records = [];
+        const buffer = req.file.buffer;
 
-        if (!validTypes.includes(type)) {
-            return res.status(400).json({ success: false, message: `Invalid bulk type. Choose from: ${validTypes.join(', ')}` });
-        }
+        // ── Step 1: Parse Data based on Mimetype ─────────────────────────────
+        if (req.file.mimetype === 'text/csv' || req.file.mimetype === 'application/vnd.ms-excel') {
+            const stream = require('streamifier').createReadStream(buffer);
+            const csvParser = require('fast-csv');
 
-        const records = [];
-
-        // Fast-CSV streaming implementation from Multer memory buffer
-        streamifier.createReadStream(req.file.buffer)
-            .pipe(csv.parse({ headers: true, trim: true, ignoreEmpty: true }))
-            .on('error', error => {
-                logger.error('CSV Parse Error:', error);
-                return res.status(400).json({ success: false, message: 'Failed to parse CSV file. Ensure it has correct headers.' });
-            })
-            .on('data', row => records.push(row))
-            .on('end', async rowCount => {
-                if (records.length === 0) {
-                    return res.status(400).json({ success: false, message: 'Uploaded CSV holds no valid data rows' });
-                }
-
-                // Chunking logic: If the file is massive (> 10,000 lines), it should really be chunked into separate BullMQ jobs
-                // However, for standard university scales (1k-5k rows), one job payload is perfectly stable on Node.js/Redis.
-
-                try {
-                    const job = await bulkQueue.add(`bulk-${type}`, { type, records });
-
-                    await Log.create({
-                        user_id: req.user._id, user_role: 'ADMIN', action: 'BULK_UPLOAD',
-                        description: `Initiated bulk [${type}] operations with ${rowCount} rows.`
-                    });
-
-                    res.status(202).json({
-                        success: true,
-                        message: `Bulk processing queued successfully for ${rowCount} rows.`,
-                        data: {
-                            job_id: job.id,
-                            type,
-                            total_rows: rowCount
-                        }
-                    });
-
-                } catch (queueErr) {
-                    res.status(500).json({ success: false, message: `Failed to enqueue bulk processing: ${queueErr.message}` });
-                }
+            records = await new Promise((resolve, reject) => {
+                const rows = [];
+                stream.pipe(csvParser.parse({ headers: true, ignoreEmpty: true, ltrim: true, rtrim: true }))
+                    .on('data', row => rows.push(row))
+                    .on('end', () => resolve(rows))
+                    .on('error', reject);
             });
+        } else if (
+            req.file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+            req.file.originalname.endsWith('.xlsx')
+        ) {
+            const XLSX = require('xlsx');
+            const workbook = XLSX.read(buffer, { type: 'buffer' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            records = XLSX.utils.sheet_to_json(worksheet);
+        } else {
+            return res.status(400).json({ success: false, message: 'Unsupported file format. Please use .csv or .xlsx' });
+        }
+
+        if (records.length === 0) {
+            return res.status(400).json({ success: false, message: 'The uploaded file contains no data rows.' });
+        }
+
+        const { bulkQueue } = require('../utils/bulkQueue');
+        const job = await bulkQueue.add(`bulk-${type}-${Date.now()}`, {
+            type,
+            records,
+            options: { duplicateStrategy }
+        });
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'BULK_IMPORT_START',
+            description: `Started bulk ${type} import (${records.length} records) from ${req.file.originalname}`
+        });
+
+        res.status(202).json({
+            success: true,
+            jobId: job.id,
+            recordCount: records.length
+        });
 
     } catch (err) {
+        logger.error(`Bulk Operations Error: ${err.message}`);
         next(err);
     }
 };
@@ -875,6 +941,13 @@ exports.updateJobStatus = async (req, res, next) => {
         const { clearCache } = require('../middlewares/cacheMiddleware');
         await clearCache('/api/v1/jobs');
 
+        // ── Automation Trigger ──────────────────────────────────────────
+        if (is_approved) {
+            const { notifyNewJobAlerts } = require('../services/automationService');
+            // Run in background (don't await to avoid blocking the response)
+            setImmediate(() => notifyNewJobAlerts(job));
+        }
+
         res.status(200).json({ success: true, data: job });
     } catch (err) {
         next(err);
@@ -958,29 +1031,29 @@ exports.getJobMatches = async (req, res, next) => {
         const jobSkills = job.skills_required.map(s => s.toLowerCase());
         
         const matchedCandidates = students.map(student => {
-            const studentSkills = (student.studentProfile?.skills || []).map(s => s.toLowerCase());
+            const studentSkills = (student.skills || []).map(s => s.toLowerCase());
             
             // Skill Match Count
             const overlap = studentSkills.filter(s => jobSkills.includes(s)).length;
             const skillScore = (overlap / Math.max(jobSkills.length, 1)) * 100;
-
+ 
             // CGPA Factor (normalized to 100)
-            const cgpaScore = (student.studentProfile?.cgpa || 0) * 10;
-
+            const cgpaScore = (student.cgpa || 0) * 10;
+ 
             // Branch Match
-            const branchMatch = job.eligible_branches.includes(student.studentProfile?.branch);
+            const branchMatch = job.eligible_branch === student.branch;
             const branchScore = branchMatch ? 100 : 0;
-
+ 
             // Simple weighted average: 60% Skills, 30% CGPA, 10% Branch
             const finalScore = (skillScore * 0.6) + (cgpaScore * 0.3) + (branchScore * 0.1);
-
+ 
             return {
                 student: {
                     _id: student._id,
                     name: student.name,
                     email: student.email,
-                    branch: student.studentProfile?.branch,
-                    cgpa: student.studentProfile?.cgpa,
+                    branch: student.branch,
+                    cgpa: student.cgpa,
                 },
                 matchScore: Math.round(finalScore),
                 matchReason: `Skill Overlap: ${overlap}/${jobSkills.length} matches. ${branchMatch ? 'Branch matches' : 'Branch mismatch'}.`

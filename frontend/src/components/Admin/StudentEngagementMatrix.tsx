@@ -1,11 +1,10 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
-    AlertTriangle, 
     ChevronRight, 
     Mail, 
     UserCheck, 
-    BrainCircuit, 
+    Activity, 
     TrendingUp, 
     ShieldAlert,
     MessageSquare,
@@ -18,26 +17,22 @@ import Button from '../Button/Button';
 import { useToast } from '../../context/ToastContext';
 
 interface StudentRiskData {
-    _id: string;
+    id: string; // Backend returns id, not _id in risk-assessment
     name: string;
     email: string;
     branch: string;
-    cgpa: number;
     riskScore: number;
-    aiAnalysis: {
-        riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-        reasoning: string;
-        suggestedInterventions: string[];
-    };
+    riskFactors: string[];
+    level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 }
 
-const AIStudentRiskAssessment: React.FC = () => {
+const StudentEngagementMatrix: React.FC = () => {
     const { addToast } = useToast();
 
     const { data: riskData, isLoading, refetch } = useQuery({
-        queryKey: ['ai-risk-assessment'],
+        queryKey: ['student-engagement-matrix'],
         queryFn: async () => {
-            const res = await api.get('/admin/analytics/ai-risk-assessment');
+            const res = await api.get('/analytics/risk-assessment');
             return res.data.data as StudentRiskData[];
         }
     });
@@ -51,12 +46,12 @@ const AIStudentRiskAssessment: React.FC = () => {
         return (
             <Card className="p-12 flex flex-col items-center justify-center gap-4 bg-slate-50/50 dark:bg-slate-900/50 border-dashed border-2">
                 <div className="relative">
-                    <BrainCircuit size={48} className="text-indigo-500 animate-pulse" />
+                    <Activity size={48} className="text-indigo-500 animate-pulse" />
                     <Loader2 size={20} className="absolute -bottom-1 -right-1 text-indigo-600 animate-spin" />
                 </div>
                 <div className="text-center">
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">AI Engine Warming Up...</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Synthesizing academic profiles and application history for deep risk analysis.</p>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Analyzing Engagement Signals...</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Processing academic profiles and application momentum for risk scoring.</p>
                 </div>
             </Card>
         );
@@ -70,21 +65,21 @@ const AIStudentRiskAssessment: React.FC = () => {
                         <ShieldAlert size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800 dark:text-white m-0">AI At-Risk Matrix</h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 m-0">Predictive intelligence identifying students requiring immediate intervention.</p>
+                        <h2 className="text-xl font-bold text-slate-800 dark:text-white m-0">Student Engagement Matrix</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 m-0">Rule-based intelligence identifying students requiring placement coaching.</p>
                     </div>
                 </div>
-                <Button variant="ghost" size="sm" icon={BrainCircuit} onClick={() => refetch()}>
-                    Recalculate Insights
+                <Button variant="ghost" size="sm" icon={Activity} onClick={() => refetch()}>
+                    Refresh Matrix
                 </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {riskData?.map((student) => (
-                    <Card key={student._id} className="overflow-hidden border-none shadow-lg group hover:ring-2 hover:ring-indigo-500/30 transition-all">
+                    <Card key={student.id} className="overflow-hidden border-none shadow-lg group hover:ring-2 hover:ring-indigo-500/30 transition-all glass-card">
                         <div className={`h-1.5 w-full ${
-                            student.aiAnalysis.riskLevel === 'CRITICAL' ? 'bg-red-500' :
-                            student.aiAnalysis.riskLevel === 'HIGH' ? 'bg-orange-500' : 'bg-amber-500'
+                            student.level === 'CRITICAL' ? 'bg-red-500' :
+                            student.level === 'MEDIUM' ? 'bg-amber-500' : 'bg-blue-500'
                         }`} />
                         
                         <div className="p-5">
@@ -92,35 +87,47 @@ const AIStudentRiskAssessment: React.FC = () => {
                                 <div>
                                     <h3 className="text-lg font-bold text-slate-800 dark:text-white m-0">{student.name}</h3>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-black tracking-tighter">
-                                        {student.branch} • CGPA: {student.cgpa}
+                                        {student.branch} • Risk Score: {student.riskScore}
                                     </p>
                                 </div>
                                 <div className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                    student.aiAnalysis.riskLevel === 'CRITICAL' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                    student.aiAnalysis.riskLevel === 'HIGH' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                                    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                    student.level === 'CRITICAL' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                    student.level === 'MEDIUM' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                                 }`}>
-                                    {student.aiAnalysis.riskLevel} RISK
+                                    {student.level} PRIORITY
                                 </div>
                             </div>
 
-                            {/* AI Reasoning */}
+                            {/* Engagement Insight */}
                             <div className="mb-5 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl p-4 border border-indigo-100/50 dark:border-indigo-800/30 relative">
                                 <div className="absolute -top-2 -left-2 w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-lg">
-                                    <BrainCircuit size={14} />
+                                    <Activity size={14} />
                                 </div>
-                                <p className="text-sm italic text-slate-600 dark:text-indigo-300 leading-relaxed m-0">
-                                    "{student.aiAnalysis.reasoning}"
-                                </p>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 mb-1">Risk Factors Detected</p>
+                                    <ul className="m-0 p-0 list-none space-y-1">
+                                        {student.riskFactors.map((factor, i) => (
+                                            <li key={i} className="text-xs text-slate-600 dark:text-indigo-300 flex items-center gap-2">
+                                                <div className="w-1 h-1 rounded-full bg-indigo-400" />
+                                                {factor}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
                             </div>
 
-                            {/* Intervention Strategies */}
+                            {/* Suggested Actions */}
                             <div className="space-y-3 mb-6">
                                 <h4 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                                    <TrendingUp size={12} /> Suggested Interventions
+                                    <TrendingUp size={12} /> Strategic Interventions
                                 </h4>
                                 <div className="space-y-2">
-                                    {student.aiAnalysis.suggestedInterventions.map((strat, idx) => (
+                                    {[
+                                        'Schedule 1-on-1 Mentoring',
+                                        'Assign Mock Interview Round',
+                                        'Recommend Skill-Specific Course'
+                                    ].map((strat, idx) => (
                                         <div key={idx} className="flex items-start gap-2 group/strat">
                                             <div className="mt-1 flex-shrink-0">
                                                 <CheckCircle2 size={14} className="text-emerald-500" />
@@ -140,7 +147,7 @@ const AIStudentRiskAssessment: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Quick Actions */}
+                            {/* Quick Outreach */}
                             <div className="flex gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
                                 <Button 
                                     variant="primary" 
@@ -170,9 +177,9 @@ const AIStudentRiskAssessment: React.FC = () => {
             {(!riskData || riskData.length === 0) && (
                 <div className="p-20 text-center bg-slate-50 dark:bg-slate-900/30 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-800">
                     <UserCheck size={48} className="text-emerald-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Maximum Efficiency Detected</h3>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Maximum Engagement Detected</h3>
                     <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                        All students currently meet the placement engagement threshold. The AI engine is monitoring for any signs of regression.
+                        All students currently meet the placement engagement threshold. The engine is monitoring for any signs of momentum loss.
                     </p>
                 </div>
             )}
@@ -180,4 +187,5 @@ const AIStudentRiskAssessment: React.FC = () => {
     );
 };
 
-export default AIStudentRiskAssessment;
+export default StudentEngagementMatrix;
+

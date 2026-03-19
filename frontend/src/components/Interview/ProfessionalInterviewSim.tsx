@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Brain, Sparkles, TrendingUp, AlertCircle, X, Play, Square, Volume2 } from 'lucide-react';
+import { Brain, TrendingUp, AlertCircle, X, Play, Square, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { aiService, InterviewAnalysis } from '../../services/aiService';
 import Button from '../Button/Button';
 import Card from '../Card/Card';
 
@@ -15,7 +14,7 @@ const ProfessionalInterviewSim: React.FC<ProfessionalInterviewSimProps> = ({ job
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const [transcript, setTranscript] = useState('');
-    const [analysis, setAnalysis] = useState<InterviewAnalysis | null>(null);
+    const [analysis, setAnalysis] = useState<any | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [audioLevel, setAudioLevel] = useState(0);
     const [error, setError] = useState<string | null>(null);
@@ -119,14 +118,30 @@ const ProfessionalInterviewSim: React.FC<ProfessionalInterviewSimProps> = ({ job
         }
 
         setIsAnalyzing(true);
-        try {
-            const result = await aiService.analyzeInterviewResponse({ question, transcript });
-            setAnalysis(result);
-        } catch (err) {
-            setError('AI Analysis failed. Please try again.');
-        } finally {
+        // Simulate deterministic analysis based on transcript
+        setTimeout(() => {
+            const wordCount = transcript.split(' ').length;
+            const fillerCount = (transcript.match(/\b(um|uh|like|you know)\b/gi) || []).length;
+            
+            const mockAnalysis: any = {
+                star_status: {
+                    S: wordCount > 20,
+                    T: wordCount > 40,
+                    A: wordCount > 60,
+                    R: wordCount > 80
+                },
+                star_feedback: wordCount > 50 
+                    ? "Great detail in your response. You covered most aspects of the STAR method."
+                    : "Your response is a bit brief. Try to elaborate more on the specific Actions you took.",
+                metrics: {
+                    confidence: Math.min(100, Math.max(60, 100 - (fillerCount * 5))),
+                    filler_count: fillerCount,
+                    pace_feedback: wordCount > 100 ? "A bit fast." : "Perfect pace."
+                }
+            };
+            setAnalysis(mockAnalysis);
             setIsAnalyzing(false);
-        }
+        }, 1500);
     };
 
     return (
@@ -229,7 +244,7 @@ const ProfessionalInterviewSim: React.FC<ProfessionalInterviewSimProps> = ({ job
                     {/* STAR Indicator Card */}
                     <Card className="bg-slate-900/40 border-slate-800 p-6">
                         <h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-6">
-                            <Sparkles size={14} className="text-indigo-400" /> STAR Method Coach
+                            <Brain size={14} className="text-indigo-400" /> STAR Method Coach
                         </h4>
                         
                         <div className="grid grid-cols-4 gap-3 mb-6">

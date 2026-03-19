@@ -75,7 +75,7 @@ const PrepKitCard: React.FC<PrepKitCardProps> = memo(({ company, onClick }) => {
                 {/* Footer Action */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500">
-                        <CheckCircle2 size={12} /> AI Optimized
+                        <CheckCircle2 size={12} /> Expert Curated
                     </div>
                     <button className="flex items-center gap-2 text-xs font-black text-indigo-600 uppercase tracking-widest group-hover:gap-4 transition-all">
                         Master Kit <ArrowRight size={14} />

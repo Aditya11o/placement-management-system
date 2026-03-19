@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { X, Target, Mail, Award, AlertCircle, FileText } from 'lucide-react';
+import { X, Target, Mail, Award, FileText } from 'lucide-react';
 import api from '../../services/api';
 
 interface JobMatchesDrawerProps {
@@ -25,7 +25,7 @@ interface RankedCandidate {
 }
 
 const JobMatchesDrawer: React.FC<JobMatchesDrawerProps> = ({ isOpen, onClose, jobId, jobTitle }) => {
-    const { data, isLoading, error } = useQuery({
+    const { data, isLoading } = useQuery({
         queryKey: ['jobMatches', jobId],
         queryFn: async () => {
             if (!jobId) return null;
@@ -33,7 +33,7 @@ const JobMatchesDrawer: React.FC<JobMatchesDrawerProps> = ({ isOpen, onClose, jo
             return res.data;
         },
         enabled: !!jobId && isOpen,
-        staleTime: 5 * 60 * 1000, // Keep rankings cached for 5 mins to save AI tokens if closed/reopened
+        staleTime: 5 * 60 * 1000, 
     });
 
     const candidates: RankedCandidate[] = data?.data || [];
@@ -64,9 +64,9 @@ const JobMatchesDrawer: React.FC<JobMatchesDrawerProps> = ({ isOpen, onClose, jo
                             <Target size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white m-0">AI Benchmarking</h2>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white m-0">Candidate Matching</h2>
                             <p className="text-sm text-slate-500 dark:text-slate-400 m-0">
-                                {jobTitle ? `Top matches for ${jobTitle}` : 'Analyzing student compatibility'}
+                                {jobTitle ? `Top matches for ${jobTitle}` : 'Ranking student compatibility'}
                             </p>
                         </div>
                     </div>
@@ -87,13 +87,7 @@ const JobMatchesDrawer: React.FC<JobMatchesDrawerProps> = ({ isOpen, onClose, jo
                                 <Target size={64} className="text-indigo-600 relative z-10 animate-pulse" />
                             </div>
                             <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300">Scanning Candidate Pool...</h3>
-                            <p className="text-slate-500 max-w-xs mt-2">Gemini AI is analyzing resumes, skills, and academic records to find the perfect fit.</p>
-                        </div>
-                    ) : error ? (
-                        <div className="flex flex-col items-center justify-center p-12 text-center text-red-500">
-                            <AlertCircle size={48} className="mb-4 opacity-50" />
-                            <h3 className="text-xl font-bold">Analysis Failed</h3>
-                            <p className="text-sm mt-2 opacity-80">Unable to generate candidate matches. The AI service may be temporarily unavailable.</p>
+                            <p className="text-slate-500 max-w-xs mt-2">Ranking students based on skills, academic criteria, and graduation batch.</p>
                         </div>
                     ) : candidates.length === 0 ? (
                         <div className="flex flex-col items-center justify-center p-12 text-center text-slate-500">

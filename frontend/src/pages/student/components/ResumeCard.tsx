@@ -101,7 +101,7 @@ const ResumeCard: React.FC<ResumeCardProps> = memo(({
                         className="font-black text-[10px] uppercase tracking-widest bg-indigo-600 shadow-indigo-500/20"
                         onClick={() => onTune(resume.version)}
                     >
-                        <Zap size={14} className="mr-1.5" /> AI Auto-Tune
+                        <Zap size={14} className="mr-1.5" /> Expert Polish
                     </Button>
                     <a href={resume.url} target="_blank" rel="noreferrer" className="flex-1">
                         <Button variant="outline" size="sm" isFullWidth className="font-black text-[10px] uppercase tracking-widest h-full">
@@ -148,7 +148,7 @@ const ResumeCard: React.FC<ResumeCardProps> = memo(({
                 <button 
                     onClick={() => onTune(resume.version)}
                     className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                    title="AI Auto-Tune"
+                    title="Expert Polish"
                 >
                     <Zap size={14} />
                 </button>

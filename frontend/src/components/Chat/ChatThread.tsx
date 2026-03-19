@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     Send, X, User, MessageCircle, Check, CheckCheck, 
-    Paperclip, FileText as FileIcon, MoreHorizontal,
-    Phone, Video, ShieldCheck, Briefcase, Building,
+    FileText as FileIcon, MoreHorizontal,
+    ShieldCheck, Briefcase, Building,
     Download, Smile, Plus, Search, ExternalLink,
-    Clock, Sparkles
+    Star, CheckCircle2
 } from 'lucide-react';
 import { useSocket as useSocketCtx } from '../../context/SocketContext';
 import chatService, { Message, Conversation } from '../../services/chatService';
@@ -223,7 +223,7 @@ const ChatThread: React.FC<ChatThreadProps> = ({ applicationId, onClose }) => {
                 ) : messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
                          <div className="w-24 h-24 bg-white dark:bg-slate-800 rounded-[2.5rem] flex items-center justify-center shadow-premium border border-slate-100 dark:border-slate-800">
-                              <Sparkles size={40} className="text-indigo-500 animate-pulse" />
+                              <MessageCircle size={40} className="text-indigo-500" />
                          </div>
                          <div className="space-y-2">
                               <h4 className="text-2xl font-black text-slate-800 dark:text-white italic uppercase tracking-tight">Open Channel.</h4>

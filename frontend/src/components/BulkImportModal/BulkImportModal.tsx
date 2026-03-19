@@ -23,9 +23,10 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClose, onSu
     const { addToast } = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [jobId, setJobId] = useState<string | null>(null);
+    const [jobId, setJobId] = useState<string|null>(null);
     const [jobStatus, setJobStatus] = useState<any>(null);
     const [isPolling, setIsPolling] = useState(false);
+    const [duplicateStrategy, setDuplicateStrategy] = useState<'SKIP'|'OVERWRITE'>('SKIP');
 
     // Download CSV Template
     const downloadTemplate = () => {
@@ -57,6 +58,7 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClose, onSu
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', 'student_import');
+        formData.append('duplicateStrategy', duplicateStrategy);
 
         try {
             const res = await api.post('/admin/bulk', formData, {
@@ -146,7 +148,7 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClose, onSu
                             <div className="relative group">
                                 <input
                                     type="file"
-                                    accept=".csv"
+                                    accept=".csv,.xlsx"
                                     onChange={handleFileChange}
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 />
@@ -171,6 +173,28 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClose, onSu
                                             <span className="text-sm text-slate-500">or drag and drop CSV here</span>
                                         </>
                                     )}
+                                </div>
+                            </div>
+
+                            {/* Duplicate Strategy Toggle */}
+                            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Existing Records</span>
+                                    <span className="text-[11px] text-slate-500">How to handle students with matching emails</span>
+                                </div>
+                                <div className="flex bg-white dark:bg-slate-900 p-1 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+                                    <button 
+                                        onClick={() => setDuplicateStrategy('SKIP')}
+                                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${duplicateStrategy === 'SKIP' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
+                                    >
+                                        Skip
+                                    </button>
+                                    <button 
+                                        onClick={() => setDuplicateStrategy('OVERWRITE')}
+                                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${duplicateStrategy === 'OVERWRITE' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
+                                    >
+                                        Overwrite
+                                    </button>
                                 </div>
                             </div>
 

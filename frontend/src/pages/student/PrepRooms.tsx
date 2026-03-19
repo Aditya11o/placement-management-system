@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    Plus, Video, Layout, Sparkles, Hash, Target, 
+    Plus, Video, Layout, Hash, Target, 
     MessageSquare, Activity, Globe, Zap, ArrowRight,
     X
 } from 'lucide-react';
@@ -316,7 +316,7 @@ const PrepRooms: React.FC = () => {
 
                                     <div className="space-y-4">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                            <Sparkles size={14} className="text-purple-500" /> Topic Concentration
+                                            <Zap size={14} className="text-purple-500" /> Topic Concentration
                                         </label>
                                         <div className="grid grid-cols-2 gap-3">
                                             {[

@@ -8,7 +8,7 @@ import SkeletonList from '../../components/Skeleton/SkeletonList';
 import Pagination from '../../components/Pagination/Pagination';
 import ErrorBoundary from '../../components/ErrorBoundary/ErrorBoundary';
 import {
-    Briefcase, Plus, Users, Trash2, X, Copy, Sparkles,
+    Briefcase, Plus, Users, Trash2, X, Copy,
     Clock, AlertTriangle, CalendarOff, CheckCircle2, TrendingUp, Eye
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -81,7 +81,6 @@ const RecruiterJobs: React.FC = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isGenerating, setIsGenerating] = useState(false);
     const [editingJobId, setEditingJobId] = useState<string | null>(null); // null = new job
 
     // ── Salary slider display state ──────────────────────────────────────────
@@ -109,8 +108,6 @@ const RecruiterJobs: React.FC = () => {
                 is_featured: false
             }
         });
-
-    const watchTitle = watch('title');
 
     // ── Fetch jobs with pagination ──────────────────────────────────────────
     const { data, isLoading } = useQuery<{ jobs: Job[], total: number, totalPages: number }>({
@@ -160,26 +157,7 @@ const RecruiterJobs: React.FC = () => {
         setIsModalOpen(true);
     }, [reset]);
 
-    const handleGenerateDescription = useCallback(async () => {
-        const title = watchTitle?.trim();
-        if (!title) {
-            addToast('Enter a job title first to generate a description', 'info');
-            return;
-        }
-        setIsGenerating(true);
-        try {
-            // Call the real Gemini AI endpoint
-            const res = await api.post('/ai/generate-job-description', { title });
-            setValue('description', res.data.description, { shouldValidate: true });
-            addToast('AI Description generated successfully!', 'success');
-        } catch (error: any) {
-            console.error('AI Generation Error:', error);
-            const errMsg = error.response?.data?.message || 'Failed to generate description. Please try again.';
-            addToast(errMsg, 'error');
-        } finally {
-            setIsGenerating(false);
-        }
-    }, [watchTitle, setValue, addToast]);
+
 
     const onSubmit = async (data: JobFormData) => {
         setIsSubmitting(true);
@@ -372,7 +350,7 @@ const RecruiterJobs: React.FC = () => {
                                     <h2 className="text-xl font-bold text-indigo-700 dark:text-indigo-400 m-0">
                                         {editingJobId ? 'Edit Job' : 'Post a New Job'}
                                     </h2>
-                                    <p className="text-xs text-slate-500 mt-0.5">Fill in the details — use AI to draft the description.</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">Fill in the details to publish your job.</p>
                                 </div>
                                 <button
                                     className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -405,34 +383,17 @@ const RecruiterJobs: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Description + AI Button */}
+                                {/* Description */}
                                 <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                            Job Description
-                                        </label>
-                                        <button
-                                            type="button"
-                                            onClick={handleGenerateDescription}
-                                            disabled={isGenerating}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:from-violet-600 hover:to-indigo-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm"
-                                        >
-                                            <Sparkles size={13} className={isGenerating ? 'animate-pulse' : ''} />
-                                            {isGenerating ? 'Generating…' : '✨ Generate with AI'}
-                                        </button>
-                                    </div>
-                                    {isGenerating ? (
-                                        <div className="w-full h-32 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse flex items-center justify-center">
-                                            <span className="text-slate-400 text-sm font-medium">Drafting description…</span>
-                                        </div>
-                                    ) : (
-                                        <textarea
-                                            {...register('description')}
-                                            className={`w-full px-4 py-3 border rounded-xl font-sans text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 transition-all resize-y focus:outline-none focus:ring-2 focus:bg-white dark:focus:bg-slate-700 ${errors.description ? 'border-red-400 focus:ring-red-200' : 'border-slate-300 dark:border-slate-600 focus:ring-indigo-200 focus:border-indigo-400'}`}
-                                            rows={5}
-                                            placeholder="Describe the role, responsibilities, and what you offer…"
-                                        />
-                                    )}
+                                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                        Job Description
+                                    </label>
+                                    <textarea
+                                        {...register('description')}
+                                        className={`w-full px-4 py-3 border rounded-xl font-sans text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 transition-all resize-y focus:outline-none focus:ring-2 focus:bg-white dark:focus:bg-slate-700 ${errors.description ? 'border-red-400 focus:ring-red-200' : 'border-slate-300 dark:border-slate-600 focus:ring-indigo-200 focus:border-indigo-400'}`}
+                                        rows={5}
+                                        placeholder="Describe the role, responsibilities, and what you offer…"
+                                    />
                                     {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
                                 </div>
 

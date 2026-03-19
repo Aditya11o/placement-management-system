@@ -43,6 +43,7 @@ interface ApplicationCardProps {
     onJoinVideo: (appId: string) => void;
     onViewOffer: (url: string) => void;
     onRespondOffer: (id: string, action: 'accept' | 'decline') => void;
+    onBookInterview: (app: UIApplication) => void;
     isProcessing: boolean;
 }
 
@@ -54,6 +55,7 @@ const ApplicationCard: React.FC<ApplicationCardProps> = memo(({
     onJoinVideo,
     onViewOffer,
     onRespondOffer,
+    onBookInterview,
     isProcessing
 }) => {
     const isOffer = app.status === 'SELECTED';
@@ -255,6 +257,16 @@ const ApplicationCard: React.FC<ApplicationCardProps> = memo(({
                                 onClick={() => onJoinVideo(app._id)}
                             >
                                 <Video size={14} className="mr-1.5" /> Join Room
+                            </Button>
+                        ) : app.status === 'SHORTLISTED' ? (
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                className="flex-[1.5] font-black text-[10px] uppercase tracking-widest py-2.5 rounded-xl bg-indigo-600 shadow-indigo-500/20"
+                                onClick={() => onBookInterview(app)} 
+                                icon={Calendar}
+                            >
+                                Book Interview
                             </Button>
                         ) : (
                             <Button

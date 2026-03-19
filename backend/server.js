@@ -235,6 +235,7 @@ const eventRoutes = require('./src/routes/eventRoutes');
 const initCronJobs = require('./src/jobs/index');
 const { initBroadcastScheduler } = require('./src/services/broadcastScheduler');
 const { initDigestCron } = require('./src/services/digestService');
+const { initAutomationService } = require('./src/services/automationService');
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
@@ -286,6 +287,7 @@ if (config.get('env') !== 'test') {
         initCronJobs();
         initBroadcastScheduler();
         initDigestCron();
+        initAutomationService();
     });
 
     // Handle EADDRINUSE (Port already in use) gracefully

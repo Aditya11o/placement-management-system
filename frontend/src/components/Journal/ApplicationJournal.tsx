@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Book, CheckSquare, Plus, Trash2, Save, X, Lightbulb, ChevronRight, Clock, Sparkles } from 'lucide-react';
+import { Book, CheckSquare, Plus, Trash2, Save, X, Lightbulb, ChevronRight, Clock, Video } from 'lucide-react';
 import InterviewSimulator from '../Interview/InterviewSimulator';
 import Modal from '../Modal/Modal';
 import Button from '../Button/Button';
@@ -108,11 +108,11 @@ const ApplicationJournal: React.FC<ApplicationJournalProps> = ({
                         <Button 
                             variant="primary" 
                             size="sm" 
-                            icon={Sparkles} 
+                            icon={Video} 
                             onClick={() => setIsSimOpen(true)}
-                            className="bg-gradient-to-r from-violet-600 to-indigo-600 border-none shadow-md"
+                            className="bg-indigo-600 border-none shadow-md"
                         >
-                            AI Practice
+                            Mock Interview
                         </Button>
                     )}
                     <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-400">
@@ -223,7 +223,7 @@ const ApplicationJournal: React.FC<ApplicationJournalProps> = ({
             <Modal
                 isOpen={isSimOpen}
                 onClose={() => setIsSimOpen(false)}
-                title="AI Mock Interview"
+                title="Interview Practice"
                 size="lg"
             >
                 <div className="h-[600px]">

@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import { useToast } from '../../context/ToastContext';
 import Loader from '../../components/Loader/Loader';
 import SkeletonJobCard from '../../components/Skeleton/SkeletonJobCard';
-import { Search, Grid, List, Sparkles, Zap, Briefcase as BriefcaseIcon, IndianRupee } from 'lucide-react';
+import { Search, Grid, List, Target, Zap, Briefcase as BriefcaseIcon, IndianRupee } from 'lucide-react';
 import JobModal, { UIJob } from '../../components/JobModal/JobModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import { studentService } from '../../services/studentService';
@@ -88,6 +88,8 @@ const JobBoard: React.FC = () => {
                 params.append('type', 'Internship');
             } else if (activeQuickFilter === 'High Salary') {
                 params.append('salary_package[gte]', '15');
+            } else if (activeQuickFilter === 'Strong Match') {
+                params.append('isMatched', 'true');
             }
 
             return await studentService.getEligibleJobs(params);
@@ -182,14 +184,14 @@ const JobBoard: React.FC = () => {
         { label: 'Remote', icon: Zap },
         { label: 'Internship', icon: BriefcaseIcon },
         { label: 'High Salary', icon: IndianRupee },
-        { label: 'AI Matched', icon: Sparkles },
+        { label: 'Strong Match', icon: Target },
     ];
 
     return (
         <div className="flex flex-col gap-8 relative pb-20">
             <PageHeader
                 title="Career Opportunities"
-                subtitle="Your AI-powered bridge to the world's most innovative companies."
+                subtitle="Your centralized portal for the world's most innovative placement opportunities."
             />
 
             <div className="flex flex-col lg:flex-row gap-10 relative">

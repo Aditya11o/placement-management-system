@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Building, MapPin, Bookmark, BookmarkCheck, Sparkles, Calendar } from 'lucide-react';
+import { Building, MapPin, Bookmark, BookmarkCheck, Zap, Calendar } from 'lucide-react';
 import Card from '../../../components/Card/Card';
 import Button from '../../../components/Button/Button';
 import { UIJob } from '../../../components/JobModal/JobModal';
@@ -68,9 +68,9 @@ const JobCard: React.FC<JobCardProps> = memo(({
 
                         <div className="flex items-center gap-3">
                             {isHighMatch && (
-                                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 text-amber-600 text-[9px] font-black uppercase tracking-tighter border border-amber-500/20">
-                                    <Sparkles size={10} className="fill-current" />
-                                    AI Match
+                                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-indigo-500/10 text-indigo-600 text-[9px] font-black uppercase tracking-tighter border border-indigo-500/20">
+                                    <Zap size={10} className="fill-current" />
+                                    High Match
                                 </div>
                             )}
                             <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
@@ -110,14 +110,14 @@ const JobCard: React.FC<JobCardProps> = memo(({
             className="h-full"
         >
             <Card border hoverable className="flex flex-col h-full p-6 group !bg-white/80 dark:!bg-slate-800/90 transition-all duration-500 relative overflow-hidden">
-                {/* AI Match Glow */}
+                {/* High Match Glow */}
                 {isHighMatch && (
                     <div className="absolute top-0 right-0 p-4">
-                        <div className="relative group/ai">
-                            <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full scale-150 animate-pulse" />
-                            <div className="relative flex items-center gap-2 bg-amber-500 text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/30">
-                                <Sparkles size={12} className="fill-current" />
-                                AI Match
+                        <div className="relative group/match">
+                            <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full scale-150 animate-pulse" />
+                            <div className="relative flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/30">
+                                <Zap size={12} className="fill-current" />
+                                High Match
                             </div>
                         </div>
                     </div>

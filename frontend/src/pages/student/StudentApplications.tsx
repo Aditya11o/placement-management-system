@@ -11,6 +11,7 @@ import ApplicationJournal from '../../components/Journal/ApplicationJournal';
 import ChatThread from '../../components/Chat/ChatThread';
 import PageHeader from '../../components/PageHeader/PageHeader';
 import ApplicationCard, { UIApplication } from './components/ApplicationCard';
+import SlotPickerModal from '../../components/Interview/SlotPickerModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const StudentApplications: React.FC = () => {
@@ -19,6 +20,7 @@ const StudentApplications: React.FC = () => {
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [journalApp, setJournalApp] = useState<UIApplication | null>(null);
     const [chatAppId, setChatAppId] = useState<string | null>(null);
+    const [slotPickerApp, setSlotPickerApp] = useState<UIApplication | null>(null);
     
     // UI Logic States
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -177,6 +179,7 @@ const StudentApplications: React.FC = () => {
                                     onJoinVideo={(id) => navigate(`/interviews/${id}/room`)}
                                     onViewOffer={(url) => window.open(url, '_blank')}
                                     onRespondOffer={handleOfferResponse}
+                                    onBookInterview={setSlotPickerApp}
                                     isProcessing={processingId === app._id}
                                 />
                             ))}
@@ -210,6 +213,16 @@ const StudentApplications: React.FC = () => {
                     )}
                 </div>
             </Modal>
+
+            {/* Slot Picker Modal */}
+            {slotPickerApp && (
+                <SlotPickerModal 
+                    jobId={slotPickerApp.job._id}
+                    applicationId={slotPickerApp._id}
+                    onClose={() => setSlotPickerApp(null)}
+                    onSuccess={() => refetch()}
+                />
+            )}
         </div>
     );
 };

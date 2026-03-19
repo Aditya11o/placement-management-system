@@ -27,6 +27,8 @@ const redisOptions = {
 
 const connection = new IORedis(config.get('redis.url'), redisOptions);
 
+const XLSX = require('xlsx');
+
 let bulkQueue;
 let bulkWorker;
 
@@ -43,103 +45,136 @@ if (config.get('env') !== 'test') {
 
     // 2. Worker runtime processing logic
     bulkWorker = new Worker('bulk-ops-queue', async (job) => {
-        const { type, records } = job.data;
-        logger.info(`Started bulk job ${job.id} of type [${type}] with ${records.length} records.`);
+    const { type, records, options = {} } = job.data;
+    logger.info(`Started bulk job ${job.id} of type [${type}] with ${records.length} records.`);
 
-        // Track stats for the final report
-        let successCount = 0;
-        let failCount = 0;
-        let errors = [];
+    // Track stats for the final report
+    let successCount = 0;
+    let failCount = 0;
+    let errors = [];
 
-        // Progress update at start
-        await job.updateProgress({ percent: 0, processed: 0, total: records.length });
+    // Progress update at start
+    await job.updateProgress({ percent: 0, processed: 0, total: records.length });
 
-        for (let i = 0; i < records.length; i++) {
-            const row = records[i];
-            try {
-                if (type === 'students') {
-                    // Update Student Approval Status
-                    if (!row.email || !row.status) throw new Error('Missing email or status column');
-                    const updated = await Student.findOneAndUpdate(
-                        { email: row.email },
-                        { status: row.status },
-                        { new: true, runValidators: true }
-                    );
-                    if (!updated) throw new Error(`Student ${row.email} not found`);
+    for (let i = 0; i < records.length; i++) {
+        const row = records[i];
+        try {
+            // ── Validation Layer ────────────────────────────────────────────
+            if (type === 'student_import') {
+                const requiredFields = ['name', 'email', 'branch', 'cgpa', 'graduation_year'];
+                for (const field of requiredFields) {
+                    if (!row[field]) throw new Error(`Missing required field: ${field}`);
+                }
 
-                } else if (type === 'applications') {
-                    // Update Application Statuses Mass
-                    if (!row.application_id || !row.status) throw new Error('Missing application_id or status column');
-                    const updated = await Application.findByIdAndUpdate(
-                        row.application_id,
-                        { status: row.status },
-                        { new: true, runValidators: true }
-                    );
-                    if (!updated) throw new Error(`Application ${row.application_id} not found`);
+                // Email format validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(row.email)) throw new Error(`Invalid email format: ${row.email}`);
 
-                } else if (type === 'eligibility') {
-                    // Updating CGPA and Backlogs
-                    if (!row.email) throw new Error('Missing email column');
-                    // Build dynamic update object based on what was provided in CSV
-                    const updateObj = {};
-                    if (row.cgpa !== undefined && row.cgpa !== '') updateObj.cgpa = Number(row.cgpa);
-                    if (row.backlogs_active !== undefined && row.backlogs_active !== '') updateObj.backlogs_active = Number(row.backlogs_active);
+                // Numeric validations
+                const cgpa = Number(row.cgpa);
+                if (isNaN(cgpa) || cgpa < 0 || cgpa > 10) throw new Error(`Invalid CGPA: ${row.cgpa}. Must be 0-10.`);
+                
+                const gradYear = Number(row.graduation_year);
+                if (isNaN(gradYear) || gradYear < 2000 || gradYear > 2100) throw new Error(`Invalid Graduation Year: ${row.graduation_year}`);
 
-                    if (Object.keys(updateObj).length > 0) {
-                        const updated = await Student.findOneAndUpdate(
-                            { email: row.email },
-                            updateObj,
-                            { new: true, runValidators: true }
-                        );
-                        if (!updated) throw new Error(`Student ${row.email} not found`);
+                // Duplicate Strategy
+                const exists = await Student.findOne({ email: row.email });
+                if (exists) {
+                    if (options.duplicateStrategy === 'OVERWRITE') {
+                        await Student.findByIdAndUpdate(exists._id, {
+                            name: row.name,
+                            branch: row.branch,
+                            cgpa,
+                            graduation_year: gradYear,
+                            phone: row.phone || exists.phone,
+                            gender: (row.gender || exists.gender).toUpperCase(),
+                            marks_10th: Number(row.marks_10th) || exists.marks_10th,
+                            marks_12th: Number(row.marks_12th) || exists.marks_12th,
+                        });
                     } else {
-                        throw new Error(`Row ${row.email} had no updateable metrics provided`);
+                        throw new Error(`Student with email ${row.email} already exists (Skipped)`);
                     }
-                } else if (type === 'student_import') {
-                    // Pre-create student accounts from master list
-                    const requiredFields = ['name', 'email', 'branch', 'cgpa', 'graduation_year', 'gender', 'phone', 'marks_10th', 'marks_12th'];
-                    for (const field of requiredFields) {
-                        if (!row[field]) throw new Error(`Missing required field: ${field}`);
-                    }
-
-                    // Check if email already exists to provide better error
-                    const exists = await Student.findOne({ email: row.email });
-                    if (exists) throw new Error(`Student with email ${row.email} already exists`);
-
-                    // Create student - pre-save hook handles password hashing "Welcome@123"
+                } else {
+                    // Create new
                     await Student.create({
                         name: row.name,
                         email: row.email,
-                        password: 'Welcome@123', // Default password
+                        password: 'Welcome@123',
                         branch: row.branch,
-                        cgpa: Number(row.cgpa),
-                        graduation_year: Number(row.graduation_year),
-                        phone: row.phone,
-                        gender: row.gender.toUpperCase(),
-                        marks_10th: Number(row.marks_10th),
-                        marks_12th: Number(row.marks_12th),
-                        status: 'APPROVED' // Auto-approve bulk imported students
+                        cgpa,
+                        graduation_year: gradYear,
+                        phone: row.phone || '',
+                        gender: (row.gender || 'OTHER').toUpperCase(),
+                        marks_10th: Number(row.marks_10th) || 0,
+                        marks_12th: Number(row.marks_12th) || 0,
+                        status: 'APPROVED'
                     });
-                } else {
-                    throw new Error(`Unknown bulk operation type: ${type}`);
+                }
+            } else if (type === 'students') {
+                // Update Student Approval Status
+                if (!row.email || !row.status) throw new Error('Missing email or status column');
+                const updated = await Student.findOneAndUpdate(
+                    { email: row.email },
+                    { status: row.status.toUpperCase() },
+                    { new: true, runValidators: true }
+                );
+                if (!updated) throw new Error(`Student ${row.email} not found`);
+
+            } else if (type === 'applications') {
+                // Update Application Statuses Mass
+                if (!row.application_id || !row.status) throw new Error('Missing application_id or status column');
+                const updated = await Application.findByIdAndUpdate(
+                    row.application_id,
+                    { status: row.status.toUpperCase() },
+                    { new: true, runValidators: true }
+                );
+                if (!updated) throw new Error(`Application ${row.application_id} not found`);
+
+            } else if (type === 'eligibility') {
+                // Updating CGPA and Backlogs
+                if (!row.email) throw new Error('Missing email column');
+                const updateObj = {};
+                if (row.cgpa !== undefined && row.cgpa !== '') {
+                    const val = Number(row.cgpa);
+                    if (isNaN(val) || val < 0 || val > 10) throw new Error(`Invalid CGPA: ${row.cgpa}`);
+                    updateObj.cgpa = val;
+                }
+                if (row.backlogs_active !== undefined && row.backlogs_active !== '') {
+                    const val = Number(row.backlogs_active);
+                    if (isNaN(val) || val < 0) throw new Error(`Invalid Backlogs: ${row.backlogs_active}`);
+                    updateObj.backlogs_active = val;
                 }
 
-                successCount++;
-            } catch (err) {
-                failCount++;
-                errors.push(`Row ${i + 2} (${row.email || row.application_id || 'Unknown'}): ${err.message}`); // +2 for 1-index + header row
-                logger.error(`Bulk Job ${job.id} Row ${i + 2} failed: ${err.message}`);
+                if (Object.keys(updateObj).length > 0) {
+                    const updated = await Student.findOneAndUpdate(
+                        { email: row.email },
+                        updateObj,
+                        { new: true, runValidators: true }
+                    );
+                    if (!updated) throw new Error(`Student ${row.email} not found`);
+                } else {
+                    throw new Error(`Row ${row.email} had no updateable metrics provided`);
+                }
+            } else {
+                throw new Error(`Unknown bulk operation type: ${type}`);
             }
 
-            // Update Progress in BullMQ
-            if (i % 10 === 0 || i === records.length - 1) { // Throttle progress updates to avoid Redis flooding
-                await job.updateProgress({
-                    percent: Math.round(((i + 1) / records.length) * 100),
-                    processed: i + 1,
-                    total: records.length
-                });
-            }
+            successCount++;
+        } catch (err) {
+            failCount++;
+            errors.push(`Row ${i + 2} (${row.email || row.application_id || 'Unknown'}): ${err.message}`);
+            logger.error(`Bulk Job ${job.id} Row ${i + 2} failed: ${err.message}`);
         }
+
+        // Update Progress in BullMQ
+        if (i % 10 === 0 || i === records.length - 1) {
+            await job.updateProgress({
+                percent: Math.round(((i + 1) / records.length) * 100),
+                processed: i + 1,
+                total: records.length
+            });
+        }
+    }
 
         logger.info(`Completed bulk job ${job.id}. Success: ${successCount}, Fail: ${failCount}`);
 

@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
     Menu, X, LayoutDashboard, User, Briefcase, MessageCircle,
     FileText, Users, Settings, LogOut, Building, LucideIcon, ShieldCheck, Send, Search,
-    Shield, FileCheck, Activity, Calendar, TrendingUp, Globe, ChevronLeft, ChevronRight, Sparkles, BookOpen, ShieldAlert
+    Shield, FileCheck, Activity, Calendar, TrendingUp, Globe, ChevronLeft, ChevronRight, Zap, BookOpen, ShieldAlert
 } from 'lucide-react';
 import Loader from '../components/Loader/Loader';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
@@ -19,7 +19,6 @@ import KeyboardShortcutsModal from '../components/KeyboardShortcutsModal/Keyboar
 import PresenceAvatars from '../components/PresenceAvatars/PresenceAvatars';
 import OfflineStatus from '../components/Offline/OfflineStatus';
 import PageTransition from '../components/Transitions/PageTransition';
-import AIChatbot from '../components/AI/AIChatbot';
 
 interface NavItem {
     label: string;
@@ -76,7 +75,7 @@ const MainLayout: React.FC = () => {
                     { label: 'Resumes', path: '/student/resumes', icon: FileText, category: 'Career' },
                     { label: 'Prep Kits', path: '/student/prep-kits', icon: BookOpen, category: 'Preparation' },
                     { label: 'Prep Rooms', path: '/student/prep-rooms', icon: Globe, category: 'Preparation' },
-                    { label: 'Peer Insights', path: '/student/peer-insights', icon: Sparkles, category: 'Preparation' },
+                    { label: 'Peer Insights', path: '/student/peer-insights', icon: Zap, category: 'Preparation' },
                     { label: 'Alumni Connect', path: '/student/alumni', icon: Users, category: 'Community' },
                     { label: 'Live Events', path: '/student/live-events', icon: Calendar, category: 'Community' },
                     { label: 'Messages', path: '/student/messages', icon: MessageCircle, category: 'Community' },
@@ -300,7 +299,6 @@ const MainLayout: React.FC = () => {
                 onClose={() => setIsShortcutsModalOpen(false)}
             />
 
-            <AIChatbot />
             <OfflineStatus />
         </div>
     );

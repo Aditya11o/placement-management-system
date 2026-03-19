@@ -53,8 +53,8 @@ const PredictiveAnalytics: React.FC = () => {
             
             <div className="flex items-center justify-between mb-8 relative z-10">
                 <div>
-                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Placement Odds</h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Tier-based Probability</p>
+                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Placement Forecast</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Algorithm-driven Probability</p>
                 </div>
                 <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-600 dark:text-indigo-400">
                     <TrendingUp size={18} />

@@ -5,8 +5,15 @@ const {
     updateInterviewStatus,
     rescheduleInterview,
     getMyInterviews,
-    enterInterviewRoom
+    enterInterviewRoom,
+    bookSlot,
+    submitFeedback
 } = require('../controllers/interviewController');
+const {
+    createSlots,
+    getJobSlots,
+    deleteSlot
+} = require('../controllers/interviewSlotController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const { validate } = require('../middlewares/validate');
 const { validateInterviewScheduling, validateInterviewResponse, validateInterviewStatusUpdate } = require('../validations/interviewValidator');
@@ -74,5 +81,24 @@ router.route('/:id/reschedule').patch(authorize('RECRUITER'), rescheduleIntervie
  *     tags: [Interviews]
  */
 router.route('/:id/join').get(enterInterviewRoom);
+
+// --- New Scheduling & Feedback Flow ---
+
+/**
+ * @desc    Submit interview feedback (Recruiter only)
+ */
+router.route('/:id/feedback').post(authorize('RECRUITER'), submitFeedback);
+
+/**
+ * @desc    Availability Slots Management
+ */
+router.route('/slots').post(authorize('RECRUITER'), createSlots);
+router.route('/slots/:jobId').get(getJobSlots);
+router.route('/slots/:id').delete(authorize('RECRUITER'), deleteSlot);
+
+/**
+ * @desc    Book a slot (Student only)
+ */
+router.route('/slots/:id/book').post(authorize('STUDENT'), bookSlot);
 
 module.exports = router;

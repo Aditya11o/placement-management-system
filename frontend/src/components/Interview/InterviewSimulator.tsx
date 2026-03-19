@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, ArrowRight, Brain, UserCheck, ChevronRight, X, RotateCcw, Play, CheckCircle2 } from 'lucide-react';
-import { aiService, InterviewQuestions } from '../../services/aiService';
+import { Brain, UserCheck, ChevronRight, X, RotateCcw, Play, CheckCircle2 } from 'lucide-react';
 import Button from '../Button/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProfessionalInterviewSim from './ProfessionalInterviewSim';
@@ -12,9 +11,9 @@ interface InterviewSimulatorProps {
     onClose: () => void;
 }
 
-const InterviewSimulator: React.FC<InterviewSimulatorProps> = ({ jobTitle, jobDescription, skills, onClose }) => {
+const InterviewSimulator: React.FC<InterviewSimulatorProps> = ({ jobTitle, onClose }) => {
     const [status, setStatus] = useState<'IDLE' | 'LOADING' | 'PRACTICING' | 'FINISHED'>('IDLE');
-    const [questions, setQuestions] = useState<InterviewQuestions | null>(null);
+    const [questions, setQuestions] = useState<any | null>(null);
     const [currentCategory, setCurrentCategory] = useState<'technical' | 'behavioral'>('technical');
     const [currentIdx, setCurrentIdx] = useState(0);
     const [isHighStakes, setIsHighStakes] = useState(false);
@@ -22,16 +21,29 @@ const InterviewSimulator: React.FC<InterviewSimulatorProps> = ({ jobTitle, jobDe
 
     const startSession = async () => {
         setStatus('LOADING');
-        try {
-            const data = await aiService.generateMockInterview({ title: jobTitle, description: jobDescription, skills });
-            setQuestions(data);
+        // Simulate a brief delay for "processing"
+        setTimeout(() => {
+            const staticQuestions: any = {
+                technical: [
+                    "Explain your most challenging project and the technical hurdles you faced.",
+                    "How do you ensure code quality and handle peer reviews?",
+                    "Describe your experience with full-stack development and your preferred tech stack.",
+                    "How do you handle scalability and performance optimization in your applications?",
+                    "Explain a complex algorithm or data structure you've recently implemented."
+                ],
+                behavioral: [
+                    "Tell me about a time you had a conflict with a teammate. How did you resolve it?",
+                    "What is your greatest professional achievement so far?",
+                    "Describe a situation where you had to learn a new technology quickly.",
+                    "How do you prioritize tasks when working on multiple projects with tight deadlines?",
+                    "Where do you see yourself in the next five years in terms of career growth?"
+                ]
+            };
+            setQuestions(staticQuestions);
             setStatus('PRACTICING');
             setCurrentCategory('technical');
             setCurrentIdx(0);
-        } catch (err) {
-            console.error(err);
-            setStatus('IDLE');
-        }
+        }, 800);
     };
 
     const handleNext = () => {
@@ -57,10 +69,10 @@ const InterviewSimulator: React.FC<InterviewSimulatorProps> = ({ jobTitle, jobDe
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200 dark:shadow-none">
-                        <Sparkles size={20} />
+                        <Brain size={20} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 m-0">AI Interview Sim</h3>
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 m-0">Interview Prep</h3>
                         <p className="text-xs text-slate-500 m-0 font-medium">Practicing for: <span className="text-indigo-600 dark:text-indigo-400 font-bold">{jobTitle}</span></p>
                     </div>
                 </div>
@@ -85,10 +97,10 @@ const InterviewSimulator: React.FC<InterviewSimulatorProps> = ({ jobTitle, jobDe
                             </div>
                             <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-4">Master Your Interview</h2>
                             <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                                Our AI will generate 5 technical and 5 behavioral questions tailored specifically to this job role. Ready to practice?
+                                Access our curated library of technical and behavioral questions tailored for this job role. Ready to practice?
                             </p>
                             <Button size="lg" className="w-full shadow-xl shadow-indigo-200/50 dark:shadow-none font-bold" onClick={startSession}>
-                                Start AI Session <ArrowRight size={18} className="ml-2" />
+                                Start Prep Session <ChevronRight size={18} className="ml-2" />
                             </Button>
                         </motion.div>
                     )}
@@ -108,8 +120,8 @@ const InterviewSimulator: React.FC<InterviewSimulatorProps> = ({ jobTitle, jobDe
                                     <Brain size={32} className="animate-pulse" />
                                 </div>
                             </div>
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 m-0">AI is Analyzing Job Data</h3>
-                            <p className="text-slate-500 dark:text-slate-400 mt-2">Crafting high-relevance interview questions...</p>
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 m-0">Retrieving Question Set</h3>
+                            <p className="text-slate-500 dark:text-slate-400 mt-2">Loading high-relevance interview modules...</p>
                         </motion.div>
                     )}
 
@@ -157,9 +169,9 @@ const InterviewSimulator: React.FC<InterviewSimulatorProps> = ({ jobTitle, jobDe
                                     <input type="checkbox" className="hidden" checked={isHighStakes} onChange={() => setIsHighStakes(!isHighStakes)} />
                                     <div className="flex flex-col">
                                         <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 transition-colors">High-Stakes Video Mode</span>
-                                        <span className="text-[10px] font-medium text-slate-500">Enable AI video analysis & STAR coaching</span>
+                                        <span className="text-[10px] font-medium text-slate-500">Enable video analysis & STAR coaching</span>
                                     </div>
-                                    {isHighStakes && <Sparkles size={16} className="text-indigo-500 animate-pulse" />}
+                                    {isHighStakes && <Brain size={16} className="text-indigo-500 animate-pulse" />}
                                 </label>
                             </div>
 

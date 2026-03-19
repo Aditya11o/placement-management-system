@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Briefcase, GraduationCap, Link as LinkIcon, Phone, Mail, Award, FileText, Maximize2, Minimize2, Calendar, Star, Send, ShieldCheck, StickyNote, Save, Clock } from 'lucide-react';
 import JobSelectionModal from '../Modal/JobSelectionModal';
+import GenerateOfferModal from '../Modal/GenerateOfferModal';
 import { UIApplicant } from '../Kanban/KanbanCard';
 import ScheduleInterviewModal from '../Modal/ScheduleInterviewModal';
 import ComposeMessageModal from '../Modal/ComposeMessageModal';
@@ -36,6 +37,7 @@ const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({ isOpen, onC
     const [isInterviewModalOpen, setIsInterviewModalOpen] = useState<boolean>(false);
     const [isMessageModalOpen, setIsMessageModalOpen] = useState<boolean>(false);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState<boolean>(false);
+    const [isGenerateOfferModalOpen, setIsGenerateOfferModalOpen] = useState<boolean>(false);
     const [isInviting, setIsInviting] = useState(false);
 
     const { addToast } = useToast();
@@ -541,6 +543,14 @@ const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({ isOpen, onC
                                     <Send size={18} /> Invite
                                 </button>
                             )}
+                            {(currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN') && applicant.job && (
+                                <button
+                                    onClick={() => setIsGenerateOfferModalOpen(true)}
+                                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    <FileText size={18} /> Generate Offer
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -569,6 +579,19 @@ const StudentProfileDrawer: React.FC<StudentProfileDrawerProps> = ({ isOpen, onC
                 isOpen={isMessageModalOpen}
                 onClose={() => setIsMessageModalOpen(false)}
                 recipients={[applicant]}
+            />
+
+            <GenerateOfferModal
+                isOpen={isGenerateOfferModalOpen}
+                onClose={() => setIsGenerateOfferModalOpen(false)}
+                applicationId={applicant._id}
+                studentName={student.name || 'Unknown'}
+                jobTitle={applicant.job?.title || 'Job'}
+                onSuccess={(url) => {
+                    // Update local state if needed
+                    console.log('New offer generated:', url);
+                    // Refresh parent if necessary or just show toast (modal handles toast)
+                }}
             />
         </div>
     );

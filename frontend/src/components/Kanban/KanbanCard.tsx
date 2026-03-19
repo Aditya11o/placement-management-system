@@ -135,7 +135,7 @@ const KanbanCard: React.FC<KanbanCardProps> = ({
                 <div className="flex items-center justify-between mt-2">
                     <div className="flex flex-col">
                         <span className="text-[10px] text-slate-500 uppercase tracking-wide">
-                            AI Match
+                            Rank Match
                         </span>
                         <span className={`text-sm font-extrabold ${scoreColor(app.matchScore ?? 0)}`}>
                             {app.matchScore ?? 0}%

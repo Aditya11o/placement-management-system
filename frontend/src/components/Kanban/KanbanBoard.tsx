@@ -197,7 +197,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         onChange={(e) => setSortBy(e.target.value as any)}
                         className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium dark:text-slate-200"
                     >
-                        <option value="matchScore">AI Match Score</option>
+                        <option value="matchScore">Recommendation Score</option>
                         <option value="date">Applied Date</option>
                         <option value="name">Candidate Name</option>
                     </select>

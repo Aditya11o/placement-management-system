@@ -19,9 +19,11 @@ import {
     Columns, X, CalendarClock, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import api from '../../services/api';
+import AvailabilityManager from './components/AvailabilityManager';
+import InterviewFeedbackForm from './components/InterviewFeedbackForm';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-export type InterviewStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+export type InterviewStatus = 'PROPOSED' | 'CONFIRMED' | 'SCHEDULED' | 'COMPLETED' | 'CANCELED' | 'NO_SHOW';
 
 export interface Interview {
     _id: string;
@@ -100,6 +102,14 @@ const mockInterviews: Interview[] = [
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<InterviewStatus, { label: string; bg: string; text: string; border: string; calBg: string }> = {
+    PROPOSED: {
+        label: 'Proposed', bg: 'bg-amber-50', text: 'text-amber-700',
+        border: 'border-amber-200', calBg: '#f59e0b'
+    },
+    CONFIRMED: {
+        label: 'Confirmed', bg: 'bg-indigo-50', text: 'text-indigo-700',
+        border: 'border-indigo-200', calBg: '#6366f1'
+    },
     SCHEDULED: {
         label: 'Scheduled', bg: 'bg-indigo-50', text: 'text-indigo-700',
         border: 'border-indigo-200', calBg: '#6366f1'
@@ -108,7 +118,7 @@ const STATUS_CONFIG: Record<InterviewStatus, { label: string; bg: string; text: 
         label: 'Completed', bg: 'bg-emerald-50', text: 'text-emerald-700',
         border: 'border-emerald-200', calBg: '#10b981'
     },
-    CANCELLED: {
+    CANCELED: {
         label: 'Cancelled', bg: 'bg-slate-100', text: 'text-slate-500',
         border: 'border-slate-200', calBg: '#94a3b8'
     },
@@ -145,6 +155,8 @@ const RecruiterInterviews: React.FC = () => {
     const [rescheduleTime, setRescheduleTime] = useState('');
     const [rescheduleReason, setRescheduleReason] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
+    const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
+    const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
     // ── Data Fetching ─────────────────────────────────────────────────────────
     const { data: interviews = [], isLoading } = useQuery<Interview[]>({
@@ -183,7 +195,7 @@ const RecruiterInterviews: React.FC = () => {
         const t: Interview[] = [];
         const tm: Interview[] = [];
         interviews.forEach(iv => {
-            if (iv.status === 'CANCELLED') return;
+            if (iv.status === 'CANCELED') return;
             const d = parseISO(iv.scheduledAt);
             if (isToday(d)) t.push(iv);
             else if (isTomorrow(d)) tm.push(iv);
@@ -219,7 +231,7 @@ const RecruiterInterviews: React.FC = () => {
             addToast('Interview rescheduled and candidate notified', 'success');
         } catch (e: any) { 
             // fallback for missing backend or mock
-            addToast(e.response?.data?.message || 'Failed to reschedule via API (using mock)', 'error');
+            addToast(e.response?.data?.message || 'Failed to reschedule via API', 'error');
         }
         
         queryClient.setQueryData<Interview[]>(['recruiterInterviews'], old =>
@@ -245,7 +257,7 @@ const RecruiterInterviews: React.FC = () => {
         setIsRescheduleOpen(true);
     }, [selectedInterview]);
 
-    // ── RBC Callbacks ─────────────────────────────────────────────────────────
+                {/* RBC Callbacks ───────────────────────────────────────────────────────── */}
     const onSelectEvent = useCallback((event: CalendarEvent) => {
         openDetail(event.resource);
     }, [openDetail]);
@@ -260,14 +272,14 @@ const RecruiterInterviews: React.FC = () => {
         }
 
         const isCompleted = iv.status === 'COMPLETED';
-        const isCancelled = iv.status === 'CANCELLED';
+        const isCanceled = iv.status === 'CANCELED';
         return {
             style: {
                 backgroundColor: bg,
                 borderColor: bg,
                 borderRadius: '6px',
-                opacity: isCancelled ? 0.5 : 1,
-                textDecoration: isCancelled ? 'line-through' : 'none',
+                opacity: isCanceled ? 0.5 : 1,
+                textDecoration: isCanceled ? 'line-through' : 'none',
                 color: 'white',
                 fontSize: '12px',
                 fontWeight: isCompleted ? '600' : '500',
@@ -318,13 +330,21 @@ const RecruiterInterviews: React.FC = () => {
                             <button
                                 key={v}
                                 onClick={() => setCurrentView(v)}
-                                className={`px-4 py-2.5 text-sm font-bold flex items-center gap-1.5 transition-colors ${currentView === v ? 'bg-indigo-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                                className={`px-3 py-1.5 text-xs font-bold transition-colors ${currentView === v ? 'bg-indigo-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                             >
-                                {v === 'week' ? <Columns size={15} /> : <LayoutGrid size={15} />}
-                                {v.charAt(0).toUpperCase() + v.slice(1)}
+                                {v === 'week' ? <Columns size={14} /> : <LayoutGrid size={14} />}
                             </button>
                         ))}
                     </div>
+                    {/* New Availability Action */}
+                    <Button
+                        variant="primary"
+                        icon={CalendarIcon}
+                        onClick={() => setIsAvailabilityOpen(true)}
+                        className="h-10 px-6 font-bold bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20"
+                    >
+                        Availability
+                    </Button>
                 </div>
             </div>
 
@@ -392,7 +412,13 @@ const RecruiterInterviews: React.FC = () => {
                     onClose={() => setIsDetailOpen(false)}
                     onReschedule={openReschedule}
                     onCancel={() => setIsCancelConfirmOpen(true)}
-                    onStatusChange={(status) => patchStatus(selectedInterview._id, status)}
+                    onStatusChange={(status) => {
+                        if (status === 'COMPLETED') {
+                            setIsFeedbackOpen(true);
+                        } else {
+                            patchStatus(selectedInterview._id, status);
+                        }
+                    }}
                     onJoin={() => navigate(`/interviews/${selectedInterview._id}/room`)}
                     isUpdating={isUpdating}
                 />
@@ -480,7 +506,7 @@ const RecruiterInterviews: React.FC = () => {
                                 variant="danger"
                                 onClick={async () => {
                                     setIsCancelConfirmOpen(false);
-                                    await patchStatus(selectedInterview._id, 'CANCELLED');
+                                    if (selectedInterview) await patchStatus(selectedInterview._id, 'CANCELED');
                                 }}
                                 isLoading={isUpdating}
                                 className="flex-1"
@@ -488,6 +514,41 @@ const RecruiterInterviews: React.FC = () => {
                                 Cancel Interview
                             </Button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Availability Modal ────────────────────────────────────────── */}
+            {isAvailabilityOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsAvailabilityOpen(false)} />
+                    <div className="relative w-full max-w-2xl transform transition-all animate-slide-up">
+                        <button 
+                            onClick={() => setIsAvailabilityOpen(false)}
+                            className="absolute -top-12 right-0 p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all"
+                        >
+                            <X size={24} />
+                        </button>
+                        <AvailabilityManager />
+                    </div>
+                </div>
+            )}
+
+            {/* ── Feedback Modal ────────────────────────────────────────────── */}
+            {isFeedbackOpen && selectedInterview && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsFeedbackOpen(false)} />
+                    <div className="relative w-full max-w-lg transform transition-all animate-scale-in flex justify-center">
+                        <InterviewFeedbackForm 
+                            interviewId={selectedInterview._id}
+                            studentName={selectedInterview.studentName}
+                            onSuccess={() => {
+                                setIsFeedbackOpen(false);
+                                setIsDetailOpen(false);
+                                queryClient.invalidateQueries({ queryKey: ['recruiterInterviews'] });
+                            }}
+                            onCancel={() => setIsFeedbackOpen(false)}
+                        />
                     </div>
                 </div>
             )}

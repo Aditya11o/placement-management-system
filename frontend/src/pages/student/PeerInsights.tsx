@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
     Search, Filter, Plus, MessageSquare, 
-    ChevronRight, Eye, 
-    Sparkles,
+    ChevronRight, 
     Globe, Zap, Flame, Award, Heart, Users,
     ShieldCheck
 } from 'lucide-react';
@@ -15,7 +14,6 @@ import { useAuth } from '../../context/AuthContext';
 import SkeletonList from '../../components/Skeleton/SkeletonList';
 import { motion } from 'framer-motion';
 import ShareExperienceModal from '../../components/Insights/ShareExperienceModal';
-import { aiService } from '../../services/aiService';
 import InsightStoryCard from './components/InsightStoryCard';
 
 const PeerInsights: React.FC = () => {
@@ -25,20 +23,6 @@ const PeerInsights: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [difficulty, setDifficulty] = useState('');
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [summaries, setSummaries] = useState<Record<string, { content: string, loading: boolean }>>({});
-
-    const handleSummarize = async (e: React.MouseEvent, exp: InterviewExperience) => {
-        e.stopPropagation();
-        if (summaries[exp._id]) return;
-
-        setSummaries(prev => ({ ...prev, [exp._id]: { content: '', loading: true } }));
-        try {
-            const summary = await aiService.summarizeExperience(exp);
-            setSummaries(prev => ({ ...prev, [exp._id]: { content: summary, loading: false } }));
-        } catch (err) {
-            setSummaries(prev => ({ ...prev, [exp._id]: { content: 'Failed to generate summary.', loading: false } }));
-        }
-    };
 
     const { data, isLoading } = useQuery<{ data: InterviewExperience[], pagination: any }>({
         queryKey: ['experiences', searchTerm, difficulty],
@@ -84,7 +68,7 @@ const PeerInsights: React.FC = () => {
                             animate={{ opacity: 1, scale: 1 }}
                             className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/10 border border-white/20 text-indigo-300 text-[10px] font-black uppercase tracking-[0.3em] mb-10 backdrop-blur-xl"
                         >
-                            <Sparkles size={14} className="animate-pulse" />
+                            <Users size={14} className="animate-pulse" />
                             Community Intelligence Hub
                         </motion.div>
                         
@@ -194,8 +178,6 @@ const PeerInsights: React.FC = () => {
                                         exp={exp}
                                         onView={(exp) => addToast(`Viewing ${exp.company_name} story (Detailed View coming soon)`, 'info')}
                                         onVote={id => voteMutation.mutate(id)}
-                                        onSummarize={handleSummarize}
-                                        summary={summaries[exp._id]}
                                         currentUserVoted={exp.upvotes.includes(user?._id || '')}
                                     />
                                 ))}
@@ -235,7 +217,7 @@ const PeerInsights: React.FC = () => {
                         </h4>
                         <div className="space-y-8">
                             {[
-                                { title: 'Keep it Real', desc: 'Detailed rounds are better than short summaries.', icon: Sparkles },
+                                { title: 'Keep it Real', desc: 'Detailed rounds are better than short summaries.', icon: Globe },
                                 { title: 'Ghost Mode', desc: 'Use anonymous sharing if you value privacy.', icon: Globe },
                                 { title: 'Help Peers', desc: 'Share actual questions to build better prep.', icon: Zap }
                             ].map((rule, i) => (

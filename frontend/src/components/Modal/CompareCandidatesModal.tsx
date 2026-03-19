@@ -59,7 +59,7 @@ const CompareCandidatesModal: React.FC<CompareCandidatesModalProps> = ({
 
                                         <div className="w-full bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-3 border border-indigo-100 dark:border-indigo-800/40">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">AI Match Score</span>
+                                                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Match Score</span>
                                                 <span className="text-lg font-black text-indigo-700 dark:text-indigo-300">{app.matchScore}%</span>
                                             </div>
                                             <div className="w-full h-2 bg-indigo-200/50 dark:bg-indigo-900/40 rounded-full overflow-hidden">

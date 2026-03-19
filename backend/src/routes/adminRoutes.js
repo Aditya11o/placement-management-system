@@ -34,7 +34,8 @@ const {
     getSystemHealth,
     purgeData,
     updateUserInternalNotes,
-    bulkUpdateUserStatus
+    bulkUpdateUserStatus,
+    generateManualOfferLetter
 } = require('../controllers/adminController');
 const { getRecruiterPerformance } = require('../controllers/recruiterController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
@@ -205,10 +206,15 @@ router.get('/logs', checkPermission('view_logs'), (req, res) => {
 const upload = multer({
     storage: multer.memoryStorage(),
     fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'text/csv' || file.mimetype === 'application/vnd.ms-excel') {
+        const allowedMimes = [
+            'text/csv',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        ];
+        if (allowedMimes.includes(file.mimetype) || file.originalname.endsWith('.xlsx') || file.originalname.endsWith('.csv')) {
             cb(null, true);
         } else {
-            cb(new Error('Only pristine .csv files are allowed.'));
+            cb(new Error('Only .csv and .xlsx files are allowed.'));
         }
     },
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
@@ -268,6 +274,7 @@ router.get('/jobs/:id/matches', getJobMatches);
 const Application = require('../models/Application');
 router.get('/applications', advancedResults(Application, [{ path: 'student_id', select: 'name email profile_image_url branch resume_url' }, { path: 'job_id', select: 'title' }]), getApplications);
 router.put('/applications/:id/status', updateApplicationStatus);
+router.post('/applications/:id/generate-offer', checkPermission('manage_students'), generateManualOfferLetter);
 
 // Live Command Center (Pulse Feed)
 router.get('/pulse', getLatestPulse);

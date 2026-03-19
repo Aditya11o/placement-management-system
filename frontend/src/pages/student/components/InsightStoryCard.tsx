@@ -2,13 +2,12 @@ import React, { memo } from 'react';
 import { 
     ThumbsUp, 
     Eye, 
-    Sparkles, 
-    Loader2, 
     ArrowRight,
     User,
     Building,
     Calendar,
-    Star
+    Star,
+    MessageSquare
 } from 'lucide-react';
 import Card from '../../../components/Card/Card';
 import { motion } from 'framer-motion';
@@ -19,8 +18,6 @@ interface InsightStoryCardProps {
     exp: InterviewExperience;
     onView: (exp: InterviewExperience) => void;
     onVote: (id: string) => void;
-    onSummarize: (e: React.MouseEvent, exp: InterviewExperience) => void;
-    summary?: { content: string, loading: boolean };
     currentUserVoted: boolean;
 }
 
@@ -28,8 +25,6 @@ const InsightStoryCard: React.FC<InsightStoryCardProps> = memo(({
     exp, 
     onView, 
     onVote, 
-    onSummarize, 
-    summary, 
     currentUserVoted 
 }) => {
     const getDifficultyColor = (diff: string) => {
@@ -102,38 +97,12 @@ const InsightStoryCard: React.FC<InsightStoryCardProps> = memo(({
                         "{exp.tips || exp.rounds[0]?.details || "Deep technical experience shared. Tap to read the full breakdown of questions and strategy."}"
                     </p>
 
-                    {/* AI Wisdom Section */}
-                    {summary ? (
-                        <div className="mb-8 p-6 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-3xl border border-indigo-100/50 dark:border-indigo-500/10 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-2 opacity-10">
-                                <Sparkles size={40} className="text-indigo-500" />
-                            </div>
-                            <div className="flex items-center gap-2 mb-3">
-                                <Sparkles size={14} className="text-indigo-600" />
-                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest italic">AI Quick Summary</span>
-                            </div>
-                            {summary.loading ? (
-                                <div className="flex items-center gap-3 text-sm text-slate-400 font-bold">
-                                    <Loader2 size={16} className="animate-spin text-indigo-500" /> 
-                                    <span>Distilling peak insights...</span>
-                                </div>
-                            ) : (
-                                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-bold">
-                                    {summary.content}
-                                </p>
-                            )}
-                        </div>
-                    ) : (
-                        <button 
-                            onClick={(e) => onSummarize(e, exp)}
-                            className="mb-8 flex items-center gap-3 text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.2em] group/sum transition-all"
-                        >
-                            <span className="px-5 py-3 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 group-hover/sum:bg-indigo-600 group-hover/sum:text-white shadow-sm transition-all flex items-center gap-3">
-                                <Sparkles size={14} className="group-hover/sum:animate-pulse" />
-                                Unlock AI Insights
-                            </span>
-                        </button>
-                    )}
+                    <div className="mb-8 flex items-center gap-3 text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.2em] group/sum transition-all">
+                        <span className="px-5 py-3 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 group-hover/sum:bg-indigo-600 group-hover/sum:text-white shadow-sm transition-all flex items-center gap-3">
+                            <MessageSquare size={14} className="group-hover/sum:animate-pulse" />
+                            Read Full Story
+                        </span>
+                    </div>
 
                     {/* Footer: Author & Engagement */}
                     <div className="pt-8 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">

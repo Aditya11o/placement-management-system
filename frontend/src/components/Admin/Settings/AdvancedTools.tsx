@@ -1,4 +1,4 @@
-import { History, Zap, Shield, AlertTriangle, Database, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import { History, Zap, Shield, AlertTriangle, Database, Trash2, Eraser, Loader2 } from 'lucide-react';
 import Card from '../../Card/Card';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AdminSettingsType } from '../../../types/admin';
@@ -85,7 +85,7 @@ const AdvancedTools: React.FC<AdvancedToolsProps> = ({
 
                         <div className="p-4 rounded-xl border border-red-100 dark:border-red-900/30 bg-white/50 dark:bg-slate-900/50 flex flex-col gap-3">
                             <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
-                                <Sparkles size={18} />
+                                <Eraser size={18} />
                                 <h4 className="font-bold text-sm">Cleanup Registrations</h4>
                             </div>
                             <p className="text-xs text-slate-500 leading-relaxed">Delete student accounts that remained in 'PENDING' status for over 90 days without approval.</p>

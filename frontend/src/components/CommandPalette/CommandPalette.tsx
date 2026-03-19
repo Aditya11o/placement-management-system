@@ -5,7 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import {
     Search, LayoutDashboard, User, Briefcase, Users, Settings,
     ShieldCheck, Calendar, Send, Moon, Sun, 
-    Loader2, ArrowRight, Zap, Sparkles, BookOpen, MessageCircle, FileText,
+    Loader2, ArrowRight, Zap, BookOpen, MessageCircle, FileText,
     TrendingUp, FileCheck, Activity, Shield, ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -123,7 +123,7 @@ const CommandPalette: React.FC = () => {
         { id: 'nav-stu-profile', label: 'My Profile', icon: User, category: 'Navigation', roles: ['STUDENT'], action: () => { navigate('/student/profile'); closePalette(); } },
         { id: 'nav-stu-resumes', label: 'My Resumes', icon: FileText, category: 'Navigation', roles: ['STUDENT'], action: () => { navigate('/student/resumes'); closePalette(); } },
         { id: 'nav-stu-jobs', label: 'Job Board', icon: Briefcase, category: 'Navigation', roles: ['STUDENT'], action: () => { navigate('/student/jobs'); closePalette(); } },
-        { id: 'nav-stu-insights', label: 'Peer Insights', icon: Sparkles, category: 'Navigation', roles: ['STUDENT'], action: () => { navigate('/student/peer-insights'); closePalette(); } },
+        { id: 'nav-stu-insights', label: 'Peer Insights', icon: Zap, category: 'Navigation', roles: ['STUDENT'], action: () => { navigate('/student/peer-insights'); closePalette(); } },
         { id: 'nav-stu-prepkits', label: 'Interview Prep Kits', icon: BookOpen, category: 'Navigation', roles: ['STUDENT'], action: () => { navigate('/student/prep-kits'); closePalette(); } },
         { id: 'nav-stu-messages', label: 'Message Center', icon: MessageCircle, category: 'Navigation', roles: ['STUDENT'], action: () => { navigate('/student/messages'); closePalette(); } },
 
