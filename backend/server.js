@@ -5,9 +5,6 @@ const http = require('http');
 const { Server } = require('socket.io');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const hpp = require('hpp');
-const xss = require('xss-clean');
-const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./config/db');
 
 // Load environment variables
@@ -24,19 +21,13 @@ const io = new Server(server, {
   },
 });
 
+// Make io accessible to our routers/controllers
+app.set('io', io);
+
 // Middleware
 app.use(helmet()); // Security headers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Data sanitization against NoSQL query injection
-app.use(mongoSanitize());
-
-// Data sanitization against XSS
-app.use(xss());
-
-// Prevent HTTP parameter pollution
-app.use(hpp());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -45,7 +36,10 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -54,6 +48,8 @@ app.use('/api/jobs', require('./routes/jobRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/applications', require('./routes/applicationRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/settings', require('./routes/settingsRoutes'));
+app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 
 // Socket.io connection

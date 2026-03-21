@@ -2,12 +2,22 @@ const mongoose = require('mongoose');
 
 const jobSchema = new mongoose.Schema(
   {
-    recruiter: {
+    job_id: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    company_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'CompanyProfile',
       required: true,
     },
     title: {
+      type: String,
+      required: true,
+    },
+    role: {
       type: String,
       required: true,
     },
@@ -15,41 +25,51 @@ const jobSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    companyName: {
+    skills_required: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    min_cgpa: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 10,
+    },
+    course: {
       type: String,
       required: true,
     },
-    location: String,
-    salary: String,
-    jobType: {
+    job_type: {
       type: String,
-      enum: ['Full-time', 'Internship', 'Contract'],
-      default: 'Full-time',
+      required: true,
+      enum: ['Full-time', 'Internship', 'Contract', 'PPO'],
     },
-    eligibility: {
-      minCGPA: {
-        type: Number,
-        default: 0,
-      },
-      branches: [String],
-      skills: [String],
+    location: {
+      type: String,
+      required: true,
     },
-    deadline: {
+    salary: {
+      type: String, // Can be text like "12 LPA" or specific formatting
+      required: true,
+    },
+    last_date: {
       type: Date,
+      required: true,
+    },
+    openings: {
+      type: Number,
       required: true,
     },
     status: {
       type: String,
-      enum: ['open', 'closed', 'pending'],
-      default: 'pending', // Pending approval by Admin
-    },
-    applicationsCount: {
-      type: Number,
-      default: 0,
+      enum: ['Open', 'Closed', 'Paused', 'Archived'],
+      default: 'Open',
     },
   },
   {
-    timestamps: true,
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   }
 );
 

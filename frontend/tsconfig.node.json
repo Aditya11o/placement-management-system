@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "allowJs": true,
+    "outDir": "node_modules/.tmp/node-configs",
+    "emitDeclarationOnly": true
+  },
+  "include": ["vite.config.js", "eslint.config.js"]
+}

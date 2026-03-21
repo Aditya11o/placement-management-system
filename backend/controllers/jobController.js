@@ -1,4 +1,5 @@
 const Job = require('../models/Job');
+const Profile = require('../models/Profile');
 const Notification = require('../models/Notification');
 
 // @desc    Create a job
@@ -19,6 +20,10 @@ const createJob = async (req, res) => {
       eligibility,
       deadline,
     });
+
+    // Emit live socket event to all students
+    const io = req.app.get('io');
+    io.emit('new_job', { title, companyName });
 
     res.status(201).json(job);
   } catch (error) {
@@ -57,13 +62,38 @@ const updateJobStatus = async (req, res) => {
       job.status = req.body.status || job.status;
       const updatedJob = await job.save();
       res.json(updatedJob);
-    } else {
-      res.status(401);
-      res.json({ message: 'Not authorized' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+// @desc    Get matched jobs for student
+// @route   GET /api/jobs/matched
+// @access  Private (Student)
+const getMatchedJobs = async (req, res) => {
+  try {
+    const profile = await Profile.findOne({ user: req.user.id });
+    if (!profile) {
+      res.status(404);
+      return res.json({ message: 'Profile not found' });
+    }
 
-module.exports = { createJob, getJobs, updateJobStatus };
+    const { cgpa, branch } = profile.studentDetails;
+
+    // Filter jobs by CGPA and branch
+    const jobs = await Job.find({
+      status: 'open',
+      deadline: { $gte: new Date() },
+      'eligibility.minCGPA': { $lte: cgpa || 0 },
+      'eligibility.branches': { $in: [branch, 'All', ''] } // Match branch or "All"
+    })
+    .sort({ createdAt: -1 })
+    .populate('recruiter', 'name email');
+
+    res.json(jobs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { createJob, getJobs, updateJobStatus, getMatchedJobs };

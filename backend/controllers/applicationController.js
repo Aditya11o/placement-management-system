@@ -115,10 +115,43 @@ const updateApplicationStatus = async (req, res) => {
       link: `/applications/${application._id}`,
     });
 
+    // Emit live socket event
+    const io = req.app.get('io');
+    io.to(application.student._id.toString()).emit('notification', {
+      message: `Your application status for ${application.job.title || 'a job'} has been updated to ${status}.`,
+      type: 'application',
+    });
+
     res.json(updatedApplication);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { applyForJob, getMyApplications, getJobApplicants, updateApplicationStatus };
+// @desc    Get scheduled interviews for current user
+// @route   GET /api/applications/interviews
+// @access  Private
+const getScheduledInterviews = async (req, res) => {
+  try {
+    let query = { 'interview.date': { $exists: true, $ne: null } };
+    
+    if (req.user.role === 'student') {
+      query.student = req.user.id;
+    } else if (req.user.role === 'recruiter') {
+      const jobs = await Job.find({ recruiter: req.user.id });
+      const jobIds = jobs.map(j => j._id);
+      query.job = { $in: jobIds };
+    }
+
+    const interviews = await Application.find(query)
+      .populate('student', 'name email')
+      .populate('job', 'title companyName location')
+      .sort({ 'interview.date': 1 });
+
+    res.json(interviews);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { applyForJob, getMyApplications, getJobApplicants, updateApplicationStatus, getScheduledInterviews };
