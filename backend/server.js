@@ -3,6 +3,11 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const hpp = require('hpp');
+const xss = require('xss-clean');
+const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./config/db');
 
 // Load environment variables
@@ -20,9 +25,27 @@ const io = new Server(server, {
 });
 
 // Middleware
-app.use(cors());
+app.use(helmet()); // Security headers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Data sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// Data sanitization against XSS
+app.use(xss());
+
+// Prevent HTTP parameter pollution
+app.use(hpp());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 mins
+  max: 100, // max 100 requests per window
+});
+app.use('/api/', limiter);
+
+app.use(cors());
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));

@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const Profile = require('../models/Profile');
 const generateToken = require('../utils/generateToken');
+const generateRefreshToken = require('../utils/generateRefreshToken');
+const jwt = require('jsonwebtoken');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -33,6 +35,7 @@ const registerUser = async (req, res) => {
         email: user.email,
         role: user.role,
         token: generateToken(user._id),
+        refreshToken: generateRefreshToken(user._id),
       });
     } else {
       res.status(400);
@@ -59,6 +62,7 @@ const authUser = async (req, res) => {
         email: user.email,
         role: user.role,
         token: generateToken(user._id),
+        refreshToken: generateRefreshToken(user._id),
       });
     } else {
       res.status(401);
@@ -69,4 +73,29 @@ const authUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, authUser };
+// @desc    Refresh access token
+// @route   POST /api/auth/refresh
+// @access  Public
+const refreshAccessToken = async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Refresh Token is required' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || 'your_refresh_token_secret');
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid Refresh Token' });
+    }
+
+    const accessToken = generateToken(user._id);
+    res.json({ accessToken });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid Refresh Token' });
+  }
+};
+
+module.exports = { registerUser, authUser, refreshAccessToken };
