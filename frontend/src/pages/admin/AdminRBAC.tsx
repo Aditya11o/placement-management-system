@@ -15,8 +15,10 @@ interface AdminAccount {
     _id: string;
     name: string;
     email: string;
-    sub_role: 'SUPER_ADMIN' | 'PLACEMENT_COORDINATOR' | 'ADMIN';
+    sub_role: 'SUPER_ADMIN' | 'PLACEMENT_COORDINATOR' | 'DEPARTMENT_HEAD' | 'ADMIN';
+    branch?: string;
     permissions: string[];
+    twofa_enabled: boolean;
     created_at: string;
 }
 
@@ -38,7 +40,8 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({ isOpen, onClose, on
         name: '',
         email: '',
         password: '',
-        sub_role: 'ADMIN' as const
+        sub_role: 'ADMIN' as 'ADMIN' | 'PLACEMENT_COORDINATOR' | 'DEPARTMENT_HEAD' | 'SUPER_ADMIN',
+        branch: ''
     });
 
     const createMutation = useMutation({
@@ -46,7 +49,7 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({ isOpen, onClose, on
         onSuccess: () => {
             onSuccess();
             onClose();
-            setFormData({ name: '', email: '', password: '', sub_role: 'ADMIN' });
+            setFormData({ name: '', email: '', password: '', sub_role: 'ADMIN', branch: '' });
         },
         onError: (err: any) => addToast(err.response?.data?.message || 'Failed to create admin', 'error'),
     });
@@ -120,9 +123,27 @@ const CreateAdminModal: React.FC<CreateAdminModalProps> = ({ isOpen, onClose, on
                         >
                             <option value="ADMIN">Admin (Standard)</option>
                             <option value="PLACEMENT_COORDINATOR">Placement Coordinator</option>
+                            <option value="DEPARTMENT_HEAD">Department Head</option>
                             <option value="SUPER_ADMIN">Super Admin (Full Access)</option>
                         </select>
                     </div>
+
+                    {formData.sub_role === 'DEPARTMENT_HEAD' && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                        >
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 ml-1">Assigned Branch</label>
+                            <input
+                                required
+                                type="text"
+                                value={formData.branch}
+                                onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                placeholder="e.g. Computer Science"
+                            />
+                        </motion.div>
+                    )}
 
                     <div className="pt-4 flex gap-3">
                         <button
@@ -164,6 +185,7 @@ const PERMISSION_LABELS: Record<string, { label: string; description: string }> 
 const SUB_ROLE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
     SUPER_ADMIN: { label: 'Super Admin', icon: Crown, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' },
     PLACEMENT_COORDINATOR: { label: 'Placement Coordinator', icon: UserCog, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+    DEPARTMENT_HEAD: { label: 'Department Head', icon: Shield, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     ADMIN: { label: 'Admin', icon: User, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
 };
 
@@ -435,7 +457,7 @@ const AdminRBAC: React.FC = () => {
                                         <div className="flex items-center gap-4 mb-6 pb-5 border-b border-slate-200 dark:border-slate-700">
                                             <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Sub-Role:</span>
                                             <div className="flex gap-2">
-                                                {['SUPER_ADMIN', 'PLACEMENT_COORDINATOR', 'ADMIN'].map((role) => {
+                                                {['SUPER_ADMIN', 'PLACEMENT_COORDINATOR', 'DEPARTMENT_HEAD', 'ADMIN'].map((role) => {
                                                     const rc = SUB_ROLE_CONFIG[role];
                                                     const isActive = admin.sub_role === role;
                                                     return (
@@ -459,6 +481,26 @@ const AdminRBAC: React.FC = () => {
                                                 </span>
                                             )}
                                         </div>
+
+                                        {admin.sub_role === 'DEPARTMENT_HEAD' && (
+                                            <div className="flex items-center gap-4 mb-6 pb-5 border-b border-slate-200 dark:border-slate-700">
+                                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Target Branch:</span>
+                                                <input 
+                                                    type="text"
+                                                    defaultValue={admin.branch}
+                                                    onBlur={(e) => {
+                                                        if (e.target.value !== admin.branch) {
+                                                            // Logic to update branch would go here
+                                                            api.put(`/rbac/admins/${admin._id}/branch`, { branch: e.target.value })
+                                                                .then(() => addToast('Branch updated', 'success'))
+                                                                .catch(err => addToast(err.response?.data?.message || 'Failed to update branch', 'error'));
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                    placeholder="Enter branch name"
+                                                />
+                                            </div>
+                                        )}
 
                                         {/* Progressive Disclosure: Advanced Permissions Toggle */}
                                         {!isSuperAdmin && (

@@ -1,91 +1,189 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-
-const resetPasswordSchema = z.object({
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    passwordConfirm: z.string().min(6, 'Please confirm your password')
-}).refine((data) => data.password === data.passwordConfirm, {
-    message: "Passwords don't match",
-    path: ["passwordConfirm"],
-});
-
-type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, ShieldCheck, Check, GraduationCap } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
-import Card from '../../components/Card/Card';
-import Input from '../../components/Input/Input';
-import Button from '../../components/Button/Button';
-import { Lock, ArrowLeft } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { motion } from 'framer-motion';
 import api from '../../services/api';
+import './ResetPassword.css';
 
 const ResetPassword = () => {
     const { resetToken } = useParams();
-    const { addToast } = useToast();
     const navigate = useNavigate();
+    const { addToast } = useToast();
+    const { institutionName, logoUrl } = useTheme();
 
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ResetPasswordFormData>({
-        resolver: zodResolver(resetPasswordSchema),
-        mode: 'onTouched'
+    const [passwords, setPasswords] = useState({
+        newPassword: '',
+        confirmPassword: ''
     });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const onSubmit = async (data: ResetPasswordFormData) => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (passwords.newPassword !== passwords.confirmPassword) {
+            addToast('Passwords do not match', 'error');
+            return;
+        }
+
+        if (passwords.newPassword.length < 6) {
+            addToast('Password must be at least 6 characters', 'error');
+            return;
+        }
+
+        setIsSubmitting(true);
         try {
-            await api.put(`/auth/reset-password/${resetToken}`, { password: data.password });
-            addToast('Password successfully reset. You can now log in.', 'success');
-            navigate('/login');
+            const res = await api.post(`/auth/reset-password/${resetToken}`, {
+                password: passwords.newPassword
+            });
+            
+            if (res.data.success) {
+                addToast('Password reset successful!', 'success');
+                setTimeout(() => navigate('/login'), 2000);
+            }
         } catch (error: any) {
-            addToast(error.response?.data?.message || 'Invalid or expired token', 'error');
+            addToast(error.response?.data?.message || 'Failed to reset password', 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-                <div className="absolute rounded-full blur-[80px] opacity-60 bg-indigo-100 w-[500px] h-[500px] -top-[10%] -left-[10%]"></div>
-                <div className="absolute rounded-full blur-[80px] opacity-60 bg-indigo-50 w-[400px] h-[400px] -bottom-[5%] -right-[5%]"></div>
-            </div>
+        <div className="reset-container">
+            {/* Top Navigation */}
+            <header className="reset-nav">
+                <div className="reset-nav-brand">
+                    <span>{institutionName || 'Placement Portal'}</span>
+                </div>
+                <div className="reset-nav-links">
+                    <Link to="/help" className="reset-nav-link">Help Center</Link>
+                    <Link to="/support" className="support-btn">Support</Link>
+                </div>
+            </header>
 
-            <div className="relative z-10 w-full max-w-[440px] p-4">
-                <div className="text-center mb-8 animate-fade-in">
-                    <h1 className="text-4xl text-indigo-600 tracking-tight font-bold mb-1">TNU</h1>
+            <div className="reset-split">
+                {/* Left Section - Hero */}
+                <div className="reset-hero">
+                    <div className="secure-badge">
+                        <ShieldCheck size={14} />
+                        SECURE ACCESS
+                    </div>
+                    
+                    <h1 className="reset-hero-title">
+                        Update Your<br />
+                        Credentials.
+                    </h1>
+                    
+                    <p className="reset-hero-description">
+                        Maintain the integrity of your academic profile with professional-grade 
+                        security protocols. Your new credentials ensure continued access 
+                        to global placement opportunities.
+                    </p>
+
+                    <div className="graduates-stat">
+                        <div className="avatar-group">
+                            <div className="avatar"><img src="https://i.pravatar.cc/150?u=1" alt="Avatar" /></div>
+                            <div className="avatar"><img src="https://i.pravatar.cc/150?u=2" alt="Avatar" /></div>
+                            <div className="avatar"><img src="https://i.pravatar.cc/150?u=3" alt="Avatar" /></div>
+                        </div>
+                        <span className="stat-text">Joined by <strong>12,000+</strong> graduates this year.</span>
+                    </div>
                 </div>
 
-                <Card className="!p-8 sm:!p-10 shadow-xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                    <h2 className="text-2xl font-bold text-center mb-2 text-slate-800">Create New Password</h2>
-                    <p className="text-slate-500 text-center mb-8 text-sm">Enter your new strong password below.</p>
+                {/* Right Section - Form */}
+                <div className="reset-form-section">
+                    <motion.div 
+                        className="reset-card"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                    >
+                        <h2 className="reset-card-title">Reset Password</h2>
+                        <p className="reset-card-description">
+                            Please choose a unique password to secure your university account.
+                        </p>
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                        <Input
-                            icon={Lock}
-                            type="password"
-                            placeholder="New Password"
-                            {...register('password')}
-                            error={errors.password?.message}
-                        />
+                        <form onSubmit={handleSubmit}>
+                            <div className="reset-form-group">
+                                <label className="reset-label">NEW PASSWORD</label>
+                                <div className="reset-input-wrapper">
+                                    <input 
+                                        type={showPassword ? 'text' : 'password'} 
+                                        className="reset-input"
+                                        placeholder="••••••••••••"
+                                        value={passwords.newPassword}
+                                        onChange={(e) => setPasswords({...passwords, newPassword: e.target.value})}
+                                        required
+                                    />
+                                    <button 
+                                        type="button" 
+                                        className="visibility-toggle"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
 
-                        <Input
-                            icon={Lock}
-                            type="password"
-                            placeholder="Confirm New Password"
-                            {...register('passwordConfirm')}
-                            error={errors.passwordConfirm?.message}
-                        />
+                            <div className="reset-form-group">
+                                <label className="reset-label">CONFIRM NEW PASSWORD</label>
+                                <div className="reset-input-wrapper">
+                                    <input 
+                                        type={showConfirmPassword ? 'text' : 'password'} 
+                                        className="reset-input"
+                                        placeholder="••••••••••••"
+                                        value={passwords.confirmPassword}
+                                        onChange={(e) => setPasswords({...passwords, confirmPassword: e.target.value})}
+                                        required
+                                    />
+                                    <button 
+                                        type="button" 
+                                        className="visibility-toggle"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    >
+                                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
 
-                        <div className="mt-2">
-                            <Button type="submit" isFullWidth isLoading={isSubmitting}>
-                                Save Password
-                            </Button>
+                            <button type="submit" className="reset-submit-btn" disabled={isSubmitting}>
+                                {isSubmitting ? 'Updating...' : 'Reset Password'}
+                            </button>
+                        </form>
+
+                        <div className="divider"></div>
+
+                        <div className="security-standards">
+                            <h3 className="security-title">SECURITY STANDARDS</h3>
+                            <div className="standard-item">
+                                <div className="check-icon"><Check size={10} /></div>
+                                At least 12 characters recommended
+                            </div>
+                            <div className="standard-item">
+                                <div className="check-icon"><Check size={10} /></div>
+                                Include numbers and special symbols
+                            </div>
                         </div>
-                    </form>
 
-                    <div className="mt-8 text-center text-sm text-slate-500 pt-6 border-t border-slate-200">
-                        <Link to="/login" className="flex items-center justify-center gap-2 font-medium text-indigo-600 hover:text-indigo-700">
-                            <ArrowLeft size={16} /> Back to Sign In
-                        </Link>
-                    </div>
-                </Card>
+                        <Link to="/login" className="back-to-login-centered">Back to Login</Link>
+                    </motion.div>
+                </div>
             </div>
+
+            {/* Sticky Footer */}
+            <footer className="reset-footer">
+                <div className="footer-left">
+                    <span className="footer-brand">{institutionName || 'Placement Portal'}</span>
+                    <span className="footer-copyright">© 2024 University Placement Authority. ISO 27001 Certified Security.</span>
+                </div>
+                <div className="footer-right">
+                    <Link to="/privacy" className="footer-link">Privacy Policy</Link>
+                    <Link to="/security" className="footer-link">Security Standards</Link>
+                    <Link to="/terms" className="footer-link">Terms of Service</Link>
+                </div>
+            </footer>
         </div>
     );
 };

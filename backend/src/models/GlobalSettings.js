@@ -39,6 +39,14 @@ const GlobalSettingsSchema = new mongoose.Schema({
         type: String,
         default: '#4f46e5' // Tailwind indigo-600
     },
+    brandSecondaryColor: {
+        type: String,
+        default: '#10b981' // Tailwind emerald-500
+    },
+    brandAccentColor: {
+        type: String,
+        default: '#f59e0b' // Tailwind amber-500
+    },
     institutionName: {
         type: String,
         default: 'TNU'

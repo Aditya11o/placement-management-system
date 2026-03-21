@@ -16,6 +16,8 @@ const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
+const VerifyOTP = lazy(() => import('./pages/auth/VerifyOTP'));
+
 
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
@@ -66,6 +68,13 @@ const NotificationCenter = lazy(() => import('./pages/shared/NotificationCenter'
 const NotFound = lazy(() => import('./pages/shared/NotFound'));
 const Unauthorized = lazy(() => import('./pages/shared/Unauthorized'));
 
+// Info Pages
+const Privacy = lazy(() => import('./pages/info/Privacy'));
+const Terms = lazy(() => import('./pages/info/Terms'));
+const Accessibility = lazy(() => import('./pages/info/Accessibility'));
+const Guidelines = lazy(() => import('./pages/info/Guidelines'));
+
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -96,8 +105,15 @@ const App = () => {
                       <Route path="/register" element={<Register />} />
                       <Route path="/forgot-password" element={<ForgotPassword />} />
                       <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
+                      <Route path="/verify-email" element={<VerifyOTP />} />
                       <Route path="/portfolio/:slug" element={<PublicPortfolio />} />
                       <Route path="/unauthorized" element={<Unauthorized />} />
+
+                      {/* Info Routes */}
+                      <Route path="/privacy" element={<Privacy />} />
+                      <Route path="/terms" element={<Terms />} />
+                      <Route path="/accessibility" element={<Accessibility />} />
+                      <Route path="/guidelines" element={<Guidelines />} />
 
                       {/* Protected Routes (Must be logged in) */}
                       <Route element={<ProtectedRoute />}>

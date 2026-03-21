@@ -2,7 +2,6 @@ const Student = require('../models/Student');
 const Recruiter = require('../models/Recruiter');
 const Job = require('../models/Job');
 const Application = require('../models/Application');
-const aiRiskAnalyzer = require('../utils/aiRiskAnalyzer');
 const campaignService = require('../services/campaignService');
 const mongoose = require('mongoose');
 const Log = require('../models/Log');
@@ -81,6 +80,14 @@ exports.updateUserStatus = async (req, res, next) => {
             description: `Changed ${role} status to ${status}`
         });
 
+        // Real-time Collaboration: Notify all admins
+        dispatchToRole('ADMIN', 'admin:status_update', {
+            id,
+            role,
+            status,
+            updatedBy: req.user._id
+        });
+
         res.json({ success: true, data: user });
     } catch (err) {
         next(err);
@@ -132,6 +139,15 @@ exports.bulkUpdateUserStatus = async (req, res, next) => {
                 }).catch(err => logger.error(`Bulk Notify Error: ${err.message}`));
             }
         }
+
+        // Real-time Collaboration: Notify all admins
+        dispatchToRole('ADMIN', 'admin:status_update', {
+            ids,
+            role,
+            status,
+            isBulk: true,
+            updatedBy: req.user._id
+        });
 
         res.status(200).json({
             success: true,
@@ -1337,3 +1353,116 @@ exports.revokeSession = async (req, res, next) => {
 };
 
 
+/**
+ * @desc    Setup 2FA for Admin
+ * @route   POST /api/v1/admin/2fa/setup
+ * @access  Private/Admin
+ */
+exports.setup2FA = async (req, res, next) => {
+    try {
+        const admin = await Admin.findById(req.user._id);
+        const { secret, qrCodeUrl } = require('../utils/totp').generateSecret(admin.email);
+
+        // Store temp secret
+        admin.twofa_secret = secret;
+        await admin.save();
+
+        res.status(200).json({
+            success: true,
+            qrCodeUrl,
+            secret
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Verify and enable 2FA Setup
+ * @route   POST /api/v1/admin/2fa/verify
+ * @access  Private/Admin
+ */
+exports.verify2FASetup = async (req, res, next) => {
+    try {
+        const { token } = req.body;
+        const admin = await Admin.findById(req.user._id);
+
+        const isValid = require('../utils/totp').verifyToken(admin.twofa_secret, token);
+
+        if (!isValid) {
+            return res.status(400).json({ success: false, message: 'Invalid verification code' });
+        }
+
+        admin.twofa_enabled = true;
+        await admin.save();
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'ENABLE_2FA',
+            description: 'Admin enabled Two-Factor Authentication'
+        });
+
+        res.status(200).json({
+            success: true,
+            message: '2FA enabled successfully'
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Disable 2FA
+ * @route   POST /api/v1/admin/2fa/disable
+ * @access  Private/Admin
+ */
+exports.disable2FA = async (req, res, next) => {
+    try {
+        const admin = await Admin.findById(req.user._id);
+        admin.twofa_enabled = false;
+        admin.twofa_secret = undefined;
+        await admin.save();
+
+        await Log.create({
+            user_id: req.user._id,
+            user_role: 'ADMIN',
+            action: 'DISABLE_2FA',
+            description: 'Admin disabled Two-Factor Authentication'
+        });
+
+        res.status(200).json({
+            success: true,
+            message: '2FA disabled successfully'
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * @desc    Update Admin Branch (for DEPARTMENT_HEAD)
+ * @route   PUT /api/v1/admin/rbac/admins/:id/branch
+ * @access  Private/Admin (Super Admin)
+ */
+exports.updateAdminBranch = async (req, res, next) => {
+    try {
+        const { branch } = req.body;
+        const admin = await Admin.findById(req.params.id);
+
+        if (!admin) {
+            return res.status(404).json({ success: false, message: 'Admin not found' });
+        }
+
+        admin.branch = branch;
+        await admin.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Branch updated successfully',
+            data: admin
+        });
+    } catch (err) {
+        next(err);
+    }
+};

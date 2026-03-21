@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const softDeletePlugin = require('./plugins/softDelete');
 const tenantPlugin = require('./plugins/tenantPlugin');
 

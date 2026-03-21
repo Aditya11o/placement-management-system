@@ -7,6 +7,7 @@ const Company = require('../models/Company');
 const Log = require('../models/Log');
 const Session = require('../models/Session');
 const UAParser = require('ua-parser-js');
+const sendEmail = require('../utils/sendEmail');
 const { emailQueue } = require('../utils/emailQueue');
 const config = require('../config/config');
 const { sendSystemAlert } = require('../utils/webhookHelper');
@@ -34,14 +35,16 @@ exports.registerStudent = async (req, res, next) => {
 
         const { name, email, password, branch, cgpa, graduation_year, phone, backlogs_active, marks_10th, marks_12th, gender } = req.body;
 
-        // ── Placement Policy: Minimum CGPA gate ─────────────────────────────
-        if (settings && settings.minCGPAForRegistration > 0 && cgpa < settings.minCGPAForRegistration) {
+        // --- Placement Policy Skip ---
+        // If mandatory fields (branch, cgpa, etc.) are missing, we skip these checks
+        // and allow basic registration. The student must update their profile later.
+        if (cgpa !== undefined && settings && settings.minCGPAForRegistration > 0 && cgpa < settings.minCGPAForRegistration) {
             return res.status(400).json({
                 success: false,
                 message: `Minimum CGPA of ${settings.minCGPAForRegistration} is required for registration.`
             });
         }
-        // ────────────────────────────────────────────────────────────────────
+        // ------------------------------
 
         const exists = await Student.findOne({ email });
         if (exists) return res.status(400).json({ success: false, message: 'Student with this email already exists' });
@@ -52,9 +55,66 @@ exports.registerStudent = async (req, res, next) => {
             marks_10th, marks_12th, gender
         });
 
-        await Log.create({ user_id: student._id, user_role: 'STUDENT', action: 'REGISTER', description: 'Student registered account' });
+        const token = student.getVerificationToken();
+        await student.save();
 
-        res.status(201).json({ success: true, message: 'Student registered successfully, pending admin approval.' });
+        try {
+            await sendEmail({
+                email: student.email,
+                subject: 'Verify Your Email',
+                template: 'verifyEmail',
+                context: {
+                    name: student.name,
+                    otp: token
+                }
+            });
+        } catch (emailErr) {
+            // Since email failed, we should probably delete the student record so they can try again
+            await student.deleteOne();
+            return res.status(500).json({ success: false, message: 'Failed to send verification email. Please check your email address or try again later.' });
+        }
+
+        await Log.create({ user_id: student._id, user_role: 'STUDENT', action: 'REGISTER', description: 'Student registered account, verification pending' });
+
+        res.status(201).json({ success: true, message: 'Registration successful! Please verify your email with the OTP sent.' });
+    } catch (err) {
+        next(err);
+    }
+};
+
+exports.registerAdmin = async (req, res, next) => {
+    try {
+        const { name, email, password } = req.body;
+        
+        const exists = await Admin.findOne({ email });
+        if (exists) return res.status(400).json({ success: false, message: 'Admin with this email already exists' });
+
+        const admin = await Admin.create({
+            name, email, password,
+            sub_role: 'ADMIN' // Default role for registration
+        });
+
+        const token = admin.getVerificationToken();
+        await admin.save();
+
+        try {
+            await sendEmail({
+                email: admin.email,
+                subject: 'Verify Your Email',
+                template: 'verifyEmail',
+                context: {
+                    name: admin.name,
+                    otp: token
+                }
+            });
+        } catch (emailErr) {
+            await admin.deleteOne();
+            return res.status(500).json({ success: false, message: 'Failed to send verification email. Please check your email address or try again later.' });
+        }
+
+        await Log.create({ user_id: admin._id, user_role: 'ADMIN', action: 'REGISTER', description: 'Admin registered account, verification pending' });
+
+        res.status(201).json({ success: true, message: 'Registration successful! Please verify your email with the OTP sent.' });
     } catch (err) {
         next(err);
     }
@@ -69,7 +129,8 @@ exports.registerRecruiter = async (req, res, next) => {
             return res.status(403).json({ success: false, message: 'Recruiter registration is currently disabled by the administrator.' });
         }
 
-        const { company_name, contact_person, email, password, phone, join_code } = req.body;
+        const { company_name, contact_person, name, email, password, phone, join_code } = req.body;
+        const recruiter_name = contact_person || name;
         const exists = await Recruiter.findOne({ email });
         if (exists) return res.status(400).json({ success: false, message: 'Recruiter with this email already exists' });
 
@@ -89,7 +150,7 @@ exports.registerRecruiter = async (req, res, next) => {
         // Create recruiter first (but don't save yet if we need company_id)
         const recruiter = new Recruiter({ 
             company_name: company ? company.name : company_name, 
-            contact_person, 
+            contact_person: recruiter_name, 
             email, 
             password, 
             phone,
@@ -105,9 +166,27 @@ exports.registerRecruiter = async (req, res, next) => {
         }
 
         recruiter.company_id = company._id;
+        const token = recruiter.getVerificationToken();
         await recruiter.save();
 
-        await Log.create({ user_id: recruiter._id, user_role: 'RECRUITER', action: 'REGISTER', description: `Recruiter registered as ${role} for ${company.name}` });
+        try {
+            await sendEmail({
+                email: recruiter.email,
+                subject: 'Verify Your Email',
+                template: 'verifyEmail',
+                context: {
+                    name: recruiter.contact_person,
+                    otp: token
+                }
+            });
+        } catch (emailErr) {
+            await recruiter.deleteOne();
+            // Optional: delete company if it was just created? 
+            // For now keep it simple.
+            return res.status(500).json({ success: false, message: 'Failed to send verification email. Please check your email address or try again later.' });
+        }
+
+        await Log.create({ user_id: recruiter._id, user_role: 'RECRUITER', action: 'REGISTER', description: `Recruiter registered as ${role} for ${company.name}, verification pending` });
 
         // 🔌 Trigger System Webhook if configured
         if (settings && settings.systemWebhookUrl) {
@@ -124,7 +203,7 @@ exports.registerRecruiter = async (req, res, next) => {
             );
         }
 
-        res.status(201).json({ success: true, message: 'Recruiter registered successfully, pending admin approval.' });
+        res.status(201).json({ success: true, message: 'Registration successful! Please verify your email with the OTP sent.' });
     } catch (err) {
         next(err);
     }
@@ -185,6 +264,11 @@ exports.login = async (req, res, next) => {
         // Wipe strikes upon successful primary auth
         if (redisClient && redisClient.isReady) {
             await redisClient.del(strikeKey);
+        }
+
+        // Check if email is verified
+        if (!user.is_verified) {
+            return res.status(403).json({ success: false, message: 'Email not verified. Please verify your email first.', unverified: true });
         }
 
         // Check if user is pending admin approval
@@ -661,6 +745,42 @@ exports.updateRecruiterProfile = async (req, res, next) => {
         next(err);
     }
 };
+
+exports.verifyEmail = async (req, res, next) => {
+    try {
+        const { email, role, otp } = req.body;
+        if (!email || !role || !otp) {
+            return res.status(400).json({ success: false, message: 'Please provide email, role, and verification code' });
+        }
+
+        let user;
+        if (role === 'STUDENT') user = await Student.findOne({ email });
+        else if (role === 'RECRUITER') user = await Recruiter.findOne({ email });
+        else if (role === 'ADMIN') user = await Admin.findOne({ email });
+
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        if (user.is_verified) {
+            return res.status(400).json({ success: false, message: 'Email is already verified' });
+        }
+
+        if (user.verification_token !== otp || user.verification_token_expire < Date.now()) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired verification code' });
+        }
+
+        user.is_verified = true;
+        user.verification_token = undefined;
+        user.verification_token_expire = undefined;
+        await user.save();
+
+        await Log.create({ user_id: user._id, user_role: role, action: 'VERIFY_EMAIL', description: 'User verified email successfully' });
+
+        res.status(200).json({ success: true, message: 'Email verified successfully! You can now login.' });
+    } catch (err) {
+        next(err);
+    }
+};
+
 
 /**
  * @desc    Get Google Auth URL for recruiters

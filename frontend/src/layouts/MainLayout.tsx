@@ -30,7 +30,7 @@ interface NavItem {
 const MainLayout: React.FC = () => {
     const { user, logout } = useAuth();
     const queryClient = useQueryClient();
-    const { logoUrl } = useTheme();
+    const { logoUrl, institutionName } = useTheme();
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(() => {
         const saved = localStorage.getItem('sidebar_collapsed');
@@ -149,7 +149,7 @@ const MainLayout: React.FC = () => {
                         logoUrl ? (
                             <img src={logoUrl} alt="Institution Logo" className="h-8 w-auto object-contain" />
                         ) : (
-                            <h2 className="text-brand-600 dark:text-brand-400 m-0 text-2xl font-bold tracking-tight px-2">TNU</h2>
+                            <h2 className="text-brand-600 dark:text-brand-400 m-0 text-2xl font-bold tracking-tight px-2">{institutionName}</h2>
                         )
                     )}
                     <button 

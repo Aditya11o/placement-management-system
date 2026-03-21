@@ -33,8 +33,13 @@ const adminSchema = new mongoose.Schema({
     // ── RBAC sub-role ──────────────────────────────────────────────────────────
     sub_role: {
         type: String,
-        enum: ['SUPER_ADMIN', 'PLACEMENT_COORDINATOR', 'ADMIN'],
+        enum: ['SUPER_ADMIN', 'PLACEMENT_COORDINATOR', 'DEPARTMENT_HEAD', 'ADMIN'],
         default: 'ADMIN'
+    },
+    branch: {
+        type: String,
+        required: function() { return this.sub_role === 'DEPARTMENT_HEAD'; },
+        description: 'Branch name for Department Heads'
     },
 
     /**
@@ -60,7 +65,13 @@ const adminSchema = new mongoose.Schema({
     internal_notes: {
         type: String,
         default: ''
-    }
+    },
+    is_verified: {
+        type: Boolean,
+        default: false
+    },
+    verification_token: String,
+    verification_token_expire: Date
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }
 });
@@ -103,6 +114,13 @@ adminSchema.methods.getResetPasswordToken = function () {
     this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     return resetToken;
+};
+
+adminSchema.methods.getVerificationToken = function () {
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    this.verification_token = token;
+    this.verification_token_expire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    return token;
 };
 
 const Admin = mongoose.model('Admin', adminSchema);

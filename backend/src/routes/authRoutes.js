@@ -1,8 +1,8 @@
 const express = require('express');
-const { registerStudent, registerRecruiter, login, getMe, forgotPassword, resetPassword, refreshToken, getSessions, logout, logoutAll, configureWebhook, updateRecruiterProfile, generate2FA, enable2FA, verify2FALogin, disable2FA, getGoogleAuthUrl, googleCallback, saveGoogleTokens } = require('../controllers/authController');
+const { registerStudent, registerRecruiter, registerAdmin, login, verifyEmail, getMe, forgotPassword, resetPassword, refreshToken, getSessions, logout, logoutAll, configureWebhook, updateRecruiterProfile, generate2FA, enable2FA, verify2FALogin, disable2FA, getGoogleAuthUrl, googleCallback, saveGoogleTokens } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const { validate } = require('../middlewares/validate');
-const { validateStudentRegister, validateRecruiterRegister, validateLogin } = require('../validations/authValidator');
+const { validateStudentRegister, validateRecruiterRegister, validateAdminRegister, validateLogin } = require('../validations/authValidator');
 const { loginLimiter, registerLimiter } = require('../middlewares/rateLimiter');
 
 const router = express.Router();
@@ -96,6 +96,7 @@ router.post('/register/student', registerLimiter, validateStudentRegister, valid
  *         description: Validation error
  */
 router.post('/register/recruiter', registerLimiter, validateRecruiterRegister, validate, registerRecruiter);
+router.post('/register/admin', registerLimiter, validateAdminRegister, validate, registerAdmin);
 
 /**
  * @swagger
@@ -130,6 +131,8 @@ router.post('/register/recruiter', registerLimiter, validateRecruiterRegister, v
  *         description: Account pending approval or blocked
  */
 router.post('/login', loginLimiter, validateLogin, validate, login);
+router.post('/verify-email', verifyEmail);
+
 
 /**
  * @swagger

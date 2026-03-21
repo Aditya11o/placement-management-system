@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
+import { useSocket } from '../../context/SocketContext';
 import { ShieldCheck, Users, Building, CheckCircle, XCircle, Eye, Search } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import Card from '../../components/Card/Card';
@@ -10,6 +11,7 @@ import CompanyDetailsDrawer from '../../components/CompanyDetailsDrawer/CompanyD
 const AdminApprovals = () => {
     const { addToast } = useToast();
     const queryClient = useQueryClient();
+    const { socket } = useSocket();
     const [activeTab, setActiveTab] = useState<'STUDENT' | 'RECRUITER'>('RECRUITER');
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -92,6 +94,27 @@ const AdminApprovals = () => {
             setSelectedUser(null);
         }
     };
+
+    // Real-time synchronization for admin collaboration
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleStatusUpdate = (data: any) => {
+            // Update the appropriate list based on the role
+            if (data.role === 'STUDENT') {
+                queryClient.invalidateQueries({ queryKey: ['adminPendingStudents'] });
+            } else if (data.role === 'RECRUITER') {
+                queryClient.invalidateQueries({ queryKey: ['adminPendingRecruiters'] });
+                queryClient.invalidateQueries({ queryKey: ['adminStats'] });
+            }
+            addToast(`Live Update: ${data.name || 'A user'}'s status was updated.`, 'info');
+        };
+
+        socket.on('admin:status_update', handleStatusUpdate);
+        return () => {
+            socket.off('admin:status_update', handleStatusUpdate);
+        };
+    }, [socket, queryClient, addToast]);
 
     const handleViewProfile = (user: any) => {
         setSelectedUser(user);

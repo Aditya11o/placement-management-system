@@ -9,6 +9,8 @@ interface ThemeContextProps {
     isDark: boolean;
     logoUrl: string | null;
     faviconUrl: string | null;
+    institutionName: string;
+    primaryColor: string;
 }
 
 const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
@@ -46,15 +48,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
     const [isDark, setIsDark] = useState(false);
     const [primaryColor, setPrimaryColor] = useState<string>('#4f46e5'); // Default Indigo-600
+    const [secondaryColor, setSecondaryColor] = useState<string>('#10b981'); // Default Emerald-500
+    const [accentColor, setAccentColor] = useState<string>('#f59e0b'); // Default Amber-500
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
+    const [institutionName, setInstitutionName] = useState<string>('TNU');
     const [meshColors, setMeshColors] = useState<string[]>(['#6366f1', '#8b5cf6', '#d946ef', '#3b82f6']);
 
     // Fetch Global Settings for Branding
     useEffect(() => {
         const fetchSettings = async () => {
             const token = localStorage.getItem('token');
-            // Avoid unauthorized calls if no token is present
             if (!token) return;
 
             try {
@@ -62,41 +66,47 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 if (response.data?.success) {
                     const settings = response.data.data;
                     if (settings.primaryColor) setPrimaryColor(settings.primaryColor);
+                    if (settings.brandSecondaryColor) setSecondaryColor(settings.brandSecondaryColor);
+                    if (settings.brandAccentColor) setAccentColor(settings.brandAccentColor);
                     if (settings.logoUrl) setLogoUrl(settings.logoUrl);
                     if (settings.faviconUrl) setFaviconUrl(settings.faviconUrl);
+                    if (settings.institutionName) setInstitutionName(settings.institutionName);
                     if (settings.meshGradientColors && settings.meshGradientColors.length === 4) {
                         setMeshColors(settings.meshGradientColors);
                     }
                 }
             } catch (error) {
-                // Keep it silent during development if it fails (not critical)
                 console.debug('Branding fetch skipped or failed.');
             }
         };
         fetchSettings();
     }, []);
 
-    // Inject CSS Variables for the selected Primary Color & Mesh Colors
+    // Inject CSS Variables
     useEffect(() => {
         const root = document.documentElement;
 
-        // Brand Shades
+        // Primary Brand Shades
         root.style.setProperty('--color-brand-50', adjustColor(primaryColor, 80));
         root.style.setProperty('--color-brand-100', adjustColor(primaryColor, 60));
         root.style.setProperty('--color-brand-200', adjustColor(primaryColor, 40));
         root.style.setProperty('--color-brand-300', adjustColor(primaryColor, 20));
         root.style.setProperty('--color-brand-400', adjustColor(primaryColor, 10));
         root.style.setProperty('--color-brand-500', adjustColor(primaryColor, 5));
-        root.style.setProperty('--color-brand-600', primaryColor); // Base
+        root.style.setProperty('--color-brand-600', primaryColor);
         root.style.setProperty('--color-brand-700', adjustColor(primaryColor, -15));
         root.style.setProperty('--color-brand-800', adjustColor(primaryColor, -30));
         root.style.setProperty('--color-brand-900', adjustColor(primaryColor, -45));
+
+        // Secondary & Accent Base Colors
+        root.style.setProperty('--color-brand-secondary', secondaryColor);
+        root.style.setProperty('--color-brand-accent', accentColor);
 
         // Mesh Gradient Colors
         meshColors.forEach((color, idx) => {
             root.style.setProperty(`--mesh-color-${idx + 1}`, hexToRgbValues(color));
         });
-    }, [primaryColor, meshColors]);
+    }, [primaryColor, secondaryColor, accentColor, meshColors]);
 
     // Update Favicon
     useEffect(() => {
@@ -151,7 +161,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [theme]);
 
     return (
-        <ThemeContext.Provider value={{ theme, setTheme, isDark, logoUrl, faviconUrl }}>
+        <ThemeContext.Provider value={{ theme, setTheme, isDark, logoUrl, faviconUrl, institutionName, primaryColor }}>
             {children}
         </ThemeContext.Provider>
     );

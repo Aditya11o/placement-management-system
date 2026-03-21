@@ -20,4 +20,7 @@ export interface AdminSettingsType {
     autoScheduleInterviews: boolean;
     faviconUrl: string;
     meshGradientColors: string[];
+    brandSecondaryColor: string;
+    brandAccentColor: string;
+    institutionName: string;
 }

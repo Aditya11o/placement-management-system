@@ -59,49 +59,22 @@ if (config.get('env') !== 'test') {
         try {
             logger.info(`Processing email job ${job.id} to ${job.data.email}`);
 
-            let htmlPayload = null;
-            let subjectPayload = job.data.subject;
-
-            if (job.data.template) {
-                // 1. Try fetching from the database first
-                const dbTemplate = await EmailTemplate.findOne({ name: job.data.template });
-
-                if (dbTemplate) {
-                    subjectPayload = dbTemplate.subject || job.data.subject;
-                    let rawHtml = dbTemplate.htmlContent;
-
-                    // Simple regex interpolation: replaces {{key}} with context[key]
-                    if (job.data.context) {
-                        for (const [key, value] of Object.entries(job.data.context)) {
-                            const regex = new RegExp(`{{${key}}}`, 'g');
-                            rawHtml = rawHtml.replace(regex, value);
-                        }
-                    }
-
-                    // Wrap the custom HTML in the base wrapper layout
-                    const wrapperPath = path.join(__dirname, '..', 'templates', 'emails', 'base.ejs');
-                    htmlPayload = await ejs.renderFile(wrapperPath, { body: rawHtml });
-                } else {
-                    // 2. Fallback to static EJS file if DB template is missing
-                    const templatePath = path.join(__dirname, '..', 'templates', 'emails', `${job.data.template}.ejs`);
-                    const rawHtml = await ejs.renderFile(templatePath, job.data.context || {});
-                    const wrapperPath = path.join(__dirname, '..', 'templates', 'emails', 'base.ejs');
-                    htmlPayload = await ejs.renderFile(wrapperPath, { body: rawHtml });
-                }
-            }
-
             await sendEmail({
                 email: job.data.email,
-                subject: subjectPayload,
-                message: job.data.message, // Fallback string payload
-                html: htmlPayload // The compiled HTML UI
+                subject: job.data.subject,
+                message: job.data.message,
+                html: job.data.html,
+                template: job.data.template,
+                context: job.data.context
             });
+            
             logger.info(`Successfully processed email job ${job.id} to ${job.data.email}`);
         } catch (err) {
             logger.error(`Failed to process email job ${job.id}: ${err.message}`);
             throw err; // triggers BullMQ retry logic
         }
     }, { connection });
+
 
     // Handle worker events safely
     emailWorker.on('completed', job => {

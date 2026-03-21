@@ -16,8 +16,17 @@ const advancedResults = (model, populate) => async (req, res, next) => {
     // Create operators ($gt, $gte, etc)
     queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in|regex|options)\b/g, match => `$${match}`);
 
+    // ── RBAC Branch Filtering for DEPARTMENT_HEAD ──────────────────────────────────
+    if (req.user && req.user.role === 'ADMIN' && req.user.sub_role === 'DEPARTMENT_HEAD' && req.user.branch) {
+        // If we're querying Students or Applications, restrict to their branch
+        if (model.modelName === 'Student') {
+            req.advancedFilter = { ...req.advancedFilter, branch: req.user.branch };
+        } else if (model.modelName === 'Application') {
+            req.advancedFilter = { ...req.advancedFilter, branch: req.user.branch };
+        }
+    }
+
     // Finding resource
-    // Additional filters can be attached to req.advancedFilter base query by controllers before hitting this
     query = model.find({ ...JSON.parse(queryStr), ...(req.advancedFilter || {}) });
 
     // Select Fields

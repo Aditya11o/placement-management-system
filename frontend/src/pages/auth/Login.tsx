@@ -1,24 +1,49 @@
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import Input from '../../components/Input/Input';
-import Button from '../../components/Button/Button';
-import { Mail, Lock, User, Briefcase, Shield } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { Mail, Lock, GraduationCap } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import Login2FAStep from './components/Login2FAStep';
+import './Login.css';
 
 const loginSchema = z.object({
     email: z.string().min(1, 'Email is required').email('Invalid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     role: z.enum(['STUDENT', 'RECRUITER', 'ADMIN']),
     rememberMe: z.boolean()
+}).superRefine((data, ctx) => {
+    const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'protonmail.com', 'zoho.com'];
+    const domain = data.email.split('@')[1];
+
+    if ((data.role === 'STUDENT' || data.role === 'ADMIN') && !data.email.endsWith('@tnu.in')) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Only university emails (@tnu.in) are allowed for ${data.role.toLowerCase()}s`,
+            path: ['email'],
+        });
+    }
+
+    if (data.role === 'RECRUITER' && personalDomains.includes(domain)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Please use your company/business email for login.',
+            path: ['email'],
+        });
+    }
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 const Login = () => {
+    const [show2FA, setShow2FA] = React.useState(false);
+    const [tempToken, setTempToken] = React.useState<string | null>(null);
+    const [isVerifying, setIsVerifying] = React.useState(false);
+
     const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
         defaultValues: { email: '', password: '', role: 'STUDENT', rememberMe: false },
@@ -26,194 +51,226 @@ const Login = () => {
     });
 
     const selectedRole = watch('role');
-    const { login } = useAuth();
+    const { login, verify2FA } = useAuth();
     const { addToast } = useToast();
+    const { logoUrl, institutionName } = useTheme();
     const navigate = useNavigate();
 
     const handleRoleSelect = (role: 'STUDENT' | 'RECRUITER' | 'ADMIN') => {
         setValue('role', role, { shouldValidate: true });
     };
 
+    const handleLoginSuccess = (role: string) => {
+        addToast('Successfully logged in!', 'success');
+        if (role === 'STUDENT') navigate('/student/dashboard');
+        else if (role === 'RECRUITER') navigate('/recruiter/dashboard');
+        else navigate('/admin/dashboard');
+    };
+
     const onSubmit = async (data: LoginFormData) => {
         try {
-            const { role } = await login(data);
-            addToast('Successfully logged in!', 'success');
+            const result = await login(data);
+            
+            if (result.requires2FA) {
+                setTempToken(result.tempToken!);
+                setShow2FA(true);
+                return;
+            }
 
-            // Redirect based on role
-            if (role === 'STUDENT') navigate('/student/dashboard');
-            else if (role === 'RECRUITER') navigate('/recruiter/dashboard');
-            else navigate('/admin/dashboard');
-
+            handleLoginSuccess(result.role!);
         } catch (error: any) {
+            if (error.response?.data?.unverified) {
+                addToast('Please verify your email to continue.', 'info');
+                navigate('/verify-email', { 
+                    state: { 
+                        email: watch('email'), 
+                        role: watch('role') 
+                    } 
+                });
+                return;
+            }
             addToast(error.response?.data?.message || 'Login failed', 'error');
         }
     };
 
-    return (
-        <div className="min-h-screen w-full flex bg-white font-sans">
-            {/* Left Side - Image/Branding (Hidden on mobile) */}
-            <div className="hidden lg:flex w-1/2 relative flex-col justify-between overflow-hidden bg-slate-900">
-                {/* Background Image */}
-                <img 
-                    src="/assets/images/login_hero.jpg" 
-                    alt="TNU Campus" 
-                    className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay"
-                />
-                
-                {/* Overlay Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-slate-900/50 w-full h-full pointer-events-none" />
+    const onVerify2FA = async (otp: string) => {
+        if (!tempToken) return;
+        setIsVerifying(true);
+        try {
+            const { role } = await verify2FA(otp, tempToken);
+            handleLoginSuccess(role);
+        } catch (error: any) {
+            addToast(error.response?.data?.message || 'Invalid code', 'error');
+        } finally {
+            setIsVerifying(false);
+        }
+    };
 
-                {/* Content over image - Top */}
-                <div className="relative z-10 p-12">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
-                            <Shield className="text-white w-6 h-6" />
-                        </div>
-                        <h1 className="text-2xl font-bold text-white tracking-tight">TNU PMS</h1>
+
+
+    return (
+        <div className="login-container">
+            {/* Left Section - Hero */}
+            <div className="login-hero">
+                <div className="login-hero-pattern"></div>
+                
+                <div className="login-hero-content">
+                    <div className="login-logo-container">
+                        {logoUrl ? (
+                            <img src={logoUrl} alt="Logo" className="login-logo-icon" />
+                        ) : (
+                            <GraduationCap className="login-logo-icon" color="white" />
+                        )}
+                        <span className="login-logo-text">{institutionName || 'Academic Authority'}</span>
                     </div>
+
+                    <h1 className="login-hero-title">
+                        Welcome to<br />
+                        the Placement<br />
+                        Management<br />
+                        System.
+                    </h1>
+
+                    <p className="login-hero-description">
+                        The digital curator for career excellence. Connect with global opportunities, 
+                        manage your professional portfolio, and secure your future.
+                    </p>
                 </div>
 
-                {/* Content over image - Bottom */}
-                <div className="relative z-10 p-12 pb-16">
-                    <blockquote className="space-y-4 max-w-lg">
-                        <p className="text-3xl font-medium text-white leading-tight">
-                            "Empowering students and recruiters to connect effortlessly and shape the future."
-                        </p>
-                        <footer className="text-indigo-200">
-                            <p className="font-semibold text-white">TNU Administration</p>
-                            <p className="text-sm opacity-80">Placement Management System</p>
-                        </footer>
-                    </blockquote>
+                <div className="login-hero-stats">
+                    <div className="stat-item">
+                        <span className="stat-value">98%</span>
+                        <span className="stat-label">Placement Rate</span>
+                    </div>
+                    <div className="stat-item">
+                        <span className="stat-value">500+</span>
+                        <span className="stat-label">Global Partners</span>
+                    </div>
                 </div>
             </div>
 
-            {/* Right Side - Login Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative overflow-hidden bg-slate-50 lg:bg-white text-slate-800">
-                
-                {/* Mobile Background Elements (Only visible on small screens) */}
-                <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none lg:hidden">
-                    <div className="absolute rounded-full blur-[80px] opacity-60 bg-indigo-100 w-[500px] h-[500px] -top-[10%] -left-[10%]"></div>
-                    <div className="absolute rounded-full blur-[80px] opacity-60 bg-indigo-50 w-[400px] h-[400px] -bottom-[5%] -right-[5%]"></div>
-                </div>
-
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="w-full max-w-[420px] relative z-10"
-                >
-                    {/* Mobile Logo Header */}
-                    <div className="lg:hidden flex flex-col items-center justify-center mb-10">
-                        <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md mb-4">
-                            <Shield className="text-white w-7 h-7" />
-                        </div>
-                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">TNU PMS</h1>
-                    </div>
-
-                    <div className="mb-8 text-center lg:text-left">
-                        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Welcome back</h2>
-                        <p className="text-slate-500 text-[15px]">Sign in to your account</p>
-                    </div>
-
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                        
-                        {/* Custom Role Selector */}
-                        <div className="bg-slate-100/70 p-1.5 rounded-xl flex mb-6 shadow-sm border border-slate-200/50 relative overflow-hidden">
-                            {(['STUDENT', 'RECRUITER', 'ADMIN'] as const).map((role) => {
-                                const isSelected = selectedRole === role;
-                                return (
-                                    <button
-                                        key={role}
-                                        type="button"
-                                        onClick={() => handleRoleSelect(role)}
-                                        className={`relative flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-300 z-10 ${
-                                            isSelected
-                                            ? 'text-[#6C63FF]' 
-                                            : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'
-                                        }`}
-                                    >
-                                        {isSelected && (
-                                            <motion.div
-                                                layoutId="activeRoleTab"
-                                                className="absolute inset-0 bg-white shadow-sm border border-slate-200/50 rounded-lg"
-                                                initial={false}
-                                                transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                                            />
-                                        )}
-                                        <div className="relative z-20 flex items-center gap-2">
-                                            {role === 'STUDENT' && <User size={16} />}
-                                            {role === 'RECRUITER' && <Briefcase size={16} />}
-                                            {role === 'ADMIN' && <Shield size={16} />}
-                                            <span className="capitalize hidden sm:inline">{role.toLowerCase()}</span>
-                                            <span className="capitalize sm:hidden text-xs">{role === 'RECRUITER' ? 'Recruit' : role.toLowerCase()}</span>
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="space-y-4">
-                            <Input
-                                icon={Mail}
-                                type="email"
-                                label="Email address"
-                                placeholder="name@domain.com"
-                                className="bg-white/50 focus-within:bg-white"
-                                {...register('email')}
-                                error={errors.email?.message}
-                            />
-
-                            <Input
-                                icon={Lock}
-                                type="password"
-                                label="Password"
-                                placeholder="••••••••"
-                                className="bg-white/50 focus-within:bg-white"
-                                {...register('password')}
-                                error={errors.password?.message}
-                            />
-                        </div>
-
-                        <div className="flex justify-between items-center text-[14px] pt-1 pb-2">
-                            <label className="flex items-center gap-2 text-slate-600 cursor-pointer group">
-                                <div className="relative flex items-center justify-center w-4 h-4 rounded border border-slate-300 bg-white group-hover:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
-                                    <input 
-                                        type="checkbox" 
-                                        className="peer opacity-0 absolute inset-0 cursor-pointer" 
-                                        {...register('rememberMe')}
-                                    />
-                                    <svg className="w-3 h-3 text-indigo-600 scale-0 peer-checked:scale-100 transition-transform duration-200" viewBox="0 0 14 14" fill="none">
-                                        <path d="M3 8L6 11L11 3.5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" stroke="currentColor"/>
-                                    </svg>
-                                </div>
-                                <span className="font-medium group-hover:text-slate-900 transition-colors">Remember me</span>
-                            </label>
-                            <Link to="/forgot-password" className="font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
-                                Forgot password?
-                            </Link>
-                        </div>
-
-                        <Button 
-                            type="submit" 
-                            isFullWidth 
-                            isLoading={isSubmitting}
-                            className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md shadow-indigo-500/20 transition-all font-semibold text-[15px]"
+            {/* Right Section - Login Form */}
+            <div className="login-form-section">
+                <AnimatePresence mode="wait">
+                    {!show2FA ? (
+                        <motion.div 
+                            key="login-form"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="login-card"
                         >
-                            Sign in
-                        </Button>
-                    </form>
+                            <div className="portal-access-label">Portal Access</div>
+                            <h2 className="login-title">Sign In</h2>
 
-                    {selectedRole !== 'ADMIN' && (
-                        <div className="mt-8 text-center pb-4">
-                            <p className="text-[14px] text-slate-500 font-medium tracking-tight">
-                                Don't have an account?{' '}
-                                <Link to="/register" className="text-[#6C63FF] font-bold hover:text-[#5b54e0] transition-all hover:underline underline-offset-4">
-                                    Create one
+                            <form onSubmit={handleSubmit(onSubmit)}>
+                                <div className="role-selector">
+                                    {(['STUDENT', 'ADMIN', 'RECRUITER'] as const).map((role) => (
+                                        <button
+                                            key={role}
+                                            type="button"
+                                            className={`role-tab ${selectedRole === role ? 'active' : ''}`}
+                                            onClick={() => handleRoleSelect(role)}
+                                        >
+                                            {role.charAt(0) + role.slice(1).toLowerCase()}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">{selectedRole === 'RECRUITER' ? 'Company Email' : 'University Email / ID'}</label>
+                                    <div className="input-wrapper">
+                                        <Mail className="input-icon" />
+                                        <input 
+                                            type="email" 
+                                            className="login-input" 
+                                            placeholder={selectedRole === 'RECRUITER' ? 'e.g. j.doe@company.com' : 'e.g. s12345@university.edu'}
+                                            {...register('email')}
+                                        />
+                                    </div>
+                                    {errors.email && <span className="error-text">{errors.email.message}</span>}
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Password</label>
+                                    <div className="input-wrapper">
+                                        <Lock className="input-icon" />
+                                        <input 
+                                            type="password" 
+                                            className="login-input" 
+                                            placeholder="••••••••"
+                                            {...register('password')}
+                                        />
+                                    </div>
+                                    {errors.password && <span className="error-text">{errors.password.message}</span>}
+                                </div>
+
+                                <div className="form-options">
+                                    <label className="remember-me">
+                                        <input 
+                                            type="checkbox" 
+                                            hidden 
+                                            {...register('rememberMe')}
+                                        />
+                                        <div className="checkbox-custom">
+                                            {watch('rememberMe') && (
+                                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                                    <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                </svg>
+                                            )}
+                                        </div>
+                                        Remember me
+                                    </label>
+                                    <Link to="/forgot-password" title="Forgot Password?" className="forgot-password">
+                                        Forgot Password?
+                                    </Link>
+                                </div>
+
+                                <button 
+                                    type="submit" 
+                                    className="login-button" 
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? 'Signing in...' : 'Log In'}
+                                </button>
+                            </form>
+
+
+
+                            <div className="signup-text">
+                                Don't have an account? 
+                                <Link to="/register" title="Request access." className="signup-link">
+                                    Request access.
                                 </Link>
-                            </p>
-                        </div>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="2fa-step"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="login-card"
+                        >
+                            <Login2FAStep 
+                                onVerify={onVerify2FA}
+                                onBack={() => setShow2FA(false)}
+                                isLoading={isVerifying}
+                            />
+                        </motion.div>
                     )}
-                </motion.div>
+                </AnimatePresence>
+
+                <div className="login-footer">
+                    <div className="footer-links">
+                        <Link to="/privacy" className="footer-link">Privacy</Link>
+                        <Link to="/terms" className="footer-link">Terms</Link>
+                        <Link to="/accessibility" className="footer-link">Accessibility</Link>
+                    </div>
+                    <div className="copyright">
+                        © 2024 UNIVERSITY PLACEMENT OFFICE
+                    </div>
+                </div>
             </div>
         </div>
     );

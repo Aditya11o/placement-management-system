@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../context/ToastContext';
 import { Shield, Ban, Zap } from 'lucide-react';
 import api from '../../services/api';
+import { useSocket } from '../../context/SocketContext';
 import VirtualizedDataTable from '../../components/DataTable/VirtualizedDataTable';
 import { Column } from '../../components/DataTable/DataTable';
 import FilterBar from '../../components/FilterBar/FilterBar';
@@ -17,6 +18,7 @@ import { UserPlus } from 'lucide-react';
 const AdminStudents = () => {
     const { addToast } = useToast();
     const queryClient = useQueryClient();
+    const { socket } = useSocket();
 
     const [searchParams, setSearchParams] = useSearchParams();
     const studentIdFromUrl = searchParams.get('id');
@@ -88,6 +90,24 @@ const AdminStudents = () => {
             });
         }
     }, [studentIdFromUrl, students]);
+
+    // Real-time synchronization for admin collaboration
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleStatusUpdate = (data: any) => {
+            // Only invalidate if the update affects a student (which is what this page shows)
+            if (data.role === 'STUDENT') {
+                queryClient.invalidateQueries({ queryKey: ['adminStudents'] });
+                addToast(`Live Update: ${data.name || 'A student'}'s status was updated by another admin.`, 'info');
+            }
+        };
+
+        socket.on('admin:status_update', handleStatusUpdate);
+        return () => {
+            socket.off('admin:status_update', handleStatusUpdate);
+        };
+    }, [socket, queryClient, addToast]);
 
     // In a real prod environment, search term should also be pushed to the backend `?name[regex]=term`
     // using MongoDB regex filtering if supported by advancedResults. For now, we apply local filtering

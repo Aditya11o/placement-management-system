@@ -134,7 +134,10 @@ const AdminSettings = () => {
         calendarSyncEnabled: false,
         autoScheduleInterviews: false,
         faviconUrl: '',
-        meshGradientColors: ['#6366f1', '#8b5cf6', '#d946ef', '#3b82f6']
+        meshGradientColors: ['#6366f1', '#8b5cf6', '#d946ef', '#3b82f6'],
+        brandSecondaryColor: '#10b981',
+        brandAccentColor: '#f59e0b',
+        institutionName: 'TNU'
     });
 
     const [logoFile, setLogoFile] = useState<File | null>(null);

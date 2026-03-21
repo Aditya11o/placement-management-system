@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
+import { useSocket } from '../../context/SocketContext';
 import DataTable, { Column } from '../../components/DataTable/DataTable';
 import FilterBar from '../../components/FilterBar/FilterBar';
 import CompanyDetailsDrawer from '../../components/CompanyDetailsDrawer/CompanyDetailsDrawer';
@@ -12,6 +13,7 @@ import ExportReportsModal from '../../components/ExportReportsModal/ExportReport
 const AdminRecruiters = () => {
     const { addToast } = useToast();
     const queryClient = useQueryClient();
+    const { socket } = useSocket();
 
     const [searchParams] = useSearchParams();
     const recruiterIdFromUrl = searchParams.get('id');
@@ -60,6 +62,24 @@ const AdminRecruiters = () => {
             if (recruiter) setSelectedRecruiter(recruiter);
         }
     }, [recruiterIdFromUrl, recruiters, selectedRecruiter]);
+
+    // Real-time synchronization
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleStatusUpdate = (data: any) => {
+            if (data.role === 'RECRUITER') {
+                queryClient.invalidateQueries({ queryKey: ['adminRecruiters'] });
+                queryClient.invalidateQueries({ queryKey: ['adminPendingRecruiters'] });
+                addToast(`Live Update: ${data.name || 'A company'}'s status was updated by another admin.`, 'info');
+            }
+        };
+
+        socket.on('admin:status_update', handleStatusUpdate);
+        return () => {
+            socket.off('admin:status_update', handleStatusUpdate);
+        };
+    }, [socket, queryClient, addToast]);
 
     const statusMutation = useMutation({
         mutationFn: async ({ userId, newStatus }: { userId: string; newStatus: boolean }) =>

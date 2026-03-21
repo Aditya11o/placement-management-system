@@ -8,11 +8,9 @@ const tenantPlugin = require('./plugins/tenantPlugin');
 const recruiterSchema = new mongoose.Schema({
     company_name: {
         type: String,
-        required: true,
     },
     contact_person: {
         type: String,
-        required: true,
     },
     email: {
         type: String,
@@ -31,7 +29,6 @@ const recruiterSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        required: [true, 'Please add a phone number'],
     },
     logo_url: {
         type: String,
@@ -77,7 +74,13 @@ const recruiterSchema = new mongoose.Schema({
     internal_notes: {
         type: String,
         default: ''
-    }
+    },
+    is_verified: {
+        type: Boolean,
+        default: false
+    },
+    verification_token: String,
+    verification_token_expire: Date
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false }
 });
@@ -106,6 +109,13 @@ recruiterSchema.methods.getResetPasswordToken = function () {
     this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     return resetToken;
+};
+
+recruiterSchema.methods.getVerificationToken = function () {
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    this.verification_token = token;
+    this.verification_token_expire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    return token;
 };
 
 module.exports = mongoose.model('Recruiter', recruiterSchema);

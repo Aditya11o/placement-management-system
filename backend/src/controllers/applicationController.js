@@ -76,7 +76,11 @@ exports.applyToJob = async (req, res, next) => {
         }
         // ────────────────────────────────────────────────────────────────────
 
-        const application = await Application.create({ student_id: req.user._id, job_id });
+        const application = await Application.create({ 
+            student_id: req.user._id, 
+            job_id,
+            branch: req.user.branch 
+        });
 
         await Log.create({
             user_id: req.user._id,
@@ -274,6 +278,15 @@ exports.updateApplicationStatus = async (req, res, next) => {
             action: 'UPDATE_APP_STATUS',
             target_id: application._id,
             description: `Updated status to ${status}`
+        });
+
+        // Real-time Collaboration: Notify all admins
+        dispatchToRole('ADMIN', 'application:status_update', {
+            id: application._id,
+            status,
+            studentName: application.student_id.name,
+            companyName: application.job_id.company_name,
+            updatedBy: req.user._id
         });
 
         res.json({ success: true, data: application });

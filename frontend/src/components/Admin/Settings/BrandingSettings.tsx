@@ -123,19 +123,65 @@ const BrandingSettings: React.FC<BrandingSettingsProps> = ({
             </div>
 
             <div className="flex flex-col gap-6">
-                {/* Primary Color Picker */}
-                <div className="flex flex-col gap-2">
-                    <h4 className="font-semibold text-slate-800 dark:text-slate-200">Primary Theme Color</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Select the main accent color that represents your institution.</p>
-                    <div className="flex items-center gap-4 mt-2">
-                        <input
-                            type="color"
-                            value={settings.primaryColor}
-                            onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
-                            className="w-12 h-12 p-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 cursor-pointer shadow-sm"
-                        />
-                        <div className="text-sm font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700">
-                            {settings.primaryColor}
+                {/* Institution Name */}
+                <div className="flex flex-col gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200">Institution Name</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">The name that appears in titles, emails, and the sidebar.</p>
+                    <input
+                        type="text"
+                        value={settings.institutionName}
+                        onChange={(e) => setSettings({ ...settings, institutionName: e.target.value })}
+                        placeholder="e.g. Techno Main Salt Lake"
+                        className="mt-2 w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500/20 transition-all font-medium"
+                    />
+                </div>
+
+                {/* Color Palette */}
+                <div className="flex flex-col gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200">Brand Color Palette</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Define your university's core colors for a consistent look and feel.</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
+                        {/* Primary Color */}
+                        <div className="flex flex-col gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Primary Color</label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="color"
+                                    value={settings.primaryColor}
+                                    onChange={(e) => setSettings({ ...settings, primaryColor: e.target.value })}
+                                    className="w-10 h-10 rounded-lg cursor-pointer border-none bg-transparent"
+                                />
+                                <span className="text-sm font-mono font-bold text-slate-600 dark:text-slate-300">{settings.primaryColor}</span>
+                            </div>
+                        </div>
+
+                        {/* Secondary Color */}
+                        <div className="flex flex-col gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Secondary Color</label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="color"
+                                    value={settings.brandSecondaryColor}
+                                    onChange={(e) => setSettings({ ...settings, brandSecondaryColor: e.target.value })}
+                                    className="w-10 h-10 rounded-lg cursor-pointer border-none bg-transparent"
+                                />
+                                <span className="text-sm font-mono font-bold text-slate-600 dark:text-slate-300">{settings.brandSecondaryColor}</span>
+                            </div>
+                        </div>
+
+                        {/* Accent Color */}
+                        <div className="flex flex-col gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Accent Color</label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="color"
+                                    value={settings.brandAccentColor}
+                                    onChange={(e) => setSettings({ ...settings, brandAccentColor: e.target.value })}
+                                    className="w-10 h-10 rounded-lg cursor-pointer border-none bg-transparent"
+                                />
+                                <span className="text-sm font-mono font-bold text-slate-600 dark:text-slate-300">{settings.brandAccentColor}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

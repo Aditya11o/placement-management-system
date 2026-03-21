@@ -28,23 +28,19 @@ const studentSchema = new mongoose.Schema({
     },
     branch: {
         type: String,
-        required: true,
         index: true,
     },
     cgpa: {
         type: Number,
-        required: [true, 'Please add CGPA'],
         min: [0, 'CGPA cannot be negative'],
         max: [10, 'CGPA cannot exceed 10']
     },
     graduation_year: {
         type: Number,
-        required: true,
         index: true,
     },
     phone: {
         type: String,
-        required: true,
     },
     backlogs_active: {
         type: Number,
@@ -53,20 +49,17 @@ const studentSchema = new mongoose.Schema({
     },
     marks_10th: {
         type: Number,
-        required: [true, 'Please add 10th marks'],
         min: 0,
         max: 100
     },
     marks_12th: {
         type: Number,
-        required: [true, 'Please add 12th marks'],
         min: 0,
         max: 100
     },
     gender: {
         type: String,
         enum: ['MALE', 'FEMALE', 'OTHER'],
-        required: true,
     },
     profile_image_url: {
         type: String,
@@ -134,7 +127,13 @@ const studentSchema = new mongoose.Schema({
     internal_notes: {
         type: String,
         default: ''
-    }
+    },
+    is_verified: {
+        type: Boolean,
+        default: false
+    },
+    verification_token: String,
+    verification_token_expire: Date
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: false },
     toJSON: { virtuals: true },
@@ -182,6 +181,13 @@ studentSchema.methods.getResetPasswordToken = function () {
     this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     return resetToken;
+};
+
+studentSchema.methods.getVerificationToken = function () {
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    this.verification_token = token;
+    this.verification_token_expire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    return token;
 };
 
 module.exports = mongoose.model('Student', studentSchema);

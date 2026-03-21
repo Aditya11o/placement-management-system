@@ -35,7 +35,11 @@ const {
     purgeData,
     updateUserInternalNotes,
     bulkUpdateUserStatus,
-    generateManualOfferLetter
+    generateManualOfferLetter,
+    setup2FA,
+    verify2FASetup,
+    disable2FA,
+    updateAdminBranch
 } = require('../controllers/adminController');
 const { getRecruiterPerformance } = require('../controllers/recruiterController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
@@ -44,6 +48,7 @@ const ipWhitelist = require('../middlewares/ipWhitelistMiddleware');
 const checkPermission = require('../middlewares/checkPermission');
 const { validate } = require('../middlewares/validate');
 const { validateUserStatusUpdate, validateExportRequest, validateApiKeyGeneration } = require('../validations/adminValidator');
+const { logPIIAccess } = require('../middlewares/auditMiddleware');
 
 const router = express.Router();
 
@@ -96,7 +101,7 @@ const usersAdvancedResults = (req, res, next) => {
  *       200:
  *         description: List of users returned
  */
-router.get('/users', checkPermission('manage_students'), usersAdvancedResults, getUsers);
+router.get('/users', checkPermission('manage_students'), logPIIAccess, usersAdvancedResults, getUsers);
 
 /**
  * @swagger
@@ -272,7 +277,7 @@ router.get('/jobs/:id/matches', getJobMatches);
 
 // Application Management (Kanban)
 const Application = require('../models/Application');
-router.get('/applications', advancedResults(Application, [{ path: 'student_id', select: 'name email profile_image_url branch resume_url' }, { path: 'job_id', select: 'title' }]), getApplications);
+router.get('/applications', logPIIAccess, advancedResults(Application, [{ path: 'student_id', select: 'name email profile_image_url branch resume_url phone' }, { path: 'job_id', select: 'title' }]), getApplications);
 router.put('/applications/:id/status', updateApplicationStatus);
 router.post('/applications/:id/generate-offer', checkPermission('manage_students'), generateManualOfferLetter);
 
@@ -296,5 +301,14 @@ router.route('/campaigns')
 // --- Session Management ---
 router.get('/sessions', getAllSessions);
 router.delete('/sessions/:id', revokeSession);
+
+
+// 2FA Management
+router.post('/2fa/setup', setup2FA);
+router.post('/2fa/verify', verify2FASetup);
+router.post('/2fa/disable', disable2FA);
+
+// RBAC Extensions
+router.put('/rbac/admins/:id/branch', checkPermission('manage_admins'), updateAdminBranch);
 
 module.exports = router;

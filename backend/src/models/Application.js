@@ -9,6 +9,11 @@ const applicationSchema = new mongoose.Schema({
         required: true,
         index: true,
     },
+    branch: {
+        type: String,
+        required: [true, 'Branch is required for application tracking'],
+        index: true
+    },
     job_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Job',

@@ -7,7 +7,8 @@ interface AuthContextType {
     user: User | null;
     token: string | null;
     isLoading: boolean;
-    login: (credentials: any) => Promise<{ role: string }>;
+    login: (credentials: any) => Promise<{ role?: string; requires2FA?: boolean; tempToken?: string }>;
+    verify2FA: (otp: string, tempToken: string) => Promise<{ role: string }>;
     logout: () => void;
 }
 
@@ -70,8 +71,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
 
-    const login = async (credentials: any): Promise<{ role: string }> => {
+    const login = async (credentials: any): Promise<{ role?: string; requires2FA?: boolean; tempToken?: string }> => {
         const response = await api.post('/auth/login', credentials);
+        
+        // Handle 2FA Requirement
+        if (response.data.requires2FA) {
+            return { 
+                requires2FA: true, 
+                tempToken: response.data.tempToken 
+            };
+        }
+
         const { token: newToken, user: userData } = response.data;
         const { rememberMe } = credentials;
 
@@ -94,8 +104,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
 
+    const verify2FA = async (otp: string, tempToken: string): Promise<{ role: string }> => {
+        const response = await api.post('/auth/verify-2fa', { token: otp, tempToken });
+        const { token: newToken, user: userData } = response.data;
+
+        localStorage.setItem('token', newToken);
+        setToken(newToken);
+
+        const decoded: any = jwtDecode(newToken);
+        setUser({ ...userData, role: decoded.role });
+
+        if (userData.college_id) {
+            setTenantId(userData.college_id.toString());
+        }
+
+        return { role: decoded.role };
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+        <AuthContext.Provider value={{ user, token, isLoading, login, logout, verify2FA }}>
             {children}
         </AuthContext.Provider>
     );
