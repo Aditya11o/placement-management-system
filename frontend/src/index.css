@@ -1,22 +1,54 @@
 @import "tailwindcss";
 
+:root {
+  --primary: #000613;
+  --primary-container: #001f3f;
+  --on-primary: #ffffff;
+  --surface: #f8f9fa;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f4f5;
+  --surface-container: #edeeef;
+  --surface-container-high: #e7e8e9;
+  --surface-container-highest: #e1e3e4;
+  --on-surface: #191c1d;
+  --on-surface-variant: #43474e;
+  --outline-variant: #c4c6cf;
+  --surface-tint: #476083;
+}
+
+[data-theme='dark'] {
+  --primary: #ffffff;
+  --primary-container: #1a1c1e;
+  --on-primary: #000613;
+  --surface: #000613;
+  --surface-container-lowest: #0d1117;
+  --surface-container-low: #1a1c1e;
+  --surface-container: #21262d;
+  --surface-container-high: #30363d;
+  --surface-container-highest: #3d444d;
+  --on-surface: #f0f6fc;
+  --on-surface-variant: #8b949e;
+  --outline-variant: #484f58;
+  --surface-tint: #58a6ff;
+}
+
 @theme {
-  --color-primary: #000613;
-  --color-primary-container: #001f3f;
-  --color-on-primary: #ffffff;
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary: var(--on-primary);
   
-  --color-surface: #f8f9fa;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f3f4f5;
-  --color-surface-container: #edeeef;
-  --color-surface-container-high: #e7e8e9;
-  --color-surface-container-highest: #e1e3e4;
+  --color-surface: var(--surface);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
   
-  --color-on-surface: #191c1d;
-  --color-on-surface-variant: #43474e;
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
   
-  --color-outline-variant: #c4c6cf;
-  --color-surface-tint: #476083;
+  --color-outline-variant: var(--outline-variant);
+  --color-surface-tint: var(--surface-tint);
   
   --color-tertiary-fixed: #ffdbce;
   --color-error-container: #ffdad6;
@@ -61,5 +93,14 @@
   }
   .academic-card {
     @apply bg-surface-container-lowest rounded-[0.75rem] p-8 shadow-ambient;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 }

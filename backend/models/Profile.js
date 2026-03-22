@@ -19,7 +19,43 @@ const profileSchema = new mongoose.Schema(
       cgpa: Number,
       passingYear: Number,
       skills: [String],
-      resume: String, // Cloudinary URL
+      verifiedSkills: [
+        {
+          skill: String,
+          status: { type: String, enum: ['Pending', 'Verified', 'Rejected'], default: 'Pending' },
+          certificateUrl: String,
+          appliedAt: { type: Date, default: Date.now },
+        }
+      ],
+      resumes: [
+        {
+          name: String,
+          url: String,
+          isDefault: { type: Boolean, default: false },
+          uploadedAt: { type: Date, default: Date.now },
+        }
+      ],
+      placementStatus: {
+        type: String,
+        enum: ['Unplaced', 'Placed', 'Interned'],
+        default: 'Unplaced',
+      },
+      phone: String,
+      dob: Date,
+      gender: String,
+      address: String,
+      city: String,
+      state: String,
+      tenthPercent: Number,
+      twelfthPercent: Number,
+      projects: [
+        {
+          title: String,
+          description: String,
+          technologies: [String],
+          link: String,
+        }
+      ],
       socialLinks: {
         linkedin: String,
         github: String,
@@ -34,6 +70,11 @@ const profileSchema = new mongoose.Schema(
       companyLogo: String,
       position: String,
       location: String,
+      phone: String,
+      socialLinks: {
+        linkedin: String,
+        twitter: String,
+      },
     },
   },
   {

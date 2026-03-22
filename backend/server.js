@@ -6,12 +6,16 @@ const { Server } = require('socket.io');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
+const { initCron } = require('./utils/cron');
 
 // Load environment variables
 dotenv.config();
 
 // Connect to database
 connectDB();
+
+// Initialize Cron Jobs
+initCron();
 
 const app = express();
 const server = http.createServer(app);
@@ -42,15 +46,20 @@ app.use(cors({
 }));
 
 // Routes
+const auditLogRoutes = require('./routes/auditLogRoutes');
+
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/jobs', require('./routes/jobRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/applications', require('./routes/applicationRoutes'));
+app.use('/api/audit', auditLogRoutes);
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/resources', require('./routes/resourceRoutes'));
+app.use('/api/tickets', require('./routes/ticketRoutes'));
 
 // Socket.io connection
 io.on('connection', (socket) => {

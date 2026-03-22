@@ -11,17 +11,23 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Help from './pages/Help';
 import Dashboard from './pages/Dashboard';
+import Support from './pages/student/Support';
+import AlumniPortal from './pages/alumni/AlumniPortal';
 import JobFeed from './pages/student/JobFeed';
 import MyApplications from './pages/student/MyApplications';
 import InterviewSchedule from './pages/student/InterviewSchedule';
 import Notifications from './pages/student/Notifications';
+import CareerResources from './pages/student/CareerResources';
 import Settings from './pages/student/Settings';
 import StudentProfile from './pages/student/Profile';
+import ResumeBuilder from './pages/student/ResumeBuilder';
+import MockInterviews from './pages/student/MockInterviews';
 import ManageJobs from './pages/recruiter/ManageJobs';
 import AdminManageJobs from './pages/admin/ManageJobs';
 import Applicants from './pages/recruiter/Applicants';
 import RecruiterProfile from './pages/recruiter/Profile';
 import PostJob from './pages/recruiter/PostJob';
+import CompareCandidates from './pages/recruiter/CompareCandidates';
 import Shortlisted from './pages/recruiter/Shortlisted';
 import RecruiterInterviews from './pages/recruiter/InterviewSchedule';
 import RecruiterNotifications from './pages/recruiter/Notifications';
@@ -33,6 +39,8 @@ import AdminManageInterviews from './pages/admin/ManageInterviews';
 import AdminReports from './pages/admin/Reports';
 import AdminManageNotifications from './pages/admin/ManageNotifications';
 import AdminSettings from './pages/admin/Settings';
+import ManageVerifications from './pages/admin/ManageVerifications';
+import AuditLogs from './pages/admin/AuditLogs';
 import ToastManager from './components/ToastManager';
 
 const App: React.FC = () => {
@@ -62,7 +70,11 @@ const App: React.FC = () => {
             <Route path="jobs" element={<JobFeed />} />
             <Route path="applications" element={<MyApplications />} />
             <Route path="interviews" element={<InterviewSchedule />} />
+            <Route path="resources" element={<CareerResources />} />
+            <Route path="resume-builder" element={<ResumeBuilder />} />
+            <Route path="mock-interviews" element={<MockInterviews />} />
             <Route path="notifications" element={<Notifications />} />
+            <Route path="support" element={<Support />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 
@@ -72,6 +84,7 @@ const App: React.FC = () => {
         <Route path="post-job" element={<PostJob />} />
         <Route path="jobs" element={<ManageJobs />} />
         <Route path="applicants" element={<Applicants />} />
+        <Route path="compare" element={<CompareCandidates />} />
         <Route path="shortlisted" element={<Shortlisted />} />
         <Route path="interviews" element={<RecruiterInterviews />} />
         <Route path="notifications" element={<RecruiterNotifications />} />
@@ -82,14 +95,27 @@ const App: React.FC = () => {
           <Route path="/admin" element={<DashboardLayout role="admin" />}>
             <Route path="dashboard" element={<Dashboard role="admin" />} />
             <Route path="students" element={<ManageStudents />} />
+            <Route path="verifications" element={<ManageVerifications />} />
             <Route path="recruiters" element={<ManageRecruiters />} />
             <Route path="jobs" element={<AdminManageJobs />} />
             <Route path="applications" element={<AdminManageApplications />} />
             <Route path="interviews" element={<AdminManageInterviews />} />
             <Route path="reports" element={<AdminReports />} />
             <Route path="notifications" element={<AdminManageNotifications />} />
+            <Route path="audit" element={<AuditLogs />} />
             <Route path="settings" element={<AdminSettings />} />
-          </Route>
+      </Route>
+
+      {/* Protected Dashboard Routes - Alumni & Mentor */}
+      <Route path="/alumni" element={<DashboardLayout role="alumni" />}>
+        <Route path="dashboard" element={<AlumniPortal />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+
+      <Route path="/mentor" element={<DashboardLayout role="mentor" />}>
+        <Route path="dashboard" element={<AlumniPortal />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
         </Routes>
       </BrowserRouter>
     </AuthProvider>

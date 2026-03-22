@@ -1,66 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Plus, Search, Filter, MapPin, 
-  Clock, Briefcase, Users, Eye, 
-  Edit3, Trash2, ChevronLeft, ChevronRight,
-  TrendingUp, Archive, MousePointer2, ExternalLink
+  Plus, Search, MapPin, 
+  Edit3, Trash2,
+  TrendingUp, Archive, MousePointer2, Loader2, Users
 } from 'lucide-react';
+import api from '../../api';
 
 const ManageJobs: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const sampleJobs = [
-    {
-      id: 1,
-      title: 'Senior Software Engineer',
-      role: 'Product Development',
-      location: 'San Francisco (Remote)',
-      type: 'Full-time',
-      salary: '$140k - $180k',
-      posted: 'Oct 12',
-      deadline: 'Nov 05',
-      status: 'Active',
-      applicants: 124
-    },
-    {
-      id: 2,
-      title: 'Data Analyst Intern',
-      role: 'Business Intelligence',
-      location: 'New York, NY',
-      type: 'Internship',
-      salary: '$35 / hr',
-      posted: 'Sep 28',
-      deadline: 'Oct 20',
-      status: 'Closed',
-      applicants: 89
-    },
-    {
-      id: 3,
-      title: 'UX Designer',
-      role: 'Creative Arts',
-      location: 'Hybrid (Austin, TX)',
-      type: 'Full-time',
-      salary: '$110k - $130k',
-      posted: 'Oct 05',
-      deadline: 'Oct 28',
-      status: 'Active',
-      applicants: 56
-    },
-    {
-      id: 4,
-      title: 'Marketing Coordinator',
-      role: 'Corporate Relations',
-      location: 'Chicago, IL',
-      type: 'Contract',
-      salary: '$45k - $60k',
-      posted: 'Oct 15',
-      deadline: 'Nov 20',
-      status: 'Active',
-      applicants: 12
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/jobs/my');
+      setJobs(res.data);
+    } catch (error) {
+      console.error('Error fetching recruiter jobs:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this job?')) {
+      try {
+        await api.delete(`/jobs/${id}`);
+        setJobs(jobs.filter(j => j._id !== id));
+      } catch (error: any) {
+        alert(error.response?.data?.message || 'Failed to delete job');
+      }
+    }
+  };
+
+  const filteredJobs = jobs.filter(job => 
+    job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    job.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 pb-12">
@@ -92,130 +75,116 @@ const ManageJobs: React.FC = () => {
             className="w-full pl-12 pr-4 py-3 bg-gray-50 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-[13px] text-gray-900 focus:outline-none transition-all"
           />
         </div>
-        <div className="flex gap-4">
-          <select className="px-4 py-3 bg-gray-50 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-[13px] text-gray-900 focus:outline-none transition-all appearance-none cursor-pointer min-w-[140px]">
-            <option>All Types</option>
-            <option>Full-time</option>
-            <option>Internship</option>
-          </select>
-          <select className="px-4 py-3 bg-gray-50 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-[13px] text-gray-900 focus:outline-none transition-all appearance-none cursor-pointer min-w-[140px]">
-            <option>All Locations</option>
-            <option>Remote</option>
-            <option>On-site</option>
-          </select>
-          <select className="px-4 py-3 bg-gray-50 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-[13px] text-gray-900 focus:outline-none transition-all appearance-none cursor-pointer min-w-[140px]">
-            <option>All Status</option>
-            <option>Active</option>
-            <option>Closed</option>
-          </select>
-        </div>
       </div>
 
       {/* Jobs Table */}
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-[13px]">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Job Title & Role</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Job Type</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Salary / Stipend</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Timeline</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Applicants</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {sampleJobs.map((job) => (
-                <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col">
-                      <span className="font-black text-gray-900 tracking-tight text-[14px]">{job.title}</span>
-                      <span className="text-[11px] font-bold text-gray-400 mt-0.5">{job.role}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2 text-gray-600 font-bold">
-                      <MapPin size={14} className="text-gray-300" />
-                      {job.location}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${
-                      job.type === 'Internship' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
-                    }`}>
-                      {job.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5 text-center font-black text-gray-900 tracking-tight">
-                    {job.salary}
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
-                        <span className="uppercase tracking-widest opacity-60">POSTED:</span>
-                        <span className="text-gray-900 font-black">{job.posted}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-rose-500">
-                        <span className="uppercase tracking-widest opacity-60">Deadline:</span>
-                        <span className="font-black underline decoration-2 underline-offset-2">{job.deadline}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex justify-center">
-                      <span className={`flex items-center gap-1.5 font-bold ${
-                        job.status === 'Active' ? 'text-blue-600' : 'text-gray-400'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          job.status === 'Active' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'
-                        }`} />
-                        {job.status}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <div className="flex flex-col items-center">
-                      <span className="text-lg font-black text-gray-900 tracking-tight leading-none">{job.applicants}</span>
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Total</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="View Applicants">
-                        <Users size={16} />
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all" title="Edit Job">
-                        <Edit3 size={16} />
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Delete Job">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Pagination */}
-        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-[12px] font-bold text-gray-400">
-            Showing <span className="text-gray-900">1 to 4</span> of <span className="text-gray-900">28</span> job postings
-          </p>
-          <div className="flex gap-2">
-            <button className="px-4 py-2 border border-gray-200 text-gray-400 rounded-xl text-[11px] font-black uppercase tracking-widest bg-gray-50 cursor-not-allowed flex items-center gap-1">
-              <ChevronLeft size={14} />
-              Previous
-            </button>
-            <button className="px-4 py-2 border border-gray-200 text-gray-900 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-white transition-all shadow-sm flex items-center gap-1 active:scale-95">
-              Next
-              <ChevronRight size={14} />
-            </button>
+        {loading ? (
+          <div className="flex py-20 items-center justify-center">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Job Title & Role</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Job Type</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Salary / Stipend</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Timeline</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Applicants</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredJobs.map((job) => (
+                  <tr key={job._id} className="hover:bg-gray-50/50 transition-colors group">
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <span className="font-black text-gray-900 tracking-tight text-[14px]">{job.title}</span>
+                        <span className="text-[11px] font-bold text-gray-400 mt-0.5">{job.companyName}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2 text-gray-600 font-bold">
+                        <MapPin size={14} className="text-gray-300" />
+                        {job.location}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-center">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${
+                        job.jobType === 'Internship' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-blue-50 text-blue-600 border border-blue-100'
+                      }`}>
+                        {job.jobType}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-center font-black text-gray-900 tracking-tight">
+                      {job.salary}
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
+                          <span className="uppercase tracking-widest opacity-60">Posted:</span>
+                          <span className="text-gray-900 font-black">{new Date(job.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-rose-500">
+                          <span className="uppercase tracking-widest opacity-60">Deadline:</span>
+                          <span className="font-black underline decoration-2 underline-offset-2">{new Date(job.deadline).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex justify-center">
+                        <span className={`flex items-center gap-1.5 font-bold ${
+                          job.status === 'open' ? 'text-blue-600' : 'text-gray-400'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            job.status === 'open' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'
+                          }`} />
+                          {job.status}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className="text-lg font-black text-gray-900 tracking-tight leading-none">{job.applicantCount}</span>
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Total</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => navigate(`/recruiter/applicants?jobId=${job._id}`)}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="View Applicants">
+                          <Users size={16} />
+                        </button>
+                        <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all" title="Edit Job">
+                          <Edit3 size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(job._id)}
+                          className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Delete Job">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredJobs.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-10 text-center font-bold text-gray-400">No jobs found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        
+        {/* Pagination placeholder */}
+        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-gray-400 text-xs font-bold">
+          <p>Showing {filteredJobs.length} results</p>
         </div>
       </div>
 
@@ -232,13 +201,9 @@ const ManageJobs: React.FC = () => {
               </div>
               <h2 className="text-2xl font-black tracking-tight">Recruitment Insights</h2>
               <p className="text-gray-400 text-[14px] leading-relaxed max-w-md">
-                Your listings have received a <span className="text-blue-400 font-black">24% increase</span> in applications this month. Tech roles are performing exceptionally well.
+                Your listings have received a <span className="text-blue-400 font-black">active</span> participation this month.
               </p>
             </div>
-            <button className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors group/btn w-fit">
-              View Detailed Report
-              <ExternalLink size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-            </button>
           </div>
         </div>
 
@@ -249,11 +214,11 @@ const ManageJobs: React.FC = () => {
           </div>
           <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-4">Quick Action: Bulk Close</h2>
           <p className="text-gray-500 text-[14px] leading-relaxed max-w-sm mb-8">
-            Selecting multiple inactive listings allows you to archive them at once, keeping your dashboard clean and focused on active talent acquisition.
+            Keep your dashboard clean and focused on active talent acquisition.
           </p>
           <div className="flex gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest items-center">
             <MousePointer2 size={12} />
-            Double-click row to select
+            Keep your workspace organized
           </div>
         </div>
 

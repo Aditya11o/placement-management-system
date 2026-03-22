@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar';
 import type { User } from '../types';
 
 interface DashboardLayoutProps {
-  role: 'student' | 'recruiter' | 'admin';
+  role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ role }) => {

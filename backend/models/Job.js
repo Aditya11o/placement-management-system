@@ -67,6 +67,28 @@ const jobSchema = new mongoose.Schema(
       enum: ['Open', 'Closed', 'Paused', 'Archived'],
       default: 'Open',
     },
+    viewsCount: {
+      type: Number,
+      default: 0,
+    },
+    screeningQuestions: [
+      {
+        question: { type: String, required: true },
+        type: { type: String, enum: ['text', 'boolean'], default: 'text' }
+      }
+    ],
+    postedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    isAlumniPost: {
+      type: Boolean,
+      default: false,
+    },
+    mentorInfo: {
+      linkedIn: String,
+      company: String,
+    }
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },

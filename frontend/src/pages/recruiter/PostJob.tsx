@@ -3,8 +3,10 @@ import {
   Save, Send, RotateCcw, 
   MapPin, Calendar, Users, Briefcase, 
   Eye, Info, ChevronRight, X, 
-  Building2, DollarSign
+  Building2, DollarSign, Plus, Trash2
 } from 'lucide-react';
+import { useAutosave } from '../../hooks/useAutosave';
+import api from '../../api';
 
 const PostJob: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -19,10 +21,12 @@ const PostJob: React.FC = () => {
     location: '',
     salary: '',
     deadline: '',
-    openings: '10'
+    openings: '10',
+    screeningQuestions: [] as { question: string, type: 'text' | 'boolean' }[]
   });
 
   const [newSkill, setNewSkill] = useState('');
+  const { clearAutosave } = useAutosave('post-job', formData, setFormData);
 
   const addSkill = () => {
     if (newSkill && !formData.skills.includes(newSkill)) {
@@ -221,9 +225,94 @@ const PostJob: React.FC = () => {
               </div>
             </div>
 
-            {/* Action Buttons Row */}
+            {/* Screening Questions */}
+            <div className="space-y-6 pt-4 border-t border-gray-100">
+              <div className="flex justify-between items-center">
+                <h3 className="text-[14px] font-black text-gray-900 tracking-tight">Custom Screening Questions</h3>
+                <button 
+                  onClick={() => setFormData({
+                    ...formData, 
+                    screeningQuestions: [...formData.screeningQuestions, { question: '', type: 'text' }]
+                  })}
+                  className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all flex items-center gap-2"
+                >
+                  <Plus size={14} /> Add Question
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                {formData.screeningQuestions.map((q, i) => (
+                  <div key={i} className="flex gap-4 items-start p-4 bg-gray-50 rounded-xl border border-gray-100 group">
+                    <div className="flex-1 space-y-3">
+                      <input 
+                        type="text"
+                        placeholder="e.g. Why are you interested in this role?"
+                        value={q.question}
+                        onChange={(e) => {
+                          const newQs = [...formData.screeningQuestions];
+                          newQs[i].question = e.target.value;
+                          setFormData({ ...formData, screeningQuestions: newQs });
+                        }}
+                        className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input 
+                            type="radio" 
+                            checked={q.type === 'text'} 
+                            onChange={() => {
+                              const newQs = [...formData.screeningQuestions];
+                              newQs[i].type = 'text';
+                              setFormData({ ...formData, screeningQuestions: newQs });
+                            }}
+                            className="text-blue-600 focus:ring-blue-500" 
+                          />
+                          <span className="text-[11px] font-bold text-gray-600">Text Response</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input 
+                            type="radio" 
+                            checked={q.type === 'boolean'} 
+                            onChange={() => {
+                              const newQs = [...formData.screeningQuestions];
+                              newQs[i].type = 'boolean';
+                              setFormData({ ...formData, screeningQuestions: newQs });
+                            }}
+                            className="text-blue-600 focus:ring-blue-500" 
+                          />
+                          <span className="text-[11px] font-bold text-gray-600">Yes / No</span>
+                        </label>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const newQs = formData.screeningQuestions.filter((_, idx) => idx !== i);
+                        setFormData({ ...formData, screeningQuestions: newQs });
+                      }}
+                      className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                {formData.screeningQuestions.length === 0 && (
+                  <p className="text-center text-gray-400 italic py-4 border-2 border-dashed border-gray-100 rounded-xl">No screening questions added yet.</p>
+                )}
+              </div>
+            </div>
             <div className="flex justify-between items-center pt-8 border-t border-gray-100">
-              <button className="flex items-center gap-2 text-[11px] font-black text-gray-400 uppercase tracking-widest hover:text-rose-500 transition-colors">
+              <button 
+                onClick={() => {
+                  setFormData({
+                    title: '', role: '', type: 'Full-time', description: '',
+                    skills: [], minCGPA: '', course: '', passingYear: '',
+                    location: '', salary: '', deadline: '', openings: '',
+                    screeningQuestions: []
+                  });
+                  clearAutosave();
+                }}
+                className="flex items-center gap-2 text-[11px] font-black text-gray-400 uppercase tracking-widest hover:text-rose-500 transition-colors"
+              >
                 <RotateCcw size={14} />
                 Reset Form
               </button>
@@ -232,7 +321,19 @@ const PostJob: React.FC = () => {
                   <Save size={14} />
                   Save as Draft
                 </button>
-                <button className="px-12 py-3.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-2 active:scale-95">
+                <button 
+                  onClick={async () => {
+                    try {
+                      await api.post('/jobs', formData);
+                      alert('Job posted successfully!');
+                      clearAutosave();
+                    } catch (err) {
+                      console.error(err);
+                      alert('Failed to post job');
+                    }
+                  }}
+                  className="px-12 py-3.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-2 active:scale-95"
+                >
                   <Send size={14} />
                   Post Job
                 </button>

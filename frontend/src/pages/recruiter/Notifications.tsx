@@ -1,107 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   UserPlus, CheckCircle2, 
   XCircle, Calendar, Briefcase, 
   Undo2, MoreVertical, Filter,
-  Check, Clock
+  Check, Clock, Loader2, Trash2, Mail
 } from 'lucide-react';
+import api from '../../api';
 
 const Notifications: React.FC = () => {
   const [activeTab, setActiveTab] = useState('All Notifications');
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const sampleNotifications = [
-    {
-      id: 1,
-      type: 'New Applicant',
-      description: 'Alex Rivera has applied for the Senior Software Engineer role.',
-      time: '2 hours ago',
-      unread: true,
-      tags: [
-        { label: 'STUDENT', value: 'ALEX RIVERA' },
-        { label: 'ROLE', value: 'SENIOR SOFTWARE ENGINEER' }
-      ],
-      icon: <UserPlus className="text-blue-600" size={20} />,
-      iconBg: 'bg-blue-50'
-    },
-    {
-      id: 2,
-      type: 'Candidate Shortlisted',
-      description: 'Jordan Smith has been moved to the shortlist for UX Researcher position.',
-      time: '5 hours ago',
-      unread: false,
-      tags: [
-        { label: 'STUDENT', value: 'JORDAN SMITH' },
-        { label: 'STATUS', value: 'SHORTLISTED' }
-      ],
-      icon: <CheckCircle2 className="text-amber-600" size={20} />,
-      iconBg: 'bg-amber-50'
-    },
-    {
-      id: 3,
-      type: 'Interview Scheduled',
-      description: 'A final round interview is confirmed for Elena Gilbert on October 24th.',
-      time: 'Yesterday',
-      unread: true,
-      tags: [
-        { label: 'DATE', value: 'OCT 24, 2026' },
-        { label: 'TIME', value: '10:00 AM' }
-      ],
-      icon: <Calendar className="text-indigo-600" size={20} />,
-      iconBg: 'bg-indigo-50'
-    },
-    {
-      id: 4,
-      type: 'Candidate Selected',
-      description: 'Michael Chen has accepted the offer for Data Analyst.',
-      time: '2 days ago',
-      unread: false,
-      tags: [
-        { label: 'HIRED', value: 'MICHAEL CHEN' },
-        { label: 'ROLE', value: 'DATA ANALYST' }
-      ],
-      icon: <Check className="text-emerald-600" size={20} />,
-      iconBg: 'bg-emerald-50'
-    },
-    {
-      id: 5,
-      type: 'Candidate Rejected',
-      description: 'The application for Software Intern role by Sarah Jenkins has been declined.',
-      time: '3 days ago',
-      unread: false,
-      tags: [
-        { label: 'STUDENT', value: 'SARAH JENKINS' },
-        { label: 'ROLE', value: 'SOFTWARE INTERN' }
-      ],
-      icon: <XCircle className="text-rose-600" size={20} />,
-      iconBg: 'bg-rose-50'
-    },
-    {
-      id: 6,
-      type: 'New Job Posted',
-      description: 'Frontend Developer (React) role is now live on the student portal.',
-      time: '4 days ago',
-      unread: false,
-      tags: [
-        { label: 'STATUS', value: 'LIVE' },
-        { label: 'ROLE', value: 'FRONTEND DEVELOPER' }
-      ],
-      icon: <Briefcase className="text-[#000613]" size={20} />,
-      iconBg: 'bg-gray-100'
-    },
-    {
-      id: 7,
-      type: 'Application Withdrawn',
-      description: 'David Miller has withdrawn their application for the DevOps Engineer role.',
-      time: '1 week ago',
-      unread: false,
-      tags: [
-        { label: 'STUDENT', value: 'DAVID MILLER' },
-        { label: 'ROLE', value: 'DEVOPS ENGINEER' }
-      ],
-      icon: <Undo2 className="text-gray-500" size={20} />,
-      iconBg: 'bg-gray-100'
+  const fetchNotifications = async () => {
+    try {
+      const { data } = await api.get('/notifications');
+      setNotifications(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const handleMarkRead = async (id: string) => {
+    try {
+      await api.patch(`/notifications/${id}/read`);
+      setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await Promise.all(notifications.filter(n => !n.isRead).map(n => api.patch(`/notifications/${n._id}/read`)));
+      fetchNotifications();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await api.delete(`/notifications/${id}`);
+      setNotifications(notifications.filter(n => n._id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const filteredNotifications = notifications.filter(notif => {
+    if (activeTab === 'All Notifications') return true;
+    if (activeTab === 'Unread') return !notif.isRead;
+    if (activeTab === 'Read') return notif.isRead;
+    return true;
+  });
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'job': return { icon: <Briefcase className="text-gray-900" size={20} />, bg: 'bg-gray-100' };
+      case 'application': return { icon: <UserPlus className="text-blue-600" size={20} />, bg: 'bg-blue-50' };
+      case 'interview': return { icon: <Calendar className="text-indigo-600" size={20} />, bg: 'bg-indigo-50' };
+      case 'selected': return { icon: <Check className="text-emerald-600" size={20} />, bg: 'bg-emerald-50' };
+      case 'rejected': return { icon: <XCircle className="text-rose-600" size={20} />, bg: 'bg-rose-50' };
+      default: return { icon: <Mail className="text-gray-500" size={20} />, bg: 'bg-gray-100' };
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="w-10 h-10 text-[#000613] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-12">
@@ -112,7 +89,10 @@ const Notifications: React.FC = () => {
           <h1 className="text-4xl font-black text-gray-900 tracking-tight">Notifications</h1>
           <p className="text-gray-500 text-[15px] mt-1 font-medium">Manage your candidate updates and recruitment alerts.</p>
         </div>
-        <button className="px-8 py-4 bg-[#000613] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-3 active:scale-95 group">
+        <button 
+          onClick={handleMarkAllRead}
+          className="px-8 py-4 bg-[#000613] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-3 active:scale-95 group"
+        >
           <Check size={16} strokeWidth={3} className="text-emerald-400" />
           Mark All as Read
         </button>
@@ -150,64 +130,79 @@ const Notifications: React.FC = () => {
 
       {/* Notifications List */}
       <div className="space-y-4">
-        {sampleNotifications.map((notif) => (
-          <div 
-            key={notif.id}
-            className={`group bg-white border rounded-[28px] p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden flex flex-col md:flex-row gap-6 ${
-              notif.unread ? 'border-l-[6px] border-l-blue-600 border-gray-100' : 'border-gray-100'
-            }`}
-          >
-            {/* Type Icon */}
-            <div className={`w-14 h-14 rounded-2xl ${notif.iconBg} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
-              {notif.icon}
-            </div>
+        {filteredNotifications.map((notif) => {
+          const { icon, bg } = getIcon(notif.type);
+          return (
+            <div 
+              key={notif._id}
+              className={`group bg-white border rounded-[28px] p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden flex flex-col md:flex-row gap-6 ${
+                !notif.isRead ? 'border-l-[6px] border-l-blue-600 border-gray-100' : 'border-gray-100'
+              }`}
+            >
+              <div className={`w-14 h-14 rounded-2xl ${bg} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
+                {icon}
+              </div>
 
-            {/* Content */}
-            <div className="flex-1 space-y-3">
-              <div className="flex justify-between items-start">
-                <h3 className="text-[18px] font-black text-gray-900 tracking-tight leading-none">{notif.type}</h3>
-                <div className="flex items-center gap-4">
-                  <span className="text-[12px] font-bold text-gray-400 flex items-center gap-1.5">
-                    <Clock size={14} className="opacity-50" />
-                    {notif.time}
-                  </span>
-                  {notif.unread && (
-                    <div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm shadow-blue-200" />
+              <div className="flex-1 space-y-3">
+                <div className="flex justify-between items-start">
+                  <h3 className="text-[18px] font-black text-gray-900 tracking-tight leading-none">{notif.title}</h3>
+                  <div className="flex items-center gap-4">
+                    <span className="text-[12px] font-bold text-gray-400 flex items-center gap-1.5">
+                      <Clock size={14} className="opacity-50" />
+                      {new Date(notif.createdAt).toLocaleDateString()}
+                    </span>
+                    {!notif.isRead && (
+                      <div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm shadow-blue-200" />
+                    )}
+                    <button 
+                      onClick={() => handleDelete(notif._id)}
+                      className="p-2 text-gray-300 hover:text-rose-500 hover:bg-gray-50 rounded-lg transition-all"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+                
+                <p className="text-gray-600 text-[14px] leading-relaxed max-w-2xl font-medium">
+                  {notif.message}
+                </p>
+
+                <div className="flex flex-wrap gap-3 pt-2">
+                  {!notif.isRead && (
+                    <button 
+                      onClick={() => handleMarkRead(notif._id)}
+                      className="px-5 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all border border-blue-100"
+                    >
+                      Mark as Read
+                    </button>
                   )}
-                  <button className="p-2 text-gray-300 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
-                    <MoreVertical size={18} />
-                  </button>
+                  {notif.link && (
+                    <a 
+                      href={notif.link}
+                      className="px-5 py-2 bg-[#000613] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/5 flex items-center gap-2"
+                    >
+                      View Details
+                      <Clock size={12} className="opacity-50" />
+                    </a>
+                  )}
                 </div>
               </div>
-              
-              <p className="text-gray-600 text-[14px] leading-relaxed max-w-2xl font-medium">
-                {notif.description.split(/(Senior Software Engineer|UX Researcher|Elena Gilbert|Michael Chen|Data Analyst|Sarah Jenkins|Software Intern|Frontend Developer|David Miller|DevOps Engineer)/g).map((part, i) => (
-                  <span key={i} className={part.match(/Senior Software Engineer|UX Researcher|Elena Gilbert|Michael Chen|Data Analyst|Sarah Jenkins|Software Intern|Frontend Developer|David Miller|DevOps Engineer/) ? "font-black text-gray-900" : ""}>
-                    {part}
-                  </span>
-                ))}
-              </p>
-
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2 pt-1">
-                {notif.tags.map((tag, idx) => (
-                  <div key={idx} className="flex bg-gray-50 border border-gray-100 rounded-full px-3 py-1 items-center gap-2 group/tag hover:bg-gray-100 transition-colors">
-                    <span className="text-[9px] font-black text-gray-400 tracking-widest">{tag.label}:</span>
-                    <span className="text-[10px] font-black text-gray-700 uppercase tracking-wide">{tag.value}</span>
-                  </div>
-                ))}
-              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+        {filteredNotifications.length === 0 && (
+          <p className="text-center py-20 text-gray-400 font-bold italic">No notifications found.</p>
+        )}
       </div>
 
       {/* Pagination / Load More */}
-      <div className="pt-4 flex justify-center">
-        <button className="px-10 py-4 border-2 border-gray-100 rounded-[20px] text-[12px] font-black text-gray-400 uppercase tracking-widest hover:border-gray-900 hover:text-gray-900 transition-all active:scale-95">
-          Load Older Notifications
-        </button>
-      </div>
+      {filteredNotifications.length > 10 && (
+        <div className="pt-4 flex justify-center">
+          <button className="px-10 py-4 border-2 border-gray-100 rounded-[20px] text-[12px] font-black text-gray-400 uppercase tracking-widest hover:border-gray-900 hover:text-gray-900 transition-all active:scale-95">
+            Load Older Notifications
+          </button>
+        </div>
+      )}
 
     </div>
   );

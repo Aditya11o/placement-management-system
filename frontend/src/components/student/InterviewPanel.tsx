@@ -1,12 +1,32 @@
-import React from 'react';
-import { ExternalLink, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ExternalLink, ChevronRight, Loader2 } from 'lucide-react';
+import api from '../../api';
 
 const InterviewPanel: React.FC = () => {
-  const interviews = [
-    { company: 'Google SDE I', time: 'Oct 28, 2023 • 10:30 AM', mode: 'ONLINE', modeColor: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-    { company: 'Uber Final Round', time: 'Oct 30, 2023 • 02:00 PM', mode: 'OFFLINE', modeColor: 'text-slate-600 bg-slate-50 border-slate-200' },
-    { company: 'Stripe Technical', time: 'Nov 02, 2023 • 08:00 AM', mode: 'ONLINE', modeColor: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-  ];
+  const [interviews, setInterviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInterviews = async () => {
+      try {
+        const { data } = await api.get('/applications/interviews');
+        setInterviews(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInterviews();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-white p-5 rounded-xl shadow-md border border-gray-200 h-full flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-5 rounded-xl shadow-md border border-gray-200 h-full hover:shadow-lg transition-shadow duration-300">
@@ -19,20 +39,33 @@ const InterviewPanel: React.FC = () => {
           <div key={i} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm transition-all">
             <div className="flex justify-between items-start">
               <div>
-                <h4 className="font-semibold text-gray-900">{interview.company}</h4>
-                <p className="text-xs text-gray-500 mt-1">{interview.time}</p>
+                <h4 className="font-semibold text-gray-900">{interview.job?.title || 'Job Interview'}</h4>
+                <p className="text-xs text-gray-700 font-bold mt-1">{interview.job?.companyName}</p>
+                <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-wider font-medium">
+                  {new Date(interview.interviewDate).toLocaleString()}
+                </p>
               </div>
               <span className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-tight ${
                 interview.mode === 'ONLINE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
               }`}>
-                {interview.mode}
+                {interview.mode || 'ONLINE'}
               </span>
             </div>
-            <button className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 mt-4 hover:text-blue-600 transition-colors">
-              <ExternalLink size={14} /> View Details
-            </button>
+            {interview.interviewLink && (
+              <a 
+                href={interview.interviewLink} 
+                target="_blank" 
+                rel="noreferrer"
+                className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 mt-4 hover:underline transition-colors"
+              >
+                <ExternalLink size={14} /> Join Meeting
+              </a>
+            )}
           </div>
         ))}
+        {interviews.length === 0 && (
+          <p className="text-center py-10 text-gray-400 font-medium italic">No upcoming interviews</p>
+        )}
       </div>
     </div>
   );

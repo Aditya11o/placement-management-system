@@ -1,73 +1,161 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
-  Users, Search, Filter, FileText, 
-  CheckCircle2, XCircle, Clock, 
-  Mail, Phone, GraduationCap, 
-  ChevronLeft, ChevronRight, MoreHorizontal,
-  Download, Calendar, UserCheck, Play
+  Search, 
+  CheckCircle2, XCircle, 
+  Loader2, X, Square, CheckSquare, Filter, BarChart3
 } from 'lucide-react';
+import api from '../../api';
 
 const Applicants: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const initialJobId = searchParams.get('jobId') || '';
+  
   const [activeTab, setActiveTab] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [selectedJob, setSelectedJob] = useState(initialJobId);
+  const [applicants, setApplicants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedApplicants, setSelectedApplicants] = useState<string[]>([]);
+  
+  // Modal for scheduling
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [schedulingApplicant, setSchedulingApplicant] = useState<any>(null);
+  const [interviewDetails, setInterviewDetails] = useState({
+    date: '',
+    time: '',
+    mode: 'Online',
+    link: ''
+  });
 
-  const sampleApplicants = [
-    {
-      id: 1,
-      name: 'Arjun Mehta',
-      appliedAt: '2 days ago',
-      email: 'arjun.m@university.edu',
-      phone: '+91 98765 43210',
-      degree: 'B.Tech',
-      branch: 'CS',
-      cgpa: '9.2',
-      skills: ['React', 'TypeScript'],
-      resume: 'RESUME_ARJUN.PDF',
-      status: 'Applied',
-      photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arjun'
-    },
-    {
-      id: 2,
-      name: 'Priya Sharma',
-      appliedAt: '4 days ago',
-      email: 'priya.sharma@edu.in',
-      phone: '+91 88223 11445',
-      degree: 'M.Tech',
-      branch: 'AI',
-      cgpa: '8.8',
-      skills: ['Python', 'AWS'],
-      resume: 'PRIYA_CV_FINAL.PDF',
-      status: 'Shortlisted',
-      photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya'
-    },
-    {
-      id: 3,
-      name: 'Rohan Verma',
-      appliedAt: '1 week ago',
-      email: 'rohan.v@campus.org',
-      phone: '+91 77334 22110',
-      degree: 'B.Tech',
-      branch: 'IT',
-      cgpa: '7.2',
-      skills: ['Java'],
-      resume: 'RESUME_ROHAN.PDF',
-      status: 'Rejected',
-      photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rohan'
+  const fetchRecruiterJobs = async () => {
+    try {
+      const res = await api.get('/jobs/my');
+      setJobs(res.data);
+      if (!selectedJob && res.data.length > 0) {
+        setSelectedJob(res.data[0]._id);
+      }
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
     }
-  ];
+  };
+
+  const fetchApplicants = async () => {
+    if (!selectedJob) return;
+    try {
+      setLoading(true);
+      const res = await api.get(`/applications/job/${selectedJob}`);
+      setApplicants(res.data);
+    } catch (err) {
+      console.error('Error fetching applicants:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecruiterJobs();
+  }, []);
+
+  useEffect(() => {
+    fetchApplicants();
+  }, [selectedJob]);
+
+  const handleUpdateStatus = async (id: string, status: string, additionalData = {}) => {
+    try {
+      await api.patch(`/applications/${id}/status`, { status, ...additionalData });
+      fetchApplicants(); // Refresh list
+    } catch (err) {
+      console.error('Error updating status:', err);
+      alert('Failed to update status');
+    }
+  };
+
+  const handleBulkStatusUpdate = async (status: string) => {
+    if (selectedApplicants.length === 0) return;
+    try {
+      setLoading(true);
+      await api.patch('/applications/bulk-status', { ids: selectedApplicants, status });
+      setSelectedApplicants([]);
+      fetchApplicants();
+      alert('Selected applicants updated successfully!');
+    } catch (err) {
+      console.error('Error in bulk update:', err);
+      alert('Failed to update applicants in bulk');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedApplicants(prev => 
+      prev.includes(id) ? prev.filter(aId => aId !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedApplicants.length === filteredApplicants.length) {
+      setSelectedApplicants([]);
+    } else {
+      setSelectedApplicants(filteredApplicants.map(app => app._id));
+    }
+  };
+
+  const selectHighCGPA = () => {
+    const highCgpaIds = filteredApplicants
+      .filter(app => (app.studentProfile?.studentDetails?.cgpa || 0) >= 8.5)
+      .map(app => app._id);
+    setSelectedApplicants(highCgpaIds);
+  };
+
+  const openScheduleModal = (applicant: any) => {
+    setSchedulingApplicant(applicant);
+    setShowScheduleModal(true);
+  };
+
+  const handleConfirmSchedule = async () => {
+    if (!interviewDetails.date || !interviewDetails.time) {
+      alert('Please fill date and time');
+      return;
+    }
+
+    const interviewDate = new Date(`${interviewDetails.date}T${interviewDetails.time}`);
+    
+    await handleUpdateStatus(schedulingApplicant._id, 'shortlisted', {
+      interviewDate,
+      interviewLink: interviewDetails.mode === 'Online' ? interviewDetails.link : '',
+      feedback: `Interview scheduled for ${interviewDate.toLocaleString()}`
+    });
+    
+    setShowScheduleModal(false);
+    setInterviewDetails({ date: '', time: '', mode: 'Online', link: '' });
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'Applied':
+      case 'pending':
         return <span className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded text-[9px] font-black uppercase tracking-widest">Applied</span>;
-      case 'Shortlisted':
-        return <span className="px-2 py-0.5 bg-gray-50 text-gray-500 border border-gray-100 rounded text-[9px] font-black uppercase tracking-widest">Shortlisted</span>;
-      case 'Rejected':
+      case 'shortlisted':
+        return <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded text-[9px] font-black uppercase tracking-widest">Shortlisted</span>;
+      case 'rejected':
         return <span className="px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-100 rounded text-[9px] font-black uppercase tracking-widest">Rejected</span>;
+      case 'accepted':
+        return <span className="px-2 py-0.5 bg-blue-600 text-white rounded text-[9px] font-black uppercase tracking-widest">Hired</span>;
       default:
-        return null;
+        return <span className="px-2 py-0.5 bg-gray-50 text-gray-500 border border-gray-100 rounded text-[9px] font-black uppercase tracking-widest">{status}</span>;
     }
   };
+
+  const filteredApplicants = applicants.filter(app => {
+    const matchesSearch = app.student?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         app.student?.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTab = activeTab === 'All' || 
+                      (activeTab === 'Applied' && app.status === 'pending') ||
+                      (activeTab === 'Shortlisted' && app.status === 'shortlisted');
+    return matchesSearch && matchesTab;
+  });
 
   return (
     <div className="space-y-6 pb-12">
@@ -82,13 +170,18 @@ const Applicants: React.FC = () => {
           </div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">Applicant Management</h1>
           <p className="text-gray-500 text-[14px] mt-2 max-w-2xl">
-            Review, filter, and track candidates across your active job postings. Use the global actions to advance candidates in the pipeline.
+            Review, filter, and track candidates across your active job postings.
           </p>
         </div>
-        <button className="px-8 py-3.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-3 active:scale-95">
-          <Play size={14} className="fill-white" />
-          Move Shortlisted to Interview
-        </button>
+        <div className="flex gap-4">
+          <button 
+            disabled={!selectedJob}
+            onClick={() => navigate(`/recruiter/compare?jobId=${selectedJob}`)}
+            className="px-6 py-3 bg-blue-950 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-black/10 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+          >
+            <BarChart3 size={16} /> Compare Candidates
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -97,10 +190,18 @@ const Applicants: React.FC = () => {
           
           <div className="col-span-12 md:col-span-4 space-y-2">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Job Posting</label>
-            <select className="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-[13px] text-gray-900 focus:outline-none transition-all appearance-none cursor-pointer">
-              <option>Senior Software Engineer (Frontend)</option>
-              <option>Data Analyst Intern</option>
-              <option>UX Designer</option>
+            <select 
+              value={selectedJob}
+              onChange={(e) => {
+                setSelectedJob(e.target.value);
+                setSearchParams({ jobId: e.target.value });
+              }}
+              className="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-[13px] text-gray-900 focus:outline-none transition-all appearance-none cursor-pointer"
+            >
+              {jobs.map(job => (
+                <option key={job._id} value={job._id}>{job.title}</option>
+              ))}
+              {jobs.length === 0 && <option disabled>No jobs posted yet</option>}
             </select>
           </div>
 
@@ -110,7 +211,7 @@ const Applicants: React.FC = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text" 
-                placeholder="Search by name, skills or course..."
+                placeholder="Search by name, email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-11 pr-4 py-3 bg-gray-50 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-[13px] text-gray-900 focus:outline-none transition-all"
@@ -142,144 +243,205 @@ const Applicants: React.FC = () => {
 
       {/* Applicants Table */}
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-[13px]">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student Name</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Contact Info</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Academic Detail</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Skills & Resume</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {sampleApplicants.map((applicant) => (
-                <tr key={applicant.id} className="hover:bg-gray-50/50 transition-colors group">
-                  
-                  {/* Student Name */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full border border-gray-200 p-0.5 overflow-hidden flex-shrink-0">
-                        <img src={applicant.photo} alt={applicant.name} className="w-full h-full rounded-full object-cover" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-black text-gray-900 tracking-tight text-[14px]">{applicant.name}</span>
-                        <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1 mt-0.5">
-                          <Clock size={10} />
-                          Applied {applicant.appliedAt}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Contact Info */}
-                  <td className="px-6 py-5">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-gray-600 font-bold">
-                        <Mail size={12} className="text-gray-300" />
-                        {applicant.email}
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-400 font-medium text-[11px]">
-                        <Phone size={12} className="text-gray-300" />
-                        {applicant.phone}
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Academic Detail */}
-                  <td className="px-6 py-5">
-                    <div className="space-y-1">
-                      <div className="text-gray-900 font-black tracking-tight flex items-center gap-2">
-                        {applicant.degree} {applicant.branch}
-                      </div>
-                      <div className="text-[11px] font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wide">
-                        CGPA: <span className="text-gray-900 font-black">{applicant.cgpa}</span>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Skills & Resume */}
-                  <td className="px-6 py-5">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap gap-1.5">
-                        {applicant.skills.map(skill => (
-                          <span key={skill} className="px-1.5 py-0.5 bg-gray-50 text-gray-500 rounded text-[9px] font-black uppercase tracking-tighter border border-gray-100">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                      <a href="#" className="flex items-center gap-1.5 text-gray-900 font-black text-[10px] uppercase tracking-widest hover:text-blue-600 transition-colors">
-                        <FileText size={12} className="text-gray-400" />
-                        {applicant.resume}
-                      </a>
-                    </div>
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-6 py-5">
-                    {getStatusBadge(applicant.status)}
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center justify-end gap-3">
-                      {applicant.status === 'Applied' && (
-                        <>
-                          <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all border border-transparent hover:border-blue-100" title="Shortlist">
-                            <CheckCircle2 size={18} />
-                          </button>
-                          <button className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all border border-transparent hover:border-rose-100" title="Reject">
-                            <XCircle size={18} />
-                          </button>
-                        </>
-                      )}
-                      {applicant.status === 'Shortlisted' && (
-                        <button className="px-4 py-2 bg-[#000613] text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all flex items-center gap-2 active:scale-95 whitespace-nowrap">
-                          Schedule Interview
-                        </button>
-                      )}
-                      {applicant.status === 'Rejected' && (
-                        <button className="text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none">
-                          View Feedback
-                        </button>
-                      )}
-                    </div>
-                  </td>
-
+        {loading ? (
+          <div className="flex py-20 items-center justify-center">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <th className="px-6 py-4 w-12">
+                    <button 
+                      onClick={toggleSelectAll}
+                      className="text-gray-300 hover:text-gray-900 transition-colors"
+                    >
+                      {selectedApplicants.length === filteredApplicants.length && filteredApplicants.length > 0 
+                        ? <CheckSquare size={18} className="text-blue-600" /> 
+                        : <Square size={18} />
+                      }
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student Name</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">CGPA</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredApplicants.map((applicant) => (
+                  <tr key={applicant._id} className="hover:bg-gray-50/50 transition-colors group">
+                    <td className="px-6 py-5">
+                      <button 
+                        onClick={() => toggleSelect(applicant._id)}
+                        className={`${selectedApplicants.includes(applicant._id) ? 'text-blue-600' : 'text-gray-200 group-hover:text-gray-300'}`}
+                      >
+                        {selectedApplicants.includes(applicant._id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                      </button>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full border border-gray-200 p-0.5 overflow-hidden flex-shrink-0">
+                          <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${applicant.student?.name}`} alt="" className="w-full h-full rounded-full object-cover" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-black text-gray-900 tracking-tight text-[14px]">{applicant.student?.name}</span>
+                          <span className="text-[10px] font-bold text-gray-400 mt-0.5">{applicant.student?.email}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-center font-black text-blue-600">
+                      {applicant.studentProfile?.studentDetails?.cgpa || 'N/A'}
+                    </td>
+                    <td className="px-6 py-5 text-center">
+                      {getStatusBadge(applicant.status)}
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center justify-end gap-3">
+                        {applicant.status === 'pending' && (
+                          <>
+                            <button 
+                              onClick={() => openScheduleModal(applicant)}
+                              className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all border border-transparent hover:border-emerald-100" title="Shortlist & Schedule">
+                              <CheckCircle2 size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleUpdateStatus(applicant._id, 'rejected')}
+                              className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all border border-transparent hover:border-rose-100" title="Reject">
+                              <XCircle size={18} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredApplicants.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-20 text-center font-bold text-gray-400">No applicants found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-        {/* Bottom Pagination */}
-        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-[12px] font-bold text-gray-400">
-            Showing <span className="text-gray-900">1 to 10</span> of <span className="text-gray-900">124</span> applicants
-          </p>
-          <div className="flex items-center gap-1">
-            <button className="p-2 text-gray-400 hover:text-gray-600">
-              <ChevronLeft size={16} />
+      {/* Bulk Floating Action Bar */}
+      {selectedApplicants.length > 0 && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-[#000613] text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-8 z-40 animate-in slide-in-from-bottom-10 duration-500">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Selection</span>
+            <span className="text-sm font-black tracking-tight">{selectedApplicants.length} Applicants</span>
+          </div>
+          <div className="h-8 w-px bg-white/10" />
+          <div className="flex gap-3">
+            <button 
+              onClick={() => handleBulkStatusUpdate('shortlisted')}
+              className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95"
+            >
+              <CheckCircle2 size={14} /> Bulk Shortlist
             </button>
-            {[1, 2, 3].map(page => (
-              <button 
-                key={page}
-                className={`w-8 h-8 rounded-lg text-[11px] font-black transition-all ${
-                  page === 1 ? 'bg-gray-900 text-white shadow-lg shadow-black/10' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-            <button className="p-2 text-gray-400 hover:text-gray-600">
-              <ChevronRight size={16} />
+            <button 
+              onClick={() => handleBulkStatusUpdate('rejected')}
+              className="px-6 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95"
+            >
+              <XCircle size={14} /> Bulk Reject
             </button>
           </div>
+          <button 
+            onClick={() => setSelectedApplicants([])}
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
+      )}
 
+      {/* Criteria Selection Quick Action */}
+      <div className="flex justify-end">
+        <button 
+          onClick={selectHighCGPA}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all border border-blue-200"
+        >
+          <Filter size={14} /> Select All CGPA ≥ 8.5
+        </button>
       </div>
+
+      {/* Schedule Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 bg-[#000613]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[40px] w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="px-10 pt-10 pb-6 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Schedule Interview</h2>
+                <p className="text-gray-400 text-[12px] font-bold mt-1 uppercase tracking-wide">Candidate: {schedulingApplicant?.student?.name}</p>
+              </div>
+              <button onClick={() => setShowScheduleModal(false)} className="p-2 text-gray-400 hover:text-gray-900 rounded-full"><X size={20} /></button>
+            </div>
+            
+            <div className="px-10 pb-8 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Date</label>
+                  <input 
+                    type="date" 
+                    value={interviewDetails.date}
+                    onChange={(e) => setInterviewDetails({...interviewDetails, date: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold text-[13px] outline-none" 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Time</label>
+                  <input 
+                    type="time" 
+                    value={interviewDetails.time}
+                    onChange={(e) => setInterviewDetails({...interviewDetails, time: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold text-[13px] outline-none" 
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Interview Mode</label>
+                <div className="flex p-1 bg-gray-100 rounded-xl gap-1">
+                  <button 
+                    onClick={() => setInterviewDetails({...interviewDetails, mode: 'Online'})}
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${interviewDetails.mode === 'Online' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
+                    Online
+                  </button>
+                  <button 
+                    onClick={() => setInterviewDetails({...interviewDetails, mode: 'Offline'})}
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${interviewDetails.mode === 'Offline' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
+                    Offline
+                  </button>
+                </div>
+              </div>
+
+              {interviewDetails.mode === 'Online' && (
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Meeting Link</label>
+                  <input 
+                    type="text" 
+                    placeholder="https://meet.google.com/..."
+                    value={interviewDetails.link}
+                    onChange={(e) => setInterviewDetails({...interviewDetails, link: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold text-[13px] outline-none" 
+                  />
+                </div>
+              )}
+
+              <button 
+                onClick={handleConfirmSchedule}
+                className="w-full py-4 bg-[#000613] text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all active:scale-95 shadow-xl shadow-black/20"
+              >
+                Confirm & Shortlist
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -1,18 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, Briefcase, FileText, Calendar, 
-  CheckCircle, MoreVertical
+  CheckCircle, MoreVertical, Loader2
 } from 'lucide-react';
+import api from '../../api';
+import AnnouncementsBoard from '../../components/AnnouncementsBoard';
 
 const AdminDashboard: React.FC = () => {
-  const stats = [
-    { label: 'Total Students', value: '1,250', change: '+12%', icon: Users, color: 'blue' },
-    { label: 'Total Recruiters', value: '85', change: '+5', icon: Briefcase, color: 'indigo' },
-    { label: 'Total Jobs Posted', value: '320', status: 'Active', icon: Briefcase, color: 'sky' },
-    { label: 'Total Applications', value: '4,500', sub: '98% Review', icon: FileText, color: 'slate' },
-    { label: 'Total Interviews', value: '1,200', sub: 'Next: 2PM', icon: Calendar, color: 'violet' },
-    { label: 'Selected Students', value: '850', sub: '68% Rate', icon: CheckCircle, color: 'emerald' },
-  ];
+  const [stats, setStats] = useState([
+    { label: 'Total Students', value: '0', change: 'Active', icon: Users, color: 'blue' },
+    { label: 'Total Recruiters', value: '0', change: 'Active', icon: Briefcase, color: 'indigo' },
+    { label: 'Total Jobs Posted', value: '0', status: 'Active', icon: Briefcase, color: 'sky' },
+    { label: 'Total Applications', value: '0', sub: 'Active', icon: FileText, color: 'slate' },
+    { label: 'Total Interviews', value: '0', sub: 'Updated', icon: Calendar, color: 'violet' },
+    { label: 'Selected Students', value: '0', sub: 'Updated', icon: CheckCircle, color: 'emerald' },
+  ]);
+
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAdminData = async () => {
+      try {
+        const [statsRes, activitiesRes] = await Promise.all([
+          api.get('/admin/stats'),
+          api.get('/admin/activities')
+        ]);
+        
+        const s = statsRes.data;
+        setStats([
+          { label: 'Total Students', value: s.totalStudents.toLocaleString(), change: 'Active', icon: Users, color: 'blue' },
+          { label: 'Total Recruiters', value: s.totalRecruiters.toLocaleString(), change: 'Active', icon: Briefcase, color: 'indigo' },
+          { label: 'Total Jobs Posted', value: s.totalJobs.toLocaleString(), status: 'Active', icon: Briefcase, color: 'sky' },
+          { label: 'Total Applications', value: s.totalApplications.toLocaleString(), sub: 'Active', icon: FileText, color: 'slate' },
+          { label: 'Total Interviews', value: s.totalInterviews.toLocaleString(), sub: 'Next: 2PM', icon: Calendar, color: 'violet' },
+          { label: 'Selected Students', value: s.placedStudents.toLocaleString(), sub: '68% Rate', icon: CheckCircle, color: 'emerald' },
+        ]);
+        setActivities(activitiesRes.data);
+      } catch (error) {
+        console.error('Error fetching admin data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAdminData();
+  }, []);
 
   const companyJobs = [
     { name: 'GOOGLE', jobs: 85, color: '#000613' },
@@ -28,32 +61,19 @@ const AdminDashboard: React.FC = () => {
     { label: 'Rejected', value: 10, color: 'bg-[#e2e4e6]' },
   ];
 
-  const activities = [
-    { 
-      date: '2024-05-12', 
-      type: 'Job Posted', 
-      desc: 'Senior Software Engineer at Google', 
-      user: { name: 'Sarah Jenkins', role: 'Recruiter', initials: 'SJ' },
-      status: 'Published'
-    },
-    { 
-      date: '2024-05-12', 
-      type: 'Student Registered', 
-      desc: 'New account created', 
-      user: { name: 'Arjun Mehta', role: 'Student', initials: 'AM' },
-      status: 'Verified'
-    },
-    { 
-      date: '2024-05-11', 
-      type: 'Candidate Shortlisted', 
-      desc: 'Interview round 1', 
-      user: { name: 'TechCorp', role: 'Recruiter', initials: 'TC' },
-      status: 'Scheduled'
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Announcements */}
+      <AnnouncementsBoard />
+      
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {stats.map((stat) => (
@@ -132,7 +152,9 @@ const AdminDashboard: React.FC = () => {
                 <circle cx="18" cy="18" r="16" fill="transparent" stroke="#e2e4e6" strokeWidth="4" strokeDasharray="10 100" strokeDashoffset="-90"></circle>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-3xl font-black text-gray-900">4.5k</span>
+                <span className="text-3xl font-black text-gray-900">
+                  {stats[3].value}
+                </span>
                 <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total</span>
               </div>
             </div>
@@ -169,7 +191,9 @@ const AdminDashboard: React.FC = () => {
             <tbody className="divide-y divide-gray-50">
               {activities.map((activity, idx) => (
                 <tr key={idx} className="hover:bg-gray-50/50 transition-colors group">
-                  <td className="px-6 py-4 text-xs font-bold text-gray-500">{activity.date}</td>
+                  <td className="px-6 py-4 text-xs font-bold text-gray-500">
+                    {new Date(activity.date).toLocaleDateString()}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="p-1.5 bg-gray-50 rounded-lg text-gray-400 group-hover:text-blue-600 transition-colors">
@@ -191,8 +215,7 @@ const AdminDashboard: React.FC = () => {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      activity.status === 'Published' ? 'bg-[#000613] text-white' :
-                      activity.status === 'Verified' ? 'bg-gray-100 text-gray-600' :
+                      activity.status === 'Published' || activity.status === 'Verified' ? 'bg-[#000613] text-white' :
                       'bg-orange-50 text-orange-600'
                     }`}>
                       {activity.status}
@@ -200,6 +223,11 @@ const AdminDashboard: React.FC = () => {
                   </td>
                 </tr>
               ))}
+              {activities.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-gray-400 font-bold">No recent activities</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

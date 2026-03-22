@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['student', 'recruiter', 'admin'],
+      enum: ['student', 'recruiter', 'admin', 'alumni', 'mentor'],
       default: 'student',
     },
     isVerified: {
@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'inactive'],
+      enum: ['active', 'inactive', 'blacklisted'],
       default: 'active',
     },
   },

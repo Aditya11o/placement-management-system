@@ -40,15 +40,44 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Role based access control
+// Admin middleware
+const admin = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403);
+    res.json({ message: 'Not authorized as an admin' });
+  }
+};
+
+// Recruiter middleware
+const recruiter = (req, res, next) => {
+  if (req.user && req.user.role === 'recruiter') {
+    next();
+  } else {
+    res.status(403);
+    res.json({ message: 'Not authorized as a recruiter' });
+  }
+};
+
+// Student middleware
+const student = (req, res, next) => {
+  if (req.user && req.user.role === 'student') {
+    next();
+  } else {
+    res.status(403);
+    res.json({ message: 'Not authorized as a student' });
+  }
+};
+// Role authorization
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role)) {
       res.status(403);
-      return res.json({ message: `Role (${req.user ? req.user.role : 'none'}) is not authorized to access this route` });
+      return res.json({ message: `Role ${req.user.role} is not authorized to access this route` });
     }
     next();
   };
 };
 
-module.exports = { protect, authorize };
+module.exports = { protect, authorize, admin, recruiter, student };

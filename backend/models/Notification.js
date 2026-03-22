@@ -2,21 +2,15 @@ const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema(
   {
-    notification_id: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    user_type: {
-      type: String,
-      required: true,
-      enum: ['Student', 'Recruiter', 'Admin'],
-    },
-    user_id: {
+    recipient: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    recipientRole: {
+      type: String,
+      required: true,
+      enum: ['student', 'recruiter', 'admin'],
     },
     title: {
       type: String,
@@ -26,13 +20,22 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    is_read: {
+    type: {
+      type: String,
+      enum: ['placement', 'interview', 'general', 'alert', 'application'],
+      default: 'general',
+    },
+    isRead: {
+      type: Boolean,
+      default: false,
+    },
+    isBroadcast: {
       type: Boolean,
       default: false,
     },
   },
   {
-    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+    timestamps: true,
   }
 );
 

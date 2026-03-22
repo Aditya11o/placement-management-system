@@ -1,63 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Users, Search, Filter, Plus, 
-  MoreVertical, Eye, Check, X, 
-  Edit2, Trash2, Download, 
-  ChevronLeft, ChevronRight, AlertCircle,
-  ShieldCheck, ArrowRight, UserPlus
+  Search, Eye, Check, X, 
+  Edit2, AlertCircle,
+  ShieldCheck, ArrowRight, UserPlus, Loader2
 } from 'lucide-react';
+import api from '../../api';
 
 const ManageStudents: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [courseFilter, setCourseFilter] = useState('All Courses');
-  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const students = [
-    {
-      id: 1,
-      name: 'Alex Rivera',
-      email: 'alex.r@univ.edu',
-      course: 'B.Tech CSE',
-      cgpa: '9.20',
-      skills: ['REACT', 'NODE'],
-      regDate: 'Oct 12, 2023',
-      status: 'Approved',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
-    },
-    {
-      id: 2,
-      name: 'Priya Sharma',
-      email: 'priya.s@univ.edu',
-      course: 'MCA',
-      cgpa: '8.85',
-      skills: ['PYTHON', 'AWS'],
-      regDate: 'Oct 14, 2023',
-      status: 'Pending',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya',
-    },
-    {
-      id: 3,
-      name: 'Marcus Thompson',
-      email: 'm.thompson@univ.edu',
-      course: 'BCA',
-      cgpa: '7.20',
-      skills: ['JAVA', 'MYSQL'],
-      regDate: 'Oct 15, 2023',
-      status: 'Rejected',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus',
-    },
-    {
-      id: 4,
-      name: 'Chloe Chen',
-      email: 'chloe.c@univ.edu',
-      course: 'B.Tech IT',
-      cgpa: '9.55',
-      skills: ['GO', 'DOCKER', 'KUBERNETES'],
-      regDate: 'Oct 16, 2023',
-      status: 'Approved',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Chloe',
-    },
-  ];
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const { data } = await api.get('/admin/users');
+      const filtered = data
+        .filter((u: any) => u.role === 'student')
+        .map((u: any) => ({
+          _id: u._id,
+          name: u.name,
+          email: u.email,
+          course: u.profile?.studentDetails?.course || 'N/A',
+          branch: u.profile?.studentDetails?.branch || 'N/A',
+          cgpa: u.profile?.studentDetails?.cgpa || '0.0',
+          skills: u.profile?.studentDetails?.skills || [],
+          regDate: new Date(u.createdAt).toLocaleDateString(),
+          status: u.isVerified ? 'Approved' : 'Pending',
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`,
+        }));
+      setStudents(filtered);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const handleVerify = async (id: string, isVerified: boolean) => {
+    try {
+      await api.patch(`/admin/users/${id}/verify`, { isVerified });
+      fetchStudents();
+    } catch (err) {
+      alert('Failed to update student');
+    }
+  };
+
+  const filteredStudents = students.filter(student => 
+    student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    student.course.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -87,118 +84,93 @@ const ManageStudents: React.FC = () => {
             className="w-full bg-gray-50 border border-gray-100 rounded-xl py-2.5 pl-11 pr-4 text-sm font-bold text-gray-900 outline-none focus:bg-white focus:border-[#000613] focus:ring-4 focus:ring-[#000613]/5 transition-all"
           />
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <select 
-            value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
-            className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-xs font-black text-gray-600 outline-none hover:bg-white transition-all appearance-none cursor-pointer"
-          >
-            <option>All Courses</option>
-            <option>B.Tech CSE</option>
-            <option>MCA</option>
-            <option>BCA</option>
-            <option>B.Tech IT</option>
-          </select>
-          <select 
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-xs font-black text-gray-600 outline-none hover:bg-white transition-all appearance-none cursor-pointer"
-          >
-            <option>All Statuses</option>
-            <option>Approved</option>
-            <option>Pending</option>
-            <option>Rejected</option>
-          </select>
-          <button className="p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-gray-400 hover:text-[#000613] hover:bg-white transition-all">
-            <Filter size={18} />
-          </button>
-        </div>
       </div>
 
       {/* Students Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50/50">
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student Name</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Course</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">CGPA</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Skills</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Resume</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Reg. Date</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {students.map((student) => (
-                <tr key={student.id} className="hover:bg-gray-50/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <img src={student.avatar} alt={student.name} className="w-9 h-9 rounded-full bg-gray-100 group-hover:scale-110 transition-transform" />
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 leading-tight">{student.name}</p>
-                        <p className="text-[10px] font-bold text-gray-400">{student.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-xs font-bold text-gray-600">{student.course}</td>
-                  <td className="px-6 py-4 text-sm font-black text-gray-900 text-center">{student.cgpa}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      {student.skills.map((skill) => (
-                        <span key={skill} className="px-2 py-0.5 bg-gray-100 text-[9px] font-black text-gray-500 rounded uppercase tracking-wider">{skill}</span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="p-1.5 bg-gray-50 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
-                      <Download size={16} />
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 text-xs font-bold text-gray-400 whitespace-nowrap">{student.regDate}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      student.status === 'Approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                      student.status === 'Pending' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
-                      'bg-rose-50 text-rose-600 border border-rose-100'
-                    }`}>
-                      {student.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                      {student.status === 'Pending' ? (
-                        <>
-                          <button title="Approve" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><Check size={16} /></button>
-                          <button title="Reject" className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><X size={16} /></button>
-                        </>
-                      ) : (
-                        <button title="View Profile" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Eye size={16} /></button>
-                      )}
-                      <button title="Edit" className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Edit2 size={16} /></button>
-                      <button title="Delete" className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={16} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        <div className="p-4 bg-gray-50/50 border-t border-gray-50 flex justify-between items-center">
-          <p className="text-[11px] font-bold text-gray-400">Showing <span className="text-gray-900">1 to 4</span> of <span className="text-gray-900">128</span> students</p>
-          <div className="flex items-center gap-1">
-            <button className="p-1.5 text-gray-400 hover:text-gray-900 transition-colors"><ChevronLeft size={18} /></button>
-            <button className="w-8 h-8 rounded-lg bg-[#000613] text-white text-xs font-black shadow-lg shadow-black/10 flex items-center justify-center">1</button>
-            <button className="w-8 h-8 rounded-lg hover:bg-gray-200 text-gray-500 text-xs font-bold flex items-center justify-center transition-colors">2</button>
-            <button className="w-8 h-8 rounded-lg hover:bg-gray-200 text-gray-500 text-xs font-bold flex items-center justify-center transition-colors">3</button>
-            <span className="text-gray-300 px-1">...</span>
-            <button className="w-8 h-8 rounded-lg hover:bg-gray-200 text-gray-500 text-xs font-bold flex items-center justify-center transition-colors">32</button>
-            <button className="p-1.5 text-gray-400 hover:text-gray-900 transition-colors"><ChevronRight size={18} /></button>
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden min-h-[400px]">
+        {loading ? (
+          <div className="flex py-40 items-center justify-center">
+            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
           </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50/50">
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student Name</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Course</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">CGPA</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Skills</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Reg. Date</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredStudents.map((student) => (
+                  <tr key={student._id} className="hover:bg-gray-50/50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <img src={student.avatar} alt={student.name} className="w-9 h-9 rounded-full bg-gray-100 group-hover:scale-110 transition-transform" />
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 leading-tight">{student.name}</p>
+                          <p className="text-[10px] font-bold text-gray-400">{student.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-gray-600">{student.course}</td>
+                    <td className="px-6 py-4 text-sm font-black text-gray-900 text-center">{student.cgpa}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1.5">
+                        {student.skills.map((skill: string) => (
+                          <span key={skill} className="px-2 py-0.5 bg-gray-100 text-[9px] font-black text-gray-500 rounded uppercase tracking-wider">{skill}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-gray-400 whitespace-nowrap">{student.regDate}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        student.status === 'Approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                        'bg-orange-50 text-orange-600 border border-orange-100'
+                      }`}>
+                        {student.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                        {student.status === 'Pending' ? (
+                          <>
+                            <button 
+                              onClick={() => handleVerify(student._id, true)}
+                              title="Approve" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><Check size={16} /></button>
+                            <button 
+                              onClick={() => handleVerify(student._id, false)}
+                              title="Reject" className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><X size={16} /></button>
+                          </>
+                        ) : (
+                          <button 
+                            onClick={() => handleVerify(student._id, false)}
+                            title="Revoke Approval" className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-all"><X size={16} /></button>
+                        )}
+                        <button title="View Profile" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Eye size={16} /></button>
+                        <button title="Edit" className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Edit2 size={16} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredStudents.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-20 text-center font-bold text-gray-400">No students found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination Footer Placeholder */}
+        <div className="p-4 bg-gray-50/50 border-t border-gray-50 flex justify-between items-center text-xs font-bold text-gray-400">
+          <p>Showing {filteredStudents.length} records</p>
         </div>
       </div>
 
@@ -211,13 +183,10 @@ const ManageStudents: React.FC = () => {
               <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-blue-300 mb-6 border border-white/10 shadow-inner">
                 <AlertCircle size={24} />
               </div>
-              <h3 className="text-4xl font-black text-white mb-2 tracking-tight">14</h3>
+              <h3 className="text-4xl font-black text-white mb-2 tracking-tight">
+                {students.filter(s => s.status === 'Pending').length}
+              </h3>
               <p className="text-sm font-bold text-blue-200/60 uppercase tracking-widest">Pending Verifications</p>
-            </div>
-            <div className="mt-8 flex justify-end">
-              <button className="text-xs font-black text-white hover:text-blue-300 transition-colors flex items-center gap-2 group/btn">
-                Review Queue <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-              </button>
             </div>
           </div>
           {/* Decorative Gradient Overlay */}
@@ -228,17 +197,13 @@ const ManageStudents: React.FC = () => {
           <div className="relative z-10">
             <h3 className="text-lg font-black text-gray-900 tracking-tight mb-2">Automated Data Verification</h3>
             <p className="text-sm text-gray-500 font-bold leading-relaxed mb-6">
-              Run the batch script to cross-check SGPA/CGPA with university database records for all newly registered students.
+              Run the batch script to cross-check records with university records.
             </p>
             <button className="flex items-center gap-2.5 px-6 py-3 bg-gray-50 border border-gray-100 text-gray-900 rounded-xl font-black text-xs hover:bg-gray-100 transition-all active:scale-95 group/run">
               <ShieldCheck size={18} className="text-emerald-500" />
               Run Verification Script
               <ArrowRight size={14} className="group-hover/run:translate-x-1 transition-transform ml-2" />
             </button>
-          </div>
-          {/* Decorative Icon */}
-          <div className="absolute bottom-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity pointer-events-none grayscale">
-             <ShieldCheck size={180} />
           </div>
         </div>
       </div>

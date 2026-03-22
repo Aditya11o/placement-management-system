@@ -3,6 +3,7 @@ const Profile = require('../models/Profile');
 const generateToken = require('../utils/generateToken');
 const generateRefreshToken = require('../utils/generateRefreshToken');
 const jwt = require('jsonwebtoken');
+const sendEmail = require('../utils/emailUtils');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -28,6 +29,18 @@ const registerUser = async (req, res) => {
     if (user) {
       // Create empty profile for the user
       await Profile.create({ user: user._id });
+
+      if (user.role === 'student') {
+        try {
+          await sendEmail({
+            email: user.email,
+            subject: 'Welcome to Placement Management System',
+            message: `<h1>Welcome ${user.name}!</h1><p>Your account has been created successfully. Please complete your profile to start applying for jobs.</p>`,
+          });
+        } catch (err) {
+          console.error('Email failed to send:', err);
+        }
+      }
 
       res.status(201).json({
         _id: user._id,

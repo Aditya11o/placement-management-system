@@ -1,13 +1,23 @@
 import React from 'react';
 import { ChevronRight, Send, Clock, UserCheck, Trophy, XCircle } from 'lucide-react';
 
-const Pipeline: React.FC = () => {
+interface PipelineProps {
+  stats?: {
+    applied: number;
+    underReview: number;
+    shortlisted: number;
+    selected: number;
+    rejected: number;
+  };
+}
+
+const Pipeline: React.FC<PipelineProps> = ({ stats }) => {
   const steps = [
-    { label: 'Applied', val: '18', color: 'bg-gradient-to-br from-blue-500 to-blue-600', icon: Send },
-    { label: 'Under Review', val: '12', color: 'bg-gradient-to-br from-orange-400 to-orange-500', icon: Clock },
-    { label: 'Shortlisted', val: '05', color: 'bg-gradient-to-br from-purple-500 to-purple-600', icon: UserCheck },
-    { label: 'Selected', val: '01', color: 'bg-gradient-to-br from-green-500 to-green-600', icon: Trophy },
-    { label: 'Rejected', val: '02', color: 'bg-gradient-to-br from-red-500 to-red-600', icon: XCircle }
+    { label: 'Applied', val: stats?.applied.toString() || '0', color: 'bg-gradient-to-br from-blue-500 to-blue-600', icon: Send },
+    { label: 'Under Review', val: stats?.underReview.toString() || '0', color: 'bg-gradient-to-br from-orange-400 to-orange-500', icon: Clock },
+    { label: 'Shortlisted', val: stats?.shortlisted.toString() || '0', color: 'bg-gradient-to-br from-purple-500 to-purple-600', icon: UserCheck },
+    { label: 'Selected', val: stats?.selected.toString() || '0', color: 'bg-gradient-to-br from-green-500 to-green-600', icon: Trophy },
+    { label: 'Rejected', val: stats?.rejected.toString() || '0', color: 'bg-gradient-to-br from-red-500 to-red-600', icon: XCircle }
   ];
 
   return (

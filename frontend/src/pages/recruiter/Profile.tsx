@@ -1,25 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, Globe, Users, MapPin, 
   Mail, Info, Upload, Camera, 
-  Save, CornerDownRight, Heart
+  Save, CornerDownRight, Heart, Loader2
 } from 'lucide-react';
+import api from '../../api';
 
 const CompanyProfile: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
   const [companyInfo, setCompanyInfo] = useState({
-    name: 'NexaTech Solutions',
-    website: 'nexatech.io',
-    description: 'NexaTech Solutions is a global leader in cloud infrastructure and specialized AI deployments. We bridge the gap between academic theory and enterprise-scale implementations, fostering a culture of continuous learning and rapid innovation.',
+    name: '',
+    website: '',
+    description: '',
     industry: 'Software & Technology',
     size: '501 - 1,000 employees',
-    location: 'San Francisco, CA (Global HQ)',
+    location: '',
   });
 
   const [hrContact, setHrContact] = useState({
-    name: 'Sarah Jenkins',
-    email: 's.jenkins@nexatech.io',
-    phone: '+1 (555) 902-1244',
+    name: '',
+    email: '',
+    phone: '',
   });
+
+  const fetchProfile = async () => {
+    try {
+      const { data } = await api.get('/profile/me');
+      setProfile(data);
+      const rec = data.recruiterDetails || {};
+      setCompanyInfo({
+        name: rec.companyName || '',
+        website: rec.companyWebsite || '',
+        description: data.bio || '',
+        industry: rec.industry || 'Software & Technology',
+        size: rec.size || '501 - 1,000 employees',
+        location: rec.location || '',
+      });
+      setHrContact({
+        name: data.user?.name || '',
+        email: data.user?.email || '',
+        phone: rec.phone || '',
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      await api.put('/profile', {
+        bio: companyInfo.description,
+        recruiterDetails: {
+          companyName: companyInfo.name,
+          companyWebsite: companyInfo.website,
+          industry: companyInfo.industry,
+          size: companyInfo.size,
+          location: companyInfo.location,
+          phone: hrContact.phone,
+        }
+      });
+      alert('Profile updated successfully!');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader2 className="w-12 h-12 text-[#000613] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-12">
@@ -31,10 +90,16 @@ const CompanyProfile: React.FC = () => {
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Company Profile</h1>
         </div>
         <div className="flex gap-3">
-          <button className="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95">
+          <button 
+            onClick={() => fetchProfile()}
+            className="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95"
+          >
             Discard Changes
           </button>
-          <button className="px-6 py-2.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 flex items-center gap-2 active:scale-95">
+          <button 
+            onClick={handleSave}
+            className="px-6 py-2.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 flex items-center gap-2 active:scale-95"
+          >
             <Save size={14} />
             Save Profile
           </button>
@@ -54,9 +119,13 @@ const CompanyProfile: React.FC = () => {
               <div className="space-y-4">
                 <div className="relative group cursor-pointer">
                   <div className="w-40 h-40 bg-gray-100 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-gray-200 group-hover:border-[#000613] group-hover:bg-gray-50 transition-all overflow-hidden relative">
-                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm text-gray-400 group-hover:text-[#000613] transition-colors mb-2">
-                      <Upload size={24} />
-                    </div>
+                    {profile?.recruiterDetails?.companyLogo ? (
+                      <img src={profile.recruiterDetails.companyLogo} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm text-gray-400 group-hover:text-[#000613] transition-colors mb-2">
+                        <Upload size={24} />
+                      </div>
+                    )}
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Upload Logo</span>
                   </div>
                   <button className="absolute -bottom-2 -right-2 w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-600 shadow-lg hover:bg-gray-100 transition-all active:scale-90">
@@ -165,8 +234,8 @@ const CompanyProfile: React.FC = () => {
                 <input 
                   type="text" 
                   value={hrContact.name}
-                  onChange={e => setHrContact({...hrContact, name: e.target.value})}
-                  className="w-full px-5 py-3.5 bg-gray-100 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-gray-900 focus:outline-none transition-all"
+                  readOnly
+                  className="w-full px-5 py-3.5 bg-gray-50 border-transparent rounded-xl font-bold text-gray-500 cursor-not-allowed"
                 />
               </div>
               <div className="space-y-2">
@@ -174,8 +243,8 @@ const CompanyProfile: React.FC = () => {
                 <input 
                   type="email" 
                   value={hrContact.email}
-                  onChange={e => setHrContact({...hrContact, email: e.target.value})}
-                  className="w-full px-5 py-3.5 bg-gray-100 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-gray-900 focus:outline-none transition-all"
+                  readOnly
+                  className="w-full px-5 py-3.5 bg-gray-50 border-transparent rounded-xl font-bold text-gray-500 cursor-not-allowed"
                 />
               </div>
               <div className="space-y-2">
@@ -223,9 +292,9 @@ const CompanyProfile: React.FC = () => {
 
             <div className="p-6 space-y-4">
               <div>
-                <h4 className="text-lg font-black text-gray-900 tracking-tight leading-none">{companyInfo.name}</h4>
+                <h4 className="text-lg font-black text-gray-900 tracking-tight leading-none">{companyInfo.name || 'Company Name'}</h4>
                 <a href={`https://${companyInfo.website}`} className="text-[11px] font-bold text-gray-400 hover:text-blue-600 transition-colors mt-2 inline-block">
-                  {companyInfo.website}
+                  {companyInfo.website || 'website.com'}
                 </a>
               </div>
 
@@ -239,13 +308,13 @@ const CompanyProfile: React.FC = () => {
               </div>
 
               <p className="text-[12px] text-gray-500 leading-relaxed line-clamp-3">
-                {companyInfo.description}
+                {companyInfo.description || 'Company description goes here...'}
               </p>
 
               <div className="pt-4 space-y-2 border-t border-gray-50">
                 <div className="flex items-center gap-2 text-[11px] font-bold text-gray-400">
                   <MapPin size={14} className="opacity-50" />
-                  {companyInfo.location}
+                  {companyInfo.location || 'Location'}
                 </div>
                 <div className="flex items-center gap-2 text-[11px] font-bold text-gray-400">
                   <Mail size={14} className="opacity-50" />
@@ -254,7 +323,7 @@ const CompanyProfile: React.FC = () => {
               </div>
 
               <button className="w-full py-3 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all flex items-center justify-center gap-2 mt-4 shadow-lg active:scale-95">
-                <span>View 12 Open Positions</span>
+                <span>View Job Openings</span>
                 <CornerDownRight size={14} />
               </button>
             </div>
@@ -282,7 +351,10 @@ const CompanyProfile: React.FC = () => {
           <Globe size={14} />
           Preview as Student
         </div>
-        <button className="px-12 py-3.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 active:scale-95">
+        <button 
+          onClick={handleSave}
+          className="px-12 py-3.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 active:scale-95"
+        >
           Update Profile
         </button>
       </div>

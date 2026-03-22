@@ -2,7 +2,7 @@ import React from 'react';
 import { Bell, Search } from 'lucide-react';
 
 interface NavbarProps {
-  role: 'student' | 'recruiter' | 'admin';
+  role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
 }
 
 const Navbar: React.FC<NavbarProps> = ({ role }) => {
