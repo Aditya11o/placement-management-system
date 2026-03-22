@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FileText, Settings, MessageSquare, Users, Bell, Calendar, LogOut } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut } from 'lucide-react';
 
 interface SidebarProps {
   role: 'student' | 'recruiter' | 'admin';
@@ -21,10 +21,13 @@ const Sidebar: React.FC<SidebarProps> = ({ role }) => {
       case 'recruiter':
         return [
           { name: 'Dashboard', icon: LayoutDashboard, path: '/recruiter/dashboard' },
+          { name: 'Company Profile', icon: Users, path: '/recruiter/profile' },
+          { name: 'Post Job', icon: Briefcase, path: '/recruiter/post-job' },
           { name: 'Manage Jobs', icon: Briefcase, path: '/recruiter/jobs' },
           { name: 'Applicants', icon: FileText, path: '/recruiter/applicants' },
-          { name: 'Interviews', icon: Users, path: '/recruiter/interviews' },
-          { name: 'Messages', icon: MessageSquare, path: '/recruiter/messages' },
+          { name: 'Shortlisted Candidates', icon: Users, path: '/recruiter/shortlisted' },
+          { name: 'Interview Schedule', icon: Calendar, path: '/recruiter/interviews' },
+          { name: 'Notifications', icon: Bell, path: '/recruiter/notifications' },
         ];
       case 'admin':
         return [
@@ -32,7 +35,10 @@ const Sidebar: React.FC<SidebarProps> = ({ role }) => {
           { name: 'Manage Students', icon: Users, path: '/admin/students' },
           { name: 'Manage Recruiters', icon: Briefcase, path: '/admin/recruiters' },
           { name: 'Manage Jobs', icon: FileText, path: '/admin/jobs' },
+          { name: 'Applications', icon: FileText, path: '/admin/applications' },
+          { name: 'Interviews', icon: Calendar, path: '/admin/interviews' },
           { name: 'Reports', icon: FileText, path: '/admin/reports' },
+          { name: 'Notifications', icon: Bell, path: '/admin/notifications' },
         ];
       default:
         return [];

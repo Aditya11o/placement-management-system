@@ -13,7 +13,7 @@ const seedUsers = async () => {
       {
         name: 'Admin User',
         email: 'admin@pms.com',
-        password: 'Admin@123',
+        password: 'admin123',
         role: 'admin',
         isVerified: true
       },

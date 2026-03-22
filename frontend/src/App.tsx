@@ -18,9 +18,20 @@ import Notifications from './pages/student/Notifications';
 import Settings from './pages/student/Settings';
 import StudentProfile from './pages/student/Profile';
 import ManageJobs from './pages/recruiter/ManageJobs';
+import AdminManageJobs from './pages/admin/ManageJobs';
 import Applicants from './pages/recruiter/Applicants';
 import RecruiterProfile from './pages/recruiter/Profile';
-import ManageUsers from './pages/admin/ManageUsers';
+import PostJob from './pages/recruiter/PostJob';
+import Shortlisted from './pages/recruiter/Shortlisted';
+import RecruiterInterviews from './pages/recruiter/InterviewSchedule';
+import RecruiterNotifications from './pages/recruiter/Notifications';
+import RecruiterSettings from './pages/recruiter/Settings';
+import ManageStudents from './pages/admin/ManageStudents';
+import ManageRecruiters from './pages/admin/ManageRecruiters';
+import AdminManageApplications from './pages/admin/ManageApplications';
+import AdminManageInterviews from './pages/admin/ManageInterviews';
+import AdminReports from './pages/admin/Reports';
+import AdminManageNotifications from './pages/admin/ManageNotifications';
 import AdminSettings from './pages/admin/Settings';
 import ToastManager from './components/ToastManager';
 
@@ -55,19 +66,28 @@ const App: React.FC = () => {
             <Route path="settings" element={<Settings />} />
           </Route>
 
-          {/* Protected Dashboard Routes - Recruiter */}
-          <Route path="/recruiter" element={<DashboardLayout role="recruiter" />}>
-            <Route path="dashboard" element={<Dashboard role="recruiter" />} />
-            <Route path="jobs" element={<ManageJobs />} />
-            <Route path="applicants" element={<Applicants />} />
-            <Route path="settings" element={<RecruiterProfile />} />
-          </Route>
+      <Route path="/recruiter" element={<DashboardLayout role="recruiter" />}>
+        <Route path="dashboard" element={<Dashboard role="recruiter" />} />
+        <Route path="profile" element={<RecruiterProfile />} />
+        <Route path="post-job" element={<PostJob />} />
+        <Route path="jobs" element={<ManageJobs />} />
+        <Route path="applicants" element={<Applicants />} />
+        <Route path="shortlisted" element={<Shortlisted />} />
+        <Route path="interviews" element={<RecruiterInterviews />} />
+        <Route path="notifications" element={<RecruiterNotifications />} />
+        <Route path="settings" element={<RecruiterSettings />} />
+      </Route>
 
           {/* Protected Dashboard Routes - Admin */}
           <Route path="/admin" element={<DashboardLayout role="admin" />}>
             <Route path="dashboard" element={<Dashboard role="admin" />} />
-            <Route path="students" element={<ManageUsers roleType="student" />} />
-            <Route path="recruiters" element={<ManageUsers roleType="recruiter" />} />
+            <Route path="students" element={<ManageStudents />} />
+            <Route path="recruiters" element={<ManageRecruiters />} />
+            <Route path="jobs" element={<AdminManageJobs />} />
+            <Route path="applications" element={<AdminManageApplications />} />
+            <Route path="interviews" element={<AdminManageInterviews />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="notifications" element={<AdminManageNotifications />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Routes>

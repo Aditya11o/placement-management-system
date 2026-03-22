@@ -1,0 +1,211 @@
+import React from 'react';
+import { 
+  Users, Briefcase, FileText, Calendar, 
+  CheckCircle, MoreVertical
+} from 'lucide-react';
+
+const AdminDashboard: React.FC = () => {
+  const stats = [
+    { label: 'Total Students', value: '1,250', change: '+12%', icon: Users, color: 'blue' },
+    { label: 'Total Recruiters', value: '85', change: '+5', icon: Briefcase, color: 'indigo' },
+    { label: 'Total Jobs Posted', value: '320', status: 'Active', icon: Briefcase, color: 'sky' },
+    { label: 'Total Applications', value: '4,500', sub: '98% Review', icon: FileText, color: 'slate' },
+    { label: 'Total Interviews', value: '1,200', sub: 'Next: 2PM', icon: Calendar, color: 'violet' },
+    { label: 'Selected Students', value: '850', sub: '68% Rate', icon: CheckCircle, color: 'emerald' },
+  ];
+
+  const companyJobs = [
+    { name: 'GOOGLE', jobs: 85, color: '#000613' },
+    { name: 'AMAZON', jobs: 64, color: '#1a2b4b' },
+    { name: 'MICROSOFT', jobs: 72, color: '#4a5d7e' },
+    { name: 'META', jobs: 45, color: '#8a9ab3' },
+  ];
+
+  const appStatus = [
+    { label: 'Applied', value: 45, color: 'bg-[#000613]' },
+    { label: 'Shortlisted', value: 25, color: 'bg-[#1a2b4b]' },
+    { label: 'Selected', value: 20, color: 'bg-[#4a5d7e]' },
+    { label: 'Rejected', value: 10, color: 'bg-[#e2e4e6]' },
+  ];
+
+  const activities = [
+    { 
+      date: '2024-05-12', 
+      type: 'Job Posted', 
+      desc: 'Senior Software Engineer at Google', 
+      user: { name: 'Sarah Jenkins', role: 'Recruiter', initials: 'SJ' },
+      status: 'Published'
+    },
+    { 
+      date: '2024-05-12', 
+      type: 'Student Registered', 
+      desc: 'New account created', 
+      user: { name: 'Arjun Mehta', role: 'Student', initials: 'AM' },
+      status: 'Verified'
+    },
+    { 
+      date: '2024-05-11', 
+      type: 'Candidate Shortlisted', 
+      desc: 'Interview round 1', 
+      user: { name: 'TechCorp', role: 'Recruiter', initials: 'TC' },
+      status: 'Scheduled'
+    },
+  ];
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {stats.map((stat) => (
+          <div key={stat.label} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
+            <div className="flex justify-between items-start mb-4">
+              <div className={`p-2.5 rounded-xl bg-${stat.color}-50 text-${stat.color}-600 group-hover:scale-110 transition-transform`}>
+                <stat.icon size={20} />
+              </div>
+              {stat.change && (
+                <span className="text-[10px] font-black px-2 py-1 bg-blue-50 text-blue-600 rounded-lg">{stat.change}</span>
+              )}
+              {stat.status && (
+                <span className="text-[10px] font-black px-2 py-1 bg-orange-50 text-orange-600 rounded-lg uppercase tracking-wider">{stat.status}</span>
+              )}
+              {stat.sub && (
+                <span className="text-[10px] font-black px-2 py-1 bg-gray-50 text-gray-400 rounded-lg whitespace-nowrap">{stat.sub}</span>
+              )}
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
+              <h3 className="text-2xl font-black text-gray-900">{stat.value}</h3>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Jobs Posted per Company */}
+        <div className="col-span-12 lg:col-span-6 bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-base font-black text-gray-900 tracking-tight">Jobs Posted per Company</h3>
+            <button className="text-gray-400 hover:text-gray-900 transition-colors"><MoreVertical size={20} /></button>
+          </div>
+          
+          <div className="space-y-8">
+            {companyJobs.map((company) => (
+              <div key={company.name} className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <span className="text-[11px] font-black text-gray-400 tracking-widest">{company.name}</span>
+                  <span className="text-[11px] font-black text-gray-900">{company.jobs} JOBS</span>
+                </div>
+                <div className="h-3 bg-gray-50 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full rounded-full transition-all duration-1000 ease-out"
+                    style={{ 
+                      width: `${(company.jobs / 85) * 100}%`,
+                      backgroundColor: company.color 
+                    }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Application Status Donut */}
+        <div className="col-span-12 lg:col-span-6 bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-base font-black text-gray-900 tracking-tight">Application Status</h3>
+            <button className="text-gray-400 hover:text-gray-900 transition-colors"><MoreVertical size={20} /></button>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <div className="relative w-48 h-48 mb-8">
+              {/* Custom Donut implementation using SVG */}
+              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#f3f4f6" strokeWidth="4"></circle>
+                {/* Applied - 45% */}
+                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#000613" strokeWidth="4" strokeDasharray="45 100" strokeDashoffset="0"></circle>
+                {/* Shortlisted - 25% */}
+                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#1a2b4b" strokeWidth="4" strokeDasharray="25 100" strokeDashoffset="-45"></circle>
+                {/* Selected - 20% */}
+                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#4a5d7e" strokeWidth="4" strokeDasharray="20 100" strokeDashoffset="-70"></circle>
+                {/* Rejected - 10% */}
+                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#e2e4e6" strokeWidth="4" strokeDasharray="10 100" strokeDashoffset="-90"></circle>
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-3xl font-black text-gray-900">4.5k</span>
+                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-12 gap-y-4 w-full px-8">
+              {appStatus.map((status) => (
+                <div key={status.label} className="flex items-center gap-3">
+                  <div className={`w-2.5 h-2.5 rounded-full ${status.color}`}></div>
+                  <span className="text-[11px] font-bold text-gray-500 whitespace-nowrap">{status.label} ({status.value}%)</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Activities Table */}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-gray-50 flex justify-between items-center">
+          <h3 className="text-base font-black text-gray-900 tracking-tight">Recent Activities</h3>
+          <button className="text-[11px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest transition-colors">View History</button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-gray-50/50">
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Activity Type</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">User (S/R)</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {activities.map((activity, idx) => (
+                <tr key={idx} className="hover:bg-gray-50/50 transition-colors group">
+                  <td className="px-6 py-4 text-xs font-bold text-gray-500">{activity.date}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 bg-gray-50 rounded-lg text-gray-400 group-hover:text-blue-600 transition-colors">
+                        {activity.type.includes('Job') ? <Briefcase size={14} /> : activity.type.includes('Student') ? <Users size={14} /> : <FileText size={14} />}
+                      </div>
+                      <span className="text-xs font-bold text-gray-900">{activity.type}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-xs font-bold text-gray-500">{activity.desc}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 bg-[#000613]/5 rounded-full flex items-center justify-center text-[10px] font-black text-[#000613]">
+                        {activity.user.initials}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-gray-900 leading-none mb-1">{activity.user.role}: {activity.user.name}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      activity.status === 'Published' ? 'bg-[#000613] text-white' :
+                      activity.status === 'Verified' ? 'bg-gray-100 text-gray-600' :
+                      'bg-orange-50 text-orange-600'
+                    }`}>
+                      {activity.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
