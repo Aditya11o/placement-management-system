@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Bell, Search, Sun, Moon, User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Bell, Search, Sun, Moon, User, Settings, LogOut, ChevronDown, Menu, HelpCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import api from '../api';
 
 interface NavbarProps {
   role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
+  onToggleSidebar?: () => void;
+  onHelpOpen?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ role }) => {
+const Navbar: React.FC<NavbarProps> = ({ role, onToggleSidebar, onHelpOpen }) => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [adminData, setAdminData] = useState<any>(null);
@@ -35,9 +37,16 @@ const Navbar: React.FC<NavbarProps> = ({ role }) => {
   };
 
   return (
-    <header className="h-16 bg-white/80 border-b border-gray-100 sticky top-0 w-full z-20 flex items-center justify-between px-6 backdrop-blur-xl">
-      <div className="flex-1 max-w-xl">
-        <div className="relative w-full max-w-md group">
+    <header className="h-16 bg-white/80 border-b border-gray-100 sticky top-0 w-full z-20 flex items-center justify-between px-4 md:px-6 backdrop-blur-xl">
+      <div className="flex items-center gap-4 flex-1">
+        <button 
+          onClick={onToggleSidebar}
+          className="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+        >
+          <Menu size={20} />
+        </button>
+        
+        <div className="hidden md:block relative w-full max-w-md group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--on-surface-variant)] group-focus-within:text-[var(--primary)] transition-colors" size={18} />
           <input 
             type="text" 
@@ -55,6 +64,13 @@ const Navbar: React.FC<NavbarProps> = ({ role }) => {
         )}
         
         <div className="flex items-center gap-4">
+          <button 
+            onClick={onHelpOpen}
+            className="p-2.5 text-gray-500 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all hover:scale-110 active:scale-90 shadow-sm sm:shadow-none"
+            title="Help & Support"
+          >
+            <HelpCircle size={20} />
+          </button>
           <button 
             onClick={toggleTheme}
             className="p-2.5 text-gray-500 hover:bg-gray-100 rounded-xl transition-all hover:scale-110"

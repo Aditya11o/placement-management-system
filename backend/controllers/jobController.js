@@ -2,6 +2,7 @@ const Job = require('../models/Job');
 const Profile = require('../models/Profile');
 const Notification = require('../models/Notification');
 const Application = require('../models/Application');
+const { createAuditLog } = require('./auditLogController');
 
 // @desc    Create a job
 // @route   POST /api/jobs
@@ -22,34 +23,44 @@ const createJob = async (req, res) => {
       deadline,
     });
 
+    // Audit Log
+    await createAuditLog(
+      req.user.id,
+      'CREATE_JOB',
+      'Job',
+      job._id,
+      `Created job: ${title} at ${companyName}`,
+      req.ip
+    );
+
     // Emit live socket event to all students
     const io = req.app.get('io');
     io.emit('new_job', { title, companyName });
 
     res.status(201).json(job);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get all jobs (Active & Approved)
 // @route   GET /api/jobs
 // @access  Public
-const getJobs = async (req, res) => {
+const getJobs = async (req, res, next) => {
   try {
     const jobs = await Job.find({ status: 'open', deadline: { $gte: new Date() } })
       .sort({ createdAt: -1 })
       .populate('recruiter', 'name email');
     res.json(jobs);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get all jobs for admin
 // @route   GET /api/jobs/admin
 // @access  Private (Admin)
-const adminGetJobs = async (req, res) => {
+const adminGetJobs = async (req, res, next) => {
   try {
     const jobs = await Job.find({})
       .sort({ createdAt: -1 })
@@ -63,7 +74,7 @@ const adminGetJobs = async (req, res) => {
 
     res.json(jobsWithCounts);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -86,13 +97,13 @@ const updateJobStatus = async (req, res) => {
       res.json(updatedJob);
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 // @desc    Get matched jobs for student
 // @route   GET /api/jobs/matched
 // @access  Private (Student)
-const getMatchedJobs = async (req, res) => {
+const getMatchedJobs = async (req, res, next) => {
   try {
     const profile = await Profile.findOne({ user: req.user.id });
     if (!profile) {
@@ -114,7 +125,7 @@ const getMatchedJobs = async (req, res) => {
 
     res.json(jobs);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -125,8 +136,8 @@ const getRecruiterStats = async (req, res) => {
     const jobIds = jobs.map(job => job._id);
 
     const totalApplications = await Application.countDocuments({ job: { $in: jobIds } });
-    const shortlistedCount = await Application.countDocuments({ job: { $in: jobIds }, status: 'shortlisted' });
-    const selectedCount = await Application.countDocuments({ job: { $in: jobIds }, status: 'accepted' });
+    const shortlistedCount = await Application.countDocuments({ job: { $in: jobIds }, status: 'Shortlisted' });
+    const selectedCount = await Application.countDocuments({ job: { $in: jobIds }, status: 'Accepted' });
 
     res.json({
       totalJobs,
@@ -135,11 +146,11 @@ const getRecruiterStats = async (req, res) => {
       selected: selectedCount
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getRecruiterJobs = async (req, res) => {
+const getRecruiterJobs = async (req, res, next) => {
   try {
     const jobs = await Job.find({ recruiter: req.user.id }).sort({ createdAt: -1 });
     const jobsWithCounts = await Promise.all(jobs.map(async (job) => {
@@ -148,7 +159,7 @@ const getRecruiterJobs = async (req, res) => {
     }));
     res.json(jobsWithCounts);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -165,7 +176,7 @@ const getJobById = async (req, res) => {
 
     res.json(job);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -179,8 +190,8 @@ const getJobAnalytics = async (req, res) => {
     }
 
     const applicationCount = await Application.countDocuments({ job: job._id });
-    const shortlistedCount = await Application.countDocuments({ job: job._id, status: 'shortlisted' });
-    const selectedCount = await Application.countDocuments({ job: job._id, status: 'accepted' });
+    const shortlistedCount = await Application.countDocuments({ job: job._id, status: 'Shortlisted' });
+    const selectedCount = await Application.countDocuments({ job: job._id, status: 'Accepted' });
 
     res.json({
       views: job.viewsCount,
@@ -189,7 +200,7 @@ const getJobAnalytics = async (req, res) => {
       selected: selectedCount
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -214,9 +225,19 @@ const deleteJob = async (req, res) => {
     
     await Job.findByIdAndDelete(req.params.id);
 
+    // Audit Log
+    await createAuditLog(
+      req.user.id,
+      'DELETE_JOB',
+      'Job',
+      job._id,
+      `Deleted job: ${job.title}`,
+      req.ip
+    );
+
     res.json({ message: 'Job and associated applications removed' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

@@ -3,6 +3,7 @@ const Job = require('../models/Job');
 const Profile = require('../models/Profile');
 const Notification = require('../models/Notification');
 const sendEmail = require('../utils/emailUtils');
+const { createAuditLog } = require('./auditLogController');
 
 // @desc    Apply for a job
 // @route   POST /api/applications/:jobId
@@ -38,12 +39,22 @@ const applyForJob = async (req, res) => {
     job.applicationsCount += 1;
     await job.save();
 
+    // Audit Log
+    await createAuditLog(
+      req.user.id,
+      'APPLY_JOB',
+      'Job',
+      job._id,
+      `Student applied for job: ${job.title}`,
+      req.ip
+    );
+
     res.status(201).json(application);
   } catch (error) {
     if (error.code === 11000) {
       res.status(400).json({ message: 'You have already applied for this job' });
     } else {
-      res.status(500).json({ message: error.message });
+      next(error);
     }
   }
 };
@@ -58,7 +69,7 @@ const getMyApplications = async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(applications);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -93,7 +104,7 @@ const getJobApplicants = async (req, res) => {
 
     res.json(enrichedApplicants);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -118,7 +129,7 @@ const getAllApplications = async (req, res) => {
 
     res.json(enrichedApplications);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -169,14 +180,26 @@ const updateApplicationStatus = async (req, res) => {
 
     // Emit live socket event
     const io = req.app.get('io');
-    io.to(application.student._id.toString()).emit('notification', {
-      message: `Your application status for ${application.job.title || 'a job'} has been updated to ${status}.`,
-      type: 'application',
-    });
+    if (io) {
+      io.to(application.student._id.toString()).emit('notification', {
+        message: `Your application status for ${application.job.title || 'a job'} has been updated to ${status}.`,
+        type: 'application',
+      });
+    }
+
+    // Audit Log
+    await createAuditLog(
+      req.user.id,
+      'UPDATE_APPLICATION_STATUS',
+      'Application',
+      application._id,
+      `Updated status to: ${status} for student: ${application.student.name}`,
+      req.ip
+    );
 
     res.json(updatedApplication);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -202,31 +225,31 @@ const getScheduledInterviews = async (req, res) => {
 
     res.json(interviews);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getStudentStats = async (req, res) => {
+const getStudentStats = async (req, res, next) => {
   try {
     const totalApplied = await Application.countDocuments({ student: req.user.id });
-    const underReview = await Application.countDocuments({ student: req.user.id, status: 'pending' });
-    const shortlisted = await Application.countDocuments({ student: req.user.id, status: 'shortlisted' });
-    const selected = await Application.countDocuments({ student: req.user.id, status: 'accepted' });
-    const rejected = await Application.countDocuments({ student: req.user.id, status: 'rejected' });
+    const underReview = await Application.countDocuments({ student: req.user.id, status: { $in: ['Applied', 'Under Review'] } });
+    const shortlisted = await Application.countDocuments({ student: req.user.id, status: 'Shortlisted' });
+    const selected = await Application.countDocuments({ student: req.user.id, status: { $in: ['Selected', 'Accepted'] } });
+    const rejected = await Application.countDocuments({ student: req.user.id, status: 'Rejected' });
     
-    // For total jobs, we can count all open jobs
-    const totalJobs = await Job.countDocuments({ status: 'Open', last_date: { $gte: new Date() } });
+    // For total jobs, count all open jobs with deadline in future
+    const totalJobs = await Job.countDocuments({ status: 'open', deadline: { $gte: new Date() } });
 
     res.json({
       totalJobs,
       applied: totalApplied,
       underReview,
       shortlisted,
-      selected,
+      selected: selected,
       rejected
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -243,7 +266,7 @@ const getRecruiterApplicants = async (req, res) => {
 
     res.json(applicants);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -274,7 +297,7 @@ const respondToOffer = async (req, res) => {
 
     res.json(application);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -303,7 +326,7 @@ const bulkUpdateStatus = async (req, res) => {
 
     res.json({ message: `${result.modifiedCount} applications updated`, result });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -332,7 +355,7 @@ const getExportData = async (req, res) => {
 
     res.json(exportData);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

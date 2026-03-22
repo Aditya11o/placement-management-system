@@ -3,7 +3,7 @@ const Message = require('../models/Message');
 // @desc    Get messages for a conversation
 // @route   GET /api/messages/:otherUserId
 // @access  Private
-const getMessages = async (req, res) => {
+const getMessages = async (req, res, next) => {
   try {
     const messages = await Message.find({
       $or: [
@@ -13,14 +13,14 @@ const getMessages = async (req, res) => {
     }).sort({ createdAt: 1 });
     res.json(messages);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Send a message
 // @route   POST /api/messages
 // @access  Private
-const sendMessage = async (req, res) => {
+const sendMessage = async (req, res, next) => {
   try {
     const { recipient, content } = req.body;
     const message = await Message.create({
@@ -38,14 +38,14 @@ const sendMessage = async (req, res) => {
 
     res.status(201).json(message);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get all conversations for a user
 // @route   GET /api/messages/conversations
 // @access  Private
-const getConversations = async (req, res) => {
+const getConversations = async (req, res, next) => {
   try {
     const messages = await Message.find({
       $or: [{ sender: req.user.id }, { recipient: req.user.id }]
@@ -72,7 +72,7 @@ const getConversations = async (req, res) => {
 
     res.json(conversations);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

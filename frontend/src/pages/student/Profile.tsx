@@ -5,12 +5,17 @@ import {
 } from 'lucide-react';
 import api from '../../api';
 import { useAutosave } from '../../hooks/useAutosave';
+import { useNotification } from '../../context/NotificationContext';
 
 const Profile: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const { clearAutosave } = useAutosave('student-profile', profile, setProfile);
 
@@ -32,18 +37,63 @@ const Profile: React.FC = () => {
 
   const handleUpdate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    setLoading(true);
     try {
-      await api.put('/profile', {
-        studentDetails: {
-          ...profile.studentDetails,
-          skills: skills
-        }
-      });
-      alert('Profile updated successfully!');
-      clearAutosave();
-      fetchProfile();
-    } catch (err) {
+      console.log('Starting profile update...');
+      const formData = new FormData();
+      
+      const studentDetails = {
+        ...profile.studentDetails,
+        skills: skills
+      };
+
+      console.log('Student Details to send:', studentDetails);
+      formData.append('studentDetails', JSON.stringify(studentDetails));
+      
+      if (selectedFile) {
+        console.log('Appending file:', selectedFile.name);
+        formData.append('avatar', selectedFile);
+      }
+
+      // Log FormData content
+      for (let pair of formData.entries()) {
+        console.log('FormData entry:', pair[0], pair[1]);
+      }
+
+      console.log('Sending PUT request to /profile...');
+      const response = await api.put('/profile', formData);
+      console.log('Update Success Response:', response.data);
+
+      if (response.data.success) {
+        showSuccess(response.data.message || 'Profile updated successfully!', 'Profile Update');
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        clearAutosave();
+        await fetchProfile();
+      } else {
+        showError(response.data.message || 'Failed to update profile', 'Update Error');
+      }
+    } catch (err: any) {
       console.error(err);
+      showError(err.response?.data?.message || 'Failed to update profile', 'Update Error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        showError('File size must be less than 2MB', 'File Too Large');
+        return;
+      }
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -110,9 +160,10 @@ const Profile: React.FC = () => {
     try {
       await api.post('/profile/verify-skill', { skill, certificateUrl });
       fetchProfile();
-      alert('Verification request sent!');
-    } catch (err) {
+      showSuccess('Verification request sent successfully!', 'Verification');
+    } catch (err: any) {
       console.error(err);
+      showError('Failed to send verification request.', 'Verification Error');
     }
   };
 
@@ -127,7 +178,7 @@ const Profile: React.FC = () => {
   const student = profile?.studentDetails || {};
 
   return (
-    <div className="max-w-7xl mx-auto p-6 animate-fade-in">
+    <div className="animate-fade-in pb-12">
       <div className="grid grid-cols-12 gap-6">
         
         {/* Row 1: Profile Header & Performance */}
@@ -136,12 +187,22 @@ const Profile: React.FC = () => {
             <div className="relative">
               <div className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-gray-50 shadow-sm transition-transform duration-500 group-hover:scale-105">
                 <img 
-                  src={profile?.avatar || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=256&h=256&auto=format&fit=crop"} 
+                  src={previewUrl || profile?.avatar || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=256&h=256&auto=format&fit=crop"} 
                   alt="Profile" 
                   className="w-full h-full object-cover"
                 />
               </div>
-              <button className="absolute -bottom-2 -right-2 p-2 bg-blue-950 text-white rounded-lg shadow-lg hover:bg-black transition-all active:scale-90">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept="image/*" 
+                className="hidden" 
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-2 -right-2 p-2 bg-blue-950 text-white rounded-lg shadow-lg hover:bg-black transition-all active:scale-90"
+              >
                 <Camera size={16} />
               </button>
             </div>
@@ -194,10 +255,13 @@ const Profile: React.FC = () => {
             <div className="mt-8">
               <div className="flex justify-between items-end mb-2">
                 <p className="text-sm font-medium text-blue-100">Profile Completion</p>
-                <p className="text-lg font-black text-white">85%</p>
+                <p className="text-lg font-black text-white">{student.profile_completion || 0}%</p>
               </div>
               <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10">
-                <div className="bg-blue-400 h-full rounded-full w-[85%] shadow-[0_0_12px_rgba(96,165,250,0.5)] transition-all duration-1000"></div>
+                <div 
+                  className="bg-blue-400 h-full rounded-full shadow-[0_0_12px_rgba(96,165,250,0.5)] transition-all duration-1000" 
+                  style={{ width: `${student.profile_completion || 0}%` }}
+                />
               </div>
               <p className="text-[10px] text-blue-200/60 mt-3 font-medium">Complete your academic & contact details</p>
             </div>
@@ -559,10 +623,14 @@ const Profile: React.FC = () => {
                             if (confirm('Join the Alumni program to share your industry experience?')) {
                                 try {
                                     await api.put('/profile', { role: 'alumni' });
-                                    alert('Welcome to the Alumni Network! Please relogin to access your new portal.');
-                                    localStorage.removeItem('token');
-                                    window.location.href = '/login';
-                                } catch(err) { alert('Failed to join program'); }
+                                    showSuccess('Welcome to the Alumni Network! Please relogin to access your new portal.', 'Program Joined');
+                                    setTimeout(() => {
+                                        localStorage.removeItem('token');
+                                        window.location.href = '/login';
+                                    }, 2000);
+                                } catch(err: any) { 
+                                    showError(err.response?.data?.message || 'Failed to join program', 'Enrollment Error'); 
+                                }
                             }
                         }}
                         className="px-8 py-4 bg-white text-[#000613] rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all shadow-xl active:scale-95"
@@ -574,8 +642,10 @@ const Profile: React.FC = () => {
                             if (confirm('Become a Certified Mentor? This requires a quick profile review by admins.')) {
                                 try {
                                     await api.put('/profile', { role: 'mentor' });
-                                    alert('Mentor request sent! Our team will review your profile shortly.');
-                                } catch(err) { alert('Failed to submit request'); }
+                                    showSuccess('Mentor request sent! Our team will review your profile shortly.', 'Request Submitted');
+                                } catch(err: any) { 
+                                    showError(err.response?.data?.message || 'Failed to submit request', 'Request Error'); 
+                                }
                             }
                         }}
                         className="px-8 py-4 bg-white/10 border border-white/20 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white/20 transition-all active:scale-95"

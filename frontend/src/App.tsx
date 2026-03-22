@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { NotificationProvider } from './context/NotificationContext';
+import NotificationModal from './components/NotificationModal';
 import { AuthProvider } from './context/AuthContext';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -44,13 +46,14 @@ import Chat from './pages/Chat';
 import ManageVerifications from './pages/admin/ManageVerifications';
 import AuditLogs from './pages/admin/AuditLogs';
 import ToastManager from './components/ToastManager';
-
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <ToastManager />
-        <Routes>
+    <NotificationProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <NotificationModal />
+          <ToastManager />
+          <Routes>
           {/* Default Redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -128,6 +131,7 @@ const App: React.FC = () => {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </NotificationProvider>
   );
 }
 

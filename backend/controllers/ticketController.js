@@ -3,7 +3,7 @@ const Ticket = require('../models/Ticket');
 // @desc    Create a new support ticket
 // @route   POST /api/tickets
 // @access  Private (Student)
-const createTicket = async (req, res) => {
+const createTicket = async (req, res, next) => {
   try {
     const { subject, description, priority } = req.body;
     const ticket = await Ticket.create({
@@ -14,14 +14,14 @@ const createTicket = async (req, res) => {
     });
     res.status(201).json(ticket);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get all tickets (Admin) or user's tickets (Student)
 // @route   GET /api/tickets
 // @access  Private
-const getTickets = async (req, res) => {
+const getTickets = async (req, res, next) => {
   try {
     let query = {};
     if (req.user.role === 'student') {
@@ -30,14 +30,14 @@ const getTickets = async (req, res) => {
     const tickets = await Ticket.find(query).populate('student', 'name email').sort({ createdAt: -1 });
     res.json(tickets);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Update ticket status/response (Admin)
 // @route   PATCH /api/tickets/:id
 // @access  Private (Admin)
-const updateTicket = async (req, res) => {
+const updateTicket = async (req, res, next) => {
   try {
     const { status, response } = req.body;
     const ticket = await Ticket.findById(req.params.id);
@@ -53,7 +53,7 @@ const updateTicket = async (req, res) => {
     await ticket.save();
     res.json(ticket);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };
 

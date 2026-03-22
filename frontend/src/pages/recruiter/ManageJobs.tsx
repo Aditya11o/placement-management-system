@@ -6,8 +6,10 @@ import {
   TrendingUp, Archive, MousePointer2, Loader2, Users
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const ManageJobs: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [jobs, setJobs] = useState<any[]>([]);
@@ -18,8 +20,9 @@ const ManageJobs: React.FC = () => {
       setLoading(true);
       const res = await api.get('/jobs/my');
       setJobs(res.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching recruiter jobs:', error);
+      showError(error.response?.data?.message || 'Failed to fetch jobs', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -34,8 +37,10 @@ const ManageJobs: React.FC = () => {
       try {
         await api.delete(`/jobs/${id}`);
         setJobs(jobs.filter(j => j._id !== id));
+        showSuccess('Job deleted successfully!', 'Delete Job');
       } catch (error: any) {
-        alert(error.response?.data?.message || 'Failed to delete job');
+        console.error(error);
+        showError(error.response?.data?.message || 'Failed to delete job', 'Delete Error');
       }
     }
   };

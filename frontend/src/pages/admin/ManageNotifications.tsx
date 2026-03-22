@@ -6,8 +6,10 @@ import {
 } from 'lucide-react';
 import api from '../../api';
 import { useAutosave } from '../../hooks/useAutosave';
+import { useNotification } from '../../context/NotificationContext';
 
 const ManageNotifications: React.FC = () => {
+  const { showSuccess, showError, showWarning } = useNotification();
   const [activeTab, setActiveTab] = useState('Send Notification');
   const [loading, setLoading] = useState(false);
   const [sentNotifications, setSentNotifications] = useState<any[]>([]);
@@ -39,8 +41,9 @@ const ManageNotifications: React.FC = () => {
         })
       }));
       setSentNotifications(mapped);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError('Failed to fetch sent notifications history', 'Fetch Error');
     }
   };
 
@@ -50,14 +53,14 @@ const ManageNotifications: React.FC = () => {
 
   const handleSend = async () => {
     if (!formData.title || !formData.message) {
-      alert('Please fill in title and message');
+      showWarning('Please provide both a title and a message content.', 'Required Fields');
       return;
     }
 
     try {
       setLoading(true);
       await api.post('/notifications/broadcast', formData);
-      alert('Notification broadcasted successfully!');
+      showSuccess('Broadcast notification sent successfully to all recipients!', 'Broadcast Success');
       clearAutosave();
       setFormData({
         title: '',
@@ -68,7 +71,7 @@ const ManageNotifications: React.FC = () => {
       fetchSentNotifications();
       setActiveTab('Sent Notifications');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Error sending notification');
+      showError(err.response?.data?.message || 'Error broadcasting notification', 'Broadcast Error');
     } finally {
       setLoading(false);
     }

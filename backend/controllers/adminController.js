@@ -5,7 +5,7 @@ const { createAuditLog } = require('./auditLogController');
 // @desc    Get all pending skill verifications
 // @route   GET /api/admin/verifications
 // @access  Private (Admin)
-const getPendingVerifications = async (req, res) => {
+const getPendingVerifications = async (req, res, next) => {
   try {
     const profiles = await Profile.find({
       'studentDetails.verifiedSkills.status': 'Pending'
@@ -31,14 +31,14 @@ const getPendingVerifications = async (req, res) => {
 
     res.json(verifications);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Verify student skill
 // @route   PATCH /api/admin/verifications/:profileId/:verificationId
 // @access  Private (Admin)
-const verifySkill = async (req, res) => {
+const verifySkill = async (req, res, next) => {
   const { status } = req.body; // 'Verified' or 'Rejected'
   try {
     const profile = await Profile.findById(req.params.profileId);
@@ -62,7 +62,7 @@ const verifySkill = async (req, res) => {
 
     res.json({ message: `Skill ${status.toLowerCase()} successfully` });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 const Job = require('../models/Job');
@@ -73,7 +73,7 @@ const CompanyProfile = require('../models/CompanyProfile');
 // @desc    Get dashboard statistics
 // @route   GET /api/admin/stats
 // @access  Private (Admin)
-const getStats = async (req, res) => {
+const getStats = async (req, res, next) => {
   try {
     const totalStudents = await User.countDocuments({ role: 'student' });
     const totalRecruiters = await User.countDocuments({ role: 'recruiter' });
@@ -93,14 +93,14 @@ const getStats = async (req, res) => {
       totalInterviews
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get all users with profile data
 // @route   GET /api/admin/users
 // @access  Private (Admin)
-const getUsers = async (req, res) => {
+const getUsers = async (req, res, next) => {
   try {
     const users = await User.find({}).select('-password').sort({ createdAt: -1 }).lean();
     
@@ -116,14 +116,69 @@ const getUsers = async (req, res) => {
 
     res.json(usersWithProfiles);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
+  }
+};
+
+// @desc    Get all pending recruiters
+// @route   GET /api/admin/pending-recruiters
+// @access  Private (Admin)
+const getPendingRecruiters = async (req, res, next) => {
+  try {
+    const recruiters = await User.find({ role: 'recruiter', status: 'pending' }).select('-password');
+    res.json(recruiters);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Approve/Reject recruiter account
+// @route   PATCH /api/admin/recruiters/:id/approve
+// @access  Private (Admin)
+const approveRecruiter = async (req, res, next) => {
+  const { status } = req.body; // 'active' or 'blacklisted'
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user || user.role !== 'recruiter') {
+      return res.status(404).json({ message: 'Recruiter not found' });
+    }
+
+    user.status = status;
+    user.isVerified = status === 'active';
+    await user.save();
+
+    // Audit Log
+    await createAuditLog(
+      req.user.id,
+      'APPROVE_RECRUITER',
+      'User',
+      user._id,
+      `Recruiter ${user.email} status set to ${status}`,
+      req.ip
+    );
+
+    // Send notification email
+    const { sendEmail } = require('../utils/emailUtils');
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: `Recruiter Account ${status === 'active' ? 'Approved' : 'Rejected'}`,
+        message: `<h1>Account Update</h1><p>Your recruiter account on Placement Management System has been <strong>${status === 'active' ? 'approved' : 'rejected'}</strong> by the administrator.</p>${status === 'active' ? '<p>You can now login and post job openings.</p>' : '<p>Please contact support for more information.</p>'}`,
+      });
+    } catch (err) {
+      console.error('Email failed to send:', err);
+    }
+
+    res.json({ message: `Recruiter ${status === 'active' ? 'approved' : 'rejected'} successfully` });
+  } catch (error) {
+    next(error);
   }
 };
 
 // @desc    Verify/Update user status
 // @route   PATCH /api/admin/users/:id/verify
 // @access  Private (Admin)
-const verifyUser = async (req, res) => {
+const verifyUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
     if (user) {
@@ -144,14 +199,14 @@ const verifyUser = async (req, res) => {
       res.json({ message: 'User verification status updated' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get all scheduled interviews
 // @route   GET /api/admin/interviews
 // @access  Private (Admin)
-const getInterviews = async (req, res) => {
+const getInterviews = async (req, res, next) => {
   try {
     const interviews = await Application.find({
       'interview.date': { $exists: true, $ne: null }
@@ -162,14 +217,14 @@ const getInterviews = async (req, res) => {
 
     res.json(interviews);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get detailed placement reports
 // @route   GET /api/admin/reports/placements
 // @access  Private (Admin)
-const getPlacementReports = async (req, res) => {
+const getPlacementReports = async (req, res, next) => {
   try {
     const placements = await Application.find({ status: 'Selected' })
       .populate('student', 'name email')
@@ -178,14 +233,14 @@ const getPlacementReports = async (req, res) => {
 
     res.json(placements);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get recent system activities
 // @route   GET /api/admin/activities
 // @access  Private (Admin)
-const getRecentActivities = async (req, res) => {
+const getRecentActivities = async (req, res, next) => {
   try {
     const [users, jobs] = await Promise.all([
       User.find({ role: { $ne: 'admin' } }).sort({ createdAt: -1 }).limit(5),
@@ -205,20 +260,20 @@ const getRecentActivities = async (req, res) => {
         type: 'Job Posted',
         desc: `${j.title}`,
         user: { name: j.recruiter?.name || 'Recruiter', role: 'Recruiter', initials: j.recruiter?.name?.[0] || 'R' },
-        status: j.status === 'Open' ? 'Published' : 'Draft'
+        status: j.status === 'open' ? 'Published' : 'Draft'
       }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
 
     res.json(activities);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get company placement history
 // @route   GET /api/admin/recruiters/:id/history
 // @access  Private (Admin)
-const getCompanyHistory = async (req, res) => {
+const getCompanyHistory = async (req, res, next) => {
   try {
     const jobs = await Job.find({ recruiter: req.params.id }).select('_id');
     const jobIds = jobs.map(j => j._id);
@@ -230,14 +285,14 @@ const getCompanyHistory = async (req, res) => {
 
     res.json(history);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get advanced placement analytics
 // @route   GET /api/admin/analytics
 // @access  Private (Admin)
-const getAdvancedAnalytics = async (req, res) => {
+const getAdvancedAnalytics = async (req, res, next) => {
   try {
     // 1. Department-wise Placement %
     const totalByBranch = await Profile.aggregate([
@@ -302,26 +357,26 @@ const getAdvancedAnalytics = async (req, res) => {
       topHiring
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Get current logged-in admin
 // @route   GET /api/admin/me
 // @access  Private (Admin)
-const getAdminMe = async (req, res) => {
+const getAdminMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Update admin profile
 // @route   PATCH /api/admin/me
 // @access  Private (Admin)
-const updateAdminProfile = async (req, res) => {
+const updateAdminProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'Admin not found' });
@@ -332,7 +387,7 @@ const updateAdminProfile = async (req, res) => {
     const updatedUser = await user.save();
     res.json(updatedUser);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -348,5 +403,7 @@ module.exports = {
   getPlacementReports, 
   getRecentActivities,
   getCompanyHistory,
-  getAdvancedAnalytics
+  getAdvancedAnalytics,
+  getPendingRecruiters,
+  approveRecruiter
 };

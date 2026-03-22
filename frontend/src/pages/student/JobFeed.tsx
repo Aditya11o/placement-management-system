@@ -6,13 +6,16 @@ import {
   Loader2, X, ChevronRight
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const JobFeed: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [jobType, setJobType] = useState<'full-time' | 'intern' | 'all'>('all');
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('All Locations');
+  // ... rest of state stays same
   const [stats, setStats] = useState([
     { label: 'Total Jobs', value: '0', subLabel: 'Active tracking', icon: Briefcase, iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
     { label: 'New Jobs', value: '0', subLabel: 'Posted recently', icon: Sparkles, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
@@ -76,13 +79,14 @@ const JobFeed: React.FC = () => {
       })) || [];
 
       await api.post(`/applications/${selectedJob._id}`, { answers: formattedAnswers });
-      alert('Application submitted successfully!');
+      showSuccess('Application submitted successfully!', 'Job Application');
       setShowApplyModal(false);
       setSelectedJob(null);
       setAnswers({});
       fetchJobs();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to apply');
+      console.error(err);
+      showError(err.response?.data?.message || 'Failed to submit application', 'Application Error');
     } finally {
       setApplying(false);
     }
@@ -99,7 +103,7 @@ const JobFeed: React.FC = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="space-y-6 pb-12">
       
       {/* Top Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

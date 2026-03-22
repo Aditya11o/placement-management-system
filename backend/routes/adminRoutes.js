@@ -3,7 +3,8 @@ const {
   getAdminMe, updateAdminProfile,
   getStats, getUsers, verifyUser, sendBroadcast, 
   getInterviews, getPlacementReports, getRecentActivities,
-  getPendingVerifications, verifySkill, getCompanyHistory, getAdvancedAnalytics
+  getPendingVerifications, verifySkill, getCompanyHistory, getAdvancedAnalytics,
+  getPendingRecruiters, approveRecruiter
 } = require('../controllers/adminController');
 const { archiveYear, getArchives } = require('../controllers/archiveController');
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -25,6 +26,8 @@ router.get('/analytics', getAdvancedAnalytics);
 router.get('/verifications', getPendingVerifications);
 router.patch('/verifications/:profileId/:verificationId', verifySkill);
 router.get('/recruiters/:id/history', getCompanyHistory);
+router.get('/pending-recruiters', getPendingRecruiters);
+router.patch('/recruiters/:id/approve', approveRecruiter);
 
 // Archive Routes
 router.post('/archive', protect, authorize('admin'), archiveYear);

@@ -5,8 +5,10 @@ import {
   ChevronRight, HelpCircle, History
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const Support: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -21,8 +23,9 @@ const Support: React.FC = () => {
       setLoading(true);
       const res = await api.get('/tickets');
       setTickets(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError('Failed to fetch your support tickets', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -37,11 +40,11 @@ const Support: React.FC = () => {
     try {
       setSubmitting(true);
       await api.post('/tickets', formData);
-      alert('Ticket submitted successfully!');
+      showSuccess('Support ticket submitted successfully!', 'Success');
       setFormData({ subject: '', description: '', priority: 'low' });
       fetchTickets();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to submit ticket');
+      showError(err.response?.data?.message || 'Failed to submit ticket', 'Submission Error');
     } finally {
       setSubmitting(false);
     }

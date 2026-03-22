@@ -4,8 +4,10 @@ import {
   Clock, Shield, User, Loader2 
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const ManageVerifications: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [verifications, setVerifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,8 +17,9 @@ const ManageVerifications: React.FC = () => {
       setLoading(true);
       const { data } = await api.get('/admin/verifications');
       setVerifications(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError('Failed to fetch verification requests', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -30,9 +33,10 @@ const ManageVerifications: React.FC = () => {
     try {
       await api.patch(`/admin/verifications/${profileId}/${verificationId}`, { status });
       fetchVerifications();
-      alert(`Skill ${status.toLowerCase()}ed!`);
-    } catch (err) {
+      showSuccess(`Skill ${status.toLowerCase()}ed successfully!`, 'Verification');
+    } catch (err: any) {
       console.error(err);
+      showError(err.response?.data?.message || `Failed to ${status.toLowerCase()} skill`, 'Update Error');
     }
   };
 
@@ -50,7 +54,7 @@ const ManageVerifications: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in pb-12">
       
       {/* Header */}
       <div>

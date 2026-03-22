@@ -9,8 +9,13 @@ const protect = async (req, res, next) => {
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+
+  if (token) {
     try {
-      token = req.headers.authorization.split(' ')[1];
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
 
@@ -21,9 +26,19 @@ const protect = async (req, res, next) => {
         throw new Error('Not authorized, user not found');
       }
 
-      if (req.user && req.user.status === 'inactive') {
-        res.status(403);
-        return res.json({ message: 'Account is deactivated' });
+      if (req.user) {
+        if (req.user.status === 'inactive') {
+          res.status(403);
+          return res.json({ message: 'Account is deactivated' });
+        }
+        if (req.user.status === 'pending' && req.user.role === 'recruiter') {
+          res.status(403);
+          return res.json({ message: 'Your recruiter account is pending administrator approval.' });
+        }
+        if (req.user.status === 'blacklisted') {
+          res.status(403);
+          return res.json({ message: 'Your account has been blacklisted' });
+        }
       }
 
       next();

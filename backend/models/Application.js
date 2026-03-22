@@ -2,18 +2,12 @@ const mongoose = require('mongoose');
 
 const applicationSchema = new mongoose.Schema(
   {
-    application_id: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    student_id: {
+    student: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    job_id: {
+    job: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Job',
       required: true,
@@ -54,9 +48,18 @@ const applicationSchema = new mongoose.Schema(
     ],
   },
   {
-    timestamps: { createdAt: 'applied_date', updatedAt: 'updated_at' },
+    timestamps: true,
   }
 );
+
+// Compatibility with old code that might expect application_id or student_id as virtuals
+applicationSchema.virtual('application_id').get(function() { return this._id.toString(); });
+applicationSchema.virtual('student_id').get(function() { return this.student; });
+applicationSchema.virtual('job_id').get(function() { return this.job; });
+applicationSchema.virtual('applied_date').get(function() { return this.createdAt; });
+
+applicationSchema.set('toJSON', { virtuals: true });
+applicationSchema.set('toObject', { virtuals: true });
 
 const Application = mongoose.model('Application', applicationSchema);
 

@@ -2,22 +2,12 @@ const mongoose = require('mongoose');
 
 const jobSchema = new mongoose.Schema(
   {
-    job_id: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    company_id: {
+    recruiter: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'CompanyProfile',
+      ref: 'User',
       required: true,
     },
     title: {
-      type: String,
-      required: true,
-    },
-    role: {
       type: String,
       required: true,
     },
@@ -25,47 +15,39 @@ const jobSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    skills_required: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-    min_cgpa: {
-      type: Number,
-      required: true,
-      min: 0,
-      max: 10,
-    },
-    course: {
+    companyName: {
       type: String,
       required: true,
-    },
-    job_type: {
-      type: String,
-      required: true,
-      enum: ['Full-time', 'Internship', 'Contract', 'PPO'],
     },
     location: {
       type: String,
       required: true,
     },
     salary: {
-      type: String, // Can be text like "12 LPA" or specific formatting
+      type: String,
       required: true,
     },
-    last_date: {
+    jobType: {
+      type: String,
+      required: true,
+      enum: ['Full-time', 'Internship', 'Contract', 'PPO'],
+    },
+    eligibility: {
+      minCGPA: { type: Number, default: 0 },
+      branches: [String],
+    },
+    deadline: {
       type: Date,
-      required: true,
-    },
-    openings: {
-      type: Number,
       required: true,
     },
     status: {
       type: String,
-      enum: ['Open', 'Closed', 'Paused', 'Archived'],
-      default: 'Open',
+      enum: ['open', 'closed', 'paused', 'archived'],
+      default: 'open',
+    },
+    applicationsCount: {
+      type: Number,
+      default: 0,
     },
     viewsCount: {
       type: Number,
@@ -77,10 +59,6 @@ const jobSchema = new mongoose.Schema(
         type: { type: String, enum: ['text', 'boolean'], default: 'text' }
       }
     ],
-    postedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
     isAlumniPost: {
       type: Boolean,
       default: false,
@@ -91,9 +69,18 @@ const jobSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+    timestamps: true,
   }
 );
+
+// Virtuals for compatibility with snake_case code if any
+jobSchema.virtual('job_id').get(function() { return this._id.toString(); });
+jobSchema.virtual('job_type').get(function() { return this.jobType; });
+jobSchema.virtual('last_date').get(function() { return this.deadline; });
+jobSchema.virtual('created_at').get(function() { return this.createdAt; });
+
+jobSchema.set('toJSON', { virtuals: true });
+jobSchema.set('toObject', { virtuals: true });
 
 const Job = mongoose.model('Job', jobSchema);
 

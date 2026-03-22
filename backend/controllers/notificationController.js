@@ -4,21 +4,21 @@ const User = require('../models/User');
 // @desc    Get my notifications
 // @route   GET /api/notifications
 // @access  Private
-const getMyNotifications = async (req, res) => {
+const getMyNotifications = async (req, res, next) => {
   try {
     const notifications = await Notification.find({ recipient: req.user.id })
       .sort({ createdAt: -1 })
       .limit(20);
     res.json(notifications);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Mark notification as read
 // @route   PATCH /api/notifications/:id/read
 // @access  Private
-const markAsRead = async (req, res) => {
+const markAsRead = async (req, res, next) => {
   try {
     const notification = await Notification.findById(req.params.id);
 
@@ -31,14 +31,14 @@ const markAsRead = async (req, res) => {
       res.json({ message: 'Notification not found' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Create broadcast notification (Admin)
 // @route   POST /api/notifications/broadcast
 // @access  Private (Admin)
-const createBroadcast = async (req, res) => {
+const createBroadcast = async (req, res, next) => {
   try {
     const { title, message, body, type, sendTo, course, company } = req.body;
     
@@ -77,7 +77,7 @@ const createBroadcast = async (req, res) => {
 
     res.status(201).json({ message: `Broadcast sent to ${recipients.length} users` });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

@@ -5,8 +5,10 @@ import {
   Calendar, BarChart3, ChevronRight 
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const YearlyArchive: React.FC = () => {
+  const { showSuccess, showError, showWarning } = useNotification();
   const [archives, setArchives] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [archiving, setArchiving] = useState(false);
@@ -17,8 +19,9 @@ const YearlyArchive: React.FC = () => {
       setLoading(true);
       const res = await api.get('/admin/archives');
       setArchives(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError('Failed to fetch archiving history', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -29,17 +32,20 @@ const YearlyArchive: React.FC = () => {
   }, []);
 
   const handleArchive = async () => {
-    if (!year) return alert('Enter year');
+    if (!year) {
+      showWarning('Please enter the academic year (e.g., 2024-25).', 'Year Required');
+      return;
+    }
     if (!confirm(`Are you sure you want to close the academic year ${year}? This will archive all current data.`)) return;
     
     try {
       setArchiving(true);
       await api.post('/admin/archive', { academicYear: year });
-      alert('Year archived successfully!');
+      showSuccess(`Academic year ${year} has been successfully archived!`, 'Archive Complete');
       setYear('');
       fetchArchives();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to archive year');
+      showError(err.response?.data?.message || 'Failed to archive year', 'Archive Error');
     } finally {
       setArchiving(false);
     }

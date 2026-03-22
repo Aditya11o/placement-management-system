@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Shield, Camera, Save, Loader2 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const AdminProfile: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [adminData, setAdminData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,8 +27,9 @@ const AdminProfile: React.FC = () => {
         email: data.email,
         profilePhoto: data.profilePhoto || ''
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching admin profile:', error);
+      showError(error.response?.data?.message || 'Failed to fetch admin profile', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -40,10 +43,11 @@ const AdminProfile: React.FC = () => {
          name: formData.name,
          profilePhoto: formData.profilePhoto
       });
-      alert('Profile updated successfully!');
+      showSuccess('Admin profile updated successfully!', 'Profile Update');
       fetchProfile();
-    } catch (error) {
+    } catch (error: any) {
        console.error('Error updating profile:', error);
+       showError(error.response?.data?.message || 'Failed to update admin profile', 'Update Error');
     } finally {
        setSaving(false);
     }

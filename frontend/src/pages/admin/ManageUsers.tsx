@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import Card from '../../components/Card';
 import type { User } from '../../types';
+import { useNotification } from '../../context/NotificationContext';
 
 interface ManageUsersProps {
   roleType: 'student' | 'recruiter';
 }
 
 const ManageUsers: React.FC<ManageUsersProps> = ({ roleType }) => {
+  const { showSuccess, showError } = useNotification();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -20,8 +22,9 @@ const ManageUsers: React.FC<ManageUsersProps> = ({ roleType }) => {
       const { data } = await api.get('/admin/users');
       // Filter by role prop
       setUsers(data.filter((u: User) => u.role === roleType));
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError(`Failed to fetch ${roleType}s list`, 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -29,10 +32,13 @@ const ManageUsers: React.FC<ManageUsersProps> = ({ roleType }) => {
 
   const toggleVerification = async (userId: string, currentStatus: boolean | undefined) => {
     try {
-      await api.patch(`/admin/users/${userId}/verify`, { isVerified: !currentStatus });
+      const newStatus = !currentStatus;
+      await api.patch(`/admin/users/${userId}/verify`, { isVerified: newStatus });
       fetchUsers();
-    } catch (err) {
-      alert('Failed to update user');
+      showSuccess(`User ${newStatus ? 'verified' : 'unverified'} successfully!`, 'Status Updated');
+    } catch (err: any) {
+      console.error(err);
+      showError(err.response?.data?.message || 'Failed to update user verification status', 'Update Error');
     }
   };
 
@@ -41,8 +47,10 @@ const ManageUsers: React.FC<ManageUsersProps> = ({ roleType }) => {
     try {
       await api.patch(`/admin/users/${userId}/verify`, { status: newStatus });
       fetchUsers();
-    } catch (err) {
-      alert('Failed to update user status');
+      showSuccess(`User account ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`, 'Status Updated');
+    } catch (err: any) {
+      console.error(err);
+      showError(err.response?.data?.message || 'Failed to update user account status', 'Update Error');
     }
   };
 

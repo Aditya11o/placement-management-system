@@ -6,8 +6,10 @@ import {
   Loader2, X, Square, CheckSquare, Filter, BarChart3
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const Applicants: React.FC = () => {
+  const { showSuccess, showError, showWarning } = useNotification();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const initialJobId = searchParams.get('jobId') || '';
@@ -37,8 +39,9 @@ const Applicants: React.FC = () => {
       if (!selectedJob && res.data.length > 0) {
         setSelectedJob(res.data[0]._id);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching jobs:', err);
+      showError('Failed to fetch job postings', 'Fetch Error');
     }
   };
 
@@ -48,8 +51,9 @@ const Applicants: React.FC = () => {
       setLoading(true);
       const res = await api.get(`/applications/job/${selectedJob}`);
       setApplicants(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching applicants:', err);
+      showError('Failed to fetch applicants list', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -67,9 +71,9 @@ const Applicants: React.FC = () => {
     try {
       await api.patch(`/applications/${id}/status`, { status, ...additionalData });
       fetchApplicants(); // Refresh list
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating status:', err);
-      alert('Failed to update status');
+      showError(err.response?.data?.message || 'Failed to update applicant status', 'Update Error');
     }
   };
 
@@ -80,10 +84,10 @@ const Applicants: React.FC = () => {
       await api.patch('/applications/bulk-status', { ids: selectedApplicants, status });
       setSelectedApplicants([]);
       fetchApplicants();
-      alert('Selected applicants updated successfully!');
-    } catch (err) {
+      showSuccess(`Bulk update to ${status} successful!`, 'Bulk Update');
+    } catch (err: any) {
       console.error('Error in bulk update:', err);
-      alert('Failed to update applicants in bulk');
+      showError(err.response?.data?.message || 'Failed to update applicants in bulk', 'Bulk Error');
     } finally {
       setLoading(false);
     }
@@ -117,7 +121,7 @@ const Applicants: React.FC = () => {
 
   const handleConfirmSchedule = async () => {
     if (!interviewDetails.date || !interviewDetails.time) {
-      alert('Please fill date and time');
+      showWarning('Please provide both date and time for the interview.', 'Missing Information');
       return;
     }
 
@@ -130,6 +134,7 @@ const Applicants: React.FC = () => {
     });
     
     setShowScheduleModal(false);
+    showSuccess('Interview scheduled and applicant shortlisted!', 'Schedule Success');
     setInterviewDetails({ date: '', time: '', mode: 'Online', link: '' });
   };
 

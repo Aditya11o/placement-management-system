@@ -6,22 +6,22 @@ const auditLogSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    admin_id: {
+    admin: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    target_type: {
+    targetType: {
       type: String, // 'Student', 'Recruiter', 'Job', 'Application', etc.
       required: true,
     },
-    target_id: {
+    targetId: {
       type: String, // ID of the affected resource
     },
     details: {
       type: String,
     },
-    ip_address: {
+    ipAddress: {
       type: String,
     },
   },

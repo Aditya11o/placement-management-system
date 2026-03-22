@@ -5,8 +5,10 @@ import {
   ShieldCheck, ArrowRight, UserPlus, Loader2
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const ManageStudents: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [searchQuery, setSearchQuery] = useState('');
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +32,9 @@ const ManageStudents: React.FC = () => {
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`,
         }));
       setStudents(filtered);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError('Failed to fetch students', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -45,8 +48,10 @@ const ManageStudents: React.FC = () => {
     try {
       await api.patch(`/admin/users/${id}/verify`, { isVerified });
       fetchStudents();
-    } catch (err) {
-      alert('Failed to update student');
+      showSuccess(`Student ${isVerified ? 'verified' : 'unverified'} successfully!`, 'Update Status');
+    } catch (err: any) {
+      console.error(err);
+      showError(err.response?.data?.message || 'Failed to update student status', 'Update Error');
     }
   };
 
@@ -59,12 +64,12 @@ const ManageStudents: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Manage Students</h1>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight leading-tight">Manage Students</h1>
           <p className="text-sm text-gray-500 font-bold mt-1">Review, approve, and manage the student database for placements.</p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-[#000613] text-white rounded-xl font-bold text-sm shadow-lg shadow-black/10 hover:scale-105 transition-all">
+        <button className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-[#000613] text-white rounded-xl font-bold text-sm shadow-lg shadow-black/10 hover:scale-105 transition-all">
           <UserPlus size={18} />
           Add New Student
         </button>

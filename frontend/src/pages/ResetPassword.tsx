@@ -1,27 +1,27 @@
 import React, { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { useNotification } from '../context/NotificationContext';
 
 const ResetPassword: React.FC = () => {
+  const { showError } = useNotification();
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      showError('Passwords do not match. Please verify and try again.', 'Validation Error');
       return;
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+      showError('Password must be at least 8 characters long.', 'Security Requirement');
       return;
     }
 
@@ -86,11 +86,6 @@ const ResetPassword: React.FC = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {error && (
-                    <div className="p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg text-xs font-bold">
-                      {error}
-                    </div>
-                  )}
 
                   <div className="space-y-4">
                     {/* New Password */}

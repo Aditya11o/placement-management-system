@@ -5,8 +5,10 @@ import {
   X, Send, User, Search
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const SupportInbox: React.FC = () => {
+  const { showSuccess, showError, showWarning } = useNotification();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
@@ -19,8 +21,9 @@ const SupportInbox: React.FC = () => {
       setLoading(true);
       const res = await api.get('/tickets');
       setTickets(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError('Failed to fetch support tickets', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -32,18 +35,18 @@ const SupportInbox: React.FC = () => {
 
   const handleResolve = async (ticketId: string) => {
     if (!response) {
-      alert('Please provide a response');
+      showWarning('Please provide a resolution response for the student.', 'Response Required');
       return;
     }
     try {
       setUpdating(true);
       await api.patch(`/tickets/${ticketId}`, { status: 'resolved', response });
-      alert('Ticket marked as resolved');
+      showSuccess('Ticket successfully resolved and student notified!', 'Resolution Success');
       setSelectedTicket(null);
       setResponse('');
       fetchTickets();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update ticket');
+      showError(err.response?.data?.message || 'Failed to update ticket status', 'Update Error');
     } finally {
       setUpdating(false);
     }

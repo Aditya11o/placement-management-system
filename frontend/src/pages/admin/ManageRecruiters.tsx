@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Search, Filter, Mail, Phone, ExternalLink, Trash2, Eye, ShieldOff, Check, X, Loader2, MapPin, Building2, UserPlus
+  Building2, Check, ExternalLink, Loader2, MapPin, Search, UserPlus, X, Eye
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const ManageRecruiters: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [searchQuery, setSearchQuery] = useState('');
   const [recruiters, setRecruiters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,8 +39,9 @@ const ManageRecruiters: React.FC = () => {
           isVerified: u.isVerified
         }));
       setRecruiters(filtered);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError('Failed to fetch recruiters', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -52,8 +55,10 @@ const ManageRecruiters: React.FC = () => {
     try {
       await api.patch(`/admin/users/${id}/verify`, { isVerified });
       fetchRecruiters();
-    } catch (err) {
-      alert('Failed to update recruiter');
+      showSuccess(`Recruiter ${isVerified ? 'verified' : 'unverified'} successfully!`, 'Update Status');
+    } catch (err: any) {
+      console.error(err);
+      showError(err.response?.data?.message || 'Failed to update recruiter status', 'Update Error');
     }
   };
 
@@ -63,8 +68,9 @@ const ManageRecruiters: React.FC = () => {
       setShowHistory(true);
       const { data } = await api.get(`/admin/recruiters/${id}/history`);
       setSelectedHistory(data);
-    } catch (err) {
-      alert('Failed to fetch history');
+    } catch (err: any) {
+      console.error(err);
+      showError('Failed to fetch evaluation history', 'Fetch Error');
       setShowHistory(false);
     } finally {
       setHistoryLoading(false);
@@ -80,14 +86,14 @@ const ManageRecruiters: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Manage Recruiters</h1>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight leading-tight">Manage Recruiters</h1>
           <p className="text-sm text-gray-500 font-bold mt-1 max-w-2xl leading-relaxed">
             Approve, monitor, and manage recruitment partners.
           </p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-[#000613] text-white rounded-xl font-bold text-sm shadow-lg shadow-black/10 hover:scale-105 transition-all">
+        <button className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-[#000613] text-white rounded-xl font-bold text-sm shadow-lg shadow-black/10 hover:scale-105 transition-all">
           <UserPlus size={18} />
           Add New Recruiter
         </button>
@@ -184,7 +190,11 @@ const ManageRecruiters: React.FC = () => {
                               try {
                                 await api.patch(`/admin/users/${item._id}/verify`, { status: 'blacklisted' });
                                 fetchRecruiters();
-                              } catch (err) { alert('Failed to blacklist'); }
+                                showSuccess('Recruiter blacklisted successfully!', 'Action Success');
+                              } catch (err: any) { 
+                                console.error(err);
+                                showError(err.response?.data?.message || 'Failed to blacklist recruiter', 'Action Error'); 
+                              }
                             }}
                             title="Blacklist" className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><X size={16} /></button>
                         ) : (
@@ -193,7 +203,11 @@ const ManageRecruiters: React.FC = () => {
                               try {
                                 await api.patch(`/admin/users/${item._id}/verify`, { status: 'active' });
                                 fetchRecruiters();
-                              } catch (err) { alert('Failed to activate'); }
+                                showSuccess('Recruiter account activated successfully!', 'Action Success');
+                              } catch (err: any) { 
+                                console.error(err);
+                                showError(err.response?.data?.message || 'Failed to activate recruiter', 'Action Error'); 
+                              }
                             }}
                             title="Activate" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><Check size={16} /></button>
                         )}

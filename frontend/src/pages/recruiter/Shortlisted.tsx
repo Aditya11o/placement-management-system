@@ -7,8 +7,10 @@ import {
   Video, MapPin, ArrowRight
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const Shortlisted: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [activeTab, setActiveTab] = useState('All');
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -33,8 +35,9 @@ const Shortlisted: React.FC = () => {
       const res = await api.get('/jobs/my');
       setJobs(res.data);
       if (res.data.length > 0) setSelectedJob(res.data[0]._id);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching jobs:', err);
+      showError('Failed to fetch jobs', 'Fetch Error');
     }
   };
 
@@ -48,8 +51,9 @@ const Shortlisted: React.FC = () => {
         ['shortlisted', 'accepted', 'Selected'].includes(app.status)
       );
       setCandidates(filtered);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching candidates:', err);
+      showError('Failed to fetch candidates', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -89,9 +93,10 @@ const Shortlisted: React.FC = () => {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } catch (err) {
+      showSuccess('Data exported to CSV successfully!', 'Export Success');
+    } catch (err: any) {
       console.error('Export error:', err);
-      alert('Failed to export data');
+      showError('Failed to export data', 'Export Error');
     }
   };
 
@@ -104,10 +109,10 @@ const Shortlisted: React.FC = () => {
       });
       setShowEvaluationModal(false);
       fetchCandidates();
-      alert('Evaluation submitted and candidate selected!');
-    } catch (err) {
+      showSuccess('Evaluation submitted and candidate selected!', 'Success');
+    } catch (err: any) {
       console.error('Evaluation error:', err);
-      alert('Failed to submit evaluation');
+      showError(err.response?.data?.message || 'Failed to submit evaluation', 'Evaluation Error');
     }
   };
 

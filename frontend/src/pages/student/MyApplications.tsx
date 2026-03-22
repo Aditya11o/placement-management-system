@@ -7,8 +7,10 @@ import {
   Loader2
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const MyApplications: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [filteredApps, setFilteredApps] = useState<any[]>([]);
@@ -20,8 +22,9 @@ const MyApplications: React.FC = () => {
       const { data } = await api.get('/applications/my');
       setApps(data);
       setFilteredApps(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError('Failed to fetch applications', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -32,9 +35,10 @@ const MyApplications: React.FC = () => {
       if (!window.confirm(`Are you sure you want to ${response.toLowerCase()} this offer?`)) return;
       await api.patch(`/applications/${id}/offer`, { response });
       fetchApps();
-      alert(`Offer ${response.toLowerCase()}ed!`);
-    } catch (err) {
+      showSuccess(`Offer ${response.toLowerCase()}ed successfully!`, 'Offer Response');
+    } catch (err: any) {
       console.error(err);
+      showError(err.response?.data?.message || `Failed to ${response.toLowerCase()} offer`, 'Response Error');
     }
   };
 
@@ -79,7 +83,7 @@ const MyApplications: React.FC = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="space-y-6 pb-12">
       
       {/* Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

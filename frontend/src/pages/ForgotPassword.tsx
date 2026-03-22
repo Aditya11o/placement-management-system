@@ -1,21 +1,21 @@
 import React, { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, ShieldCheck, RotateCcw, ArrowRight } from 'lucide-react';
+import { useNotification } from '../context/NotificationContext';
 
 const ForgotPassword: React.FC = () => {
+  const { showError } = useNotification();
   const [email, setEmail] = useState<string>('');
   const [submitted, setSubmitted] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
     
     // Simulate API call
-    if (email.includes('@university.edu') || email.length > 5) {
+    if (email.includes('@tnu.in') || email.includes('@university.edu')) {
       setSubmitted(true);
     } else {
-      setError('Please enter a valid university email address.');
+      showError('Please use your institutional email (@tnu.in only) for recovery.', 'Verification Error');
     }
   };
 
@@ -71,11 +71,6 @@ const ForgotPassword: React.FC = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {error && (
-                    <div className="p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg text-xs font-bold shadow-sm">
-                      {error}
-                    </div>
-                  )}
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-700 ml-1">University Email</label>

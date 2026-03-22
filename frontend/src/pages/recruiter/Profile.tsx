@@ -5,8 +5,10 @@ import {
   Save, CornerDownRight, Heart, Loader2
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const CompanyProfile: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [companyInfo, setCompanyInfo] = useState({
@@ -42,8 +44,9 @@ const CompanyProfile: React.FC = () => {
         email: data.user?.email || '',
         phone: rec.phone || '',
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError(err.response?.data?.message || 'Failed to fetch profile', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -66,9 +69,10 @@ const CompanyProfile: React.FC = () => {
           phone: hrContact.phone,
         }
       });
-      alert('Profile updated successfully!');
-    } catch (err) {
+      showSuccess('Company profile updated successfully!', 'Profile Update');
+    } catch (err: any) {
       console.error(err);
+      showError(err.response?.data?.message || 'Failed to update company profile', 'Update Error');
     }
   };
 

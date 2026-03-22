@@ -3,7 +3,7 @@ const Settings = require('../models/Settings');
 // @desc    Get portal settings
 // @route   GET /api/settings
 // @access  Public
-const getSettings = async (req, res) => {
+const getSettings = async (req, res, next) => {
   try {
     let settings = await Settings.findOne();
     if (!settings) {
@@ -12,14 +12,14 @@ const getSettings = async (req, res) => {
     }
     res.json(settings);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // @desc    Update portal settings
 // @route   PUT /api/settings
 // @access  Private (Admin)
-const updateSettings = async (req, res) => {
+const updateSettings = async (req, res, next) => {
   try {
     let settings = await Settings.findOne();
     if (!settings) {
@@ -39,7 +39,7 @@ const updateSettings = async (req, res) => {
     const updatedSettings = await settings.save();
     res.json(updatedSettings);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
+      select: false,
     },
     role: {
       type: String,
@@ -31,14 +32,25 @@ const userSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'inactive', 'blacklisted'],
+      enum: ['active', 'inactive', 'blacklisted', 'pending'],
       default: 'active',
     },
     otp: {
       type: String,
+      select: false,
     },
     otpExpires: {
       type: Date,
+      select: false,
+    },
+    loginAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    lockUntil: {
+      type: Number,
+      select: false,
     },
   },
   {
@@ -47,9 +59,9 @@ const userSchema = new mongoose.Schema(
 );
 
 // Hash password before saving
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
   if (!this.isModified('password')) {
-    next();
+    return;
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);

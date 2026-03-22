@@ -3,13 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
 import loginBg from '../assets/login_bg.png';
+import { useNotification } from '../context/NotificationContext';
 
 const Login: React.FC = () => {
+  const { showError } = useNotification();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [role, setRole] = useState<'student' | 'admin' | 'recruiter'>('student');
-  const [error, setError] = useState<string>('');
   const [otp, setOtp] = useState<string>('');
   const [requireOTP, setRequireOTP] = useState<boolean>(false);
   const navigate = useNavigate();
@@ -17,7 +18,6 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
     try {
       if (requireOTP) {
         const user = await verifyOTP(email, otp);
@@ -34,12 +34,12 @@ const Login: React.FC = () => {
 
       const user = res;
       if (user.role !== role) {
-        setError(`Access denied. You are registered as a ${user.role}.`);
+        showError(`Access denied. You are registered as a ${user.role}.`, 'Access Denied');
         return;
       }
       navigate(`/${user.role}/dashboard`);
     } catch (err: any) {
-      setError(err || 'Invalid credentials');
+      showError(err || 'Invalid credentials', 'Login Error');
     }
   };
 
@@ -97,12 +97,6 @@ const Login: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg text-xs font-bold shadow-sm">
-                {error}
-              </div>
-            )}
-
             {/* Role Tab Selector */}
             <div className="space-y-3">
                <label className="text-[10px] uppercase tracking-widest font-black text-gray-400 ml-1">Select Role</label>

@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import { useAutosave } from '../../hooks/useAutosave';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const PostJob: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [formData, setFormData] = useState({
     title: '',
     role: '',
@@ -325,11 +327,11 @@ const PostJob: React.FC = () => {
                   onClick={async () => {
                     try {
                       await api.post('/jobs', formData);
-                      alert('Job posted successfully!');
+                      showSuccess('Job posted successfully!', 'Job Published');
                       clearAutosave();
-                    } catch (err) {
+                    } catch (err: any) {
                       console.error(err);
-                      alert('Failed to post job');
+                      showError(err.response?.data?.message || 'Failed to post job. Please check all fields.', 'Publication Error');
                     }
                   }}
                   className="px-12 py-3.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-2 active:scale-95"

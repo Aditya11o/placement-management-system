@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, X } from 'lucide-react';
 
 interface SidebarProps {
   role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
@@ -23,7 +23,6 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onClose }) => {
           { name: 'Career Prep', icon: BookOpen, path: '/student/resources' },
           { name: 'Mock Interviews', icon: MessageSquare, path: '/student/mock-interviews' },
           { name: 'Notifications', icon: Bell, path: '/student/notifications' },
-          { name: 'Help & Support', icon: HelpCircle, path: '/student/support' },
         ];
       case 'recruiter':
         return [
@@ -54,7 +53,6 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onClose }) => {
           { name: 'Dashboard', icon: LayoutDashboard, path: `/${role}/dashboard` },
           { name: 'Post Referral', icon: Briefcase, path: `/${role}/post-job` },
           { name: 'My Profile', icon: Users, path: `/${role}/profile` },
-          { name: 'Help & Support', icon: HelpCircle, path: `/${role}/support` },
         ];
       default:
         return [];
@@ -64,11 +62,17 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onClose }) => {
   const links = getLinks();
 
   return (
-    <aside className="w-64 h-screen bg-surface-container-low flex flex-col fixed left-0 top-0 border-r border-outline-variant z-30 transition-colors duration-300">
-      <div className="h-20 flex items-center justify-between px-8 border-b border-outline-variant/30">
+    <aside className={`w-64 h-screen bg-surface-container-low flex flex-col fixed left-0 top-0 border-r border-outline-variant z-40 transition-all duration-300 transform ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <div className="h-20 flex items-center justify-between px-6 border-b border-outline-variant/30">
         <h1 className="text-xl font-bold font-display text-primary tracking-tight uppercase">
           Placement <span className="opacity-40 font-normal">Portal</span>
         </h1>
+        <button 
+          onClick={onClose}
+          className="md:hidden p-2 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <X size={20} />
+        </button>
       </div>
       <nav className="flex-1 px-4 py-8 space-y-1 overflow-hidden">
         {links.map((link) => {

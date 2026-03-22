@@ -1,39 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import { Loader2 } from 'lucide-react';
+import { useNotification } from '../../context/NotificationContext';
 
 interface JobTableProps {
   initialJobs?: any[];
 }
 
 const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
+  const { showError } = useNotification();
   const [jobs, setJobs] = useState(initialJobs);
   const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setJobs(initialJobs);
-  }, [initialJobs]);
-
-  useEffect(() => {
-    const fetchAppliedJobs = async () => {
-      try {
-        const res = await api.get('/applications/my');
-        setAppliedJobIds(res.data.map((app: any) => app.job._id));
-      } catch (error) {
-        console.error('Error fetching applied jobs:', error);
-      }
-    };
-    fetchAppliedJobs();
-  }, []);
-
+// ... existing useEffects
   const handleApply = async (jobId: string) => {
     try {
       setLoading(true);
       await api.post(`/applications/${jobId}`);
       setAppliedJobIds([...appliedJobIds, jobId]);
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to apply');
+      showError(error.response?.data?.message || 'Failed to apply for this job', 'Application Error');
     } finally {
       setLoading(false);
     }

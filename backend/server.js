@@ -8,6 +8,12 @@ const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const { initCron } = require('./utils/cron');
 
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const hpp = require('hpp');
+const cookieParser = require('cookie-parser');
+const logger = require('./utils/logger');
+
 // Load environment variables
 dotenv.config();
 
@@ -19,9 +25,17 @@ initCron();
 
 const app = express();
 const server = http.createServer(app);
+
+// CORS must be handled before other middlewares to correctly manage OPTIONS preflight requests
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
+
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: 'http://localhost:5173',
+    credentials: true
   },
 });
 
@@ -32,18 +46,55 @@ app.set('io', io);
 app.use(helmet()); // Security headers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Express 5 compatibility fix for older middlewares (req.query and req.params are getters by default)
+app.use((req, res, next) => {
+  if (req.query) {
+    const rawQuery = req.query;
+    Object.defineProperty(req, 'query', {
+      value: { ...rawQuery },
+      writable: true,
+      configurable: true,
+      enumerable: true
+    });
+  }
+  if (req.params) {
+    const rawParams = req.params;
+    Object.defineProperty(req, 'params', {
+      value: { ...rawParams },
+      writable: true,
+      configurable: true,
+      enumerable: true
+    });
+  }
+  next();
+});
+
+// Data sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// Data sanitization against XSS
+app.use(xss());
+
+// Prevent HTTP Parameter Pollution
+app.use(hpp());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 mins
+  windowMs: 15 * 60 * 1000, // 15 mins
   max: 100, // max 100 requests per window
+  message: 'Too many requests from this IP, please try again after 15 minutes',
 });
 app.use('/api/', limiter);
 
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
+// Specific rate limit for login
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5, // 5 attempts per 15 mins
+  message: 'Too many login attempts, please try again after 15 minutes',
+});
+app.use('/api/auth/login', loginLimiter);
 
 // Routes
 const auditLogRoutes = require('./routes/auditLogRoutes');
@@ -60,6 +111,7 @@ app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/resources', require('./routes/resourceRoutes'));
 app.use('/api/tickets', require('./routes/ticketRoutes'));
+app.use('/api/mock-interviews', require('./routes/mockInterviewRoutes'));
 
 // Socket.io connection
 io.on('connection', (socket) => {
@@ -84,9 +136,15 @@ app.get('/', (req, res) => {
 // Global Error Handler
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  res.status(statusCode);
-  res.json({
-    message: err.message,
+  
+  // Log error to file
+  logger.error(err, req);
+  console.error('SERVER ERROR:', err);
+
+  res.status(statusCode).json({
+    message: process.env.NODE_ENV === 'production' 
+      ? 'An unexpected error occurred. Please try again later.' 
+      : err.message,
     stack: process.env.NODE_ENV === 'production' ? null : err.stack,
   });
 });

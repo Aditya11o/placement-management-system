@@ -5,8 +5,10 @@ import {
   TrendingUp, Clock, Loader2
 } from 'lucide-react';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const ManageJobs: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [searchQuery, setSearchQuery] = useState('');
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +32,9 @@ const ManageJobs: React.FC = () => {
         rawStatus: job.status
       }));
       setJobs(mapped);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showError('Failed to fetch job postings', 'Fetch Error');
     } finally {
       setLoading(false);
     }
@@ -45,8 +48,10 @@ const ManageJobs: React.FC = () => {
     try {
       await api.patch(`/jobs/${id}/status`, { status });
       fetchJobs();
-    } catch (err) {
-      alert('Failed to update job status');
+      showSuccess(`Job status updated to ${status} successfully!`, 'Update Success');
+    } catch (err: any) {
+      console.error(err);
+      showError(err.response?.data?.message || 'Failed to update job status', 'Update Error');
     }
   };
 
@@ -55,8 +60,10 @@ const ManageJobs: React.FC = () => {
     try {
       await api.delete(`/jobs/${id}`);
       fetchJobs();
-    } catch (err) {
-      alert('Failed to delete job');
+      showSuccess('Job deleted successfully!', 'Delete Success');
+    } catch (err: any) {
+      console.error(err);
+      showError(err.response?.data?.message || 'Failed to delete job', 'Delete Error');
     }
   };
 

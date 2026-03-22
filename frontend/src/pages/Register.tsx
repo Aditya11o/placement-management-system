@@ -3,25 +3,25 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, Mail, Lock, ArrowRight, ShieldCheck, GraduationCap, Briefcase, CheckCircle } from 'lucide-react';
 import loginBg from '../assets/login_bg.png';
+import { useNotification } from '../context/NotificationContext';
 
 const Register: React.FC = () => {
+  const { showError } = useNotification();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     role: 'student' as 'student' | 'recruiter' | 'admin'
   });
-  const [error, setError] = useState<string>('');
   const [agree, setAgree] = useState<boolean>(false);
   const navigate = useNavigate();
   const { register } = useAuth();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
     
     if (!agree) {
-      setError('Please agree to the Terms of Service and Privacy Policy.');
+      showError('Please agree to the Terms of Service and Privacy Policy.', 'Validation Error');
       return;
     }
 
@@ -29,7 +29,7 @@ const Register: React.FC = () => {
       const user = await register(formData);
       navigate(`/${user.role}/dashboard`);
     } catch (err: any) {
-      setError(err || 'Registration failed');
+      showError(err || 'Registration failed', 'Registration Error');
     }
   };
 
@@ -90,12 +90,6 @@ const Register: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg text-xs font-bold">
-                {error}
-              </div>
-            )}
-
             {/* Role Tracker - Reduced space-y */}
             <div className="space-y-2">
                <label className="text-[10px] uppercase tracking-widest font-black text-gray-400 ml-1">I am registering as a</label>

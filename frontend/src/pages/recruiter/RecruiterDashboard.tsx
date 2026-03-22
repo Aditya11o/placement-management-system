@@ -83,9 +83,11 @@ const RecruiterDashboard: React.FC = () => {
     <div className="space-y-8 pb-12">
       
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Dashboard Overview</h1>
-        <p className="text-gray-500 font-bold mt-1 tracking-tight">Welcome back. Here is what is happening with your placements today.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight">Dashboard Overview</h1>
+          <p className="text-gray-500 font-bold mt-1 tracking-tight">Welcome back. Here is what is happening with your placements today.</p>
+        </div>
       </div>
 
       {/* Announcements */}
@@ -236,7 +238,7 @@ const RecruiterDashboard: React.FC = () => {
             <h2 className="text-2xl font-black text-gray-900 tracking-tight">Recruitment Funnel</h2>
             <p className="text-gray-400 text-[12px] font-black uppercase tracking-widest mt-1">Deep insights into your job posting performance.</p>
           </div>
-          <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-100 min-w-[300px]">
+          <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-100 w-full md:min-w-[300px] md:w-auto">
             <Filter size={18} className="text-gray-400 ml-2" />
             <select 
               value={selectedJobId}

@@ -14,14 +14,14 @@ const storage = multer.diskStorage({
 });
 
 function checkFileType(file, cb) {
-  const filetypes = /pdf/;
+  const filetypes = /pdf|doc|docx|jpg|jpeg|png/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = filetypes.test(file.mimetype);
 
   if (extname && mimetype) {
     return cb(null, true);
   } else {
-    cb('Error: PDF files only!');
+    cb('Error: PDF, DOC, and Images (JPG/PNG) only!');
   }
 }
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import HelpSupportPanel from '../components/HelpSupportPanel';
 import type { User } from '../types';
 
 interface DashboardLayoutProps {
@@ -10,6 +11,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ role }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isHelpOpen, setHelpOpen] = useState(false);
   const userInfo: User | null = JSON.parse(localStorage.getItem('userInfo') || 'null');
   const token = localStorage.getItem('token');
 
@@ -30,14 +32,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ role }) => {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 md:ml-64 overflow-hidden h-screen transition-all duration-300">
-        <Navbar role={role} onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
+        <Navbar 
+          role={role} 
+          onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)} 
+          onHelpOpen={() => setHelpOpen(true)}
+        />
         
-        <main className="flex-1 overflow-y-auto pt-16 custom-scrollbar">
-          <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto pt-0 custom-scrollbar">
+          <div className="pt-4 md:pt-5 lg:pt-6 pb-8 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full min-h-full">
             <Outlet />
           </div>
         </main>
       </div>
+
+      <HelpSupportPanel isOpen={isHelpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 };
