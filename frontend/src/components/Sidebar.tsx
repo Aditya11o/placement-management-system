@@ -1,14 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, Sun, Moon, MessageSquare, HelpCircle } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, HelpCircle } from 'lucide-react';
 
 interface SidebarProps {
   role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ role }) => {
-  const { theme, toggleTheme } = useTheme();
+const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onClose }) => {
 
   const getLinks = () => {
     switch (role as any) { // Type casting to handle expanded roles temporarily
@@ -69,14 +69,8 @@ const Sidebar: React.FC<SidebarProps> = ({ role }) => {
         <h1 className="text-xl font-bold font-display text-primary tracking-tight uppercase">
           Placement <span className="opacity-40 font-normal">Portal</span>
         </h1>
-        <button 
-          onClick={toggleTheme}
-          className="p-2 rounded-xl bg-surface-container-lowest text-primary hover:scale-110 transition-all shadow-sm border border-outline-variant/10"
-        >
-          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-        </button>
       </div>
-      <nav className="flex-1 px-4 py-8 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-4 py-8 space-y-1 overflow-hidden">
         {links.map((link) => {
           const Icon = link.icon;
           return (
@@ -98,6 +92,19 @@ const Sidebar: React.FC<SidebarProps> = ({ role }) => {
         })}
       </nav>
       <div className="p-4 space-y-2 border-t border-[#e1e3e4]">
+        <NavLink
+          to={`/${role}/chat`}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-5 py-3.5 rounded-xl font-bold text-[13px] transition-all duration-300 ${
+              isActive
+                ? 'bg-[#000613] text-white shadow-xl shadow-black/10 scale-[1.02]'
+                : 'text-[var(--on-surface-variant)] hover:bg-[#e7e8e9] hover:text-[var(--on-surface)]'
+            }`
+          }
+        >
+          <MessageSquare size={18} />
+          Messages
+        </NavLink>
         <NavLink
           to={`/${role}/settings`}
           className={({ isActive }) =>

@@ -39,6 +39,8 @@ import AdminManageInterviews from './pages/admin/ManageInterviews';
 import AdminReports from './pages/admin/Reports';
 import AdminManageNotifications from './pages/admin/ManageNotifications';
 import AdminSettings from './pages/admin/Settings';
+import AdminProfile from './pages/admin/Profile';
+import Chat from './pages/Chat';
 import ManageVerifications from './pages/admin/ManageVerifications';
 import AuditLogs from './pages/admin/AuditLogs';
 import ToastManager from './components/ToastManager';
@@ -61,6 +63,7 @@ const App: React.FC = () => {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/help" element={<Help />} />
+            <Route path="/chat" element={<Navigate to="/" replace />} />
           </Route>
 
           {/* Protected Dashboard Routes - Student */}
@@ -76,6 +79,7 @@ const App: React.FC = () => {
             <Route path="notifications" element={<Notifications />} />
             <Route path="support" element={<Support />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="chat" element={<Chat />} />
           </Route>
 
       <Route path="/recruiter" element={<DashboardLayout role="recruiter" />}>
@@ -89,11 +93,13 @@ const App: React.FC = () => {
         <Route path="interviews" element={<RecruiterInterviews />} />
         <Route path="notifications" element={<RecruiterNotifications />} />
         <Route path="settings" element={<RecruiterSettings />} />
+        <Route path="chat" element={<Chat />} />
       </Route>
 
           {/* Protected Dashboard Routes - Admin */}
           <Route path="/admin" element={<DashboardLayout role="admin" />}>
             <Route path="dashboard" element={<Dashboard role="admin" />} />
+            <Route path="profile" element={<AdminProfile />} />
             <Route path="students" element={<ManageStudents />} />
             <Route path="verifications" element={<ManageVerifications />} />
             <Route path="recruiters" element={<ManageRecruiters />} />
@@ -104,17 +110,20 @@ const App: React.FC = () => {
             <Route path="notifications" element={<AdminManageNotifications />} />
             <Route path="audit" element={<AuditLogs />} />
             <Route path="settings" element={<AdminSettings />} />
-      </Route>
+            <Route path="chat" element={<Chat />} />
+          </Route>
 
       {/* Protected Dashboard Routes - Alumni & Mentor */}
       <Route path="/alumni" element={<DashboardLayout role="alumni" />}>
         <Route path="dashboard" element={<AlumniPortal />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="chat" element={<Chat />} />
       </Route>
 
       <Route path="/mentor" element={<DashboardLayout role="mentor" />}>
         <Route path="dashboard" element={<AlumniPortal />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="chat" element={<Chat />} />
       </Route>
         </Routes>
       </BrowserRouter>

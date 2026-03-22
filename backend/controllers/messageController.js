@@ -42,4 +42,38 @@ const sendMessage = async (req, res) => {
   }
 };
 
-module.exports = { getMessages, sendMessage };
+// @desc    Get all conversations for a user
+// @route   GET /api/messages/conversations
+// @access  Private
+const getConversations = async (req, res) => {
+  try {
+    const messages = await Message.find({
+      $or: [{ sender: req.user.id }, { recipient: req.user.id }]
+    })
+    .sort({ createdAt: -1 })
+    .populate('sender', 'name email role')
+    .populate('recipient', 'name email role');
+
+    const conversations = [];
+    const userIds = new Set();
+
+    messages.forEach(msg => {
+      const otherUser = msg.sender._id.toString() === req.user.id ? msg.recipient : msg.sender;
+      if (!userIds.has(otherUser._id.toString())) {
+        userIds.add(otherUser._id.toString());
+        conversations.push({
+          user: otherUser,
+          lastMessage: msg.content,
+          timestamp: msg.createdAt,
+          isRead: msg.recipient.toString() === req.user.id ? msg.isRead : true
+        });
+      }
+    });
+
+    res.json(conversations);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getMessages, sendMessage, getConversations };

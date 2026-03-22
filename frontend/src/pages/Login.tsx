@@ -10,14 +10,29 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [role, setRole] = useState<'student' | 'admin' | 'recruiter'>('student');
   const [error, setError] = useState<string>('');
+  const [otp, setOtp] = useState<string>('');
+  const [requireOTP, setRequireOTP] = useState<boolean>(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, verifyOTP } = useAuth();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     try {
-      const user = await login(email, password);
+      if (requireOTP) {
+        const user = await verifyOTP(email, otp);
+        navigate(`/${user.role}/dashboard`);
+        return;
+      }
+
+      const res = await login(email, password);
+      
+      if (res.requireOTP) {
+        setRequireOTP(true);
+        return;
+      }
+
+      const user = res;
       if (user.role !== role) {
         setError(`Access denied. You are registered as a ${user.role}.`);
         return;
@@ -107,49 +122,78 @@ const Login: React.FC = () => {
 
             {/* User Inputs - text-sm */}
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-700 ml-1">University Email / ID</label>
-                <div className="relative group">
-                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
-                      <Mail className="w-4 h-4" />
-                   </div>
-                   <input 
-                     type="email" 
-                     value={email} 
-                     onChange={(e) => setEmail(e.target.value)}
-                     className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 pl-11 text-sm font-medium text-primary outline-none transition-all duration-300 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 placeholder:text-gray-300"
-                     placeholder="name@university.edu"
-                     required
-                   />
-                </div>
-              </div>
+              {!requireOTP ? (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-700 ml-1">University Email / ID</label>
+                    <div className="relative group">
+                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
+                          <Mail className="w-4 h-4" />
+                       </div>
+                       <input 
+                         type="email" 
+                         value={email} 
+                         onChange={(e) => setEmail(e.target.value)}
+                         className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 pl-11 text-sm font-medium text-primary outline-none transition-all duration-300 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 placeholder:text-gray-300"
+                         placeholder="name@university.edu"
+                         required
+                       />
+                    </div>
+                  </div>
 
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center px-1">
-                   <label className="text-xs font-bold text-gray-700">Password</label>
-                   <Link to="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline transition-all">Forgot?</Link>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center px-1">
+                       <label className="text-xs font-bold text-gray-700">Password</label>
+                       <Link to="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline transition-all">Forgot?</Link>
+                    </div>
+                    <div className="relative group">
+                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
+                          <Lock className="w-4 h-4" />
+                       </div>
+                       <input 
+                         type={showPassword ? "text" : "password"} 
+                         value={password} 
+                         onChange={(e) => setPassword(e.target.value)}
+                         className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 pl-11 pr-11 text-sm font-medium text-primary outline-none transition-all duration-300 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 placeholder:text-gray-300"
+                         placeholder="••••••••"
+                         required
+                       />
+                       <button 
+                         type="button"
+                         onClick={() => setShowPassword(!showPassword)}
+                         className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-300 hover:text-blue-500 transition-colors"
+                       >
+                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                       </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-1.5 animate-fade-in">
+                  <label className="text-xs font-bold text-gray-700 ml-1">Verification Code (sent to {email})</label>
+                  <div className="relative group">
+                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
+                        <Lock className="w-4 h-4" />
+                     </div>
+                     <input 
+                       type="text" 
+                       value={otp} 
+                       onChange={(e) => setOtp(e.target.value)}
+                       className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 pl-11 text-sm font-black tracking-[0.5em] text-center text-primary outline-none transition-all duration-300 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 placeholder:text-gray-300"
+                       placeholder="000000"
+                       maxLength={6}
+                       required
+                     />
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setRequireOTP(false)}
+                    className="text-[10px] font-black uppercase text-blue-600 hover:text-blue-800 transition-colors ml-1"
+                  >
+                    ← Back to Login
+                  </button>
                 </div>
-                <div className="relative group">
-                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
-                      <Lock className="w-4 h-4" />
-                   </div>
-                   <input 
-                     type={showPassword ? "text" : "password"} 
-                     value={password} 
-                     onChange={(e) => setPassword(e.target.value)}
-                     className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 pl-11 pr-11 text-sm font-medium text-primary outline-none transition-all duration-300 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 placeholder:text-gray-300"
-                     placeholder="••••••••"
-                     required
-                   />
-                   <button 
-                     type="button"
-                     onClick={() => setShowPassword(!showPassword)}
-                     className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-300 hover:text-blue-500 transition-colors"
-                   >
-                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                   </button>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Remember Me */}
@@ -170,7 +214,7 @@ const Login: React.FC = () => {
                 type="submit" 
                 className="w-full py-3 bg-gradient-to-r from-blue-950 to-blue-800 hover:shadow-lg hover:scale-105 text-white text-sm font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
               >
-                Log In
+                {requireOTP ? 'Verify Account' : 'Log In'}
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>

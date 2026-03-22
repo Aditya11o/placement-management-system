@@ -69,6 +69,26 @@ const authUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+      // Check if 2FA is required (Admin or Recruiter)
+      if (user.role === 'admin' || user.role === 'recruiter') {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.otp = otp;
+        user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        await user.save();
+
+        try {
+          await sendEmail({
+            email: user.email,
+            subject: 'Your 2FA Login Code',
+            message: `<h1>Security Verification</h1><p>Your login OTP is: <strong>${otp}</strong>. It expires in 10 minutes.</p>`,
+          });
+          return res.json({ requireOTP: true, email: user.email });
+        } catch (err) {
+          console.error('2FA Email failed:', err);
+          return res.status(500).json({ message: 'Failed to send verification code' });
+        }
+      }
+
       res.json({
         _id: user._id,
         name: user.name,
@@ -111,4 +131,39 @@ const refreshAccessToken = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, authUser, refreshAccessToken };
+// @desc    Verify OTP
+// @route   POST /api/auth/verify-otp
+// @access  Public
+const verifyOTP = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const user = await User.findOne({ 
+      email, 
+      otp, 
+      otpExpires: { $gt: Date.now() } 
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Clear OTP after successful use
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+      refreshToken: generateRefreshToken(user._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { registerUser, authUser, refreshAccessToken, verifyOTP };

@@ -1,5 +1,6 @@
 const express = require('express');
 const { 
+  getAdminMe, updateAdminProfile,
   getStats, getUsers, verifyUser, sendBroadcast, 
   getInterviews, getPlacementReports, getRecentActivities,
   getPendingVerifications, verifySkill, getCompanyHistory, getAdvancedAnalytics
@@ -11,6 +12,8 @@ const router = express.Router();
 router.use(protect);
 router.use(authorize('admin'));
 
+router.get('/me', getAdminMe);
+router.patch('/me', updateAdminProfile);
 router.get('/stats', getStats);
 router.get('/activities', getRecentActivities);
 router.get('/users', getUsers);

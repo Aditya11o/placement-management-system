@@ -65,6 +65,12 @@ app.use('/api/tickets', require('./routes/ticketRoutes'));
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
+  // User joins their own private room
+  socket.on('join', (userId) => {
+    socket.join(userId.toString());
+    console.log(`User ${userId} joined their private room`);
+  });
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });

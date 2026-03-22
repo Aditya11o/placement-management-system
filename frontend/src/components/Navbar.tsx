@@ -1,12 +1,38 @@
-import React from 'react';
-import { Bell, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Bell, Search, Sun, Moon, User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import api from '../api';
 
 interface NavbarProps {
   role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
 }
 
 const Navbar: React.FC<NavbarProps> = ({ role }) => {
+  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const [adminData, setAdminData] = useState<any>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  useEffect(() => {
+    if (role === 'admin') {
+      const fetchAdminData = async () => {
+        try {
+          const { data } = await api.get('/admin/me');
+          setAdminData(data);
+        } catch (error) {
+          console.error('Error fetching admin data:', error);
+        }
+      };
+      fetchAdminData();
+    }
+  }, [role]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userInfo');
+    navigate('/login');
+  };
 
   return (
     <header className="h-16 bg-white/80 border-b border-gray-100 sticky top-0 w-full z-20 flex items-center justify-between px-6 backdrop-blur-xl">
@@ -29,34 +55,74 @@ const Navbar: React.FC<NavbarProps> = ({ role }) => {
         )}
         
         <div className="flex items-center gap-4">
+          <button 
+            onClick={toggleTheme}
+            className="p-2.5 text-gray-500 hover:bg-gray-100 rounded-xl transition-all hover:scale-110"
+          >
+            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+          </button>
           <button className="relative p-2.5 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors">
             <Bell size={20} />
             <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 border-2 border-white rounded-full"></span>
           </button>
-          <button className="p-2.5 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors">
-            <Search size={20} />
-          </button>
         </div>
         
-        <div className="flex items-center gap-3 pl-4 border-l border-gray-100">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-black text-gray-900 leading-none">
-              {role === 'recruiter' ? 'Global Tech Solutions' : 'Alex Rivera'}
-            </p>
-            <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wider">
-              {role === 'recruiter' ? 'Premium Partner' : role === 'student' ? 'Computer Science Senior' : role}
-            </p>
-          </div>
-          <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-700 font-bold border border-gray-200 shadow-sm overflow-hidden">
-            <img 
-              src={role === 'recruiter' 
-                ? "https://images.unsplash.com/photo-1560179707-f14e90ef3623?q=80&w=100&auto=format&fit=crop"
-                : "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"
-              } 
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          </div>
+        <div className="relative">
+          <button 
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-3 pl-4 border-l border-gray-100 hover:opacity-80 transition-opacity"
+          >
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-black text-gray-900 leading-none">
+                {role === 'admin' && adminData ? adminData.name : role === 'recruiter' ? 'Global Tech Solutions' : 'Alex Rivera'}
+              </p>
+              <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wider">
+                {role === 'admin' ? (adminData?.role ? adminData.role : 'Admin') : role === 'recruiter' ? 'Premium Partner' : role === 'student' ? 'Computer Science Senior' : role}
+              </p>
+            </div>
+            <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-700 font-bold border border-gray-200 shadow-sm overflow-hidden">
+              <img 
+                src={role === 'admin' && adminData?.profilePhoto 
+                  ? adminData.profilePhoto 
+                  : role === 'recruiter' 
+                    ? "https://images.unsplash.com/photo-1560179707-f14e90ef3623?q=80&w=100&auto=format&fit=crop"
+                    : "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"
+                } 
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <ChevronDown size={14} className={`text-gray-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <Link 
+                to={`/${role}/profile`}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                onClick={() => setDropdownOpen(false)}
+              >
+                <User size={16} />
+                My Profile
+              </Link>
+              <Link 
+                to={`/${role}/settings`}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                onClick={() => setDropdownOpen(false)}
+              >
+                <Settings size={16} />
+                Settings
+              </Link>
+              <div className="my-1 border-t border-gray-50"></div>
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

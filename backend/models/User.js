@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema(
       enum: ['student', 'recruiter', 'admin', 'alumni', 'mentor'],
       default: 'student',
     },
+    profilePhoto: {
+      type: String,
+      default: '',
+    },
     isVerified: {
       type: Boolean,
       default: false,
@@ -29,6 +33,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['active', 'inactive', 'blacklisted'],
       default: 'active',
+    },
+    otp: {
+      type: String,
+    },
+    otpExpires: {
+      type: Date,
     },
   },
   {

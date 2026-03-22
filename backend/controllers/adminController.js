@@ -306,7 +306,39 @@ const getAdvancedAnalytics = async (req, res) => {
   }
 };
 
+// @desc    Get current logged-in admin
+// @route   GET /api/admin/me
+// @access  Private (Admin)
+const getAdminMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update admin profile
+// @route   PATCH /api/admin/me
+// @access  Private (Admin)
+const updateAdminProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'Admin not found' });
+
+    user.name = req.body.name || user.name;
+    user.profilePhoto = req.body.profilePhoto || user.profilePhoto;
+    
+    const updatedUser = await user.save();
+    res.json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = { 
+  getAdminMe,
+  updateAdminProfile,
   getPendingVerifications, 
   verifySkill, 
   getStats, 
