@@ -18,7 +18,7 @@ The Placement Management System (PMS) is currently in a highly advanced stage of
 
 ## 3. Module Status
 
-### 🎓 Student Module (**90% Complete**)
+### Student Module (**90% Complete**)
 - **Implemented:**
     - Profile Management & Resume Upload.
     - Job Feed with dynamic filtering.
