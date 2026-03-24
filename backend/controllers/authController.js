@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const crypto = require('crypto');
 const Profile = require('../models/Profile');
 const generateToken = require('../utils/generateToken');
 const generateRefreshToken = require('../utils/generateRefreshToken');
@@ -27,7 +28,7 @@ const setTokenCookies = (res, user) => {
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
-const registerUser = async (req, res) => {
+const registerUser = async (req, res, next) => {
   const { name, email, password, role } = req.body;
 
   // Domain Validation (Defense-in-depth)
@@ -189,7 +190,7 @@ const authUser = async (req, res, next) => {
 // @desc    Refresh access token
 // @route   POST /api/auth/refresh
 // @access  Public
-const refreshAccessToken = async (req, res) => {
+const refreshAccessToken = async (req, res, next) => {
   const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
   if (!refreshToken) {
@@ -260,7 +261,7 @@ const verifyOTP = async (req, res, next) => {
 // @desc    Logout user & clear cookies
 // @route   POST /api/auth/logout
 // @access  Private
-const logoutUser = async (req, res) => {
+const logoutUser = async (req, res, next) => {
   res.cookie('token', '', {
     httpOnly: true,
     expires: new Date(0),
@@ -272,4 +273,106 @@ const logoutUser = async (req, res) => {
   res.status(200).json({ message: 'Logged out successfully' });
 };
 
-module.exports = { registerUser, authUser, refreshAccessToken, verifyOTP, logoutUser };
+// @desc    Forgot Password
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = async (req, res, next) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    // Hash and set to reset_token field
+    user.reset_token = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    // Set expiry
+    user.reset_token_expiry = Date.now() + 15 * 60 * 1000; // 15 mins
+
+    await user.save();
+
+    // Send email
+    const resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`;
+    const message = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
+        <h2 style="color: #1e1b4b; text-align: center;">Password Reset Request</h2>
+        <p>Hello ${user.name},</p>
+        <p>We received a request to reset the password for your Placement Management System account.</p>
+        <p style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" style="background-color: #1e1b4b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Reset Password</a>
+        </p>
+        <p>If you did not request this, please ignore this email or contact support if you have concerns.</p>
+        <p>This link will expire in 15 minutes.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 12px; color: #666; text-align: center;">Placement Management System (PMS)</p>
+      </div>
+    `;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Password Reset Request',
+        message
+      });
+      res.json({ message: 'Reset link sent to your email' });
+    } catch (err) {
+      console.error('SMTP Error:', err);
+      user.reset_token = undefined;
+      user.reset_token_expiry = undefined;
+      await user.save();
+      return res.status(500).json({ message: 'Email could not be sent. Please check SMTP settings.' });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reset Password
+// @route   POST /api/auth/reset-password
+// @access  Public
+const resetPassword = async (req, res, next) => {
+  const { token, password } = req.body;
+  try {
+    // Hash the token sent in the link
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    const user = await User.findOne({
+      reset_token: hashedToken,
+      reset_token_expiry: { $gt: Date.now() }
+    }).select('+reset_token +reset_token_expiry');
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    // Set new password
+    user.password = password;
+    user.reset_token = undefined;
+    user.reset_token_expiry = undefined;
+    await user.save();
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  registerUser,
+  authUser,
+  refreshAccessToken,
+  verifyOTP,
+  logoutUser,
+  forgotPassword,
+  resetPassword
+};

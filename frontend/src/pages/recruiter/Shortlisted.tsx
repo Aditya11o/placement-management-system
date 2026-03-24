@@ -7,13 +7,13 @@ import {
   Video, MapPin, ArrowRight
 } from 'lucide-react';
 import api from '../../api';
+import Dropdown from '../../components/Dropdown';
 import { useNotification } from '../../context/NotificationContext';
 
 const Shortlisted: React.FC = () => {
   const { showSuccess, showError } = useNotification();
   const [activeTab, setActiveTab] = useState('All');
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
-  const [showModal, setShowModal] = useState(false);
   const [candidateToSchedule, setCandidateToSchedule] = useState<any>(null);
   
   const [jobs, setJobs] = useState<any[]>([]);
@@ -148,17 +148,13 @@ const Shortlisted: React.FC = () => {
 
       {/* Filter Bar */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-6 items-center">
-        <div className="w-full md:w-[300px] space-y-1.5">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Select Job Posting</label>
-          <select 
+        <div className="w-full md:w-[300px]">
+          <Dropdown 
+            label="Select Job Posting"
             value={selectedJob}
-            onChange={(e) => setSelectedJob(e.target.value)}
-            className="w-full px-4 py-2.5 bg-gray-50 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-[13px] text-gray-900 focus:outline-none transition-all appearance-none cursor-pointer"
-          >
-            {jobs.map(job => (
-              <option key={job._id} value={job._id}>{job.title}</option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedJob(val)}
+            options={jobs.map(job => ({ label: job.title, value: job._id }))}
+          />
         </div>
         <div className="flex p-1 bg-gray-100 rounded-xl w-full md:w-auto h-fit self-end mb-0.5">
           {['All', 'Not Scheduled', 'Scheduled', 'Selected'].map((tab) => (

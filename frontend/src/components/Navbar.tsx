@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Bell, Search, Sun, Moon, User, Settings, LogOut, ChevronDown, Menu, HelpCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import Avatar from './Avatar';
 import api from '../api';
 
 interface NavbarProps {
@@ -12,28 +14,58 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ role, onToggleSidebar, onHelpOpen }) => {
   const { theme, toggleTheme } = useTheme();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
-  const [adminData, setAdminData] = useState<any>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifs = async () => {
+    if (!user) return;
+    try {
+      const { data } = await api.get('/notifications');
+      setNotifications(data);
+      setUnreadCount(data.filter((n: any) => !n.is_read).length);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
-    if (role === 'admin') {
-      const fetchAdminData = async () => {
-        try {
-          const { data } = await api.get('/admin/me');
-          setAdminData(data);
-        } catch (error) {
-          console.error('Error fetching admin data:', error);
-        }
-      };
-      fetchAdminData();
-    }
-  }, [role]);
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 60000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userInfo');
+    logout();
     navigate('/login');
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await api.put(`/notifications/read-all/${user?._id}`);
+      fetchNotifs();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleNotifClick = async (notif: any) => {
+    if (!notif.is_read) {
+      try {
+        await api.put(`/notifications/read/${notif._id}`);
+        fetchNotifs();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setNotifOpen(false);
+    if (notif.type === 'job') navigate(`/${role}/jobs`);
+    else if (notif.type === 'interview') navigate(`/${role}/interviews`);
+    else if (notif.type === 'message') navigate(`/${role}/messages`);
+    else navigate(`/${role}/notifications`);
   };
 
   return (
@@ -64,50 +96,107 @@ const Navbar: React.FC<NavbarProps> = ({ role, onToggleSidebar, onHelpOpen }) =>
         )}
         
         <div className="flex items-center gap-4">
-          <button 
-            onClick={onHelpOpen}
+          <Link 
+            to={role === 'student' ? "/student/help-support" : "#"}
+            onClick={role !== 'student' ? onHelpOpen : undefined}
             className="p-2.5 text-gray-500 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all hover:scale-110 active:scale-90 shadow-sm sm:shadow-none"
             title="Help & Support"
           >
             <HelpCircle size={20} />
-          </button>
+          </Link>
           <button 
             onClick={toggleTheme}
             className="p-2.5 text-gray-500 hover:bg-gray-100 rounded-xl transition-all hover:scale-110"
           >
             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
           </button>
-          <button className="relative p-2.5 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors">
-            <Bell size={20} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 border-2 border-white rounded-full"></span>
-          </button>
+
+          {/* Notifications Dropdown */}
+          <div className="relative notification-dropdown">
+            <button 
+              onClick={() => {
+                setNotifOpen(!notifOpen);
+                setDropdownOpen(false);
+              }}
+              className="relative p-2.5 text-gray-500 hover:bg-gray-100 rounded-xl transition-all hover:scale-110 active:scale-90"
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute top-2 right-2 min-w-[18px] h-[18px] bg-rose-500 border-2 border-white rounded-full text-[10px] font-black text-white flex items-center justify-center px-0.5 animate-in zoom-in duration-300">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {notifOpen && (
+              <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 py-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-6 pb-4 border-b border-gray-50 flex justify-between items-center">
+                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Notifications</h3>
+                  {unreadCount > 0 && (
+                     <button 
+                       onClick={handleMarkAllRead}
+                       className="text-[10px] font-black text-blue-600 uppercase hover:underline"
+                     >
+                       Mark all read
+                     </button>
+                  )}
+                </div>
+                <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                  {notifications.length > 0 ? (
+                    notifications.map((notif) => (
+                      <div 
+                        key={notif._id} 
+                        onClick={() => handleNotifClick(notif)}
+                        className={`px-6 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer group relative ${!notif.is_read ? 'bg-blue-50/20' : ''}`}
+                      >
+                        {!notif.is_read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />}
+                        <div className="flex justify-between items-start gap-2">
+                          <h4 className={`text-xs font-black tracking-tight ${!notif.is_read ? 'text-gray-900' : 'text-gray-500'}`}>{notif.title}</h4>
+                          <span className="text-[9px] font-bold text-gray-400 whitespace-nowrap">{new Date(notif.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">{notif.message}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-12 text-center">
+                      <p className="text-sm text-gray-400 font-bold italic">No new notifications</p>
+                    </div>
+                  )}
+                </div>
+                <div className="px-6 pt-4 border-t border-gray-50">
+                   <Link 
+                     to={`/${role}/notifications`} 
+                     className="block w-full text-center py-2 bg-gray-50 text-gray-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all"
+                     onClick={() => setNotifOpen(false)}
+                   >
+                     View All Notifications
+                   </Link>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="relative">
           <button 
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-3 pl-4 border-l border-gray-100 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-3 pl-4 border-l border-gray-100 hover:opacity-80 transition-all hover:scale-[1.02] active:scale-95"
           >
             <div className="text-right hidden sm:block">
               <p className="text-sm font-black text-gray-900 leading-none">
-                {role === 'admin' && adminData ? adminData.name : role === 'recruiter' ? 'Global Tech Solutions' : 'Alex Rivera'}
+                {profile?.user?.name || user?.name || (role === 'admin' ? 'Admin User' : 'Loading...')}
               </p>
               <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wider">
-                {role === 'admin' ? (adminData?.role ? adminData.role : 'Admin') : role === 'recruiter' ? 'Premium Partner' : role === 'student' ? 'Computer Science Senior' : role}
+                {role === 'admin' ? (profile?.role || 'System Admin') : 
+                 role === 'recruiter' ? (profile?.recruiterDetails?.companyName || 'Recruiter') : 
+                 role === 'student' ? (profile?.department || 'Student') : role}
               </p>
             </div>
-            <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-700 font-bold border border-gray-200 shadow-sm overflow-hidden">
-              <img 
-                src={role === 'admin' && adminData?.profilePhoto 
-                  ? adminData.profilePhoto 
-                  : role === 'recruiter' 
-                    ? "https://images.unsplash.com/photo-1560179707-f14e90ef3623?q=80&w=100&auto=format&fit=crop"
-                    : "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=100&auto=format&fit=crop"
-                } 
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <Avatar 
+              name={profile?.user?.name || user?.name || ''} 
+              profilePhoto={profile?.profile_photo} 
+              size="md" 
+            />
             <ChevronDown size={14} className={`text-gray-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 

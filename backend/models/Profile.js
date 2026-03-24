@@ -68,6 +68,8 @@ const profileSchema = new mongoose.Schema(
           description: String,
           technologies: [String],
           link: String,
+          startDate: String,
+          endDate: String
         }
       ],
       socialLinks: {

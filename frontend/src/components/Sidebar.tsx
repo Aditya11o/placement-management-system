@@ -85,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onClose }) => {
                 `flex items-center gap-3 px-5 py-3.5 rounded-xl font-bold text-[13px] transition-all duration-300 ${
                   isActive
                     ? 'bg-[#000613] text-white shadow-xl shadow-black/10 scale-[1.02]'
-                    : 'text-[var(--on-surface-variant)] hover:bg-[#e7e8e9] hover:text-[var(--on-surface)]'
+                    : 'text-[var(--on-surface-variant)] hover:bg-[#e7e8e9] hover:text-[var(--on-surface)] hover:translate-x-1'
                 }`
               }
             >

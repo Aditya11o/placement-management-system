@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api';
 
 const ProfileProgress: React.FC = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -20,14 +22,7 @@ const ProfileProgress: React.FC = () => {
     fetchProfile();
   }, []);
 
-  const calculateProgress = () => {
-    if (!profile) return 0;
-    const fields = ['full_name', 'email', 'phone', 'university_id', 'course', 'branch', 'batch', 'cgpa', 'skills', 'experience', 'projects'];
-    const filled = fields.filter(f => profile[f] && (Array.isArray(profile[f]) ? profile[f].length > 0 : true));
-    return Math.round((filled.length / fields.length) * 100);
-  };
-
-  const progress = calculateProgress();
+  const progress = profile?.profile_completion || 0;
 
   if (loading) {
     return (
@@ -51,8 +46,11 @@ const ProfileProgress: React.FC = () => {
           </div>
         </div>
       </div>
-      <button className="bg-white text-blue-950 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition-all shadow-sm active:scale-95 mt-6">
-        {progress === 100 ? 'View Profile' : 'Complete Profile'}
+      <button 
+        onClick={() => navigate('/student/profile')}
+        className="bg-white text-blue-950 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition-all shadow-sm active:scale-95 hover:scale-[1.02] mt-6"
+      >
+        {progress === 100 ? 'Update Profile' : 'Complete Profile'}
       </button>
     </div>
   );

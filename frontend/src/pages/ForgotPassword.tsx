@@ -2,20 +2,25 @@ import React, { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, ShieldCheck, RotateCcw, ArrowRight } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
+import api from '../api';
 
 const ForgotPassword: React.FC = () => {
-  const { showError } = useNotification();
+  const { showError, showSuccess } = useNotification();
   const [email, setEmail] = useState<string>('');
   const [submitted, setSubmitted] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
-    // Simulate API call
-    if (email.includes('@tnu.in') || email.includes('@university.edu')) {
+    setLoading(true);
+    try {
+      await api.post('/auth/forgot-password', { email });
       setSubmitted(true);
-    } else {
-      showError('Please use your institutional email (@tnu.in only) for recovery.', 'Verification Error');
+      showSuccess('Reset link sent to your email', 'Email Sent');
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to send reset link', 'Error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,10 +97,11 @@ const ForgotPassword: React.FC = () => {
                   <div className="pt-2">
                     <button 
                       type="submit" 
-                      className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-950 to-blue-800 hover:shadow-lg hover:shadow-blue-950/10 hover:scale-[1.02] text-white text-sm font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group"
+                      disabled={loading}
+                      className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-950 to-blue-800 hover:shadow-lg hover:shadow-blue-950/10 hover:scale-[1.02] text-white text-sm font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                      Send Reset Link
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      {loading ? 'Sending link...' : 'Send Reset Link'}
+                      {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
                     </button>
                   </div>
 

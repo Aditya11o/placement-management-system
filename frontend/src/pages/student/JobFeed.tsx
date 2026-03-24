@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Briefcase, Search, MapPin, DollarSign, 
-  ChevronDown, Bookmark, CheckCircle, 
+  Bookmark, CheckCircle, 
   Sparkles, AlertCircle, FileText,
   Loader2, X, ChevronRight
 } from 'lucide-react';
+import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 
 const JobFeed: React.FC = () => {
   const { showSuccess, showError } = useNotification();
-  const [jobType, setJobType] = useState<'full-time' | 'intern' | 'all'>('all');
+  const [jobType, setJobType] = useState('All Job Types');
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,11 +29,11 @@ const JobFeed: React.FC = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [applying, setApplying] = useState(false);
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (type?: string) => {
     try {
       setLoading(true);
       const [jobsRes, appsRes] = await Promise.all([
-        api.get('/jobs'),
+        api.get('/jobs', { params: { jobType: type || jobType } }),
         api.get('/applications/my')
       ]);
       
@@ -96,9 +97,7 @@ const JobFeed: React.FC = () => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          job.companyName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLocation = locationFilter === 'All Locations' || job.location === locationFilter;
-    const matchesType = jobType === 'all' || 
-                       (jobType === 'full-time' && job.type === 'Full-time') ||
-                       (jobType === 'intern' && job.type === 'Internship');
+    const matchesType = true; // Handled by server
     return matchesSearch && matchesLocation && matchesType;
   });
 
@@ -139,35 +138,30 @@ const JobFeed: React.FC = () => {
           </div>
 
           <div className="flex-1 min-w-[150px]">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Location</label>
-            <div className="relative">
-              <select 
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="w-full border border-gray-100 rounded-xl px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-gray-50/50 appearance-none pr-10"
-              >
-                <option>All Locations</option>
-                {[...new Set(jobs.map(j => j.location))].map(loc => (
-                  <option key={loc} value={loc}>{loc}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-            </div>
+            <Dropdown 
+              label="Location"
+              value={locationFilter}
+              onChange={(val) => setLocationFilter(val)}
+              options={['All Locations', ...new Set(jobs.map(j => j.location))]}
+            />
           </div>
 
-          <div className="min-w-[180px]">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Job Type</label>
-            <div className="flex bg-gray-100 p-1 rounded-xl gap-1 h-[38px] items-center">
-              {['all', 'full-time', 'intern'].map((type) => (
-                <button 
-                  key={type}
-                  onClick={() => setJobType(type as any)}
-                  className={`flex-1 h-full px-3 text-[10px] font-black uppercase tracking-tighter rounded-lg transition-all ${jobType === type ? 'bg-blue-950 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-                >
-                  {type === 'all' ? 'All' : type === 'full-time' ? 'Full-Time' : 'Intern'}
-                </button>
-              ))}
-            </div>
+          <div className="flex-1 min-w-[180px]">
+            <Dropdown 
+              label="Job Type"
+              value={jobType}
+              onChange={(newType) => {
+                setJobType(newType);
+                fetchJobs(newType);
+              }}
+              options={[
+                { label: 'All Job Types', value: 'All Job Types' },
+                { label: 'Full Time', value: 'Full-time' },
+                { label: 'Internship', value: 'Internship' },
+                { label: 'Contract', value: 'Contract' },
+                { label: 'PPO', value: 'PPO' }
+              ]}
+            />
           </div>
         </div>
       </div>

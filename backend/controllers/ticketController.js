@@ -5,12 +5,19 @@ const Ticket = require('../models/Ticket');
 // @access  Private (Student)
 const createTicket = async (req, res, next) => {
   try {
-    const { subject, description, priority } = req.body;
+    const { subject, message, issue_type } = req.body;
+    let screenshot_path = '';
+
+    if (req.file) {
+      screenshot_path = req.file.path; // Assuming uploadMiddleware/Cloudinary
+    }
+
     const ticket = await Ticket.create({
-      student: req.user._id,
-      subject,
-      description,
-      priority,
+      student: req.user.id,
+      subject: subject || issue_type,
+      message,
+      issue_type,
+      screenshot_path,
     });
     res.status(201).json(ticket);
   } catch (error) {
@@ -25,7 +32,7 @@ const getTickets = async (req, res, next) => {
   try {
     let query = {};
     if (req.user.role === 'student') {
-      query.student = req.user._id;
+      query.student = req.user.id;
     }
     const tickets = await Ticket.find(query).populate('student', 'name email').sort({ createdAt: -1 });
     res.json(tickets);

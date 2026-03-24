@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import { io } from 'socket.io-client';
 import { Send, Search, MessageSquare, Loader2, ArrowLeft } from 'lucide-react';
+import Avatar from '../components/Avatar';
 
 const Chat: React.FC = () => {
   const { user } = useAuth();
@@ -112,9 +113,12 @@ const Chat: React.FC = () => {
               }}
               className={`w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-all border-b border-gray-50/50 ${selectedChat?.user._id === conv.user._id ? 'bg-blue-50/50' : ''}`}
             >
-              <div className="w-12 h-12 bg-[#000613] text-white rounded-2xl flex items-center justify-center font-black text-sm uppercase">
-                {conv.user.name.charAt(0)}
-              </div>
+              <Avatar 
+                name={conv.user.name} 
+                profilePhoto={conv.user.profilePhoto || conv.user.profile_photo} 
+                size="md" 
+                className="rounded-2xl" 
+              />
               <div className="flex-1 text-left min-w-0">
                 <div className="flex justify-between items-start">
                   <h4 className="text-sm font-black text-gray-900 truncate uppercase tracking-tight">{conv.user.name}</h4>
@@ -138,9 +142,12 @@ const Chat: React.FC = () => {
             <div className="p-4 md:p-6 bg-white border-b border-gray-50 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-4">
                 <button onClick={() => setSelectedChat(null)} className="md:hidden p-2 text-gray-400"><ArrowLeft size={18} /></button>
-                <div className="w-10 h-10 bg-[#000613] text-white rounded-xl flex items-center justify-center font-black">
-                  {selectedChat.user.name.charAt(0)}
-                </div>
+                <Avatar 
+                  name={selectedChat.user.name} 
+                  profilePhoto={selectedChat.user.profilePhoto || selectedChat.user.profile_photo} 
+                  size="sm" 
+                  className="rounded-xl" 
+                />
                 <div>
                   <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">{selectedChat.user.name}</h3>
                   <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{selectedChat.user.role} • Active Now</p>

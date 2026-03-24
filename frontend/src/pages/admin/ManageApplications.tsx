@@ -3,6 +3,7 @@ import {
   Search, Download, 
   Eye, Calendar, Loader2
 } from 'lucide-react';
+import Avatar from '../../components/Avatar';
 import api from '../../api';
 
 const ManageApplications: React.FC = () => {
@@ -108,9 +109,12 @@ const ManageApplications: React.FC = () => {
                   <tr key={app.id} className="hover:bg-gray-50/40 transition-all duration-300 group">
                     <td className="pl-8 pr-6 py-5">
                       <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl border-2 border-white shadow-sm overflow-hidden group-hover:scale-105 transition-transform duration-300">
-                          <img src={app.student.avatar} alt={app.student.name} className="h-full w-full object-cover" />
-                        </div>
+                        <Avatar 
+                          name={app.student.name} 
+                          profilePhoto={app.studentProfile?.profile_photo} 
+                          size="md" 
+                          className="rounded-xl" 
+                        />
                         <div>
                           <p className="text-sm font-black text-gray-900 leading-tight">{app.student.name}</p>
                           <p className="text-[10px] font-bold text-gray-400 mt-1">{app.student.course}</p>

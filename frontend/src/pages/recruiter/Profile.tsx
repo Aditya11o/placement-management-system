@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Globe, Users, MapPin, 
-  Mail, Info, Upload, Camera, 
-  Save, CornerDownRight, Heart, Loader2
+  Mail, Info, Camera, Save, 
+  CornerDownRight, Heart, Loader2
 } from 'lucide-react';
 import api from '../../api';
+import Avatar from '../../components/Avatar';
+import Dropdown from '../../components/Dropdown';
 import { useNotification } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 
 const CompanyProfile: React.FC = () => {
   const { showSuccess, showError } = useNotification();
+  const { refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [companyInfo, setCompanyInfo] = useState({
@@ -69,6 +73,7 @@ const CompanyProfile: React.FC = () => {
           phone: hrContact.phone,
         }
       });
+      await refreshUser();
       showSuccess('Company profile updated successfully!', 'Profile Update');
     } catch (err: any) {
       console.error(err);
@@ -122,16 +127,12 @@ const CompanyProfile: React.FC = () => {
               {/* Logo Upload Section */}
               <div className="space-y-4">
                 <div className="relative group cursor-pointer">
-                  <div className="w-40 h-40 bg-gray-100 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-gray-200 group-hover:border-[#000613] group-hover:bg-gray-50 transition-all overflow-hidden relative">
-                    {profile?.recruiterDetails?.companyLogo ? (
-                      <img src={profile.recruiterDetails.companyLogo} alt="Logo" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm text-gray-400 group-hover:text-[#000613] transition-colors mb-2">
-                        <Upload size={24} />
-                      </div>
-                    )}
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Upload Logo</span>
-                  </div>
+                  <Avatar 
+                    name={companyInfo.name || 'Company'} 
+                    profilePhoto={profile?.recruiterDetails?.companyLogo} 
+                    size="xl" 
+                    className="rounded-2xl border-2 border-dashed border-gray-200 group-hover:border-[#000613] group-hover:bg-gray-50 transition-all overflow-hidden" 
+                  />
                   <button className="absolute -bottom-2 -right-2 w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-600 shadow-lg hover:bg-gray-100 transition-all active:scale-90">
                     <Camera size={18} />
                   </button>
@@ -179,33 +180,18 @@ const CompanyProfile: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Industry Type</label>
-                  <select 
-                    value={companyInfo.industry}
-                    onChange={e => setCompanyInfo({...companyInfo, industry: e.target.value})}
-                    className="w-full px-5 py-3.5 bg-gray-100 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-gray-900 focus:outline-none transition-all appearance-none cursor-pointer"
-                  >
-                    <option>Software & Technology</option>
-                    <option>Finance & Banking</option>
-                    <option>Healthcare</option>
-                    <option>Education</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Company Size</label>
-                  <select 
-                    value={companyInfo.size}
-                    onChange={e => setCompanyInfo({...companyInfo, size: e.target.value})}
-                    className="w-full px-5 py-3.5 bg-gray-100 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-gray-900 focus:outline-none transition-all appearance-none cursor-pointer"
-                  >
-                    <option>1 - 50 employees</option>
-                    <option>51 - 200 employees</option>
-                    <option>201 - 500 employees</option>
-                    <option>501 - 1,000 employees</option>
-                    <option>1,000+ employees</option>
-                  </select>
-                </div>
+                <Dropdown 
+                  label="Industry Type"
+                  value={companyInfo.industry}
+                  onChange={val => setCompanyInfo({...companyInfo, industry: val})}
+                  options={['Software & Technology', 'Finance & Banking', 'Healthcare', 'Education']}
+                />
+                <Dropdown 
+                  label="Company Size"
+                  value={companyInfo.size}
+                  onChange={val => setCompanyInfo({...companyInfo, size: val})}
+                  options={['1 - 50 employees', '51 - 200 employees', '201 - 500 employees', '501 - 1,000 employees', '1,000+ employees']}
+                />
               </div>
 
               <div className="space-y-2">

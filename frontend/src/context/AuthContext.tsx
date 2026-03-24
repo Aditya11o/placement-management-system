@@ -4,20 +4,24 @@ import type { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
+  profile: any | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<any>;
   register: (userData: any) => Promise<User>;
   verifyOTP: (email: string, otp: string) => Promise<User>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
+  profile: null,
   loading: false,
   login: async () => {},
   register: async () => ({} as User),
   verifyOTP: async () => ({} as User),
   logout: () => {},
+  refreshUser: async () => {},
 } as AuthContextType);
 
 interface AuthProviderProps {
@@ -31,14 +35,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   const [loading, setLoading] = useState<boolean>(false);
+  const [profile, setProfile] = useState<any>(null);
+
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const { data } = await api.get('/profile/me');
+      setProfile(data);
+      // Sync names etc. if needed
+      if (data.user && user && data.user.name !== user.name) {
+        setUser({ ...user, name: data.user.name });
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   useEffect(() => {
     if (user) {
       localStorage.setItem('userInfo', JSON.stringify(user));
+      if (!profile) {
+        fetchUserProfile();
+      }
     } else {
       localStorage.removeItem('userInfo');
+      setProfile(null);
     }
   }, [user]);
+
+  // Initial profile fetch if token exists
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token && user && !profile) {
+      fetchUserProfile();
+    }
+  }, []);
 
   const login = async (email: string, password: string): Promise<any> => {
     setLoading(true);
@@ -96,7 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, verifyOTP, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, login, register, verifyOTP, logout, refreshUser: fetchUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

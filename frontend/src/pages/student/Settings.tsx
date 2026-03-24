@@ -4,6 +4,7 @@ import {
   Shield, AlertCircle, LogOut, ChevronRight, 
   Trash2, Upload, Camera, X
 } from 'lucide-react';
+import Dropdown from '../../components/Dropdown';
 
 const Settings: React.FC = () => {
   const [notifications, setNotifications] = useState({
@@ -189,14 +190,16 @@ const Settings: React.FC = () => {
                 <div className="bg-blue-900 h-1.5 rounded-full w-full shadow-[0_0_10px_rgba(30,58,138,0.3)]" />
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <select className="w-full pl-5 pr-10 py-3 bg-white border border-gray-200 rounded-xl text-[12px] font-bold text-gray-700 outline-none appearance-none cursor-pointer">
-                    <option>Alex_Henderson_Resume_2024.pdf</option>
-                  </select>
-                  <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 pointer-events-none" size={16} />
+              <div className="flex flex-col sm:flex-row gap-6">
+                <div className="flex-1">
+                  <Dropdown 
+                    value="Alex_Henderson_Resume_2024.pdf"
+                    onChange={() => {}}
+                    options={['Alex_Henderson_Resume_2024.pdf']}
+                    className="w-full"
+                  />
                 </div>
-                <button className="px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-gray-400 transition-all shadow-sm flex items-center justify-center gap-2">
+                <button className="px-6 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-gray-400 transition-all shadow-sm flex items-center justify-center gap-2 h-[42px] mt-auto">
                   <Upload size={14} />
                   <span>Upload New Resume</span>
                 </button>

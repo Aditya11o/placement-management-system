@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  User, GraduationCap, Award, Shield, FileText, Plus, Trash2, 
-  Edit2, Camera, ChevronRight, Download, Loader2
+  User, GraduationCap, Award, Shield, FileText, Plus, Edit2, 
+  Trash2, Camera, Loader2, ChevronRight, ExternalLink, 
+  Github, Linkedin
 } from 'lucide-react';
+import Dropdown from '../../components/Dropdown';
+import Avatar from '../../components/Avatar';
 import api from '../../api';
 import { useAutosave } from '../../hooks/useAutosave';
 import { useNotification } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
+import AddProjectModal from '../../components/profile/AddProjectModal';
+import UploadResumeModal from '../../components/profile/UploadResumeModal';
 
 const Profile: React.FC = () => {
   const { showSuccess, showError } = useNotification();
+  const { refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<any>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const { clearAutosave } = useAutosave('student-profile', profile, setProfile);
@@ -23,7 +33,7 @@ const Profile: React.FC = () => {
     try {
       const { data } = await api.get('/profile/me');
       setProfile(data);
-      setSkills(data.studentDetails?.skills || []);
+      setSkills(data.skills || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -42,13 +52,14 @@ const Profile: React.FC = () => {
       console.log('Starting profile update...');
       const formData = new FormData();
       
-      const studentDetails = {
-        ...profile.studentDetails,
+      const profileData = {
+        ...profile,
         skills: skills
       };
 
-      console.log('Student Details to send:', studentDetails);
-      formData.append('studentDetails', JSON.stringify(studentDetails));
+      console.log('Profile Data to send:', profileData);
+      // Determine if we should send as studentDetails for compatibility with controller
+      formData.append('studentDetails', JSON.stringify(profileData));
       
       if (selectedFile) {
         console.log('Appending file:', selectedFile.name);
@@ -69,6 +80,7 @@ const Profile: React.FC = () => {
         setSelectedFile(null);
         setPreviewUrl(null);
         clearAutosave();
+        await refreshUser();
         await fetchProfile();
       } else {
         showError(response.data.message || 'Failed to update profile', 'Update Error');
@@ -97,32 +109,6 @@ const Profile: React.FC = () => {
     }
   };
 
-  const handleDeleteResume = async (id: string) => {
-    try {
-      await api.delete(`/profile/resumes/${id}`);
-      fetchProfile();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleSetDefaultResume = async (id: string) => {
-    try {
-      const updatedResumes = profile.studentDetails.resumes.map((r: any) => ({
-        ...r,
-        isDefault: r._id === id
-      }));
-      await api.put('/profile', {
-        studentDetails: {
-          ...profile.studentDetails,
-          resumes: updatedResumes
-        }
-      });
-      fetchProfile();
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const addSkill = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && newSkill.trim()) {
@@ -139,18 +125,11 @@ const Profile: React.FC = () => {
     setSkills(skills.filter(s => s !== skillToRemove));
   };
 
-  const handleInputChange = (field: string, value: any, section: 'studentDetails' | 'recruiterDetails' | 'root' = 'studentDetails') => {
-    if (section === 'root') {
-      setProfile({ ...profile, [field]: value });
-    } else {
-      setProfile({
-        ...profile,
-        [section]: {
-          ...profile[section],
-          [field]: value
-        }
-      });
-    }
+  const handleInputChange = (field: string, value: any) => {
+    setProfile({
+      ...profile,
+      [field]: value
+    });
   };
 
   const handleRequestVerification = async (skill: string) => {
@@ -175,7 +154,7 @@ const Profile: React.FC = () => {
     );
   }
 
-  const student = profile?.studentDetails || {};
+  const student = profile || {};
 
   return (
     <div className="animate-fade-in pb-12">
@@ -185,13 +164,12 @@ const Profile: React.FC = () => {
         <div className="col-span-12 lg:col-span-8">
           <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group hover:shadow-lg transition-all duration-300">
             <div className="relative">
-              <div className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-gray-50 shadow-sm transition-transform duration-500 group-hover:scale-105">
-                <img 
-                  src={previewUrl || profile?.avatar || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=256&h=256&auto=format&fit=crop"} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <Avatar 
+                name={profile?.user?.name} 
+                profilePhoto={previewUrl || profile?.profile_photo} 
+                size="2xl" 
+                className="rounded-2xl border-4 border-gray-50 shadow-sm transition-transform duration-500 group-hover:scale-105"
+              />
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -210,7 +188,7 @@ const Profile: React.FC = () => {
             <div className="flex-1 text-center md:text-left">
               <h2 className="text-3xl font-bold text-gray-900 tracking-tight">{profile?.user?.name}</h2>
               <p className="text-gray-500 font-medium mt-1 flex items-center justify-center md:justify-start gap-2">
-                {student.branch || 'Add Branch'} <span className="text-gray-300">•</span> Class of {student.passingYear || '202X'}
+                {student.department || 'Add Department'} <span className="text-gray-300">•</span> Class of {student.passing_year || '202X'}
               </p>
               
               <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
@@ -247,7 +225,7 @@ const Profile: React.FC = () => {
             <div>
               <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-4">Academic Performance</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-6xl font-black text-white tracking-tighter">{student.cgpa || '0.0'}</span>
+                <span className="text-6xl font-black text-white tracking-tighter">{student.current_cgpa || '0.0'}</span>
                 <span className="text-xl font-bold text-blue-300">CGPA</span>
               </div>
             </div>
@@ -306,16 +284,12 @@ const Profile: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Gender</label>
-                <select 
+                <Dropdown 
+                  label="Gender"
                   value={student.gender || 'Male'}
-                  onChange={(e) => handleInputChange('gender', e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-gray-50/30 appearance-none"
-                >
-                  <option>Male</option>
-                  <option>Female</option>
-                  <option>Other</option>
-                </select>
+                  onChange={(val) => handleInputChange('gender', val)}
+                  options={['Male', 'Female', 'Other']}
+                />
               </div>
               <div className="col-span-2">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Address</label>
@@ -344,6 +318,33 @@ const Profile: React.FC = () => {
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-gray-50/30" 
                 />
               </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">LinkedIn</label>
+                <input 
+                  type="text" 
+                  value={student.linkedin || ''} 
+                  onChange={(e) => handleInputChange('linkedin', e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-gray-50/30" 
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">GitHub</label>
+                <input 
+                  type="text" 
+                  value={student.github || ''} 
+                  onChange={(e) => handleInputChange('github', e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-gray-50/30" 
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Portfolio</label>
+                <input 
+                  type="text" 
+                  value={student.portfolio || ''} 
+                  onChange={(e) => handleInputChange('portfolio', e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-gray-50/30" 
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -362,8 +363,8 @@ const Profile: React.FC = () => {
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Department</label>
                 <input 
                   type="text" 
-                  value={student.branch || ''} 
-                  onChange={(e) => handleInputChange('branch', e.target.value)}
+                  value={student.department || ''} 
+                  onChange={(e) => handleInputChange('department', e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-gray-50/30" 
                 />
               </div>
@@ -380,8 +381,8 @@ const Profile: React.FC = () => {
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Passing Year</label>
                 <input 
                   type="number" 
-                  value={student.passingYear || ''} 
-                  onChange={(e) => handleInputChange('passingYear', e.target.value)}
+                  value={student.passing_year || student.passing_year || ''} 
+                  onChange={(e) => handleInputChange('passing_year', e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-gray-50/30" 
                 />
               </div>
@@ -390,8 +391,8 @@ const Profile: React.FC = () => {
                 <input 
                   type="number" 
                   step="0.01"
-                  value={student.cgpa || ''} 
-                  onChange={(e) => handleInputChange('cgpa', e.target.value)}
+                  value={student.current_cgpa || ''} 
+                  onChange={(e) => handleInputChange('current_cgpa', e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-black text-blue-600 transition-all bg-gray-50/30 outline-none focus:ring-2 focus:ring-blue-500/20" 
                 />
               </div>
@@ -399,8 +400,8 @@ const Profile: React.FC = () => {
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">10th %</label>
                 <input 
                   type="number" 
-                  value={student.tenthPercent || ''} 
-                  onChange={(e) => handleInputChange('tenthPercent', e.target.value)}
+                  value={student.tenth_percentage || ''} 
+                  onChange={(e) => handleInputChange('tenth_percentage', e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium transition-all bg-gray-50/30 outline-none focus:ring-2 focus:ring-blue-500/20" 
                 />
               </div>
@@ -408,8 +409,8 @@ const Profile: React.FC = () => {
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">12th %</label>
                 <input 
                   type="number" 
-                  value={student.twelfthPercent || ''} 
-                  onChange={(e) => handleInputChange('twelfthPercent', e.target.value)}
+                  value={student.twelfth_percentage || ''} 
+                  onChange={(e) => handleInputChange('twelfth_percentage', e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium transition-all bg-gray-50/30 outline-none focus:ring-2 focus:ring-blue-500/20" 
                 />
               </div>
@@ -427,7 +428,10 @@ const Profile: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900">Skills & Projects</h3>
               </div>
-              <button className="bg-blue-950 text-white px-5 py-2 rounded-xl font-bold text-xs hover:bg-black transition-all flex items-center gap-2 shadow-sm">
+              <button 
+                onClick={() => setIsProjectModalOpen(true)}
+                className="bg-blue-950 text-white px-5 py-2 rounded-xl font-bold text-xs hover:bg-black transition-all flex items-center gap-2 shadow-md hover:scale-105 active:scale-95"
+              >
                 <Plus size={14} /> Add Project
               </button>
             </div>
@@ -479,10 +483,42 @@ const Profile: React.FC = () => {
                 {student.projects?.map((project: any, i: number) => (
                   <div key={i} className="bg-gray-50/50 border border-gray-100 p-6 rounded-2xl relative group hover:border-blue-100 hover:bg-blue-50/30 transition-all mb-4">
                     <div className="flex justify-between items-start mb-4">
-                      <h4 className="text-lg font-bold text-gray-900">{project.title}</h4>
+                        <h4 className="text-lg font-bold text-gray-900">{project.title}</h4>
+                        {(project.startDate || project.endDate) && (
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">
+                            {project.startDate && new Date(project.startDate).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                            {project.startDate && project.endDate && ' — '}
+                            {project.endDate && new Date(project.endDate).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                          </p>
+                        )}
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"><Edit2 size={14} /></button>
-                        <button className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"><Trash2 size={14} /></button>
+                        <button 
+                          onClick={() => {
+                            setEditingProject(project);
+                            setIsProjectModalOpen(true);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Edit Project"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            if (window.confirm('Are you sure you want to delete this project?')) {
+                              try {
+                                await api.delete(`/profile/projects/${project._id}`);
+                                showSuccess('Project deleted successfully!', 'Success');
+                                fetchProfile();
+                              } catch (err: any) {
+                                showError(err.response?.data?.message || 'Failed to delete project', 'Error');
+                              }
+                            }
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Delete Project"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 leading-relaxed mb-6">
@@ -516,53 +552,64 @@ const Profile: React.FC = () => {
             </div>
             
               <div className="space-y-4">
-                {student.resumes?.map((res: any, i: number) => (
-                  <div key={i} className={`p-4 rounded-2xl border ${res.isDefault ? 'border-blue-200 bg-blue-50/20' : 'border-gray-100 bg-gray-50/30'} flex items-center justify-between group transition-all`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${res.isDefault ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
-                        <FileText size={18} />
+                {student.resume_path ? (
+                  <div className="p-5 rounded-2xl border border-blue-100 bg-blue-50/20 flex flex-col sm:flex-row items-center justify-between gap-4 group transition-all">
+                    <div className="flex items-center gap-4 text-left min-w-0 flex-1">
+                      <div className="p-3 bg-blue-100 text-blue-600 rounded-xl shadow-sm shrink-0">
+                        <FileText size={24} />
                       </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-900">{res.name}</h4>
-                        <p className="text-[10px] text-gray-400 font-medium">Uploaded on {new Date(res.uploadedAt).toLocaleDateString()}</p>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-bold text-gray-900 truncate" title={student.resume_path.split('/').pop()}>
+                          {student.resume_path.split('/').pop() || 'My_Resume.pdf'}
+                        </h4>
+                        <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider mt-0.5 whitespace-nowrap">RESUME AVAILABLE</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {!res.isDefault && (
-                        <button 
-                          onClick={() => handleSetDefaultResume(res._id)}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                          title="Set as Default"
-                        >
-                          <Shield size={14} />
-                        </button>
-                      )}
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap justify-end">
                       <a 
-                        href={res.url} 
+                        href={`http://localhost:5000${student.resume_path}`} 
                         target="_blank" 
                         rel="noreferrer"
-                        className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-                        title="Download"
+                        className="px-3 md:px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl text-[11px] font-bold hover:bg-gray-50 transition-all shadow-sm whitespace-nowrap"
+                        title="View Resume"
                       >
-                        <Download size={14} />
+                        View
+                      </a>
+                      <a 
+                        href={`http://localhost:5000${student.resume_path}`} 
+                        download
+                        className="px-3 md:px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-xl text-[11px] font-bold hover:bg-gray-50 transition-all shadow-sm whitespace-nowrap"
+                        title="Download PDF"
+                      >
+                        Download
                       </a>
                       <button 
-                        onClick={() => handleDeleteResume(res._id)}
-                        className="p-1 text-red-500 hover:bg-red-50 rounded"
-                        title="Delete"
+                        onClick={() => setIsResumeModalOpen(true)}
+                        className="px-3 md:px-4 py-2 bg-blue-950 text-white rounded-xl text-[11px] font-bold hover:bg-black transition-all shadow-md active:scale-95 whitespace-nowrap"
+                        title="Replace Resume"
                       >
-                        <Trash2 size={14} />
+                        Replace
                       </button>
                     </div>
                   </div>
-                ))}
-                
-                <div className="border-2 border-dashed border-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center bg-gray-50/10 hover:border-blue-200 hover:bg-blue-50/30 transition-all text-center">
-                  <button className="bg-blue-950 text-white px-6 py-2 rounded-xl font-bold text-xs hover:bg-black transition-all flex items-center gap-2 shadow-sm active:scale-95">
-                    <Plus size={14} /> Upload New Resume
-                  </button>
-                  <p className="text-[10px] text-gray-400 mt-3 font-medium uppercase tracking-widest">Accepted file types: PDF only. Max size 5MB.</p>
-                </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-100 rounded-2xl p-8 flex flex-col items-center justify-center bg-gray-50/10 hover:border-blue-200 hover:bg-blue-50/30 transition-all text-center">
+                    <div className="p-4 bg-gray-100 rounded-full text-gray-400 mb-4">
+                      <FileText size={32} strokeWidth={1.5} />
+                    </div>
+                    <h4 className="text-sm font-bold text-gray-900">No resume uploaded</h4>
+                    <p className="text-xs text-gray-400 mt-1 mb-6">Upload your professional CV to apply for jobs</p>
+                    <button 
+                      onClick={() => setIsResumeModalOpen(true)}
+                      className="bg-blue-950 text-white px-8 py-2.5 rounded-xl font-bold text-sm hover:bg-black transition-all flex items-center gap-2 shadow-md hover:scale-105 active:scale-95"
+                    >
+                      <Plus size={16} /> Upload New Resume
+                    </button>
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-400 text-center mt-2 font-medium uppercase tracking-[0.15em] opacity-60">
+                  Accepted file types: PDF only. Max size 2MB.
+                </p>
               </div>
           </div>
         </div>
@@ -598,7 +645,7 @@ const Profile: React.FC = () => {
         </div>
 
         {/* Graduation & Mentorship (Conditional) */}
-        {student.passingYear <= new Date().getFullYear() && (
+        {student.passing_year <= new Date().getFullYear() && (
           <div className="col-span-12">
             <div className="bg-[#000613] text-white rounded-[40px] p-10 relative overflow-hidden group shadow-2xl">
               <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 blur-[100px] rounded-full -mr-20 -mt-20 group-hover:bg-blue-500/30 transition-all duration-1000" />
@@ -609,7 +656,7 @@ const Profile: React.FC = () => {
                       <GraduationCap size={24} />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-black tracking-tight leading-none">Class of {student.passingYear} Graduation Perks</h2>
+                        <h2 className="text-2xl font-black tracking-tight leading-none">Class of {student.passing_year} Graduation Perks</h2>
                         <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-2">Alumni Engagement Program</p>
                     </div>
                   </div>
@@ -662,6 +709,22 @@ const Profile: React.FC = () => {
       
       {/* Bottom Padding for scroll space */}
       <div className="h-12"></div>
+
+      {/* Modals */}
+      <AddProjectModal 
+        isOpen={isProjectModalOpen} 
+        onClose={() => {
+          setIsProjectModalOpen(false);
+          setEditingProject(null);
+        }} 
+        onSuccess={fetchProfile} 
+        project={editingProject}
+      />
+      <UploadResumeModal 
+        isOpen={isResumeModalOpen} 
+        onClose={() => setIsResumeModalOpen(false)} 
+        onSuccess={fetchProfile} 
+      />
     </div>
   );
 };

@@ -1,19 +1,28 @@
 import React, { useState, FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Lock, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
+import api from '../api';
 
 const ResetPassword: React.FC = () => {
-  const { showError } = useNotification();
+  const { showError, showSuccess } = useNotification();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (!token) {
+      showError('Invalid or missing reset token.', 'Invalid Link');
+      return;
+    }
 
     if (password !== confirmPassword) {
       showError('Passwords do not match. Please verify and try again.', 'Validation Error');
@@ -25,11 +34,19 @@ const ResetPassword: React.FC = () => {
       return;
     }
 
-    // Simulate API call
-    setSubmitted(true);
-    setTimeout(() => {
-      navigate('/login');
-    }, 3000);
+    setLoading(true);
+    try {
+      await api.post('/auth/reset-password', { token, password });
+      setSubmitted(true);
+      showSuccess('Password reset successful', 'Success');
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to reset password', 'Error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -142,10 +159,11 @@ const ResetPassword: React.FC = () => {
                   <div className="pt-2">
                     <button 
                       type="submit" 
-                      className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-950 to-blue-800 hover:shadow-lg hover:scale-[1.02] text-white text-sm font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
+                      disabled={loading}
+                      className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-950 to-blue-800 hover:shadow-lg hover:scale-[1.02] text-white text-sm font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                      Reset Password
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      {loading ? 'Resetting password...' : 'Reset Password'}
+                      {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
                     </button>
                   </div>
 

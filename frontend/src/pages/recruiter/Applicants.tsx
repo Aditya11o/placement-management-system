@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
-  Search, 
-  CheckCircle2, XCircle, 
-  Loader2, X, Square, CheckSquare, Filter, BarChart3
+  Search, CheckCircle2, XCircle, 
+  Loader2, Square, CheckSquare, Filter, BarChart3, X
 } from 'lucide-react';
+import Avatar from '../../components/Avatar';
+import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -194,20 +195,15 @@ const Applicants: React.FC = () => {
         <div className="grid grid-cols-12 gap-6 items-end">
           
           <div className="col-span-12 md:col-span-4 space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Job Posting</label>
-            <select 
+            <Dropdown 
+              label="Active Job Posting"
               value={selectedJob}
-              onChange={(e) => {
-                setSelectedJob(e.target.value);
-                setSearchParams({ jobId: e.target.value });
+              onChange={(val) => {
+                setSelectedJob(val);
+                setSearchParams({ jobId: val });
               }}
-              className="w-full px-4 py-3 bg-gray-50 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-[13px] text-gray-900 focus:outline-none transition-all appearance-none cursor-pointer"
-            >
-              {jobs.map(job => (
-                <option key={job._id} value={job._id}>{job.title}</option>
-              ))}
-              {jobs.length === 0 && <option disabled>No jobs posted yet</option>}
-            </select>
+              options={jobs.map(job => ({ label: job.title, value: job._id }))}
+            />
           </div>
 
           <div className="col-span-12 md:col-span-4 space-y-2">
@@ -287,9 +283,12 @@ const Applicants: React.FC = () => {
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full border border-gray-200 p-0.5 overflow-hidden flex-shrink-0">
-                          <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${applicant.student?.name}`} alt="" className="w-full h-full rounded-full object-cover" />
-                        </div>
+                        <Avatar 
+                          name={applicant.student?.name} 
+                          profilePhoto={applicant.studentProfile?.profile_photo} 
+                          size="sm" 
+                          className="rounded-full" 
+                        />
                         <div className="flex flex-col">
                           <span className="font-black text-gray-900 tracking-tight text-[14px]">{applicant.student?.name}</span>
                           <span className="text-[10px] font-bold text-gray-400 mt-0.5">{applicant.student?.email}</span>

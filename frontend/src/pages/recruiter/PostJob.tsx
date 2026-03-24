@@ -6,6 +6,7 @@ import {
   Building2, DollarSign, Plus, Trash2
 } from 'lucide-react';
 import { useAutosave } from '../../hooks/useAutosave';
+import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -87,16 +88,12 @@ const PostJob: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Job Type</label>
-                <select 
+                <Dropdown 
+                  label="Job Type"
                   value={formData.type}
-                  onChange={e => setFormData({...formData, type: e.target.value})}
-                  className="w-full px-5 py-3.5 bg-gray-100 border-transparent focus:bg-white focus:border-gray-200 rounded-xl font-bold text-gray-900 focus:outline-none transition-all appearance-none cursor-pointer"
-                >
-                  <option>Full-time</option>
-                  <option>Internship</option>
-                  <option>Part-time</option>
-                </select>
+                  onChange={val => setFormData({...formData, type: val})}
+                  options={['Full-time', 'Internship', 'Part-time']}
+                />
               </div>
             </div>
 

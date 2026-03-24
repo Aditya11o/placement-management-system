@@ -6,6 +6,7 @@ import {
   Trophy, XCircle, Download,
   Loader2
 } from 'lucide-react';
+import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -16,10 +17,13 @@ const MyApplications: React.FC = () => {
   const [filteredApps, setFilteredApps] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState('Any Status');
 
-  const fetchApps = async () => {
+  const fetchApps = async (status?: string) => {
     try {
       setLoading(true);
-      const { data } = await api.get('/applications/my');
+      const queryStatus = status || statusFilter;
+      const { data } = await api.get('/applications/my', {
+        params: { status: queryStatus }
+      });
       setApps(data);
       setFilteredApps(data);
     } catch (err: any) {
@@ -47,12 +51,8 @@ const MyApplications: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (statusFilter === 'Any Status') {
-      setFilteredApps(apps);
-    } else {
-      setFilteredApps(apps.filter(app => app.status === statusFilter.toLowerCase()));
-    }
-  }, [statusFilter, apps]);
+    // Component Mount logic
+  }, []);
 
   const stats = [
     { label: 'Total', value: apps.length.toString().padStart(2, '0'), icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -111,24 +111,27 @@ const MyApplications: React.FC = () => {
       {/* Filter Bar */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="w-48">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Status</label>
-            <select
+          <div className="w-56">
+            <Dropdown 
+              label="Status Filter"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full border border-gray-100 rounded-xl px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-gray-50/50 appearance-none italic"
-            >
-               <option>Any Status</option>
-               <option value="Applied">Applied</option>
-               <option value="Shortlisted">Shortlisted</option>
-               <option value="Selected">Offered</option>
-               <option value="Accepted">Accepted</option>
-               <option value="Rejected">Rejected</option>
-            </select>
+              onChange={(status) => {
+                setStatusFilter(status);
+                fetchApps(status);
+              }}
+              options={[
+                'Any Status', 'Applied', 'Reviewing', 
+                'Shortlisted', 'Interview', 'Selected', 'Rejected'
+              ]}
+              italic
+            />
           </div>
 
           <button
-            onClick={() => setStatusFilter('Any Status')}
+            onClick={() => {
+              setStatusFilter('Any Status');
+              fetchApps('Any Status');
+            }}
             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-blue-900 transition-colors py-2 px-4 italic"
           >
             <RotateCcw size={14} />

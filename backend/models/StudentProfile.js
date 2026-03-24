@@ -2,17 +2,11 @@ const mongoose = require('mongoose');
 
 const studentProfileSchema = new mongoose.Schema(
   {
-    user: {
+    user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
       unique: true,
-    },
-    student_id: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
     },
     full_name: {
       type: String,
@@ -20,27 +14,16 @@ const studentProfileSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
     },
     phone: {
       type: String,
-      required: true,
     },
-    password: {
-      type: String,
-      required: true,
-    },
-    profile_photo: {
-      type: String,
-    },
-    date_of_birth: {
+    dob: {
       type: Date,
     },
     gender: {
       type: String,
-      enum: ['Male', 'Female', 'Other', 'Prefer not to say'],
+      enum: ['Male', 'Female', 'Other'],
     },
     address: {
       type: String,
@@ -51,35 +34,32 @@ const studentProfileSchema = new mongoose.Schema(
     state: {
       type: String,
     },
-    course: {
-      type: String,
-      required: true,
-    },
     department: {
       type: String,
-      required: true,
     },
-    semester: {
-      type: Number,
-      required: true,
-    },
-    cgpa: {
-      type: Number,
-      required: true,
-      min: 0,
-      max: 10,
-    },
-    tenth_marks: {
-      type: Number,
-      required: true,
-    },
-    twelfth_marks: {
-      type: Number,
-      required: true,
+    course: {
+      type: String,
     },
     passing_year: {
       type: Number,
-      required: true,
+    },
+    current_cgpa: {
+      type: Number,
+    },
+    tenth_percentage: {
+      type: Number,
+    },
+    twelfth_percentage: {
+      type: Number,
+    },
+    linkedin: {
+      type: String,
+    },
+    github: {
+      type: String,
+    },
+    portfolio: {
+      type: String,
     },
     skills: [
       {
@@ -91,41 +71,52 @@ const studentProfileSchema = new mongoose.Schema(
       {
         title: String,
         description: String,
+        technologies: [String],
         link: String,
+        start_date: Date,
+        end_date: Date,
       },
     ],
-    resume: {
-      type: String, // URL
-    },
-    status: {
+    resume_path: {
       type: String,
-      enum: ['Active', 'Inactive'],
-      default: 'Active',
     },
-    placement_status: {
+    profile_photo: {
       type: String,
-      enum: ['Unplaced', 'Placed', 'Interned'],
-      default: 'Unplaced',
-    },
-    aptitude_prep_status: {
-      type: String,
-      enum: ['Not Started', 'In Progress', 'Completed'],
-      default: 'Not Started',
-    },
-    interview_prep_status: {
-      type: String,
-      enum: ['Not Started', 'In Progress', 'Completed'],
-      default: 'Not Started',
     },
     profile_completion: {
       type: Number,
       default: 0,
+    },
+    // Maintain placement related fields for dashboard functionality
+    placement_status: {
+      type: String,
+      enum: ['Unplaced', 'Placed', 'Interned'],
+      default: 'Unplaced',
     },
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   }
 );
+
+studentProfileSchema.pre('save', function() {
+  const fields = [
+    'full_name', 'phone', 'dob', 'gender', 'address', 
+    'city', 'state', 'department', 'course', 'passing_year', 
+    'current_cgpa', 'tenth_percentage', 'twelfth_percentage', 
+    'linkedin', 'github', 'portfolio', 'skills', 
+    'projects', 'resume_path', 'profile_photo'
+  ];
+  
+  let filledCount = 0;
+  fields.forEach(field => {
+    let value = this[field];
+    const isFilled = value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0);
+    if (isFilled) filledCount++;
+  });
+
+  this.profile_completion = Math.round((filledCount / fields.length) * 100);
+});
 
 const StudentProfile = mongoose.model('StudentProfile', studentProfileSchema);
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api';
 import { Loader2 } from 'lucide-react';
 import { useNotification } from '../../context/NotificationContext';
@@ -9,6 +10,7 @@ interface JobTableProps {
 
 const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
   const { showError } = useNotification();
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState(initialJobs);
   const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,7 +31,10 @@ const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
     <div className="w-full">
       <div className="flex justify-between items-center mb-4 px-2">
         <h3 className="text-xl font-semibold text-gray-900">Recent Job Openings</h3>
-        <button className="text-blue-600 font-semibold text-sm hover:underline">
+        <button 
+          onClick={() => navigate('/student/jobs')}
+          className="text-blue-600 font-semibold text-sm hover:underline"
+        >
           View All Openings
         </button>
       </div>

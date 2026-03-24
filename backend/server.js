@@ -1,5 +1,6 @@
 const express = require('express');
 const dotenv = require('dotenv');
+const path = require('path');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -96,6 +97,9 @@ const loginLimiter = rateLimit({
 });
 app.use('/api/auth/login', loginLimiter);
 
+// Static files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Routes
 const auditLogRoutes = require('./routes/auditLogRoutes');
 
@@ -111,7 +115,10 @@ app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/resources', require('./routes/resourceRoutes'));
 app.use('/api/tickets', require('./routes/ticketRoutes'));
+app.use('/api/faqs', require('./routes/faqRoutes'));
 app.use('/api/mock-interviews', require('./routes/mockInterviewRoutes'));
+app.use('/api/reminders', require('./routes/reminderRoutes'));
+app.use('/api/interviews', require('./routes/interviewRoutes'));
 
 // Socket.io connection
 io.on('connection', (socket) => {

@@ -5,6 +5,7 @@ import {
   Loader2
 } from 'lucide-react';
 import api from '../../api';
+import Dropdown from '../../components/Dropdown';
 import { useAutosave } from '../../hooks/useAutosave';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -130,30 +131,18 @@ const ManageNotifications: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Send To</label>
-                    <select 
-                      value={formData.sendTo}
-                      onChange={(e) => setFormData({...formData, sendTo: e.target.value})}
-                      className="w-full px-5 py-4 bg-gray-50 border-none rounded-2xl font-black text-sm text-gray-700 cursor-pointer appearance-none"
-                    >
-                      <option>All Students</option>
-                      <option>All Recruiters</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Notification Type</label>
-                    <select 
-                      value={formData.type}
-                      onChange={(e) => setFormData({...formData, type: e.target.value})}
-                      className="w-full px-5 py-4 bg-gray-50 border-none rounded-2xl font-black text-sm text-gray-700 cursor-pointer appearance-none"
-                    >
-                      <option>General</option>
-                      <option>Placement</option>
-                      <option>Interview</option>
-                      <option>Alert</option>
-                    </select>
-                  </div>
+                  <Dropdown 
+                    label="Send To"
+                    value={formData.sendTo}
+                    onChange={(val) => setFormData({...formData, sendTo: val})}
+                    options={['All Students', 'All Recruiters']}
+                  />
+                  <Dropdown 
+                    label="Notification Type"
+                    value={formData.type}
+                    onChange={(val) => setFormData({...formData, type: val})}
+                    options={['General', 'Placement', 'Interview', 'Alert']}
+                  />
                 </div>
 
                 <div className="space-y-2">

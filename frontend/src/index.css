@@ -67,6 +67,10 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display font-bold text-primary;
   }
+  button, a, select, [role="button"], .clickable, .icon-button {
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
 }
 
 @layer utilities {
@@ -97,6 +101,14 @@
 
   .animate-fade-in {
     animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+
+  .clickable-card {
+    @apply cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:shadow-lg;
   }
 
   @keyframes fadeIn {

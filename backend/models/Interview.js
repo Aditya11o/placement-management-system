@@ -2,15 +2,17 @@ const mongoose = require('mongoose');
 
 const interviewSchema = new mongoose.Schema(
   {
-    interview_id: {
+    student_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    company_name: {
       type: String,
       required: true,
-      unique: true,
-      trim: true,
     },
-    application_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Application',
+    role: {
+      type: String,
       required: true,
     },
     interview_date: {
@@ -18,28 +20,26 @@ const interviewSchema = new mongoose.Schema(
       required: true,
     },
     interview_time: {
-      type: String, // e.g. "10:30 AM"
-      required: true,
-    },
-    mode: {
       type: String,
       required: true,
-      enum: ['Online', 'In-person'],
     },
-    meeting_link: {
+    interview_mode: {
       type: String,
+      enum: ['Online', 'Offline'],
+      default: 'Online',
     },
-    location: {
+    round: {
       type: String,
+      required: true,
     },
     status: {
       type: String,
-      enum: ['Scheduled', 'Rescheduled', 'Completed', 'Cancelled'],
-      default: 'Scheduled',
+      enum: ['Upcoming', 'Completed', 'Missed'],
+      default: 'Upcoming',
     },
   },
   {
-    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
+    timestamps: true,
   }
 );
 

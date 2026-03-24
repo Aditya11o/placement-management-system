@@ -2,15 +2,10 @@ const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema(
   {
-    recipient: {
+    user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-    },
-    recipientRole: {
-      type: String,
-      required: true,
-      enum: ['student', 'recruiter', 'admin'],
     },
     title: {
       type: String,
@@ -22,10 +17,10 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['placement', 'interview', 'general', 'alert', 'application'],
-      default: 'general',
+      enum: ['job', 'interview', 'message', 'system'],
+      default: 'system',
     },
-    isRead: {
+    is_read: {
       type: Boolean,
       default: false,
     },

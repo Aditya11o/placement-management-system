@@ -4,6 +4,7 @@ import {
   UserCheck, Briefcase, Calendar, CheckCircle, Search, ArrowUpRight, Loader2
 } from 'lucide-react';
 import api from '../../api';
+import Dropdown from '../../components/Dropdown';
 
 const Reports: React.FC = () => {
   const [data, setData] = useState<any>(null);
@@ -123,18 +124,30 @@ const Reports: React.FC = () => {
       {/* Filter Section */}
       <div className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <select className="bg-gray-50 border-none rounded-xl py-2 px-4 text-xs font-black text-gray-700 focus:ring-1 focus:ring-gray-200 cursor-pointer">
-            <option>Course: All</option>
-          </select>
-          <select className="bg-gray-50 border-none rounded-xl py-2 px-4 text-xs font-black text-gray-700 focus:ring-1 focus:ring-gray-200 cursor-pointer">
-            <option>Company: All</option>
-          </select>
-          <select className="bg-gray-50 border-none rounded-xl py-2 px-4 text-xs font-black text-gray-700 focus:ring-1 focus:ring-gray-200 cursor-pointer">
-            <option>Year: 2024</option>
-          </select>
-          <select className="bg-gray-50 border-none rounded-xl py-2 px-4 text-xs font-black text-gray-700 focus:ring-1 focus:ring-gray-200 cursor-pointer">
-            <option>Status: All</option>
-          </select>
+          <Dropdown 
+            label="Course"
+            value="All"
+            onChange={() => {}}
+            options={['All', 'B.Tech', 'M.Tech', 'MBA', 'MCA']}
+          />
+          <Dropdown 
+            label="Company"
+            value="All"
+            onChange={() => {}}
+            options={['All', 'Google', 'Microsoft', 'Amazon', 'Meta']}
+          />
+          <Dropdown 
+            label="Year"
+            value="2024"
+            onChange={() => {}}
+            options={['2024', '2023', '2022']}
+          />
+          <Dropdown 
+            label="Status"
+            value="All"
+            onChange={() => {}}
+            options={['All', 'Placed', 'Pending', 'Rejected']}
+          />
         </div>
         <div className="flex items-center gap-2">
           <button 

@@ -8,7 +8,7 @@ const { createAuditLog } = require('./auditLogController');
 // @desc    Apply for a job
 // @route   POST /api/applications/:jobId
 // @access  Private (Student)
-const applyForJob = async (req, res) => {
+const applyForJob = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.jobId);
     if (!job) {
@@ -62,9 +62,18 @@ const applyForJob = async (req, res) => {
 // @desc    Get my applications
 // @route   GET /api/applications/my
 // @access  Private (Student)
-const getMyApplications = async (req, res) => {
+const getMyApplications = async (req, res, next) => {
   try {
-    const applications = await Application.find({ student: req.user.id })
+    const { status } = req.query;
+    let query = { student: req.user.id };
+
+    if (status && status !== 'Any Status') {
+      // Handle "Offered" vs "Selected" mapping if necessary, 
+      // but standard approach is to use the actual status stored.
+      query.status = status;
+    }
+
+    const applications = await Application.find(query)
       .populate('job', 'title companyName status deadline')
       .sort({ createdAt: -1 });
     res.json(applications);
@@ -76,7 +85,7 @@ const getMyApplications = async (req, res) => {
 // @desc    Get applicants for a job
 // @route   GET /api/applications/job/:jobId
 // @access  Private (Recruiter/Admin)
-const getJobApplicants = async (req, res) => {
+const getJobApplicants = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.jobId);
     if (!job) {
@@ -111,7 +120,7 @@ const getJobApplicants = async (req, res) => {
 // @desc    Get all applications for admin
 // @route   GET /api/applications/admin
 // @access  Private (Admin)
-const getAllApplications = async (req, res) => {
+const getAllApplications = async (req, res, next) => {
   try {
     const applications = await Application.find({})
       .populate('student', 'name email')
@@ -136,7 +145,7 @@ const getAllApplications = async (req, res) => {
 // @desc    Update application status
 // @route   PATCH /api/applications/:id/status
 // @access  Private (Recruiter)
-const updateApplicationStatus = async (req, res) => {
+const updateApplicationStatus = async (req, res, next) => {
   try {
     const { status, feedback, interviewDate, interviewLink, evaluation } = req.body;
     const application = await Application.findById(req.params.id).populate('student', 'name email');
@@ -206,7 +215,7 @@ const updateApplicationStatus = async (req, res) => {
 // @desc    Get scheduled interviews for current user
 // @route   GET /api/applications/interviews
 // @access  Private
-const getScheduledInterviews = async (req, res) => {
+const getScheduledInterviews = async (req, res, next) => {
   try {
     let query = { interviewDate: { $exists: true, $ne: null } };
     
@@ -253,7 +262,7 @@ const getStudentStats = async (req, res, next) => {
   }
 };
 
-const getRecruiterApplicants = async (req, res) => {
+const getRecruiterApplicants = async (req, res, next) => {
   try {
     const jobs = await Job.find({ recruiter: req.user.id });
     const jobIds = jobs.map(j => j._id);
@@ -273,7 +282,7 @@ const getRecruiterApplicants = async (req, res) => {
 // @desc    Respond to offer (Accept/Decline)
 // @route   PATCH /api/applications/:id/offer
 // @access  Private (Student)
-const respondToOffer = async (req, res) => {
+const respondToOffer = async (req, res, next) => {
   const { response } = req.body; // 'Accepted' or 'Declined'
   try {
     const application = await Application.findById(req.params.id);
@@ -304,7 +313,7 @@ const respondToOffer = async (req, res) => {
 // @desc    Bulk update applications status
 // @route   PATCH /api/applications/bulk-status
 // @access  Private (Recruiter)
-const bulkUpdateStatus = async (req, res) => {
+const bulkUpdateStatus = async (req, res, next) => {
   const { ids, status } = req.body;
   try {
     const result = await Application.updateMany(
@@ -333,7 +342,7 @@ const bulkUpdateStatus = async (req, res) => {
 // @desc    Get data for export
 // @route   GET /api/applications/export/:jobId
 // @access  Private (Recruiter)
-const getExportData = async (req, res) => {
+const getExportData = async (req, res, next) => {
   try {
     const applications = await Application.find({ job: req.params.jobId, status: { $in: ['shortlisted', 'accepted', 'Selected'] } })
       .populate('student', 'name email')

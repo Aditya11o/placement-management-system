@@ -6,7 +6,7 @@ const sendEmail = require('../utils/emailUtils');
 // @desc    Book a mock interview
 // @route   POST /api/mock-interviews/book
 // @access  Private (Student)
-const bookMockInterview = async (req, res) => {
+const bookMockInterview = async (req, res, next) => {
   try {
     const { type, date, slot } = req.body;
 

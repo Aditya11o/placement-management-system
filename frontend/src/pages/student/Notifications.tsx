@@ -27,8 +27,8 @@ const Notifications: React.FC = () => {
 
   const handleMarkRead = async (id: string) => {
     try {
-      await api.patch(`/notifications/${id}/read`);
-      setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
+      await api.put(`/notifications/read/${id}`);
+      setNotifications(notifications.map(n => n._id === id ? { ...n, is_read: true } : n));
     } catch (err) {
       console.error(err);
     }
@@ -38,7 +38,7 @@ const Notifications: React.FC = () => {
     // Note: Backend doesn't have markAllRead yet, but can implement if needed
     // For now, sequentially or just mock it UI-wise then fetch
     try {
-      await Promise.all(notifications.filter(n => !n.isRead).map(n => api.patch(`/notifications/${n._id}/read`)));
+      await api.put(`/notifications/read-all/${notifications[0]?.user_id || ''}`);
       fetchNotifications();
     } catch (err) {
       console.error(err);
@@ -65,7 +65,7 @@ const Notifications: React.FC = () => {
 
   const stats = [
     { label: 'Total', value: notifications.length.toString(), icon: Bell, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Unread', value: notifications.filter(n => !n.isRead).length.toString(), icon: Mail, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { label: 'Unread', value: notifications.filter(n => !n.is_read).length.toString(), icon: Mail, color: 'text-rose-600', bg: 'bg-rose-50' },
     { label: 'Jobs', value: notifications.filter(n => n.type === 'job').length.toString(), icon: Briefcase, color: 'text-orange-600', bg: 'bg-orange-50' },
     { label: 'Apps', value: notifications.filter(n => n.type === 'application').length.toString(), icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Interviews', value: notifications.filter(n => n.type === 'interview').length.toString(), icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -143,7 +143,7 @@ const Notifications: React.FC = () => {
           const { icon: Icon, color, bg } = getIcon(notif.type);
           return (
             <div key={notif._id} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col md:flex-row justify-between items-start gap-6 hover:shadow-md transition-all group relative overflow-hidden">
-              {!notif.isRead && (
+              {!notif.is_read && (
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600" />
               )}
               
@@ -154,7 +154,7 @@ const Notifications: React.FC = () => {
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-3 mb-1">
                     <h4 className="text-base font-black text-gray-900 tracking-tight">{notif.title}</h4>
-                    {!notif.isRead && (
+                    {!notif.is_read && (
                       <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-700">
                         Unread
                       </span>
@@ -164,7 +164,7 @@ const Notifications: React.FC = () => {
                   
                   {/* Actions */}
                   <div className="flex flex-wrap gap-3 mt-5">
-                    {!notif.isRead && (
+                    {!notif.is_read && (
                       <button 
                         onClick={() => handleMarkRead(notif._id)}
                         className="px-5 py-2 bg-gray-100 text-gray-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"

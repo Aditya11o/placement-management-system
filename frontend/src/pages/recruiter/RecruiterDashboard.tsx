@@ -5,6 +5,8 @@ import {
   Clock, Globe, Loader2
 } from 'lucide-react';
 import api from '../../api';
+import Avatar from '../../components/Avatar';
+import Dropdown from '../../components/Dropdown';
 import AnnouncementsBoard from '../../components/AnnouncementsBoard';
 
 const RecruiterDashboard: React.FC = () => {
@@ -139,9 +141,12 @@ const RecruiterDashboard: React.FC = () => {
                     <tr key={app._id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden text-[10px] font-black text-gray-400 uppercase">
-                            {app.student?.name?.[0] || 'S'}
-                          </div>
+                          <Avatar 
+                            name={app.student?.name} 
+                            profilePhoto={app.studentProfile?.profile_photo} 
+                            size="sm" 
+                            className="rounded-xl" 
+                          />
                           <span className="text-sm font-black text-gray-900 tracking-tight">{app.student?.name}</span>
                         </div>
                       </td>
@@ -238,17 +243,13 @@ const RecruiterDashboard: React.FC = () => {
             <h2 className="text-2xl font-black text-gray-900 tracking-tight">Recruitment Funnel</h2>
             <p className="text-gray-400 text-[12px] font-black uppercase tracking-widest mt-1">Deep insights into your job posting performance.</p>
           </div>
-          <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-100 w-full md:min-w-[300px] md:w-auto">
-            <Filter size={18} className="text-gray-400 ml-2" />
-            <select 
+          <div className="w-full md:min-w-[300px] md:w-auto">
+            <Dropdown 
+              label="Select Job Posting"
               value={selectedJobId}
-              onChange={(e) => setSelectedJobId(e.target.value)}
-              className="bg-transparent border-none font-black text-[13px] text-gray-900 focus:outline-none flex-1 py-1 cursor-pointer"
-            >
-              {jobs.map(job => (
-                <option key={job._id} value={job._id}>{job.title}</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedJobId(val)}
+              options={jobs.map(job => ({ label: job.title, value: job._id }))}
+            />
           </div>
         </div>
 

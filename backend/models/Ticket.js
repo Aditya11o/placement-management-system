@@ -11,19 +11,29 @@ const ticketSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    description: {
+    message: {
       type: String,
       required: true,
     },
-    priority: {
+    issue_type: {
       type: String,
-      enum: ['low', 'medium', 'high'],
-      default: 'low',
+      enum: [
+        'Account Management',
+        'Job Applications',
+        'Interview Support',
+        'Resume Builder',
+        'Technical Issues',
+        'Other Queries'
+      ],
+      required: true,
     },
     status: {
       type: String,
       enum: ['open', 'in-progress', 'resolved', 'closed'],
       default: 'open',
+    },
+    screenshot_path: {
+      type: String,
     },
     response: {
       type: String,

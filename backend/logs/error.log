@@ -141,3 +141,98 @@ TypeError: Cannot set property query of #<IncomingMessage> which has only a gett
     at trimPrefix (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:342:13)
     at D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:297:9
 --------------------------------------------------
+[2026-03-22T15:35:20.501Z] POST /api/profile/upload-resume
+ValidationError: StudentProfile validation failed: full_name: Path `full_name` is required.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async uploadResume (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:187:5)
+--------------------------------------------------
+[2026-03-22T15:35:34.461Z] POST /api/profile/upload-resume
+ValidationError: StudentProfile validation failed: full_name: Path `full_name` is required.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async uploadResume (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:187:5)
+--------------------------------------------------
+[2026-03-22T16:34:49.209Z] PUT /api/profile
+ReferenceError: filledCount is not defined
+    at D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:35:21
+    at Array.forEach (<anonymous>)
+    at calculateProfileCompletion (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:32:12)
+    at updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:136:39)
+    at Layer.handleRequest (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\lib\route.js:157:13)
+    at done (D:\Desktop\PMS\Placement Management System\backend\node_modules\multer\lib\make-middleware.js:69:7)
+    at indicateDone (D:\Desktop\PMS\Placement Management System\backend\node_modules\multer\lib\make-middleware.js:73:68)
+    at Multipart.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\node_modules\multer\lib\make-middleware.js:243:7)
+    at Multipart.emit (node:events:508:28)
+--------------------------------------------------
+[2026-03-23T17:29:51.424Z] PUT /api/profile
+ReferenceError: calculateProfileCompletion is not defined
+    at updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:116:7)
+    at Layer.handleRequest (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\lib\layer.js:152:17)
+    at next (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\lib\route.js:157:13)
+    at done (D:\Desktop\PMS\Placement Management System\backend\node_modules\multer\lib\make-middleware.js:69:7)
+    at indicateDone (D:\Desktop\PMS\Placement Management System\backend\node_modules\multer\lib\make-middleware.js:73:68)
+    at Multipart.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\node_modules\multer\lib\make-middleware.js:243:7)
+    at Multipart.emit (node:events:508:28)
+    at emitCloseNT (node:internal/streams/destroy:148:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:88:21)
+--------------------------------------------------
+[2026-03-23T17:36:17.821Z] PUT /api/profile
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\StudentProfile.js:119:3)
+    at Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:68:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:130:5)
+--------------------------------------------------
+[2026-03-23T17:36:38.821Z] PUT /api/profile
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\StudentProfile.js:119:3)
+    at Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:68:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:130:5)
+--------------------------------------------------
+[2026-03-23T17:38:22.638Z] PUT /api/profile
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\StudentProfile.js:119:3)
+    at Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:68:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:130:5)
+--------------------------------------------------
+[2026-03-23T17:38:39.114Z] PUT /api/profile
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\StudentProfile.js:119:3)
+    at Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:68:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:130:5)
+--------------------------------------------------
+[2026-03-23T18:00:14.561Z] PUT /api/profile
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\StudentProfile.js:119:3)
+    at Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:68:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:130:5)
+--------------------------------------------------
+[2026-03-23T18:06:07.396Z] PUT /api/profile
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\StudentProfile.js:119:3)
+    at Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:68:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:130:5)
+--------------------------------------------------

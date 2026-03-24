@@ -3,15 +3,27 @@ import {
   Calendar, List, CheckCircle, XCircle, 
   Clock, Video, ChevronLeft, 
   ChevronRight, Download, Plus, Trophy, 
-  HelpCircle, ChevronDown,
-  MapPin, Building2, Loader2
+  HelpCircle, MapPin, 
+  Building2, Loader2, X
 } from 'lucide-react';
+import Dropdown from '../../components/Dropdown';
 import api from '../../api';
+import { useNotification } from '../../context/NotificationContext';
 
 const InterviewSchedule: React.FC = () => {
+  const { showSuccess, showError } = useNotification();
   const [loading, setLoading] = useState(true);
   const [interviews, setInterviews] = useState<any[]>([]);
   const [selectedRound, setSelectedRound] = useState('All Rounds');
+  const [viewDate, setViewDate] = useState(new Date());
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderData, setReminderData] = useState({
+    title: '',
+    date: '',
+    time: '',
+    reminderBefore: '30 min'
+  });
+
   const [stats, setStats] = useState([
     { label: 'Total Interviews', value: '00', icon: List, color: 'text-gray-600', border: 'border-l-gray-400' },
     { label: 'Upcoming', value: '00', icon: Calendar, color: 'text-blue-600', border: 'border-l-blue-500' },
@@ -46,6 +58,76 @@ const InterviewSchedule: React.FC = () => {
     fetchInterviews();
   }, []);
 
+  const handleExportCalendar = () => {
+    if (interviews.length === 0) return;
+
+    const formatDate = (date: Date) => {
+      return date.toISOString().replace(/-|:|\.\d+/g, '');
+    };
+
+    let icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Placement Management System//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH'
+    ];
+
+    interviews.forEach((interview) => {
+      const start = new Date(interview.interviewDate);
+      const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour duration
+      
+      icsContent.push('BEGIN:VEVENT');
+      icsContent.push(`UID:${interview._id}@pms.com`);
+      icsContent.push(`DTSTAMP:${formatDate(new Date())}`);
+      icsContent.push(`DTSTART:${formatDate(start)}`);
+      icsContent.push(`DTEND:${formatDate(end)}`);
+      icsContent.push(`SUMMARY:Interview: ${interview.job?.title} @ ${interview.job?.companyName}`);
+      icsContent.push(`DESCRIPTION:Interview for ${interview.job?.title} role. Mode: ${interview.interviewLink ? 'Online' : 'Offline'}`);
+      icsContent.push(`LOCATION:${interview.interviewLink || interview.job?.location || 'On Campus'}`);
+      icsContent.push('END:VEVENT');
+    });
+
+    icsContent.push('END:VCALENDAR');
+
+    const element = document.createElement('a');
+    const file = new Blob([icsContent.join('\r\n')], { type: 'text/calendar' });
+    element.href = URL.createObjectURL(file);
+    element.download = 'Interview_Schedule.ics';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    showSuccess('Calendar exported successfully!', 'Export Success');
+  };
+
+  const handleAddReminder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/reminders', reminderData);
+      showSuccess('Reminder added successfully!', 'Success');
+      setShowReminderModal(false);
+      setReminderData({ title: '', date: '', time: '', reminderBefore: '30 min' });
+    } catch (err) {
+      showError('Failed to add reminder', 'Error');
+    }
+  };
+
+  const handlePrevMonth = () => {
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+  };
+
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    return new Date(year, month, 1).getDay();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -68,11 +150,23 @@ const InterviewSchedule: React.FC = () => {
           <p className="text-gray-500 text-[14px] mt-3 font-medium">Keep track of your interview pipeline and upcoming screenings.</p>
         </div>
         <div className="flex gap-3">
-          <button className="px-6 py-3.5 bg-gray-100 text-gray-900 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all flex items-center gap-2 active:scale-95">
+          <button 
+            disabled={interviews.length === 0}
+            onClick={handleExportCalendar}
+            title={interviews.length === 0 ? "No interviews available to export" : "Download as .ics file"}
+            className={`px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95 ${
+              interviews.length === 0 
+              ? 'bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed' 
+              : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+            }`}
+          >
             <Download size={16} strokeWidth={3} />
             Export Calendar
           </button>
-          <button className="px-6 py-3.5 bg-[#000613] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-2 active:scale-95">
+          <button 
+            onClick={() => setShowReminderModal(true)}
+            className="px-6 py-3.5 bg-[#000613] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-2 active:scale-95"
+          >
             <Plus size={16} strokeWidth={3} />
             Add Reminder
           </button>
@@ -101,20 +195,13 @@ const InterviewSchedule: React.FC = () => {
         <div className="col-span-12 lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col h-full">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-lg font-black text-gray-900 tracking-tight capitalize">Upcoming & Recent</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filter by:</span>
-              <div className="relative">
-                <select 
-                  value={selectedRound}
-                  onChange={(e) => setSelectedRound(e.target.value)}
-                  className="pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-600 outline-none hover:border-gray-300 transition-all appearance-none cursor-pointer"
-                >
-                  <option>All Rounds</option>
-                  <option>Technical</option>
-                  <option>HR</option>
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={12} />
-              </div>
+            <div className="w-32">
+              <Dropdown 
+                label="Filter by"
+                value={selectedRound}
+                onChange={(val) => setSelectedRound(val)}
+                options={['All Rounds', 'Technical', 'HR']}
+              />
             </div>
           </div>
 
@@ -187,7 +274,7 @@ const InterviewSchedule: React.FC = () => {
                 {interviews.length === 0 && (
                   <tr>
                     <td colSpan={5} className="py-20 text-center text-gray-400 italic text-sm">
-                      No interviews scheduled yet.
+                      No interviews scheduled yet. Once interviews are scheduled, you can export them to your calendar.
                     </td>
                   </tr>
                 )}
@@ -195,7 +282,10 @@ const InterviewSchedule: React.FC = () => {
             </table>
           </div>
           
-          <button className="mt-auto pt-6 border-t border-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] hover:text-black transition-all flex items-center justify-center gap-2 italic">
+          <button 
+            onClick={() => window.location.href = '/student/interview-history'}
+            className="mt-auto pt-6 border-t border-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] hover:text-black transition-all flex items-center justify-center gap-2 italic"
+          >
             <span>View All Interview History</span>
           </button>
         </div>
@@ -207,11 +297,21 @@ const InterviewSchedule: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-sm font-black text-gray-900 tracking-tight">
-                {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                {viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </h3>
               <div className="flex gap-2">
-                <button className="p-1.5 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors"><ChevronLeft size={16} /></button>
-                <button className="p-1.5 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors"><ChevronRight size={16} /></button>
+                <button 
+                  onClick={handlePrevMonth}
+                  className="p-1.5 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button 
+                  onClick={handleNextMonth}
+                  className="p-1.5 hover:bg-gray-50 rounded-lg text-gray-400 transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
             </div>
             
@@ -222,26 +322,39 @@ const InterviewSchedule: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-7 gap-y-2 text-center">
-              {[...Array(31)].map((_, i) => {
-                const day = i + 1;
-                const today = new Date();
-                const year = today.getFullYear();
-                const month = today.getMonth() + 1;
-                const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                const hasInterview = interviews.some(inv => inv.interviewDate && inv.interviewDate.includes(dateStr));
-                const isToday = day === today.getDate() && month === today.getMonth() + 1;
+              {(() => {
+                const daysInMonth = getDaysInMonth(viewDate.getFullYear(), viewDate.getMonth());
+                const firstDay = getFirstDayOfMonth(viewDate.getFullYear(), viewDate.getMonth());
+                // Shift firstDay for MO start (JS Sunday is 0)
+                const startOffset = firstDay === 0 ? 6 : firstDay - 1;
                 
-                return (
-                  <div key={i} className="relative py-1.5 flex flex-col items-center">
-                    <span className={`text-xs font-bold leading-none ${isToday ? 'w-8 h-8 flex items-center justify-center bg-gray-900 text-white rounded-lg shadow-lg' : 'text-gray-600'}`}>
-                      {day}
-                    </span>
-                    {hasInterview && !isToday && (
-                      <div className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    )}
-                  </div>
-                );
-              })}
+                const calendarGrid = [];
+                // empty slots
+                for (let i = 0; i < startOffset; i++) {
+                  calendarGrid.push(<div key={`empty-${i}`} className="py-1.5" />);
+                }
+                
+                // day slots
+                for (let day = 1; day <= daysInMonth; day++) {
+                  const today = new Date();
+                  const isToday = day === today.getDate() && viewDate.getMonth() === today.getMonth() && viewDate.getFullYear() === today.getFullYear();
+                  
+                  const dateStr = `${viewDate.getFullYear()}-${(viewDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                  const hasInterview = interviews.some(inv => inv.interviewDate && inv.interviewDate.includes(dateStr));
+                  
+                  calendarGrid.push(
+                    <div key={day} className="relative py-1.5 flex flex-col items-center">
+                      <span className={`text-xs font-bold leading-none ${isToday ? 'w-8 h-8 flex items-center justify-center bg-gray-900 text-white rounded-lg shadow-lg' : 'text-gray-600'}`}>
+                        {day}
+                      </span>
+                      {hasInterview && !isToday && (
+                        <div className="absolute bottom-0 w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      )}
+                    </div>
+                  );
+                }
+                return calendarGrid;
+              })()}
             </div>
           </div>
 
@@ -274,7 +387,10 @@ const InterviewSchedule: React.FC = () => {
               <p className="text-blue-100/50 text-[11px] font-bold mt-2 leading-relaxed italic pr-4">
                 Access our curated library of technical interview questions and mock tests.
               </p>
-              <button className="w-full mt-6 py-2.5 bg-white text-blue-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all active:scale-95 shadow-lg shadow-black/10">
+              <button 
+                onClick={() => window.location.href = '/student/mock-interviews'}
+                className="w-full mt-6 py-2.5 bg-white text-blue-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all active:scale-95 shadow-lg shadow-black/10"
+              >
                 Go to Resources
               </button>
             </div>
@@ -284,6 +400,90 @@ const InterviewSchedule: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Reminder Modal */}
+      {showReminderModal && (
+        <div className="fixed inset-0 bg-[#000613]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[40px] w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="px-10 pt-10 pb-6 flex justify-between items-center text-gray-900 border-b border-gray-100 mb-6">
+              <div>
+                <h2 className="text-2xl font-black tracking-tight uppercase">Add Reminder</h2>
+                <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-1">Set a custom alert for your upcoming screening.</p>
+              </div>
+              <button 
+                onClick={() => setShowReminderModal(false)}
+                className="p-2 text-gray-400 hover:text-gray-900 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddReminder} className="px-10 pb-10 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Interview Title</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Google Technical Round"
+                  className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl font-bold text-sm focus:bg-white focus:border-[#000613] outline-none transition-all"
+                  value={reminderData.title}
+                  onChange={(e) => setReminderData({...reminderData, title: e.target.value})}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</label>
+                  <input 
+                    type="date" 
+                    required
+                    className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl font-bold text-sm focus:bg-white focus:border-[#000613] outline-none transition-all"
+                    value={reminderData.date}
+                    onChange={(e) => setReminderData({...reminderData, date: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Time</label>
+                  <input 
+                    type="time" 
+                    required
+                    className="w-full px-5 py-4 bg-gray-50 border border-transparent rounded-2xl font-bold text-sm focus:bg-white focus:border-[#000613] outline-none transition-all"
+                    value={reminderData.time}
+                    onChange={(e) => setReminderData({...reminderData, time: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Reminder Before</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {['15 min', '30 min', '1 hour', '1 day'].map((opt) => (
+                    <button 
+                      key={opt}
+                      type="button"
+                      onClick={() => setReminderData({...reminderData, reminderBefore: opt})}
+                      className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                        reminderData.reminderBefore === opt 
+                          ? 'bg-[#000613] text-white shadow-lg' 
+                          : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full py-4 bg-[#000613] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/20 active:scale-95 mt-4"
+              >
+                Save Reminder
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

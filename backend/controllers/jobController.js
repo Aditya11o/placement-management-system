@@ -7,7 +7,7 @@ const { createAuditLog } = require('./auditLogController');
 // @desc    Create a job
 // @route   POST /api/jobs
 // @access  Private (Recruiter)
-const createJob = async (req, res) => {
+const createJob = async (req, res, next) => {
   try {
     const { title, description, companyName, location, salary, jobType, eligibility, deadline } = req.body;
 
@@ -48,7 +48,14 @@ const createJob = async (req, res) => {
 // @access  Public
 const getJobs = async (req, res, next) => {
   try {
-    const jobs = await Job.find({ status: 'open', deadline: { $gte: new Date() } })
+    const { jobType } = req.query;
+    let query = { status: 'open', deadline: { $gte: new Date() } };
+
+    if (jobType && jobType !== 'All Job Types') {
+      query.jobType = jobType;
+    }
+
+    const jobs = await Job.find(query)
       .sort({ createdAt: -1 })
       .populate('recruiter', 'name email');
     res.json(jobs);
@@ -81,7 +88,7 @@ const adminGetJobs = async (req, res, next) => {
 // @desc    Approve/Close a job
 // @route   PATCH /api/jobs/:id/status
 // @access  Private (Admin/Recruiter)
-const updateJobStatus = async (req, res) => {
+const updateJobStatus = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.id);
 
@@ -129,7 +136,7 @@ const getMatchedJobs = async (req, res, next) => {
   }
 };
 
-const getRecruiterStats = async (req, res) => {
+const getRecruiterStats = async (req, res, next) => {
   try {
     const totalJobs = await Job.countDocuments({ recruiter: req.user.id });
     const jobs = await Job.find({ recruiter: req.user.id });
@@ -163,7 +170,7 @@ const getRecruiterJobs = async (req, res, next) => {
   }
 };
 
-const getJobById = async (req, res) => {
+const getJobById = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.id).populate('recruiter', 'name email');
     if (!job) return res.status(404).json({ message: 'Job not found' });
@@ -180,7 +187,7 @@ const getJobById = async (req, res) => {
   }
 };
 
-const getJobAnalytics = async (req, res) => {
+const getJobAnalytics = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.id);
     if (!job) return res.status(404).json({ message: 'Job not found' });
@@ -207,7 +214,7 @@ const getJobAnalytics = async (req, res) => {
 // @desc    Delete a job
 // @route   DELETE /api/jobs/:id
 // @access  Private (Recruiter/Admin)
-const deleteJob = async (req, res) => {
+const deleteJob = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.id);
 

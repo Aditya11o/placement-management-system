@@ -24,6 +24,9 @@ import Settings from './pages/student/Settings';
 import StudentProfile from './pages/student/Profile';
 import ResumeBuilder from './pages/student/ResumeBuilder';
 import MockInterviews from './pages/student/MockInterviews';
+import HelpSupport from './pages/student/HelpSupport';
+import ComingSoon from './pages/ComingSoon';
+import InterviewHistory from './pages/student/InterviewHistory';
 import ManageJobs from './pages/recruiter/ManageJobs';
 import AdminManageJobs from './pages/admin/ManageJobs';
 import Applicants from './pages/recruiter/Applicants';
@@ -76,11 +79,15 @@ const App: React.FC = () => {
             <Route path="jobs" element={<JobFeed />} />
             <Route path="applications" element={<MyApplications />} />
             <Route path="interviews" element={<InterviewSchedule />} />
+            <Route path="interview-history" element={<InterviewHistory />} />
             <Route path="resources" element={<CareerResources />} />
             <Route path="resume-builder" element={<ResumeBuilder />} />
             <Route path="mock-interviews" element={<MockInterviews />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="support" element={<Support />} />
+            <Route path="help-support" element={<HelpSupport />} />
+            <Route path="interview-guide" element={<ComingSoon featureName="Interview Guide" />} />
+            <Route path="package-stats" element={<ComingSoon featureName="Package Stats" />} />
             <Route path="settings" element={<Settings />} />
             <Route path="chat" element={<Chat />} />
           </Route>

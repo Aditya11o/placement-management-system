@@ -4,10 +4,10 @@ import {
   ChevronRight, Star, 
   Layout, BookOpen, 
   Trophy, MessageSquare, 
-  PlayCircle, MoreVertical,
-  ArrowUpRight, X, AlertCircle,
+  MoreVertical, ArrowUpRight, 
   Loader2, CheckCircle2
 } from 'lucide-react';
+import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -131,19 +131,16 @@ const MockInterviews: React.FC = () => {
 
             <form onSubmit={handleBooking} className="space-y-6">
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block italic">Interview Type</label>
-                <select 
+                <Dropdown 
+                  label="Interview Type"
                   value={bookingForm.type}
-                  onChange={(e) => setBookingForm({ ...bookingForm, type: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-blue-500/10 outline-none transition-all appearance-none italic"
-                >
-                  <option>Technical Interview</option>
-                  <option>HR Interview</option>
-                  <option>Aptitude Prep</option>
-                  <option>System Design</option>
-                  <option>Group Discussion</option>
-                  <option>Resume Clinic</option>
-                </select>
+                  onChange={(val) => setBookingForm({ ...bookingForm, type: val })}
+                  options={[
+                    'Technical Interview', 'HR Interview', 'Aptitude Prep',
+                    'System Design', 'Group Discussion', 'Resume Clinic'
+                  ]}
+                  italic
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -158,18 +155,15 @@ const MockInterviews: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block italic">Time Slot</label>
-                  <select 
+                  <Dropdown 
+                    label="Time Slot"
                     value={bookingForm.slot}
-                    onChange={(e) => setBookingForm({ ...bookingForm, slot: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-4 focus:ring-blue-500/10 outline-none transition-all appearance-none italic"
-                  >
-                    <option>09:00 AM</option>
-                    <option>11:30 AM</option>
-                    <option>02:00 PM</option>
-                    <option>04:30 PM</option>
-                    <option>07:00 PM</option>
-                  </select>
+                    onChange={(val) => setBookingForm({ ...bookingForm, slot: val })}
+                    options={[
+                      '09:00 AM', '11:30 AM', '02:00 PM', '04:30 PM', '07:00 PM'
+                    ]}
+                    italic
+                  />
                 </div>
               </div>
 

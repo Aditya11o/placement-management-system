@@ -6,7 +6,7 @@ const User = require('../models/User');
 // @access  Private
 const getMyNotifications = async (req, res, next) => {
   try {
-    const notifications = await Notification.find({ recipient: req.user.id })
+    const notifications = await Notification.find({ user_id: req.user.id })
       .sort({ createdAt: -1 })
       .limit(20);
     res.json(notifications);
@@ -16,20 +16,41 @@ const getMyNotifications = async (req, res, next) => {
 };
 
 // @desc    Mark notification as read
-// @route   PATCH /api/notifications/:id/read
+// @route   PUT /api/notifications/read/:id
 // @access  Private
 const markAsRead = async (req, res, next) => {
   try {
     const notification = await Notification.findById(req.params.id);
 
-    if (notification && notification.recipient.toString() === req.user.id) {
-      notification.isRead = true;
+    if (notification && notification.user_id.toString() === req.user.id) {
+      notification.is_read = true;
       await notification.save();
       res.json({ message: 'Notification marked as read' });
     } else {
-      res.status(404);
-      res.json({ message: 'Notification not found' });
+      res.status(404).json({ message: 'Notification not found' });
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Mark all notifications as read
+// @route   PUT /api/notifications/read-all/:userId
+// @access  Private
+const markAllAsRead = async (req, res, next) => {
+  try {
+    // For security, ensure the userId matches the logged-in user unless admin
+    const targetUserId = req.params.userId;
+    
+    if (req.user.role !== 'admin' && targetUserId !== req.user.id) {
+       return res.status(403).json({ message: 'Not authorized to mark these notifications as read' });
+    }
+
+    await Notification.updateMany(
+      { user_id: targetUserId, is_read: false },
+      { $set: { is_read: true } }
+    );
+    res.json({ message: 'All notifications marked as read' });
   } catch (error) {
     next(error);
   }
@@ -40,7 +61,7 @@ const markAsRead = async (req, res, next) => {
 // @access  Private (Admin)
 const createBroadcast = async (req, res, next) => {
   try {
-    const { title, message, body, type, sendTo, course, company } = req.body;
+    const { title, message, body, type, sendTo } = req.body;
     
     let query = {};
     if (sendTo === 'All Students') {
@@ -48,32 +69,31 @@ const createBroadcast = async (req, res, next) => {
     } else if (sendTo === 'All Recruiters') {
       query.role = 'recruiter';
     } else if (sendTo === 'Selected Students') {
-      // Logic for selected students could be more complex, but for now let's assume it targets students
       query.role = 'student';
     }
 
     const recipients = await User.find(query).select('_id');
     
     const notifications = recipients.map(user => ({
-      recipient: user._id,
-      recipientRole: user.role,
+      user_id: user._id,
       title: title || 'Broadcast',
       message: message || body,
-      type: (type || 'general').toLowerCase(),
-      isBroadcast: true
+      type: (type || 'system').toLowerCase(),
     }));
 
     await Notification.insertMany(notifications);
 
-    // Emit live socket event
+    // Emit live socket event if available
     const io = req.app.get('io');
-    recipients.forEach(user => {
-      io.to(user._id.toString()).emit('notification', {
-        title: title || 'Broadcast',
-        message: message || body,
-        type: type || 'general',
+    if (io) {
+      recipients.forEach(user => {
+        io.to(user._id.toString()).emit('notification', {
+          title: title || 'Broadcast',
+          message: message || body,
+          type: type || 'system',
+        });
       });
-    });
+    }
 
     res.status(201).json({ message: `Broadcast sent to ${recipients.length} users` });
   } catch (error) {
@@ -84,20 +104,21 @@ const createBroadcast = async (req, res, next) => {
 // @desc    Get all broadcast notifications (Admin)
 // @route   GET /api/notifications/admin
 // @access  Private (Admin)
-const adminGetNotifications = async (req, res) => {
+const adminGetNotifications = async (req, res, next) => {
   try {
-    const notifications = await Notification.find({ isBroadcast: true })
+    const notifications = await Notification.find({ type: 'system' })
       .sort({ createdAt: -1 })
       .limit(50);
     res.json(notifications);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 module.exports = { 
   getMyNotifications, 
   markAsRead, 
+  markAllAsRead,
   createBroadcast, 
   adminGetNotifications 
 };
