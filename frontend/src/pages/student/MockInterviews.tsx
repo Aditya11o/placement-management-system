@@ -7,11 +7,13 @@ import {
   MoreVertical, ArrowUpRight, 
   Loader2, CheckCircle2
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 
 const MockInterviews: React.FC = () => {
+  const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
   const [stats, setStats] = useState({ total: 0, upcoming: 0, completed: 0, avgPerformance: 0 });
   const [upcoming, setUpcoming] = useState<any[]>([]);
@@ -196,13 +198,24 @@ const MockInterviews: React.FC = () => {
                   { label: 'Aptitude', desc: 'Quant, Logical, Verbal', icon: Trophy },
                   { label: 'Resume Clinic', desc: 'ATS optimization tips', icon: BookOpen }
                 ].map((item, i) => (
-                  <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50 hover:shadow-md transition-all group flex flex-col justify-between">
+                  <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50 hover:shadow-xl hover:-translate-y-1 transition-all group flex flex-col justify-between cursor-default">
                      <div>
                         <item.icon size={20} className="text-blue-900 mb-4" />
                         <h4 className="text-sm font-black text-gray-900 uppercase italic leading-tight mb-1">{item.label}</h4>
                         <p className="text-[10px] font-bold text-gray-400 italic leading-snug">{item.desc}</p>
                      </div>
-                     <button className="mt-4 flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-black transition-colors">
+                     <button 
+                       onClick={() => {
+                         const routeMap: any = {
+                           'Technical Prep': '/student/resources/technical',
+                           'HR & GD': '/student/resources/hr-gd',
+                           'Aptitude': '/student/resources/aptitude',
+                           'Resume Clinic': '/student/resources/resume-clinic'
+                         };
+                         navigate(routeMap[item.label] || '/student/resources');
+                       }}
+                       className="mt-4 flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-black transition-colors"
+                     >
                         View Content <ChevronRight size={12} />
                      </button>
                   </div>
@@ -257,8 +270,8 @@ const MockInterviews: React.FC = () => {
 
           {/* Performance Analytics & Feedback */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             <div className="bg-[#000613] rounded-3xl p-8 text-white relative h-full">
-                <h2 className="text-xl font-black uppercase italic mb-8">Performance Analytics</h2>
+             <div className="bg-[#000613] rounded-3xl p-8 text-white relative h-full shadow-2xl shadow-blue-900/10">
+                <h2 className="text-xl font-black uppercase italic mb-8 text-white border-b border-white/10 pb-4">Performance Analytics</h2>
                 <div className="space-y-8">
                    {performanceMetrics.map((m, i) => (
                      <div key={i}>
@@ -277,22 +290,34 @@ const MockInterviews: React.FC = () => {
                 </div>
              </div>
              
-             <div className="bg-white rounded-3xl p-8 border border-gray-100 h-full flex flex-col">
+             <div className="bg-white rounded-3xl p-8 border border-gray-100 h-full flex flex-col shadow-sm">
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 block italic">Mentor Feedback Summary</h3>
                 <div className="flex-1 space-y-4">
-                   <p className="text-sm font-bold text-gray-600 leading-relaxed italic border-l-4 border-blue-900 pl-4 py-1">
-                      {history[0]?.feedback || "Alex shows strong fundamentals in backend systems. Needs slight improvement in handling ambiguous design questions. Soft skills are excellent, especially professional articulation."}
-                   </p>
+                   {history.length > 0 ? (
+                     <p className="text-sm font-bold text-gray-600 leading-relaxed italic border-l-4 border-blue-900 pl-4 py-1">
+                        "{history[0].feedback || "No project-specific feedback provided, but general performance was satisfactory."}"
+                     </p>
+                   ) : (
+                     <p className="text-sm font-bold text-gray-400 leading-relaxed italic border-l-4 border-gray-100 pl-4 py-1">
+                        No feedback available yet. Complete your first mock interview to see analytics.
+                     </p>
+                   )}
                 </div>
-                <div className="mt-8 flex items-center gap-3">
-                   <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-black text-xs">
-                      {history[0]?.mentor?.name?.[0] || "S"}
-                   </div>
-                   <div>
-                      <h4 className="text-sm font-black text-gray-900 leading-none uppercase italic">{history[0]?.mentor?.name || "Dr. Sarah Jenkins"}</h4>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase mt-1 italic">Senior Technical Mentor</p>
-                   </div>
-                </div>
+                {history.length > 0 && (
+                  <div className="mt-8 flex items-center gap-3">
+                     <div className="w-10 h-10 bg-blue-50 text-blue-900 rounded-full flex items-center justify-center font-black text-xs border border-blue-100 overflow-hidden">
+                        {history[0].mentor?.profilePhoto ? (
+                          <img src={history[0].mentor.profilePhoto} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          history[0].mentor?.name?.[0] || "M"
+                        )}
+                     </div>
+                     <div>
+                        <h4 className="text-sm font-black text-gray-900 leading-none uppercase italic">{history[0].mentor?.name}</h4>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1 italic">Verified Industry Mentor</p>
+                     </div>
+                  </div>
+                )}
              </div>
           </div>
 

@@ -1,5 +1,7 @@
 const MockInterview = require('../models/MockInterview');
 const User = require('../models/User');
+const MentorProfile = require('../models/MentorProfile');
+const MentorAvailability = require('../models/MentorAvailability');
 const Notification = require('../models/Notification');
 const sendEmail = require('../utils/emailUtils');
 
@@ -10,49 +12,80 @@ const bookMockInterview = async (req, res, next) => {
   try {
     const { type, date, slot } = req.body;
 
-    // 1. Find an available mentor or admin
-    const mentors = await User.find({ role: { $in: ['mentor', 'admin'] }, status: 'active' });
-    if (mentors.length === 0) {
-      return res.status(404).json({ message: 'No available mentors at the moment.' });
-    }
-
-    // Pick a random mentor for now (could be more complex logic)
-    const mentor = mentors[Math.floor(Math.random() * mentors.length)];
-
-    // 2. Check for double booking
-    const scheduledAt = new Date(date);
-    const existing = await MockInterview.findOne({ 
-      mentor: mentor._id, 
-      scheduledAt, 
-      slot,
-      status: 'Scheduled' 
+    // 1. Find mentors with the required expertise
+    const mentorProfiles = await MentorProfile.find({ 
+      expertise: type, 
+      is_active: true 
     });
 
-    if (existing) {
-      return res.status(400).json({ message: 'The selected slot is already booked for this mentor. Please try another time.' });
+    if (mentorProfiles.length === 0) {
+      return res.status(404).json({ message: 'No available mentors with this expertise at the moment.' });
     }
 
-    // 3. Create booking
+    const mentorIds = mentorProfiles.map(p => p.user_id);
+    const scheduledDate = new Date(date);
+    scheduledDate.setHours(0,0,0,0);
+
+    // 2. Find an available slot among these mentors
+    const availableSlot = await MentorAvailability.findOne({
+      mentor_id: { $in: mentorIds },
+      date: scheduledDate,
+      time_slot: slot,
+      is_booked: false
+    }).populate('mentor_id', 'name email');
+
+    if (!availableSlot) {
+      return res.status(404).json({ message: 'No mentors available for selected time. Please choose another slot.' });
+    }
+
+    const mentor = availableSlot.mentor_id;
+
+    // 3. Mark slot as booked and create mock interview
+    availableSlot.is_booked = true;
+    await availableSlot.save();
+
+    // Map frontend full titles to model enums
+    const typeMapping = {
+      'Technical Interview': 'Technical',
+      'HR Interview': 'HR',
+      'Aptitude Prep': 'Aptitude',
+      'System Design': 'System Design',
+      'Group Discussion': 'Group Discussion',
+      'Resume Clinic': 'Resume Clinic'
+    };
+
     const mockInterview = await MockInterview.create({
       student: req.user.id,
       mentor: mentor._id,
-      type,
-      scheduledAt,
+      type: typeMapping[type] || type,
+      scheduledAt: scheduledDate,
       slot,
     });
 
-    // 4. Send Notification & Email
+    // 4. Send Notifications
+    // To Student
     await Notification.create({
-      recipient: req.user.id,
-      message: `Your ${type} mock interview is scheduled for ${date} at ${slot}.`,
+      user_id: req.user.id,
+      title: 'Mock Interview Booked',
+      message: `Your ${type} mock interview has been successfully booked with ${mentor.name} for ${date} at ${slot}.`,
       type: 'interview',
-      link: '/mock-interviews'
+      link: '/student/mock-interviews'
     });
 
+    // To Mentor
+    await Notification.create({
+      user_id: mentor._id,
+      title: 'New Mock Interview Request',
+      message: `A new ${type} mock interview has been scheduled with a student for ${date} at ${slot}.`,
+      type: 'interview',
+      link: '/mentor/interviews'
+    });
+
+    // 5. Send Email to Student
     try {
       await sendEmail({
         email: req.user.email,
-        subject: `Mock Interview Scheduled: ${type}`,
+        subject: `Mock Interview Confirmed: ${type}`,
         message: `<h3>Mock Interview Booking Confirmed</h3>
                  <p>Your ${type} mock interview has been scheduled with <strong>${mentor.name}</strong>.</p>
                  <p><strong>Date:</strong> ${date}</p>
@@ -64,7 +97,11 @@ const bookMockInterview = async (req, res, next) => {
       console.error('Failed to send booking email:', err);
     }
 
-    res.status(201).json(mockInterview);
+    res.status(201).json({
+      success: true,
+      data: mockInterview,
+      message: 'Mock interview booked successfully.'
+    });
   } catch (error) {
     next(error);
   }
@@ -76,12 +113,15 @@ const bookMockInterview = async (req, res, next) => {
 const getMockInterviewStats = async (req, res, next) => {
   try {
     const total = await MockInterview.countDocuments({ student: req.user.id });
-    const upcoming = await MockInterview.countDocuments({ student: req.user.id, status: 'Scheduled', scheduledAt: { $gte: new Date() } });
+    const upcoming = await MockInterview.countDocuments({ 
+      student: req.user.id, 
+      status: 'Scheduled'
+    });
     const completed = await MockInterview.countDocuments({ student: req.user.id, status: 'Completed' });
     
     // Calculate average performance
     const completedInterviews = await MockInterview.find({ student: req.user.id, status: 'Completed' });
-    const totalScore = completedInterviews.reduce((acc, curr) => acc + (curr.performance.overallScore || 0), 0);
+    const totalScore = completedInterviews.reduce((acc, curr) => acc + (curr.performance?.overallScore || 0), 0);
     const avgPerformance = completedInterviews.length > 0 ? (totalScore / completedInterviews.length).toFixed(1) : 0;
 
     res.json({
@@ -104,7 +144,7 @@ const getUpcomingMockInterviews = async (req, res, next) => {
       student: req.user.id, 
       status: 'Scheduled'
     })
-    .populate('mentor', 'name profilePhoto')
+    .populate('mentor', 'name profilePhoto email')
     .sort({ scheduledAt: 1 });
 
     res.json(interviews);
@@ -122,7 +162,7 @@ const getMockInterviewHistory = async (req, res, next) => {
       student: req.user.id, 
       status: 'Completed' 
     })
-    .populate('mentor', 'name')
+    .populate('mentor', 'name profilePhoto')
     .sort({ scheduledAt: -1 });
 
     res.json(interviews);
@@ -141,7 +181,16 @@ const getMockInterviewAnalytics = async (req, res, next) => {
       status: 'Completed' 
     }).sort({ scheduledAt: -1 });
 
-    res.json(latest ? latest.performance : { communication: 0, technical: 0, confidence: 0 });
+    if (latest && latest.performance) {
+      res.json({
+        communication: latest.performance.communication || 0,
+        technical: latest.performance.technical || 0,
+        confidence: latest.performance.confidence || 0,
+        overallScore: latest.performance.overallScore || 0
+      });
+    } else {
+      res.json({ communication: 0, technical: 0, confidence: 0, overallScore: 0 });
+    }
   } catch (error) {
     next(error);
   }

@@ -6,7 +6,7 @@ const StudentProfile = require('../models/StudentProfile');
 // @desc    Archive current academic year
 // @route   POST /api/admin/archive
 // @access  Private/Admin
-const archiveYear = async (req, res) => {
+const archiveYear = async (req, res, next) => {
   try {
     const { academicYear } = req.body;
 
@@ -56,7 +56,7 @@ const archiveYear = async (req, res) => {
 // @desc    Get all archives
 // @route   GET /api/admin/archives
 // @access  Private/Admin
-const getArchives = async (req, res) => {
+const getArchives = async (req, res, next) => {
   try {
     const archives = await Archive.find().sort({ academicYear: -1 });
     res.json(archives);

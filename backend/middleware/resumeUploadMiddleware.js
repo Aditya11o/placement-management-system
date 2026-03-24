@@ -11,14 +11,14 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename(req, file, cb) {
-    cb(null, `${req.user.id}_resume.pdf`);
+    cb(null, `${req.user.id}_resume${path.extname(file.originalname)}`);
   },
 });
 
 function checkFileType(file, cb) {
-  const filetypes = /pdf/;
+  const filetypes = /pdf|doc|docx/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
+  const mimetype = filetypes.test(file.mimetype) || file.originalname.endsWith('.docx') || file.originalname.endsWith('.doc');
 
   if (extname && mimetype) {
     return cb(null, true);

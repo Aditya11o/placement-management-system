@@ -3,7 +3,7 @@ const AuditLog = require('../models/AuditLog');
 // @desc    Get all audit logs (Admin only)
 // @route   GET /api/audit
 // @access  Private/Admin
-const getAuditLogs = async (req, res) => {
+const getAuditLogs = async (req, res, next) => {
   try {
     const logs = await AuditLog.find()
       .populate('admin', 'name email')

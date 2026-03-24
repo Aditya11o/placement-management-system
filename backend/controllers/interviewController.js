@@ -64,3 +64,14 @@ exports.exportInterviewsICS = async (req, res, next) => {
     next(error);
   }
 };
+// @desc    Get complete interview history for a student
+// @route   GET /api/interviews/history/:studentId
+// @access  Private
+exports.getInterviewHistory = async (req, res, next) => {
+  try {
+    const interviews = await Interview.find({ student_id: req.params.studentId }).sort({ interview_date: -1 });
+    res.json(interviews);
+  } catch (error) {
+    next(error);
+  }
+};

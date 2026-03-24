@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema(
   {
+    notification_id: {
+      type: String,
+      unique: true,
+    },
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -28,11 +32,39 @@ const notificationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    link: {
+      type: String,
+    }
   },
   {
     timestamps: true,
   }
 );
+
+// Auto-generate notification_id (e.g., NOTIF-0001)
+notificationSchema.pre('save', async function () {
+  if (!this.notification_id) {
+    try {
+      const lastNotification = await this.constructor.findOne(
+        { notification_id: { $regex: /^NOTIF-/ } },
+        {},
+        { sort: { notification_id: -1 } }
+      );
+
+      let nextNumber = 1;
+      if (lastNotification && lastNotification.notification_id) {
+        const lastIdParts = lastNotification.notification_id.split('-');
+        if (lastIdParts.length === 2) {
+          nextNumber = parseInt(lastIdParts[1], 10) + 1;
+        }
+      }
+
+      this.notification_id = `NOTIF-${nextNumber.toString().padStart(4, '0')}`;
+    } catch (err) {
+      throw err;
+    }
+  }
+});
 
 const Notification = mongoose.model('Notification', notificationSchema);
 

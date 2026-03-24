@@ -198,7 +198,10 @@ const refreshAccessToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || 'your_refresh_token_secret');
+    if (!process.env.REFRESH_TOKEN_SECRET) {
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
     const user = await User.findById(decoded.id);
 
     if (!user) {

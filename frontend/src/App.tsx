@@ -84,6 +84,12 @@ const App: React.FC = () => {
             <Route path="resume-builder" element={<ResumeBuilder />} />
             <Route path="mock-interviews" element={<MockInterviews />} />
             <Route path="notifications" element={<Notifications />} />
+            <Route path="announcements" element={<ComingSoon featureName="Announcements" />} />
+            <Route path="resources/all" element={<ComingSoon featureName="All Resources" />} />
+            <Route path="resources/technical" element={<ComingSoon featureName="Technical Preparation" />} />
+            <Route path="resources/hr" element={<ComingSoon featureName="HR Interview Questions" />} />
+            <Route path="resources/aptitude" element={<ComingSoon featureName="Aptitude Preparation" />} />
+            <Route path="resources/gd" element={<ComingSoon featureName="Group Discussion" />} />
             <Route path="support" element={<Support />} />
             <Route path="help-support" element={<HelpSupport />} />
             <Route path="interview-guide" element={<ComingSoon featureName="Interview Guide" />} />

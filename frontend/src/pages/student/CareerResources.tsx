@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
   FileText, Clock, 
@@ -11,12 +12,36 @@ import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 
 const CareerPrepHub: React.FC = () => {
+  const navigate = useNavigate();
   const { showError, showSuccess } = useNotification();
   const [profile, setProfile] = useState<any>(null);
   const [resources, setResources] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+
+  const getFileName = (path: string) => {
+    if (!path) return '';
+    return path.split('/').pop() || path.split('\\').pop() || '';
+  };
+
+  const handleViewResume = async () => {
+    try {
+      const { data } = await api.get('/student/resume');
+      if (data.resume_url) {
+        // Prepend backend base URL if it's a relative path
+        const fullUrl = data.resume_url.startsWith('http') 
+          ? data.resume_url 
+          : `http://localhost:5000${data.resume_url}`;
+        window.open(fullUrl, '_blank');
+      } else {
+        showError('No resume uploaded yet.');
+      }
+    } catch (err) {
+      console.error(err);
+      showError('No resume uploaded yet.');
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -45,19 +70,24 @@ const CareerPrepHub: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 5 * 1024 * 1024) {
+      showError('File size must be less than 5MB');
+      return;
+    }
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('resume', file);
 
     try {
       setUploading(true);
-      const { data: uploadData } = await api.post('/upload', formData, {
+      await api.post('/profile/upload-resume', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      await api.post('/profile/student/resume', { url: uploadData.url });
       showSuccess('Resume uploaded successfully');
       fetchDashboardData();
     } catch (err) {
-      showError('Failed to upload resume');
+      console.error(err);
+      showError('Failed to upload resume. Please use PDF or DOCX.');
     } finally {
       setUploading(false);
     }
@@ -72,10 +102,10 @@ const CareerPrepHub: React.FC = () => {
   }
 
   const interviewModules = [
-    { title: 'Technical Rounds', desc: 'Data structures, algorithms, and domain-specific concepts.', icon: <ArrowUpRight size={20} />, category: 'Technical Rounds' },
-    { title: 'HR Questions', desc: 'Behavioral questions, culture-fit, and communication tips.', icon: <Users size={20} />, category: 'HR Questions' },
-    { title: 'Aptitude Prep', desc: 'Quantitative, logical reasoning, and verbal ability modules.', icon: <Award size={20} />, category: 'Aptitude Prep' },
-    { title: 'Group Discussion', desc: 'Mock sessions, trending topics, and etiquette training.', icon: <MessageSquare size={20} />, category: 'Group Discussion' },
+    { title: 'Technical Rounds', desc: 'Data structures, algorithms, and domain-specific concepts.', icon: <ArrowUpRight size={20} />, path: '/student/resources/technical' },
+    { title: 'HR Questions', desc: 'Behavioral questions, culture-fit, and communication tips.', icon: <Users size={20} />, path: '/student/resources/hr' },
+    { title: 'Aptitude Prep', desc: 'Quantitative, logical reasoning, and verbal ability modules.', icon: <Award size={20} />, path: '/student/resources/aptitude' },
+    { title: 'Group Discussion', desc: 'Mock sessions, trending topics, and etiquette training.', icon: <MessageSquare size={20} />, path: '/student/resources/gd' },
   ];
 
   return (
@@ -95,12 +125,12 @@ const CareerPrepHub: React.FC = () => {
       {/* 1. Progress Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Resume Status', value: profile?.resume ? 'Completed' : 'Pending', icon: <CheckCircle2 size={18} className="text-green-500" />, sub: 'ATS Friendly' },
+          { label: 'Resume Status', value: (profile?.resume_path || profile?.resume) ? 'Completed' : 'Pending', icon: <CheckCircle2 size={18} className="text-green-500" />, sub: 'ATS Friendly' },
           { label: 'Aptitude Prep', value: profile?.aptitude_prep_status || 'Not Started', icon: <Play size={18} className="text-blue-500" />, sub: 'Mock tests' },
           { label: 'Interview Prep', value: profile?.interview_prep_status || 'Not Started', icon: <Video size={18} className="text-purple-500" />, sub: 'Mock calls' },
           { label: 'Profile Completion', value: `${profile?.profile_completion || 0}%`, isProgress: true, sub: 'Target 100%' }
         ].map((card, i) => (
-          <div key={i} className="bg-white p-6 rounded-3xl shadow-[0_12_32_rgba(0,31,63,0.06)] border border-transparent hover:border-blue-100 transition-all group">
+          <div key={i} className="bg-white p-6 rounded-3xl shadow-[0_12px_32px_rgba(0,31,63,0.06)] border border-transparent hover:border-blue-100 hover:-translate-y-1 transition-all duration-300 group cursor-default">
             <div className="flex justify-between items-start mb-4">
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{card.label}</span>
               {card.icon}
@@ -128,10 +158,10 @@ const CareerPrepHub: React.FC = () => {
         <div className="lg:col-span-2 space-y-8">
           
           {/* 2. Resume Builder Section */}
-          <div className="bg-white rounded-[3rem] p-8 md:p-12 shadow-[0_20_40_rgba(0,0,0,0.04)] border border-gray-50 flex flex-col md:flex-row gap-12 relative overflow-hidden group">
+          <div className="bg-white rounded-[3rem] p-8 md:p-12 shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-gray-50 flex flex-col md:flex-row gap-12 relative overflow-hidden group">
             <div className="flex-1 space-y-6">
               <div>
-                <h2 className="text-3xl font-black text-[#000613] italic uppercase leading-none mb-4">Resume <span className="text-blue-600">Builder</span></h2>
+                <h2 className="text-3xl font-black text-[#000613] italic uppercase leading-none mb-4 underline decoration-blue-600/20 underline-offset-8">Resume <span className="text-blue-600">Builder</span></h2>
                 <p className="text-gray-400 text-sm font-medium leading-relaxed">
                   Our curator evaluates your resume against industry-standard benchmarks. Ensure your technical skills and project Highlights are prominently featured.
                 </p>
@@ -139,10 +169,10 @@ const CareerPrepHub: React.FC = () => {
 
               <div className="space-y-4">
                 {[
-                  { label: 'Skills Matrix', done: true },
-                  { label: 'Project Impact Statements', done: true },
-                  { label: 'Education Details', done: false },
-                  { label: 'Contact Information', done: true },
+                  { label: 'Skills Matrix', done: (profile?.skills?.length > 0) },
+                  { label: 'Project Impact Statements', done: (profile?.projects?.length > 0) },
+                  { label: 'Education Details', done: !!profile?.course },
+                  { label: 'Contact Information', done: !!profile?.phone },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className={`p-1 rounded-full ${item.done ? 'bg-blue-100 text-blue-600' : 'border-2 border-gray-100 text-gray-100'}`}>
@@ -154,24 +184,36 @@ const CareerPrepHub: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap gap-4 pt-4">
-                <label className="cursor-pointer bg-[#000613] text-white px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-black/20 hover:scale-105 active:scale-95 transition-all">
-                  {uploading ? 'Uploading...' : 'Upload'}
-                  <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx" />
+                <label className="cursor-pointer bg-[#000613] text-white px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-black/20 hover:bg-blue-600 hover:-translate-y-1 active:scale-95 transition-all">
+                  {uploading ? 'Processing...' : 'Upload Resume'}
+                  <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx" disabled={uploading} />
                 </label>
-                {profile?.resume && (
-                  <button 
-                    onClick={() => window.open(profile.resume, '_blank')}
-                    className="bg-white border-2 border-gray-100 px-8 py-4 rounded-xl text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] hover:bg-gray-50 transition-all"
-                  >
-                    View PDF
-                  </button>
-                )}
+                <button 
+                  disabled={!(profile?.resume_path || profile?.resume)}
+                  onClick={handleViewResume}
+                  className={`px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 ${
+                    (profile?.resume_path || profile?.resume) 
+                      ? 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50 hover:border-gray-200' 
+                      : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  View Current
+                </button>
               </div>
+
+              {(profile?.resume_path || profile?.resume) && (
+                <div className="flex items-center gap-2 px-2">
+                  <FileText size={12} className="text-blue-600" />
+                  <span className="text-[10px] font-bold text-gray-400 italic">
+                    Current: {getFileName(profile.resume_path || profile.resume)}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* 3. Resume Writing Tips Section */}
             <div className="w-full md:w-64 space-y-8 bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100">
-              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Writing Tips</h3>
+              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic border-b border-gray-200 pb-2">Writing Tips</h3>
               <div className="space-y-8">
                 {[
                   { num: '01', text: 'Use action verbs like "Architected," "Spearheaded," and "Optimized" to define your impact.' },
@@ -179,7 +221,7 @@ const CareerPrepHub: React.FC = () => {
                   { num: '03', text: 'Limit your resume to a single page for maximum readability and focus.' }
                 ].map((tip, i) => (
                   <div key={i} className="flex gap-4 group/tip">
-                    <span className="text-2xl font-black text-blue-100 group-hover/tip:text-blue-200 transition-colors uppercase italic leading-none">{tip.num}</span>
+                    <span className="text-2xl font-black text-blue-100 group-hover/tip:text-blue-400 transition-colors uppercase italic leading-none">{tip.num}</span>
                     <p className="text-[11px] text-gray-500 font-bold leading-relaxed">{tip.text}</p>
                   </div>
                 ))}
@@ -189,20 +231,23 @@ const CareerPrepHub: React.FC = () => {
         </div>
 
         {/* Right Column: 4. Announcements */}
-        <div className="bg-[#000613] rounded-[3rem] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl"></div>
+        <div 
+          onClick={() => navigate('/student/announcements')}
+          className="bg-[#000613] rounded-[3rem] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden group cursor-pointer hover:shadow-blue-900/10 hover:-translate-y-1 transition-all duration-500"
+        >
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl group-hover:bg-blue-600/20 transition-all"></div>
           <div className="relative z-10 flex flex-col h-full">
-            <h2 className="text-2xl font-black italic uppercase mb-8">Announcements</h2>
+            <h2 className="text-2xl font-black italic uppercase mb-8 text-gray-100 tracking-tight">Announcements</h2>
             
             <div className="flex-1 space-y-8">
-              {announcements.length > 0 ? announcements.map((ann, i) => (
-                <div key={i} className="space-y-3 group cursor-pointer">
+              {announcements.length > 0 ? announcements.map((ann: any, i: number) => (
+                <div key={i} className="space-y-3 group/item">
                   <span className="inline-block px-2.5 py-1 bg-blue-600/20 text-blue-400 text-[8px] font-black uppercase tracking-widest rounded-lg border border-blue-600/30">
                     {ann.type || 'PLACEMENT'}
                   </span>
-                  <h4 className="text-sm font-black italic uppercase leading-tight group-hover:text-blue-400 transition-colors">{ann.title}</h4>
-                  <p className="text-[10px] text-gray-400 font-bold tracking-wide italic">
-                    {ann.message.substring(0, 60)}...
+                  <h4 className="text-sm font-black italic uppercase leading-tight group-hover/item:text-blue-400 transition-colors">{ann.title}</h4>
+                  <p className="text-[10px] text-gray-400 font-bold tracking-wide italic leading-relaxed">
+                    {ann.message.substring(0, 80)}...
                   </p>
                   <div className="pt-2 flex items-center gap-2 text-[9px] text-gray-500 font-bold uppercase tracking-wider">
                     <Clock size={10} /> {new Date(ann.createdAt).toLocaleDateString()}
@@ -213,7 +258,10 @@ const CareerPrepHub: React.FC = () => {
               )}
             </div>
 
-            <button className="w-full mt-8 py-4 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white/5 transition-all">
+            <button 
+              onClick={(e) => { e.stopPropagation(); navigate('/student/announcements'); }}
+              className="w-full mt-8 py-4 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all"
+            >
               View All Notices
             </button>
           </div>
@@ -222,17 +270,26 @@ const CareerPrepHub: React.FC = () => {
 
       {/* 5. Interview Mastery Sections */}
       <div className="space-y-8 pt-12">
-        <div className="flex justify-between items-end">
+        <div className="flex justify-between items-end border-b-2 border-gray-100 pb-6">
           <div>
-            <h2 className="text-2xl font-black text-[#000613] italic uppercase">Interview <span className="opacity-30">Mastery</span></h2>
+            <h2 className="text-3xl font-black text-[#000613] italic uppercase tracking-tighter">Interview <span className="opacity-30">Mastery</span></h2>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Focused content modules for every stage</p>
           </div>
-          <button className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] hover:text-[#000613] transition-colors border-b-2 border-gray-100 hover:border-blue-600 pb-1 italic">Full Curriculum</button>
+          <button 
+            onClick={() => navigate('/student/resources/all')}
+            className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] hover:text-blue-600 transition-colors border-b-2 border-transparent hover:border-blue-600 pb-1 italic"
+          >
+            Full Curriculum
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {interviewModules.map((mod, i) => (
-            <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-sm hover:shadow-xl transition-all duration-500 group">
+            <div 
+              key={i} 
+              onClick={() => navigate(mod.path)}
+              className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group cursor-pointer"
+            >
               <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-[#000613] group-hover:text-white transition-all mb-6">
                 {mod.icon}
               </div>
@@ -253,9 +310,9 @@ const CareerPrepHub: React.FC = () => {
         <h2 className="text-2xl font-black text-[#000613] italic uppercase">Video <span className="opacity-30">Masterclass</span></h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {resources.filter(r => r.type === 'Video').map((video, i) => (
+          {resources.filter((r: any) => r.type === 'Video').map((video: any, i: number) => (
             <div key={i} className="group cursor-pointer space-y-4">
-              <div className="aspect-video bg-gray-200 rounded-[2.5rem] relative overflow-hidden shadow-lg">
+              <div className="aspect-video bg-gray-200 rounded-[2.5rem] relative overflow-hidden shadow-lg group-hover:shadow-2xl transition-all">
                 <img 
                   src={video.thumbnail || `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=400&auto=format&fit=crop`} 
                   alt={video.title} 
@@ -270,7 +327,7 @@ const CareerPrepHub: React.FC = () => {
                   {video.duration || '00:00'}
                 </div>
               </div>
-              <div>
+              <div className="px-2">
                 <h4 className="text-lg font-black text-[#000613] italic uppercase leading-tight mb-1 group-hover:text-blue-600 transition-colors">{video.title}</h4>
                 <p className="text-[10px] text-gray-400 font-bold italic uppercase tracking-wider">
                   By {video.instructor || 'Campus Expert'} • {video.addedBy?.role || 'Authority'}
@@ -278,7 +335,7 @@ const CareerPrepHub: React.FC = () => {
               </div>
             </div>
           ))}
-          {resources.filter(r => r.type === 'Video').length === 0 && (
+          {resources.filter((r: any) => r.type === 'Video').length === 0 && (
             <div className="col-span-12 py-12 text-center bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100 italic font-bold text-gray-400 uppercase tracking-widest">
               Check back for new masterclasses
             </div>
@@ -287,21 +344,21 @@ const CareerPrepHub: React.FC = () => {
       </div>
 
       {/* 7. Curated Resources Section */}
-      <div className="bg-gray-50 rounded-[3rem] p-8 md:p-12 border border-gray-100">
+      <div className="bg-gray-50 rounded-[3rem] p-8 md:p-12 border border-gray-100 shadow-inner">
         <div className="flex items-center gap-3 mb-10">
           <BookOpen size={24} className="text-[#000613]" />
-          <h2 className="text-2xl font-black text-[#000613] italic uppercase">Curated <span className="opacity-30">Resources</span></h2>
+          <h2 className="text-2xl font-black text-[#000613] italic uppercase leading-none">Curated <span className="opacity-30">Resources</span></h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {resources.filter(r => r.type === 'File' && r.category === 'Curated Resources').map((res, i) => (
-            <div key={i} className="bg-white p-6 rounded-[2rem] flex items-center justify-between group hover:shadow-xl transition-all border border-transparent hover:border-blue-100">
+          {resources.filter((r: any) => r.type === 'File' && r.category === 'Curated Resources').map((res: any, i: number) => (
+            <div key={i} className="bg-white p-6 rounded-[2rem] flex items-center justify-between group hover:shadow-xl hover:-translate-y-1 transition-all border border-transparent hover:border-blue-100 cursor-default">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-all">
                   <FileText size={20} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-black text-[#000613] italic uppercase">{res.title}</h4>
+                  <h4 className="text-sm font-black text-[#000613] italic uppercase group-hover:text-blue-600 transition-colors">{res.title}</h4>
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest truncate max-w-[150px]">
                     {res.tags?.join(' • ') || 'Resource Guide'} • {res.duration || 'Portable PDF'}
                   </p>
@@ -317,25 +374,38 @@ const CareerPrepHub: React.FC = () => {
             </div>
           ))}
           
-          <div className="bg-[#000613] p-6 rounded-[2rem] flex items-center justify-center group cursor-pointer shadow-xl shadow-black/20 hover:scale-[1.02] transition-all">
+          <div 
+            onClick={() => navigate('/student/resources/all')}
+            className="bg-[#000613] p-6 rounded-[2rem] flex items-center justify-center group cursor-pointer shadow-xl shadow-black/20 hover:bg-blue-600 hover:-translate-y-1 transition-all"
+          >
             <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] italic mr-2">Explore All Resources</span>
-            <ArrowUpRight size={18} className="text-blue-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+            <ArrowUpRight size={18} className="text-blue-400 group-hover:text-white group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
           </div>
         </div>
       </div>
 
       {/* Footer */}
       <div className="pt-12 pb-6 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex flex-col items-center md:items-start">
-          <span className="text-lg font-black text-[#000613] italic tracking-tight uppercase">The Digital <span className="text-blue-600">Curator</span></span>
+        <div className="flex flex-col items-center md:items-start group cursor-default">
+          <span className="text-lg font-black text-[#000613] italic tracking-tight uppercase">The Digital <span className="text-blue-600 group-hover:underline underline-offset-4">Curator</span></span>
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">Official Placement Management System v3.2.0</p>
         </div>
         <div className="flex gap-8">
-          {['Terms of Use', 'Privacy Policy', 'Support Hub'].map(link => (
-            <button key={link} className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] hover:text-[#000613] transition-colors italic">{link}</button>
+          {[
+            { name: 'Terms of Use', path: '/terms' },
+            { name: 'Privacy Policy', path: '/privacy' },
+            { name: 'Support Hub', path: '/support' }
+          ].map(link => (
+            <button 
+              key={link.name} 
+              onClick={() => navigate(link.path)}
+              className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] hover:text-blue-600 transition-colors italic border-b border-transparent hover:border-blue-600 pb-0.5"
+            >
+              {link.name}
+            </button>
           ))}
         </div>
-        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">© 2024 University Academic Authority</p>
+        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest select-none">© 2024 University Academic Authority</p>
       </div>
 
     </div>

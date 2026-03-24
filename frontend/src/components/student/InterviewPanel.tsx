@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ExternalLink, ChevronRight, Loader2 } from 'lucide-react';
 import api from '../../api';
 
 const InterviewPanel: React.FC = () => {
+  const navigate = useNavigate();
   const [interviews, setInterviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,10 +30,15 @@ const InterviewPanel: React.FC = () => {
   }
 
   return (
-    <div className="bg-white p-5 rounded-xl shadow-md border border-gray-200 h-full hover:shadow-lg transition-shadow duration-300">
+    <div 
+      onClick={() => navigate('/student/interviews')}
+      className="bg-white p-5 rounded-xl shadow-md border border-gray-200 h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+    >
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-gray-900">Upcoming Interviews</h3>
-        <ChevronRight size={20} className="text-gray-400 cursor-pointer hover:text-gray-600" />
+        <h3 className="text-xl font-semibold text-gray-900">
+          Upcoming Interviews {interviews.length > 0 && `(${interviews.length})`}
+        </h3>
+        <ChevronRight size={20} className="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
       </div>
       <div className="space-y-4">
         {interviews.map((interview, i) => (
@@ -64,7 +70,7 @@ const InterviewPanel: React.FC = () => {
           </div>
         ))}
         {interviews.length === 0 && (
-          <p className="text-center py-10 text-gray-400 font-medium italic">No upcoming interviews</p>
+          <p className="text-center py-10 text-gray-400 font-medium italic">No upcoming interviews. Check your applications regularly.</p>
         )}
       </div>
     </div>

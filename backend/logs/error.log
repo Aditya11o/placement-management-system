@@ -236,3 +236,55 @@ TypeError: next is not a function
     at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
     at async updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:130:5)
 --------------------------------------------------
+[2026-03-24T14:45:03.722Z] POST /api/mock-interviews/book
+ValidationError: Notification validation failed: title: Path `title` is required., user_id: Path `user_id` is required.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async bookMockInterview (D:\Desktop\PMS\Placement Management System\backend\controllers\mockInterviewController.js:67:5)
+--------------------------------------------------
+[2026-03-24T14:45:25.213Z] POST /api/mock-interviews/book
+ValidationError: Notification validation failed: title: Path `title` is required., user_id: Path `user_id` is required.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async bookMockInterview (D:\Desktop\PMS\Placement Management System\backend\controllers\mockInterviewController.js:67:5)
+--------------------------------------------------
+[2026-03-24T14:50:18.918Z] POST /api/mock-interviews/book
+MongoServerError: E11000 duplicate key error collection: pms.notifications index: notification_id_1 dup key: { notification_id: null }
+    at InsertOneOperation.handleOk (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at tryOperation (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\execute_operation.js:217:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async executeOperation (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async Collection.insertOne (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:425:16)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async bookMockInterview (D:\Desktop\PMS\Placement Management System\backend\controllers\mockInterviewController.js:76:5)
+--------------------------------------------------
+[2026-03-24T14:50:43.819Z] POST /api/mock-interviews/book
+MongoServerError: E11000 duplicate key error collection: pms.notifications index: notification_id_1 dup key: { notification_id: null }
+    at InsertOneOperation.handleOk (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at tryOperation (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\execute_operation.js:217:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async executeOperation (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async Collection.insertOne (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:425:16)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async bookMockInterview (D:\Desktop\PMS\Placement Management System\backend\controllers\mockInterviewController.js:67:5)
+--------------------------------------------------
+[2026-03-24T15:03:56.435Z] POST /api/mock-interviews/book
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\Notification.js:67:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:70:24)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async bookMockInterview (D:\Desktop\PMS\Placement Management System\backend\controllers\mockInterviewController.js:67:5)
+--------------------------------------------------
