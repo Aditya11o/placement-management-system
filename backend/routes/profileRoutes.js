@@ -1,5 +1,5 @@
 const express = require('express');
-const { getMyProfile, updateProfile, addResume, deleteResume, requestSkillVerification } = require('../controllers/profileController');
+const { getMyProfile, updateProfile, addResume, deleteResume, requestSkillVerification, updateResume } = require('../controllers/profileController');
 const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 const router = express.Router();
