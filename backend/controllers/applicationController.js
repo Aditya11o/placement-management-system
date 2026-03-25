@@ -181,10 +181,11 @@ const updateApplicationStatus = async (req, res, next) => {
 
     // Create notification for student
     await Notification.create({
-      recipient: application.student._id,
-      message: `Your application status for ${application.job.title || 'a job'} has been updated to ${status}.`,
-      type: 'application',
-      link: `/applications/${application._id}`,
+      user_id: application.student._id,
+      title: 'Application Status Updated',
+      message: `Your application status for ${application.job?.title || 'a job'} has been updated to ${status}.`,
+      type: 'interview',
+      link: `/student/applications`,
     });
 
     // Emit live socket event
@@ -326,10 +327,11 @@ const bulkUpdateStatus = async (req, res, next) => {
     
     // Create notifications for all students
     const notifications = applications.map(app => ({
-      recipient: app.student._id,
+      user_id: app.student._id,
+      title: 'Bulk Status Update',
       message: `Your application status for ${app.job.title} has been updated to ${status}.`,
-      type: 'application',
-      link: `/applications/${app._id}`,
+      type: 'interview',
+      link: `/student/applications`,
     }));
     await Notification.insertMany(notifications);
 

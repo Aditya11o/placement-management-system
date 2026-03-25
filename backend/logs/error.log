@@ -288,3 +288,24 @@ TypeError: next is not a function
     at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
     at async bookMockInterview (D:\Desktop\PMS\Placement Management System\backend\controllers\mockInterviewController.js:67:5)
 --------------------------------------------------
+[2026-03-24T16:12:08.714Z] POST /api/auth/login
+Error: REFRESH_TOKEN_SECRET is not defined in environment variables
+    at generateRefreshToken (D:\Desktop\PMS\Placement Management System\backend\utils\generateRefreshToken.js:5:11)
+    at setTokenCookies (D:\Desktop\PMS\Placement Management System\backend\controllers\authController.js:13:24)
+    at authUser (D:\Desktop\PMS\Placement Management System\backend\controllers\authController.js:164:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+--------------------------------------------------
+[2026-03-24T16:12:52.778Z] POST /api/auth/login
+Error: REFRESH_TOKEN_SECRET is not defined in environment variables
+    at generateRefreshToken (D:\Desktop\PMS\Placement Management System\backend\utils\generateRefreshToken.js:5:11)
+    at setTokenCookies (D:\Desktop\PMS\Placement Management System\backend\controllers\authController.js:13:24)
+    at authUser (D:\Desktop\PMS\Placement Management System\backend\controllers\authController.js:164:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+--------------------------------------------------
+[2026-03-24T17:11:38.330Z] POST /api/auth/login
+Error: REFRESH_TOKEN_SECRET is not defined in environment variables
+    at generateRefreshToken (D:\Desktop\PMS\Placement Management System\backend\utils\generateRefreshToken.js:5:11)
+    at setTokenCookies (D:\Desktop\PMS\Placement Management System\backend\controllers\authController.js:13:24)
+    at authUser (D:\Desktop\PMS\Placement Management System\backend\controllers\authController.js:164:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+--------------------------------------------------

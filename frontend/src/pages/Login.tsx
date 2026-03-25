@@ -33,6 +33,11 @@ const Login: React.FC = () => {
       }
 
       const user = res;
+      // Explicitly store token as requested
+      if (user.token) {
+        localStorage.setItem("token", user.token);
+      }
+      
       if (user.role !== role) {
         showError(`Access denied. You are registered as a ${user.role}.`, 'Access Denied');
         return;

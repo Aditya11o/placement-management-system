@@ -114,6 +114,7 @@ app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/student', require('./routes/studentRoutes'));
+app.use('/api/students', require('./routes/studentRoutes'));
 app.use('/api/resources', require('./routes/resourceRoutes'));
 app.use('/api/tickets', require('./routes/ticketRoutes'));
 app.use('/api/faqs', require('./routes/faqRoutes'));

@@ -29,19 +29,25 @@ const StudentDashboard: React.FC = () => {
     rejected: 0
   });
   const [jobs, setJobs] = useState([]);
+  const [interviews, setInterviews] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [statsRes, jobsRes] = await Promise.all([
-          api.get('/applications/stats'),
-          api.get('/jobs')
-        ]);
-        setStats(statsRes.data);
-        setJobs(jobsRes.data);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        setLoading(true);
+        const { data } = await api.get('/student/dashboard');
+        
+        setStats(data.stats);
+        setJobs(data.jobs);
+        setInterviews(data.interviews);
+        setNotifications(data.notifications);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -52,8 +58,27 @@ const StudentDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
+      <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
         <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+        <p className="text-gray-500 font-medium animate-pulse">Loading your dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center flex-col gap-4 text-center px-4">
+        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-2">
+           <XCircle className="w-8 h-8" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900">Oops! Something went wrong</h3>
+        <p className="text-gray-500 max-w-xs">{error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
@@ -74,7 +99,7 @@ const StudentDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Row 0: Announcements (Full Width) */}
         <section className="md:col-span-12">
-          <AnnouncementsBoard />
+          <AnnouncementsBoard initialAnnouncements={notifications} />
         </section>
         
         {/* Row 1: Profile (4) + Stats (8) */}
@@ -99,7 +124,7 @@ const StudentDashboard: React.FC = () => {
         </section>
 
         <section className="md:col-span-4 h-full">
-          <InterviewPanel />
+          <InterviewPanel initialInterviews={interviews} />
         </section>
 
         {/* Row 3: Pipeline (8) + Career Resources (4) */}

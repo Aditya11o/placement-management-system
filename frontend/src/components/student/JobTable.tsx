@@ -14,6 +14,12 @@ const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
   const [jobs, setJobs] = useState(initialJobs);
   const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialJobs.length > 0) {
+      setJobs(initialJobs);
+    }
+  }, [initialJobs]);
 // ... existing useEffects
   const handleApply = async (jobId: string) => {
     try {
@@ -59,9 +65,9 @@ const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-500 flex-shrink-0">
-                          {job.company_id?.company_name?.[0] || 'J'}
+                          {job.companyName?.[0] || 'J'}
                         </div>
-                        <span className="font-semibold text-gray-900 truncate">{job.company_id?.company_name || 'Tech Corp'}</span>
+                        <span className="font-semibold text-gray-900 truncate">{job.companyName || 'Tech Corp'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">

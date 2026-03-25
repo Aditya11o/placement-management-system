@@ -1,13 +1,24 @@
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExternalLink, ChevronRight, Loader2 } from 'lucide-react';
 import api from '../../api';
 
-const InterviewPanel: React.FC = () => {
+interface InterviewPanelProps {
+  initialInterviews?: any[];
+}
+
+const InterviewPanel: React.FC<InterviewPanelProps> = ({ initialInterviews = [] }) => {
   const navigate = useNavigate();
-  const [interviews, setInterviews] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [interviews, setInterviews] = useState<any[]>(initialInterviews);
+  const [loading, setLoading] = useState(initialInterviews.length === 0);
 
   useEffect(() => {
+    if (initialInterviews.length > 0) {
+      setInterviews(initialInterviews);
+      setLoading(false);
+      return;
+    }
+
     const fetchInterviews = async () => {
       try {
         const { data } = await api.get('/applications/interviews');
@@ -19,7 +30,7 @@ const InterviewPanel: React.FC = () => {
       }
     };
     fetchInterviews();
-  }, []);
+  }, [initialInterviews]);
 
   if (loading) {
     return (
@@ -41,7 +52,7 @@ const InterviewPanel: React.FC = () => {
         <ChevronRight size={20} className="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
       </div>
       <div className="space-y-4">
-        {interviews.map((interview, i) => (
+        {interviews.map((interview: any, i: number) => (
           <div key={i} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm transition-all">
             <div className="flex justify-between items-start">
               <div>

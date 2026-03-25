@@ -2,11 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Megaphone, Clock, ChevronRight } from 'lucide-react';
 import api from '../api';
 
-const AnnouncementsBoard: React.FC = () => {
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+interface AnnouncementsBoardProps {
+  initialAnnouncements?: any[];
+}
+
+const AnnouncementsBoard: React.FC<AnnouncementsBoardProps> = ({ initialAnnouncements = [] }) => {
+  const [announcements, setAnnouncements] = useState<any[]>(initialAnnouncements);
+  const [loading, setLoading] = useState(initialAnnouncements.length === 0);
 
   useEffect(() => {
+    if (initialAnnouncements.length > 0) {
+      setAnnouncements(initialAnnouncements);
+      setLoading(false);
+      return;
+    }
+
     const fetchAnnouncements = async () => {
       try {
         const { data } = await api.get('/notifications');
@@ -19,7 +29,7 @@ const AnnouncementsBoard: React.FC = () => {
       }
     };
     fetchAnnouncements();
-  }, []);
+  }, [initialAnnouncements]);
 
   if (loading) return (
     <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm animate-pulse">
