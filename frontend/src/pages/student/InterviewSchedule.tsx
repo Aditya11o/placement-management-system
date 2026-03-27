@@ -9,6 +9,7 @@ import {
 import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
+import ResponsiveTable from '../../components/ResponsiveTable';
 
 const InterviewSchedule: React.FC = () => {
   const { showSuccess, showError } = useNotification();
@@ -205,7 +206,7 @@ const InterviewSchedule: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto flex-1">
+          <ResponsiveTable>
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-50">
@@ -280,7 +281,7 @@ const InterviewSchedule: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
+          </ResponsiveTable>
           
           <button 
             onClick={() => window.location.href = '/student/interview-history'}

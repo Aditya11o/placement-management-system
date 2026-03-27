@@ -51,9 +51,9 @@ const SupportTab: React.FC = () => {
   );
 
   return (
-    <div className="h-[750px] flex gap-8 animate-fade-in">
+    <div className="lg:h-[750px] flex flex-col lg:flex-row gap-8 animate-fade-in">
       {/* Sidebar List */}
-      <div className="w-1/3 flex flex-col gap-6">
+      <div className="w-full lg:w-1/3 flex flex-col gap-6">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input 

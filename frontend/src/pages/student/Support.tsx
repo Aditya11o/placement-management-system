@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  MessageSquare, Send, Clock, 
+  MessageSquare, Send, 
   CheckCircle2, AlertCircle, Loader2,
-  ChevronRight, HelpCircle, History
+  HelpCircle, History
 } from 'lucide-react';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
@@ -50,23 +50,17 @@ const Support: React.FC = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'open': return <Clock size={16} className="text-blue-500" />;
-      case 'resolved': return <CheckCircle2 size={16} className="text-emerald-500" />;
-      default: return <Clock size={16} className="text-gray-400" />;
-    }
-  };
+
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8 animate-fade-in">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Help & Support</h1>
           <p className="text-gray-500 text-sm font-medium mt-1">Need assistance? Our admin team is here to help.</p>
         </div>
-        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
             <HelpCircle size={24} />
         </div>
       </div>

@@ -48,7 +48,7 @@ const ProfileProgress: React.FC = () => {
       </div>
       <button 
         onClick={() => navigate('/student/profile')}
-        className="bg-white text-blue-950 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition-all shadow-sm active:scale-95 hover:scale-[1.02] mt-6"
+        className="bg-blue-100 text-blue-950 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-200 transition-all shadow-sm active:scale-95 hover:scale-[1.02] mt-6 border border-blue-200/50"
       >
         {progress === 100 ? 'Update Profile' : 'Complete Profile'}
       </button>

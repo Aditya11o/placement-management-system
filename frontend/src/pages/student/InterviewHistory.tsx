@@ -8,6 +8,7 @@ import {
 import api from '../../api';
 import Dropdown from '../../components/Dropdown';
 import { useAuth } from '../../context/AuthContext';
+import ResponsiveTable from '../../components/ResponsiveTable';
 
 const InterviewHistory: React.FC = () => {
   const { user } = useAuth();
@@ -151,7 +152,7 @@ const InterviewHistory: React.FC = () => {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        <ResponsiveTable>
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50/50">
@@ -212,7 +213,7 @@ const InterviewHistory: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
+        </ResponsiveTable>
 
         {filteredInterviews.length === 0 && (
           <div className="py-24 text-center">

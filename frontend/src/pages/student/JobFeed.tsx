@@ -234,16 +234,16 @@ const JobFeed: React.FC = () => {
                   </span>
                 </div>
                 
-                <div className="flex gap-2">
-                  <button className="px-5 py-2 border border-gray-200 rounded-xl text-[11px] font-bold text-gray-600 hover:bg-gray-50 transition-all">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <button className="w-full sm:w-auto px-5 py-2 border border-gray-200 rounded-xl text-[11px] font-bold text-gray-600 hover:bg-gray-50 transition-all">
                     View Details
                   </button>
                   {job.status === 'Applied' ? (
-                    <button disabled className="px-6 py-2 bg-gray-100 text-gray-400 rounded-xl text-[11px] font-black uppercase tracking-widest cursor-not-allowed">
+                    <button disabled className="w-full sm:w-auto px-6 py-2 bg-gray-100 text-gray-400 rounded-xl text-[11px] font-black uppercase tracking-widest cursor-not-allowed">
                       Applied
                     </button>
                   ) : job.status === 'Closed' ? (
-                    <button disabled className="px-6 py-2 bg-gray-50 text-gray-300 rounded-xl text-[11px] font-black uppercase tracking-widest cursor-not-allowed">
+                    <button disabled className="w-full sm:w-auto px-6 py-2 bg-gray-50 text-gray-300 rounded-xl text-[11px] font-black uppercase tracking-widest cursor-not-allowed">
                       Closed
                     </button>
                   ) : (
@@ -253,10 +253,10 @@ const JobFeed: React.FC = () => {
                         if (job.screeningQuestions?.length > 0) {
                           setShowApplyModal(true);
                         } else {
-                          handleApply(); // Direct apply if no questions (wait, need to wrap in a temp ref or use job param)
+                          handleApply();
                         }
                       }}
-                      className="px-6 py-2 bg-blue-950 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black shadow-md shadow-blue-900/10 active:scale-95 transition-all"
+                      className="w-full sm:w-auto px-6 py-2 bg-blue-950 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black shadow-md shadow-blue-900/10 active:scale-95 transition-all text-center"
                     >
                       Apply Now
                     </button>
@@ -295,7 +295,7 @@ const JobFeed: React.FC = () => {
                   <div key={q._id} className="space-y-2.5">
                     <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{q.question}</label>
                     {q.type === 'boolean' ? (
-                      <div className="flex gap-4">
+                      <div className="flex flex-col sm:flex-row gap-4">
                         {['Yes', 'No'].map(opt => (
                           <button
                             key={opt}

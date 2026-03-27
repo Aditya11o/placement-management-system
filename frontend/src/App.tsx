@@ -22,7 +22,7 @@ import Notifications from './pages/student/Notifications';
 import CareerResources from './pages/student/CareerResources';
 import Settings from './pages/student/Settings';
 import StudentProfile from './pages/student/Profile';
-import ResumeBuilder from './pages/student/ResumeBuilder';
+
 import MockInterviews from './pages/student/MockInterviews';
 import HelpSupport from './pages/student/HelpSupport';
 import ComingSoon from './pages/ComingSoon';
@@ -81,7 +81,7 @@ const App: React.FC = () => {
             <Route path="interviews" element={<InterviewSchedule />} />
             <Route path="interview-history" element={<InterviewHistory />} />
             <Route path="resources" element={<CareerResources />} />
-            <Route path="resume-builder" element={<ResumeBuilder />} />
+
             <Route path="mock-interviews" element={<MockInterviews />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="announcements" element={<ComingSoon featureName="Announcements" />} />

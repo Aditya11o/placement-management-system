@@ -35,7 +35,7 @@ const MockInterviews: React.FC = () => {
       setLoading(true);
       const [statsRes, upcomingRes, historyRes, analyticsRes] = await Promise.all([
         api.get('/mock-interviews/stats'),
-        api.get('/mock-interviews/upcoming'),
+        api.get('/interviews/student'),
         api.get('/mock-interviews/history'),
         api.get('/mock-interviews/analytics')
       ]);
@@ -61,7 +61,7 @@ const MockInterviews: React.FC = () => {
     
     try {
       setBookingLoading(true);
-      await api.post('/mock-interviews/book', bookingForm);
+      await api.post('/interviews/book', bookingForm);
       showSuccess('Mock interview booked successfully!', 'Booking Confirmed');
       fetchDashboardData();
       setBookingForm({ ...bookingForm, date: '' });
@@ -145,8 +145,8 @@ const MockInterviews: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block italic">Date</label>
                   <input 
                     type="date"
@@ -180,7 +180,7 @@ const MockInterviews: React.FC = () => {
               <button 
                 type="submit"
                 disabled={bookingLoading}
-                className="w-full py-5 bg-[#000613] text-white rounded-2xl font-black text-[13px] uppercase tracking-widest hover:bg-black transition-all shadow-lg hover:shadow-blue-900/10 flex items-center justify-center gap-2 group italic"
+                className="w-full sm:w-max px-10 py-5 bg-[#000613] text-white rounded-2xl font-black text-[13px] uppercase tracking-widest hover:bg-black transition-all shadow-lg hover:shadow-blue-900/10 flex items-center justify-center gap-2 group italic ml-auto"
               >
                 {bookingLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Book Mock Interview'}
                 {!bookingLoading && <ArrowUpRight size={18} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />}
@@ -247,16 +247,21 @@ const MockInterviews: React.FC = () => {
                       <Video size={20} className="text-blue-900 group-hover:text-white" />
                     </div>
                     <div>
-                      <h4 className="text-[15px] font-black text-gray-900 leading-tight uppercase italic">{item.type} Mock</h4>
+                      <h4 className="text-[15px] font-black text-gray-900 leading-tight uppercase italic">{item.interview_type} Mock</h4>
                       <div className="flex flex-wrap gap-4 mt-2">
-                         <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 italic"><Calendar size={14} /> {new Date(item.scheduledAt).toLocaleDateString()} • {item.slot}</span>
-                         <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 italic"><Star size={14} /> Mentor: {item.mentor?.name}</span>
+                         <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 italic"><Calendar size={14} /> {new Date(item.interview_date).toLocaleDateString()} • {item.interview_time}</span>
+                         <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 italic"><Star size={14} /> Mentor: {item.mentor_id?.name}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <button className="px-6 py-2.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-md italic">Join Meeting</button>
-                    <button className="p-2.5 hover:bg-gray-50 rounded-xl transition-colors text-gray-400"><MoreVertical size={18} /></button>
+                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                    <button 
+                      onClick={() => window.open(item.meeting_link, '_blank')}
+                      className="w-full sm:w-auto px-6 py-2.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-md italic"
+                    >
+                      Join Meeting
+                    </button>
+                    <button className="hidden sm:block p-2.5 hover:bg-gray-50 rounded-xl transition-colors text-gray-400"><MoreVertical size={18} /></button>
                   </div>
                 </div>
               ))}
@@ -306,14 +311,14 @@ const MockInterviews: React.FC = () => {
                 {history.length > 0 && (
                   <div className="mt-8 flex items-center gap-3">
                      <div className="w-10 h-10 bg-blue-50 text-blue-900 rounded-full flex items-center justify-center font-black text-xs border border-blue-100 overflow-hidden">
-                        {history[0].mentor?.profilePhoto ? (
-                          <img src={history[0].mentor.profilePhoto} alt="" className="w-full h-full object-cover" />
+                        {history[0].mentor_id?.profilePhoto ? (
+                          <img src={history[0].mentor_id.profilePhoto} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          history[0].mentor?.name?.[0] || "M"
+                          history[0].mentor_id?.name?.[0] || "M"
                         )}
                      </div>
                      <div>
-                        <h4 className="text-sm font-black text-gray-900 leading-none uppercase italic">{history[0].mentor?.name}</h4>
+                        <h4 className="text-sm font-black text-gray-900 leading-none uppercase italic">{history[0].mentor_id?.name}</h4>
                         <p className="text-[10px] font-bold text-gray-400 uppercase mt-1 italic">Verified Industry Mentor</p>
                      </div>
                   </div>
@@ -332,8 +337,8 @@ const MockInterviews: React.FC = () => {
                            <CheckCircle2 size={20} />
                         </div>
                         <div>
-                           <h4 className="text-sm font-black text-gray-900 leading-none uppercase italic">{item.type} Round</h4>
-                           <p className="text-[10px] font-bold text-gray-400 mt-1 italic uppercase tracking-wider">Completed {new Date(item.scheduledAt).toLocaleDateString()}</p>
+                           <h4 className="text-sm font-black text-gray-900 leading-none uppercase italic">{item.interview_type} Round</h4>
+                           <p className="text-[10px] font-bold text-gray-400 mt-1 italic uppercase tracking-wider">Completed {new Date(item.interview_date).toLocaleDateString()}</p>
                         </div>
                      </div>
                      <div className="flex items-center gap-8">

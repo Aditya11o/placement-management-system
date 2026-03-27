@@ -2,41 +2,37 @@ const mongoose = require('mongoose');
 
 const mockInterviewSchema = new mongoose.Schema(
   {
-    student: {
+    student_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    mentor: {
+    mentor_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true, // Should have role 'mentor' or 'admin'
+      required: true,
     },
-    type: {
+    interview_type: {
       type: String,
       required: true,
       enum: ['Technical', 'HR', 'Aptitude', 'System Design', 'Group Discussion', 'Resume Clinic'],
     },
-    scheduledAt: {
+    interview_date: {
       type: Date,
       required: true,
     },
-    slot: {
+    interview_time: {
       type: String, // e.g. "09:00 AM"
       required: true,
     },
-    mode: {
-      type: String,
-      default: 'Online',
-    },
-    meetingLink: {
+    meeting_link: {
       type: String,
       default: 'https://meet.google.com/mock-interview-link',
     },
     status: {
       type: String,
-      enum: ['Scheduled', 'Completed', 'Cancelled', 'No-show'],
-      default: 'Scheduled',
+      enum: ['scheduled', 'completed', 'cancelled', 'no-show'],
+      default: 'scheduled',
     },
     performance: {
       communication: { type: Number, min: 0, max: 100, default: 0 },
@@ -53,11 +49,12 @@ const mockInterviewSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: 'interviews'
   }
 );
 
 // Prevent double booking for same mentor at same time/date
-mockInterviewSchema.index({ mentor: 1, scheduledAt: 1, slot: 1 }, { unique: true });
+mockInterviewSchema.index({ mentor_id: 1, interview_date: 1, interview_time: 1 }, { unique: true });
 
 const MockInterview = mongoose.model('MockInterview', mockInterviewSchema);
 

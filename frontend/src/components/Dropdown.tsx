@@ -50,7 +50,7 @@ const Dropdown: React.FC<DropdownProps> = ({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`} ref={dropdownRef}>
       {label && (
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">
+        <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider px-1">
           {label}
         </label>
       )}
@@ -58,24 +58,24 @@ const Dropdown: React.FC<DropdownProps> = ({
       <div className="relative">
         <div 
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full border border-gray-100 rounded-xl px-4 py-2 text-sm font-medium transition-all bg-gray-50/50 flex items-center justify-between cursor-pointer hover:bg-white hover:border-gray-200 group shadow-sm ${
-            isOpen ? 'ring-2 ring-blue-500/20 border-blue-500 bg-white shadow-md' : ''
+          className={`w-full border border-outline-variant rounded-xl px-4 py-2 text-sm font-medium transition-all bg-surface-container/50 flex items-center justify-between cursor-pointer hover:bg-surface-container-lowest hover:border-outline-variant group shadow-sm ${
+            isOpen ? 'ring-2 ring-surface-tint/20 border-surface-tint bg-surface-container-lowest shadow-md' : ''
           } ${error ? 'border-rose-200 bg-rose-50/30' : ''}`}
         >
-          <span className={`truncate ${selectedOption ? 'text-gray-900 font-bold' : 'text-gray-400'} ${italic ? 'italic' : ''}`}>
+          <span className={`truncate ${selectedOption ? 'text-on-surface font-bold' : 'text-on-surface-variant'} ${italic ? 'italic' : ''}`}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
           <ChevronDown 
             size={16} 
-            className={`text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-900' : 'group-hover:text-blue-500'}`} 
+            className={`text-on-surface-variant transition-transform duration-300 ${isOpen ? 'rotate-180 text-surface-tint' : 'group-hover:text-surface-tint'}`} 
           />
         </div>
 
         {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl shadow-blue-900/10 z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 max-h-[300px] overflow-y-auto custom-scrollbar">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 max-h-[300px] overflow-y-auto custom-scrollbar">
             <div className="py-2">
               {normalizedOptions.length === 0 ? (
-                <div className="px-4 py-2 text-xs text-gray-400 font-bold italic">No options found.</div>
+                <div className="px-4 py-2 text-xs text-on-surface-variant font-bold italic">No options found.</div>
               ) : (
                 normalizedOptions.map((opt) => (
                   <button
@@ -85,12 +85,12 @@ const Dropdown: React.FC<DropdownProps> = ({
                       onChange(opt.value);
                       setIsOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-gray-50 flex items-center justify-between ${
-                      value === opt.value ? 'text-blue-950 bg-blue-50/50' : 'text-gray-500 hover:text-blue-600'
+                    className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all hover:bg-surface-container flex items-center justify-between ${
+                      value === opt.value ? 'text-surface-tint bg-surface-tint/10' : 'text-on-surface-variant hover:text-surface-tint'
                     }`}
                   >
                     <span className={italic ? 'italic' : ''}>{opt.label}</span>
-                    {value === opt.value && <div className="w-1.5 h-1.5 bg-blue-950 rounded-full" />}
+                    {value === opt.value && <div className="w-1.5 h-1.5 bg-surface-tint rounded-full" />}
                   </button>
                 ))
               )}

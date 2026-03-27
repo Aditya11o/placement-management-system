@@ -4,7 +4,7 @@ import {
   BookOpen, 
   FileText, Clock, 
   Sparkles, Loader2, CheckCircle2, 
-  Circle, Play, Download, MessageSquare,
+  Play, Download, MessageSquare,
   Video, Award,
   ArrowUpRight, Users
 } from 'lucide-react';
@@ -13,35 +13,13 @@ import { useNotification } from '../../context/NotificationContext';
 
 const CareerPrepHub: React.FC = () => {
   const navigate = useNavigate();
-  const { showError, showSuccess } = useNotification();
+  const { showError } = useNotification();
   const [profile, setProfile] = useState<any>(null);
   const [resources, setResources] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
 
-  const getFileName = (path: string) => {
-    if (!path) return '';
-    return path.split('/').pop() || path.split('\\').pop() || '';
-  };
 
-  const handleViewResume = async () => {
-    try {
-      const { data } = await api.get('/student/resume');
-      if (data.resume_url) {
-        // Prepend backend base URL if it's a relative path
-        const fullUrl = data.resume_url.startsWith('http') 
-          ? data.resume_url 
-          : `http://localhost:5000${data.resume_url}`;
-        window.open(fullUrl, '_blank');
-      } else {
-        showError('No resume uploaded yet.');
-      }
-    } catch (err) {
-      console.error(err);
-      showError('No resume uploaded yet.');
-    }
-  };
 
   const fetchDashboardData = async () => {
     try {
@@ -66,32 +44,7 @@ const CareerPrepHub: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      showError('File size must be less than 5MB');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('resume', file);
-
-    try {
-      setUploading(true);
-      await api.post('/profile/upload-resume', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      showSuccess('Resume uploaded successfully');
-      fetchDashboardData();
-    } catch (err) {
-      console.error(err);
-      showError('Failed to upload resume. Please use PDF or DOCX.');
-    } finally {
-      setUploading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -157,74 +110,19 @@ const CareerPrepHub: React.FC = () => {
         {/* Left Column: 2 & 3 */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* 2. Resume Builder Section */}
-          <div className="bg-white rounded-[3rem] p-8 md:p-12 shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-gray-50 flex flex-col md:flex-row gap-12 relative overflow-hidden group">
-            <div className="flex-1 space-y-6">
-              <div>
-                <h2 className="text-3xl font-black text-[#000613] italic uppercase leading-none mb-4 underline decoration-blue-600/20 underline-offset-8">Resume <span className="text-blue-600">Builder</span></h2>
-                <p className="text-gray-400 text-sm font-medium leading-relaxed">
-                  Our curator evaluates your resume against industry-standard benchmarks. Ensure your technical skills and project Highlights are prominently featured.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                {[
-                  { label: 'Skills Matrix', done: (profile?.skills?.length > 0) },
-                  { label: 'Project Impact Statements', done: (profile?.projects?.length > 0) },
-                  { label: 'Education Details', done: !!profile?.course },
-                  { label: 'Contact Information', done: !!profile?.phone },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className={`p-1 rounded-full ${item.done ? 'bg-blue-100 text-blue-600' : 'border-2 border-gray-100 text-gray-100'}`}>
-                      {item.done ? <CheckCircle2 size={14} /> : <Circle size={14} />}
-                    </div>
-                    <span className={`text-xs font-bold uppercase tracking-wide ${item.done ? 'text-gray-900' : 'text-gray-300'}`}>{item.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap gap-4 pt-4">
-                <label className="cursor-pointer bg-[#000613] text-white px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-black/20 hover:bg-blue-600 hover:-translate-y-1 active:scale-95 transition-all">
-                  {uploading ? 'Processing...' : 'Upload Resume'}
-                  <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx" disabled={uploading} />
-                </label>
-                <button 
-                  disabled={!(profile?.resume_path || profile?.resume)}
-                  onClick={handleViewResume}
-                  className={`px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 ${
-                    (profile?.resume_path || profile?.resume) 
-                      ? 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50 hover:border-gray-200' 
-                      : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed opacity-50'
-                  }`}
+          <div className="bg-white rounded-[3rem] p-8 md:p-12 shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-gray-50 flex flex-col md:flex-row gap-12 relative overflow-hidden group min-h-[400px] items-center justify-center text-center">
+            <div className="space-y-6 max-w-xl">
+              <h2 className="text-3xl font-black text-[#000613] italic uppercase leading-none mb-4 underline decoration-blue-600/20 underline-offset-8">Career <span className="text-blue-600">Excellence</span></h2>
+              <p className="text-gray-400 text-sm font-medium leading-relaxed">
+                Elevate your professional identity with our curated collection of interview modules, technical preparation guides, and industry masterclasses. Your placement journey starts with mastering the fundamentals.
+              </p>
+              <div className="flex justify-center pt-4">
+                 <button 
+                  onClick={() => navigate('/student/settings')}
+                  className="bg-[#000613] text-white px-10 py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-black/20 hover:bg-blue-600 hover:-translate-y-1 active:scale-95 transition-all"
                 >
-                  View Current
-                </button>
-              </div>
-
-              {(profile?.resume_path || profile?.resume) && (
-                <div className="flex items-center gap-2 px-2">
-                  <FileText size={12} className="text-blue-600" />
-                  <span className="text-[10px] font-bold text-gray-400 italic">
-                    Current: {getFileName(profile.resume_path || profile.resume)}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* 3. Resume Writing Tips Section */}
-            <div className="w-full md:w-64 space-y-8 bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100">
-              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic border-b border-gray-200 pb-2">Writing Tips</h3>
-              <div className="space-y-8">
-                {[
-                  { num: '01', text: 'Use action verbs like "Architected," "Spearheaded," and "Optimized" to define your impact.' },
-                  { num: '02', text: 'Quantify your results (e.g., "Reduced latency by 40%") to show tangible value.' },
-                  { num: '03', text: 'Limit your resume to a single page for maximum readability and focus.' }
-                ].map((tip, i) => (
-                  <div key={i} className="flex gap-4 group/tip">
-                    <span className="text-2xl font-black text-blue-100 group-hover/tip:text-blue-400 transition-colors uppercase italic leading-none">{tip.num}</span>
-                    <p className="text-[11px] text-gray-500 font-bold leading-relaxed">{tip.text}</p>
-                  </div>
-                ))}
+                  Manage Your Profile & Resume
+                 </button>
               </div>
             </div>
           </div>

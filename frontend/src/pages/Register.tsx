@@ -195,7 +195,7 @@ const Register: React.FC = () => {
                 </Link>
               </p>
               
-              <div className="flex justify-center gap-6 text-[10px] uppercase tracking-widest text-[#c4c6cf] font-black border-t border-gray-50 pt-4">
+              <div className="flex justify-center gap-6 text-[10px] uppercase tracking-widest text-[#c4c6cf] font-black border-t border-gray-50 pt-8 mt-4">
                  <Link to="/privacy" className="hover:text-blue-600 transition-colors cursor-pointer">Privacy</Link>
                  <Link to="/terms" className="hover:text-blue-600 transition-colors cursor-pointer">Terms</Link>
                  <Link to="/help" className="hover:text-blue-600 transition-colors cursor-pointer">Help</Link>

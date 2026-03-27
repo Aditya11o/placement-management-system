@@ -37,12 +37,13 @@ const HelpSupport: React.FC = () => {
   const [ticketMessage, setTicketMessage] = useState('');
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const categories = [
     { title: 'Account Management', icon: User, desc: 'Update your profile, change passwords, and manage notification settings.' },
     { title: 'Job Applications', icon: Briefcase, desc: 'Guidelines on applying for positions and tracking your application flow.' },
     { title: 'Interview Support', icon: Users, desc: 'Preparation tips, mock interviews, and virtual technical setup guides.' },
-    { title: 'Resume Builder', icon: FileText, desc: 'Optimize your resume using our templates and automated analysis tools.' },
+    { title: 'Resume & Profile', icon: FileText, desc: 'Manage your professional identity, upload resumes, and optimize your student profile.' },
     { title: 'Technical Issues', icon: Monitor, desc: 'Help with platform glitches, login errors, or system compatibility.' },
     { title: 'Other Queries', icon: MoreHorizontal, desc: "Anything else that doesn't fit the categories above? We're here." },
   ];
@@ -109,6 +110,14 @@ const HelpSupport: React.FC = () => {
     open: <AlertCircle size={12} />,
     closed: <ShieldCheck size={12} />
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <RefreshCw size={40} className="animate-spin text-blue-600 opacity-20" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-[1600px] mx-auto pb-20 animate-fade-in">
@@ -200,7 +209,7 @@ const HelpSupport: React.FC = () => {
                       onChange={(val) => setTicketType(val)}
                       options={[
                         'Account Management', 'Job Applications', 'Interview Support',
-                        'Resume Builder', 'Technical Issues', 'Other Queries'
+                        'Resume & Profile', 'Technical Issues', 'Other Queries'
                       ]}
                     />
                   </div>

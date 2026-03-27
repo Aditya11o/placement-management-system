@@ -5,13 +5,15 @@ import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, 
 interface SidebarProps {
   role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
   isOpen?: boolean;
+  isCollapsed?: boolean;
   onClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose }) => {
 
   const getLinks = () => {
-    switch (role as any) { // Type casting to handle expanded roles temporarily
+    // ... existing links logic
+    switch (role as any) {
       case 'student':
         return [
           { name: 'Dashboard', icon: LayoutDashboard, path: '/student/dashboard' },
@@ -19,7 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onClose }) => {
           { name: 'Jobs', icon: Briefcase, path: '/student/jobs' },
           { name: 'My Applications', icon: FileText, path: '/student/applications' },
           { name: 'Interview Schedule', icon: Calendar, path: '/student/interviews' },
-          { name: 'Resume Builder', icon: FileText, path: '/student/resume-builder' },
+
           { name: 'Career Prep', icon: BookOpen, path: '/student/resources' },
           { name: 'Mock Interviews', icon: MessageSquare, path: '/student/mock-interviews' },
           { name: 'Notifications', icon: Bell, path: '/student/notifications' },
@@ -47,26 +49,30 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onClose }) => {
           { name: 'Reports', icon: FileText, path: '/admin/reports' },
           { name: 'Notifications', icon: Bell, path: '/admin/notifications' },
         ];
-      case 'alumni':
-      case 'mentor':
+      default:
         return [
           { name: 'Dashboard', icon: LayoutDashboard, path: `/${role}/dashboard` },
           { name: 'Post Referral', icon: Briefcase, path: `/${role}/post-job` },
           { name: 'My Profile', icon: Users, path: `/${role}/profile` },
         ];
-      default:
-        return [];
     }
   };
 
   const links = getLinks();
 
   return (
-    <aside className={`w-64 h-screen bg-surface-container-low flex flex-col fixed left-0 top-0 border-r border-outline-variant z-40 transition-all duration-300 transform ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-      <div className="h-20 flex items-center justify-between px-6 border-b border-outline-variant/30">
-        <h1 className="text-xl font-bold font-display text-primary tracking-tight uppercase">
-          Placement <span className="opacity-40 font-normal">Portal</span>
-        </h1>
+    <aside className={`h-screen bg-surface-container-low flex flex-col fixed left-0 top-0 border-r border-outline-variant z-40 transition-all duration-300 transform ${
+      isCollapsed ? 'w-20' : 'lg:w-64 md:w-20 w-64'
+    } ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <div className={`h-20 flex items-center justify-between px-6 border-b border-outline-variant/30 ${isCollapsed ? 'justify-center px-0' : ''}`}>
+        {!isCollapsed && (
+          <h1 className="text-xl font-bold font-display text-primary tracking-tight uppercase lg:block md:hidden block">
+            Placement <span className="opacity-40 font-normal">Portal</span>
+          </h1>
+        )}
+        {isCollapsed && (
+           <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-on-primary font-black">P</div>
+        )}
         <button 
           onClick={onClose}
           className="md:hidden p-2 text-gray-400 hover:text-gray-600 transition-colors"
@@ -74,53 +80,62 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onClose }) => {
           <X size={20} />
         </button>
       </div>
-      <nav className="flex-1 px-4 py-8 space-y-1 overflow-hidden">
+      <nav className={`flex-1 px-4 py-8 space-y-1 overflow-y-auto custom-scrollbar ${isCollapsed ? 'px-2' : ''}`}>
         {links.map((link) => {
           const Icon = link.icon;
           return (
             <NavLink
               key={link.name}
               to={link.path}
+              title={isCollapsed ? link.name : ""}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-5 py-3.5 rounded-xl font-bold text-[13px] transition-all duration-300 ${
+                `flex items-center gap-3 rounded-xl font-bold text-[13px] transition-all duration-300 ${
+                  isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'
+                } ${
                   isActive
-                    ? 'bg-[#000613] text-white shadow-xl shadow-black/10 scale-[1.02]'
-                    : 'text-[var(--on-surface-variant)] hover:bg-[#e7e8e9] hover:text-[var(--on-surface)] hover:translate-x-1'
+                    ? 'bg-primary text-on-primary shadow-xl shadow-black/10 scale-[1.02]'
+                    : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface ' + (!isCollapsed ? 'hover:translate-x-1' : '')
                 }`
               }
             >
               <Icon size={18} />
-              {link.name}
+              <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>{link.name}</span>
             </NavLink>
           );
         })}
       </nav>
-      <div className="p-4 space-y-2 border-t border-[#e1e3e4]">
+      <div className={`p-4 space-y-2 border-t border-outline-variant ${isCollapsed ? 'p-2' : ''}`}>
         <NavLink
           to={`/${role}/chat`}
+          title={isCollapsed ? "Messages" : ""}
           className={({ isActive }) =>
-            `flex items-center gap-3 px-5 py-3.5 rounded-xl font-bold text-[13px] transition-all duration-300 ${
+            `flex items-center gap-3 rounded-xl font-bold text-[13px] transition-all duration-300 ${
+              isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'
+            } ${
               isActive
-                ? 'bg-[#000613] text-white shadow-xl shadow-black/10 scale-[1.02]'
-                : 'text-[var(--on-surface-variant)] hover:bg-[#e7e8e9] hover:text-[var(--on-surface)]'
+                ? 'bg-primary text-on-primary shadow-xl shadow-black/10'
+                : 'text-on-surface-variant hover:bg-surface-container-high'
             }`
           }
         >
           <MessageSquare size={18} />
-          Messages
+          <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>Messages</span>
         </NavLink>
         <NavLink
           to={`/${role}/settings`}
+          title={isCollapsed ? "Settings" : ""}
           className={({ isActive }) =>
-            `flex items-center gap-3 px-5 py-3.5 rounded-xl font-bold text-[13px] transition-all duration-300 ${
+            `flex items-center gap-3 rounded-xl font-bold text-[13px] transition-all duration-300 ${
+              isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'
+            } ${
               isActive
-                ? 'bg-[#000613] text-white'
-                : 'text-[var(--on-surface-variant)] hover:bg-[#e7e8e9]'
+                ? 'bg-primary text-on-primary'
+                : 'text-on-surface-variant hover:bg-surface-container-high'
             }`
           }
         >
           <Settings size={18} />
-          Settings
+          <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>Settings</span>
         </NavLink>
         <button
           onClick={() => {
@@ -128,10 +143,13 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, onClose }) => {
             localStorage.removeItem('userInfo');
             window.location.href = '/login';
           }}
-          className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl font-bold text-[13px] text-rose-600 hover:bg-rose-50 transition-all duration-300"
+          title={isCollapsed ? "Logout" : ""}
+          className={`w-full flex items-center gap-3 rounded-xl font-bold text-[13px] text-rose-600 hover:bg-rose-50 transition-all duration-300 ${
+            isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'
+          }`}
         >
           <LogOut size={18} />
-          Logout
+          <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>Logout</span>
         </button>
       </div>
     </aside>

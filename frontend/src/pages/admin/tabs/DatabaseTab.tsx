@@ -4,22 +4,22 @@ import { Database, RefreshCw, Download, Globe } from 'lucide-react';
 const DatabaseTab: React.FC = () => {
   return (
     <div className="bg-white border border-gray-100 rounded-[2.5rem] p-10 shadow-sm group">
-      <div className="flex justify-between items-start mb-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-8 mb-10">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-[#000613]">
+          <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-[#000613] shrink-0">
             <Database size={24} />
           </div>
           <div>
             <h2 className="text-2xl font-black text-gray-900 tracking-tight">Database Backup</h2>
-            <p className="text-[11px] font-black text-gray-400 mt-1 uppercase tracking-widest italic text-gray-300 italic">Protect institutional data with periodic snapshots.</p>
+            <p className="text-[11px] font-black text-gray-400 mt-1 uppercase tracking-widest italic leading-tight">Protect institutional data with periodic snapshots.</p>
           </div>
         </div>
-        <div className="flex flex-col gap-3 items-end">
-          <button className="flex items-center gap-3 px-8 py-4 bg-[#000613] text-white rounded-2xl font-black text-sm shadow-xl shadow-black/10 hover:scale-105 transition-all group/btn">
+        <div className="flex flex-col gap-3 items-stretch sm:items-end w-full sm:w-auto">
+          <button className="flex items-center justify-center gap-3 px-8 py-4 bg-[#000613] text-white rounded-2xl font-black text-sm shadow-xl shadow-black/10 hover:scale-105 transition-all group/btn">
             <RefreshCw size={18} className="group-hover/btn:rotate-180 transition-transform duration-700" />
             Backup Database
           </button>
-          <button className="flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-gray-900 uppercase tracking-widest transition-colors mr-4">
+          <button className="flex items-center justify-center gap-2 text-[10px] font-black text-gray-400 hover:text-gray-900 uppercase tracking-widest transition-colors sm:mr-4">
             <Download size={14} />
             Download Backup File
           </button>

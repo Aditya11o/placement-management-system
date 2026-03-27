@@ -9,6 +9,7 @@ import {
 import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
+import ResponsiveTable from '../../components/ResponsiveTable';
 
 const MyApplications: React.FC = () => {
   const { showSuccess, showError } = useNotification();
@@ -142,7 +143,7 @@ const MyApplications: React.FC = () => {
 
       {/* Applications Table */}
       <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        <ResponsiveTable>
           <table className="w-full text-left">
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
@@ -223,7 +224,7 @@ const MyApplications: React.FC = () => {
               )}
             </tbody>
           </table>
-        </div>
+        </ResponsiveTable>
       </div>
 
     </div>

@@ -315,8 +315,8 @@ const PostJob: React.FC = () => {
                 <RotateCcw size={14} />
                 Reset Form
               </button>
-              <div className="flex gap-4">
-                <button className="px-8 py-3.5 border border-gray-200 text-gray-600 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <button className="w-full sm:w-auto px-8 py-3.5 border border-gray-200 text-gray-600 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
                   <Save size={14} />
                   Save as Draft
                 </button>
@@ -331,7 +331,7 @@ const PostJob: React.FC = () => {
                       showError(err.response?.data?.message || 'Failed to post job. Please check all fields.', 'Publication Error');
                     }
                   }}
-                  className="px-12 py-3.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-2 active:scale-95"
+                  className="w-full sm:w-auto px-12 py-3.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-2 active:scale-95"
                 >
                   <Send size={14} />
                   Post Job

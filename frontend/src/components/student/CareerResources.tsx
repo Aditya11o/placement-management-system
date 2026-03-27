@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, PlayCircle, BarChart3, ChevronRight } from 'lucide-react';
+import { PlayCircle, BarChart3, ChevronRight } from 'lucide-react';
 
 interface ResourceCardProps {
   label: string;
@@ -30,7 +30,6 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ label, desc, icon: Icon, on
 const CareerResources: React.FC = () => {
   const navigate = useNavigate();
   const resources = [ 
-    { label: 'Resume Builder', icon: FileText, desc: 'Professional Resume Builder', path: '/student/resume-builder' },
     { label: 'Interview Guide', icon: PlayCircle, desc: 'Cracking top-tier companies', path: '/student/interview-guide' },
     { label: 'Package Stats', icon: BarChart3, desc: 'Salary benchmarks 2024', path: '/student/package-stats' }
   ];

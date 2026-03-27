@@ -289,7 +289,7 @@ const Settings: React.FC = () => {
                 <button 
                   onClick={handleUpdateProfile}
                   disabled={saving}
-                  className="px-8 py-3 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                  className="w-full sm:w-auto px-8 py-3 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {saving && <Loader2 className="animate-spin" size={14} />}
                   Save Changes
@@ -344,7 +344,7 @@ const Settings: React.FC = () => {
                 <button 
                   onClick={handlePasswordUpdate}
                   disabled={saving}
-                  className="px-8 py-3 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                  className="w-full sm:w-auto px-8 py-3 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {saving && <Loader2 className="animate-spin" size={14} />}
                   Update Password
@@ -365,32 +365,32 @@ const Settings: React.FC = () => {
             <div className="space-y-4">
               {resumes.length > 0 ? (
                 resumes.map((resume) => (
-                  <div key={resume._id} className="bg-gray-50/50 border border-gray-100 rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center">
-                          <FileText className="text-orange-600" size={24} />
+                  <div key={resume._id} className="bg-gray-50/50 border border-gray-100 rounded-2xl p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 w-full">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center shrink-0">
+                          <FileText className="text-orange-600 w-5 h-5 md:w-6 md:h-6" />
                         </div>
-                        <div>
-                          <h4 className="text-sm font-black text-gray-900 uppercase truncate max-w-[200px] sm:max-w-xs" title={resume.resume_name}>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-xs sm:text-sm font-black text-gray-900 uppercase truncate" title={resume.resume_name}>
                             {resume.resume_name}
                           </h4>
-                          <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider italic">
-                            Uploaded on {new Date(resume.upload_date || resume.createdAt).toLocaleDateString()}
+                          <p className="text-[9px] sm:text-[10px] font-bold text-gray-400 mt-0.5 sm:mt-1 uppercase tracking-wider italic">
+                            Uploaded {new Date(resume.upload_date || resume.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <button 
                           onClick={() => window.open(resume.resume_url.startsWith('/') ? `http://localhost:5000${resume.resume_url}` : resume.resume_url, '_blank')}
-                          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-50 transition-all shadow-sm"
+                          className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-50 transition-all shadow-sm"
                         >
                           <FileText size={14} className="text-blue-600" />
                           <span>View</span>
                         </button>
                         <button 
                           onClick={() => handleResumeDelete(resume._id)}
-                          className="p-2 text-gray-300 hover:text-rose-500 transition-colors bg-white border border-gray-100 rounded-lg shadow-sm"
+                          className="p-2.5 text-rose-400 hover:text-rose-600 transition-colors bg-white border border-gray-100 rounded-lg shadow-sm"
                           title="Delete Resume"
                         >
                           <Trash2 size={16} />

@@ -11,6 +11,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ role }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isHelpOpen, setHelpOpen] = useState(false);
   const userInfo: User | null = JSON.parse(localStorage.getItem('userInfo') || 'null');
   const token = localStorage.getItem('token');
@@ -21,7 +22,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ role }) => {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] text-[var(--on-surface)] flex overflow-hidden relative">
-      <Sidebar role={role} isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar 
+        role={role} 
+        isOpen={isSidebarOpen} 
+        isCollapsed={isSidebarCollapsed}
+        onClose={() => setSidebarOpen(false)} 
+      />
       
       {/* Mobile Backdrop */}
       {isSidebarOpen && (
@@ -31,10 +37,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ role }) => {
         />
       )}
 
-      <div className="flex-1 flex flex-col min-w-0 md:ml-64 overflow-hidden h-screen transition-all duration-300">
+      <div className={`flex-1 flex flex-col min-w-0 ${
+        isSidebarCollapsed ? 'md:ml-20' : 'lg:ml-64 md:ml-20 ml-0'
+      } overflow-hidden h-screen transition-all duration-300`}>
         <Navbar 
           role={role} 
-          onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)} 
+          onToggleSidebar={() => {
+            if (window.innerWidth < 768) {
+              setSidebarOpen(!isSidebarOpen);
+            } else {
+              setSidebarCollapsed(!isSidebarCollapsed);
+            }
+          }} 
           onHelpOpen={() => setHelpOpen(true)}
         />
         

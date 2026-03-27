@@ -249,8 +249,8 @@ const Applicants: React.FC = () => {
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+          <div className="w-full overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="px-6 py-4 w-12">
@@ -334,31 +334,31 @@ const Applicants: React.FC = () => {
 
       {/* Bulk Floating Action Bar */}
       {selectedApplicants.length > 0 && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-[#000613] text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-8 z-40 animate-in slide-in-from-bottom-10 duration-500">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Selection</span>
-            <span className="text-sm font-black tracking-tight">{selectedApplicants.length} Applicants</span>
+        <div className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 bg-[#000613] text-white px-4 md:px-8 py-3 md:py-4 rounded-2xl md:rounded-3xl shadow-2xl flex flex-col md:flex-row items-center gap-4 md:gap-8 z-40 animate-in slide-in-from-bottom-10 duration-500 w-[90%] md:w-auto">
+          <div className="flex flex-row md:flex-col items-baseline md:items-start gap-2 md:gap-0">
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-gray-400">Selection</span>
+            <span className="text-xs md:text-sm font-black tracking-tight">{selectedApplicants.length} Applicants</span>
           </div>
-          <div className="h-8 w-px bg-white/10" />
-          <div className="flex gap-3">
+          <div className="hidden md:block h-8 w-px bg-white/10" />
+          <div className="flex gap-2 md:gap-3 w-full md:w-auto">
             <button 
               onClick={() => handleBulkStatusUpdate('shortlisted')}
-              className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95"
+              className="flex-1 md:flex-none px-4 md:px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95"
             >
-              <CheckCircle2 size={14} /> Bulk Shortlist
+              <CheckCircle2 size={14} /> <span className="md:inline">Bulk Shortlist</span>
             </button>
             <button 
               onClick={() => handleBulkStatusUpdate('rejected')}
-              className="px-6 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95"
+              className="flex-1 md:flex-none px-4 md:px-6 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95"
             >
-              <XCircle size={14} /> Bulk Reject
+              <XCircle size={14} /> <span className="md:inline">Bulk Reject</span>
             </button>
           </div>
           <button 
             onClick={() => setSelectedApplicants([])}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            className="absolute top-2 right-2 md:static p-2 text-gray-400 hover:text-white transition-colors"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
       )}

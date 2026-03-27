@@ -49,7 +49,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden font-body bg-[#f8f9fa]">
+    <div className="flex h-screen w-full overflow-hidden font-body bg-surface">
       {/* Left Section: Compact Editorial */}
       <div className="hidden md:flex relative w-1/2 flex-col justify-between p-12 lg:p-16 bg-gradient-to-br from-[#0B1E3F] via-[#0D2544] to-[#0E2A47] text-white overflow-hidden">
         {/* Abstract Background Decoration */}
@@ -93,19 +93,19 @@ const Login: React.FC = () => {
       </div>
 
       {/* Right Section: Centered Form */}
-      <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-8 bg-white overflow-y-auto">
-        <div className="w-full max-w-md space-y-8 animate-fade-in translate-y-0">
+      <div className="w-full md:w-1/2 relative flex items-center justify-center p-8 bg-surface-container-lowest overflow-y-auto min-h-screen">
+        <div className="w-full max-w-md space-y-8 animate-fade-in">
           <div className="text-center md:text-left">
              <span className="text-[10px] uppercase tracking-[0.2em] font-black text-blue-600/60 block mb-2">Authentication</span>
              <h2 className="text-2xl lg:text-3xl font-display font-bold text-primary tracking-tight mb-2">Login to your account</h2>
-             <p className="text-sm text-gray-500 font-medium">Please enter your university credentials to continue.</p>
+             <p className="text-sm text-on-surface-variant font-medium">Please enter your university credentials to continue.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Role Tab Selector */}
             <div className="space-y-3">
-               <label className="text-[10px] uppercase tracking-widest font-black text-gray-400 ml-1">Select Role</label>
-               <div className="flex p-1 bg-gray-100 rounded-xl gap-1">
+               <label className="text-[10px] uppercase tracking-widest font-black text-on-surface-variant ml-1">Select Role</label>
+               <div className="flex p-1 bg-surface-container rounded-xl gap-1">
                  {(['student', 'admin', 'recruiter'] as const).map((r) => (
                    <button
                      key={r}
@@ -124,7 +124,7 @@ const Login: React.FC = () => {
               {!requireOTP ? (
                 <>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 ml-1">University Email / ID</label>
+                    <label className="text-xs font-bold text-on-surface ml-1">University Email / ID</label>
                     <div className="relative group">
                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
                           <Mail className="w-4 h-4" />
@@ -142,7 +142,7 @@ const Login: React.FC = () => {
 
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center px-1">
-                       <label className="text-xs font-bold text-gray-700">Password</label>
+                       <label className="text-xs font-bold text-on-surface">Password</label>
                        <Link to="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline transition-all">Forgot?</Link>
                     </div>
                     <div className="relative group">
@@ -169,7 +169,7 @@ const Login: React.FC = () => {
                 </>
               ) : (
                 <div className="space-y-1.5 animate-fade-in">
-                  <label className="text-xs font-bold text-gray-700 ml-1">Verification Code (sent to {email})</label>
+                  <label className="text-xs font-bold text-on-surface ml-1">Verification Code (sent to {email})</label>
                   <div className="relative group">
                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
                         <Lock className="w-4 h-4" />
@@ -202,7 +202,7 @@ const Login: React.FC = () => {
                  id="remember" 
                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/10 cursor-pointer" 
                />
-               <label htmlFor="remember" className="ml-2.5 text-xs font-semibold text-gray-500 cursor-pointer select-none">
+               <label htmlFor="remember" className="ml-2.5 text-xs font-semibold text-on-surface-variant cursor-pointer select-none">
                  Remember this device for 30 days
                </label>
             </div>
@@ -220,7 +220,7 @@ const Login: React.FC = () => {
 
             {/* Bottom CTA */}
             <div className="text-center pt-6 border-t border-gray-50">
-              <p className="text-xs text-gray-500 font-bold">
+              <p className="text-xs text-on-surface-variant font-bold">
                 Don't have an account? {' '}
                 <Link to="/register" className="text-blue-600 font-bold hover:underline underline-offset-4">
                   Request access
@@ -230,8 +230,8 @@ const Login: React.FC = () => {
           </form>
         </div>
 
-        {/* Footer Area - Light Gray */}
-        <div className="absolute bottom-8 flex gap-8 text-[10px] uppercase tracking-widest text-[#c4c6cf] font-black">
+        {/* Footer Area - Pinned to bottom */}
+        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-8 text-[10px] uppercase tracking-widest text-[#c4c6cf] font-black">
            <Link to="/privacy" className="hover:text-blue-600 transition-colors cursor-pointer">Privacy</Link>
            <Link to="/terms" className="hover:text-blue-600 transition-colors cursor-pointer">Terms</Link>
            <Link to="/help" className="hover:text-blue-600 transition-colors cursor-pointer">Help</Link>

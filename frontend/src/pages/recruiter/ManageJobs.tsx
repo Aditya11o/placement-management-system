@@ -61,7 +61,7 @@ const ManageJobs: React.FC = () => {
         </div>
         <button 
           onClick={() => navigate('/recruiter/post-job')}
-          className="px-6 py-3 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 flex items-center gap-2 active:scale-95"
+          className="w-full sm:w-auto px-6 py-3 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 flex items-center justify-center gap-2 active:scale-95"
         >
           <Plus size={16} />
           Post New Job
@@ -89,8 +89,8 @@ const ManageJobs: React.FC = () => {
             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+          <div className="w-full overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left min-w-[1000px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Job Title & Role</th>

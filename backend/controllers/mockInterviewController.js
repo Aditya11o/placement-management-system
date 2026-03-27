@@ -55,11 +55,11 @@ const bookMockInterview = async (req, res, next) => {
     };
 
     const mockInterview = await MockInterview.create({
-      student: req.user.id,
-      mentor: mentor._id,
-      type: typeMapping[type] || type,
-      scheduledAt: scheduledDate,
-      slot,
+      student_id: req.user.id,
+      mentor_id: mentor._id,
+      interview_type: typeMapping[type] || type,
+      interview_date: scheduledDate,
+      interview_time: slot,
     });
 
     // 4. Send Notifications
@@ -112,15 +112,15 @@ const bookMockInterview = async (req, res, next) => {
 // @access  Private (Student)
 const getMockInterviewStats = async (req, res, next) => {
   try {
-    const total = await MockInterview.countDocuments({ student: req.user.id });
+    const total = await MockInterview.countDocuments({ student_id: req.user.id });
     const upcoming = await MockInterview.countDocuments({ 
-      student: req.user.id, 
-      status: 'Scheduled'
+      student_id: req.user.id, 
+      status: 'scheduled'
     });
-    const completed = await MockInterview.countDocuments({ student: req.user.id, status: 'Completed' });
+    const completed = await MockInterview.countDocuments({ student_id: req.user.id, status: 'completed' });
     
     // Calculate average performance
-    const completedInterviews = await MockInterview.find({ student: req.user.id, status: 'Completed' });
+    const completedInterviews = await MockInterview.find({ student_id: req.user.id, status: 'completed' });
     const totalScore = completedInterviews.reduce((acc, curr) => acc + (curr.performance?.overallScore || 0), 0);
     const avgPerformance = completedInterviews.length > 0 ? (totalScore / completedInterviews.length).toFixed(1) : 0;
 
@@ -141,11 +141,12 @@ const getMockInterviewStats = async (req, res, next) => {
 const getUpcomingMockInterviews = async (req, res, next) => {
   try {
     const interviews = await MockInterview.find({ 
-      student: req.user.id, 
-      status: 'Scheduled'
+      student_id: req.user.id, 
+      status: 'scheduled',
+      interview_date: { $gte: new Date().setHours(0,0,0,0) }
     })
-    .populate('mentor', 'name profilePhoto email')
-    .sort({ scheduledAt: 1 });
+    .populate('mentor_id', 'name profilePhoto email')
+    .sort({ interview_date: 1 });
 
     res.json(interviews);
   } catch (error) {
@@ -159,11 +160,11 @@ const getUpcomingMockInterviews = async (req, res, next) => {
 const getMockInterviewHistory = async (req, res, next) => {
   try {
     const interviews = await MockInterview.find({ 
-      student: req.user.id, 
-      status: 'Completed' 
+      student_id: req.user.id, 
+      status: 'completed' 
     })
-    .populate('mentor', 'name profilePhoto')
-    .sort({ scheduledAt: -1 });
+    .populate('mentor_id', 'name profilePhoto')
+    .sort({ interview_date: -1 });
 
     res.json(interviews);
   } catch (error) {
@@ -177,9 +178,9 @@ const getMockInterviewHistory = async (req, res, next) => {
 const getMockInterviewAnalytics = async (req, res, next) => {
   try {
     const latest = await MockInterview.findOne({ 
-      student: req.user.id, 
-      status: 'Completed' 
-    }).sort({ scheduledAt: -1 });
+      student_id: req.user.id, 
+      status: 'completed' 
+    }).sort({ interview_date: -1 });
 
     if (latest && latest.performance) {
       res.json({
@@ -196,10 +197,63 @@ const getMockInterviewAnalytics = async (req, res, next) => {
   }
 };
 
+// @desc    Cancel a mock interview
+// @route   PUT /api/interviews/cancel
+// @access  Private (Student/Mentor)
+const cancelMockInterview = async (req, res, next) => {
+  try {
+    const { id } = req.body;
+    const interview = await MockInterview.findById(id);
+
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    interview.status = 'cancelled';
+    await interview.save();
+
+    // Re-enable mentor availability if needed (optional but recommended)
+    await MentorAvailability.findOneAndUpdate(
+      { mentor_id: interview.mentor_id, date: interview.interview_date, time_slot: interview.interview_time },
+      { is_booked: false }
+    );
+
+    res.json({ success: true, message: 'Interview cancelled successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Mark mock interview as completed
+// @route   PUT /api/interviews/complete
+// @access  Private (Mentor)
+const completeMockInterview = async (req, res, next) => {
+  try {
+    const { id, performance, feedback } = req.body;
+    const interview = await MockInterview.findById(id);
+
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+
+    interview.status = 'completed';
+    if (performance) interview.performance = performance;
+    if (feedback) interview.feedback = feedback;
+    
+    await interview.save();
+
+    res.json({ success: true, message: 'Interview marked as completed.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   bookMockInterview,
   getMockInterviewStats,
   getUpcomingMockInterviews,
   getMockInterviewHistory,
-  getMockInterviewAnalytics
+  getMockInterviewAnalytics,
+  cancelMockInterview,
+  completeMockInterview
 };

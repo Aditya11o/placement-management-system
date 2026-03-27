@@ -45,8 +45,8 @@ const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
         </button>
       </div>
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden w-full transition-all hover:shadow-lg">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="w-full overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="text-gray-400 text-xs font-medium border-b border-gray-50">
                 <th className="px-4 py-3 uppercase">Company</th>
