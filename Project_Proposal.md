@@ -6,42 +6,49 @@
 
 ## **2\. Introduction**
 
-The Placement Management System (PMS) is an advanced web-based application designed to modernize the campus recruitment process within educational institutions. In an era of digital transformation, traditional manual placement tracking is no longer viable for handling the increasing volume of student data and corporate requirements. This project proposes a centralized, high-performance platform that automates the lifecycle of recruitment, from student onboarding to final selection. Unlike a conceptual proposal, this project is currently in an active state of development, with several core modules already operational.
+The Placement Management System (PMS) is an advanced web-based application designed to modernize the campus recruitment process within educational institutions. In an era of digital transformation, traditional manual placement tracking is no longer viable for handling the increasing volume of student data and corporate requirements. This project proposes a centralized, high-performance platform that automates the lifecycle of recruitment, from student onboarding to final selection. Unlike a conceptual proposal, this project is currently in an advanced state of development (~85% complete), with core modules for students, recruiters, and administrators already operational.
 
 ## **3\. Problem Statement**
 
 Many colleges still rely on fragmented systems, such as physical files and unorganized spreadsheets, to manage placement activities. This results in:
 
 * **Inefficient Data Handling:** Difficulty in manually verifying student eligibility and academic records.  
-* **Communication Gaps:** Students often miss critical deadlines or job updates due to the lack of real-time notifications.  
-* **Administrative Strain:** The Training and Placement Cell (TPC) spends excessive time on repetitive tasks like resume collection and status tracking.  
-* **Lack of Transparency:** Students remain uninformed about their application progress, leading to anxiety and confusion.
+* **Communication Gaps:** Students often miss critical deadlines or job updates due to the lack of real-time, persistent notifications.  
+* **Resume Inconsistency:** Recruiters struggle with non-standardized resumes, making manual screening tedious and often resulting in the oversight of qualified candidates.  
+* **Guidance Void:** A disconnect between students and the professional world, with limited avenues for direct mentorship from alumni and industry experts.
 
 ## **4\. Objectives of the Project**
 
 The primary objectives of the PMS are:
 
 * To automate the student registration and profile management process.  
-* To provide recruiters with a dedicated portal for job posting and candidate shortlisting.  
-* To implement a real-time notification system for instant updates on application status.  
+* To provide an **Integrated Resume Builder** for standardized, recruiter-ready profile generation.  
+* To facilitate **Mentorship & Alumni Engagement** through dedicated communication portals.  
+* To implement a **Real-Time Notification System** for instant updates on application status.  
 * To offer an administrative command center for university-wide oversight and branding control.  
-* To ensure data security and integrity using modern authentication methods.
+* To ensure enterprise-grade security and data integrity using modern authentication (JWT/RBAC).
 
 ## **5\. Scope of the Project**
 
-The scope of this project encompasses the development of a full-stack responsive web application. It includes modules for three distinct user roles: Students, Administrators, and Recruiters. The system facilitates job discovery, application management, resume hosting, and analytical reporting. While external job board integration is currently out of scope, the system is built to be scalable for future AI-driven enhancements such as automated resume scoring.
+The scope encompasses a full-stack responsive web application built with a focus on premium user experience (UX). It includes modules for **Students, Administrators, Recruiters, Alumni, and Mentors**. Key features include:
+
+* **Smart Job Feed:** Dynamic filtering based on eligibility and professional preferences.  
+* **One-Click Applications:** Streamlined tracking from initial submission to final candidate selection.  
+* **AI-Ready Architecture:** Integrated Resume Builder and planned AI-driven job matching.  
+* **Administrative Audit Logs:** Security tracking, system-wide management, and database oversight.  
+* **Collaborative Tools:** Real-time chat and global announcement broadcasts for seamless communication.
 
 ## **6\. Methodology**
 
-The project utilizes a modern, robust, and scalable technology stack (MERN) to ensure high performance and real-time capabilities:
+The project utilizes a modern, robust, and scalable technology stack (MERN) with a focus on professional aesthetics:
 
-* **Frontend:** React.js for building a dynamic and responsive User Interface, styled with Tailwind CSS for a premium aesthetic.  
-* **Backend:** Node.js and Express.js for handling server-side logic and API management.  
-* **Database:** MongoDB (NoSQL) for flexible and efficient document storage.  
-* **Real-time Communication:** Socket.io for instant notifications and global broadcasts.  
-* **Media Management:** Cloudinary API for secure hosting of student resumes and company logos.
+* **Frontend:** React.js and TypeScript for a type-safe, dynamic User Interface, adhering to the **"Academic Authority"** design system for a premium look and feel.  
+* **Backend:** Node.js and Express.js for enterprise-grade server-side logic and robust API management.  
+* **Database:** MongoDB (NoSQL) for flexible and efficient document storage using the Mongoose ODM.  
+* **Real-time Engine:** Socket.io for persistent live notifications and instant messaging across all portals.  
+* **Security & Infrastructure:** Implementation of advanced security middleware (Helmet, Rate-limiting, XSS-clean) and Cloudinary for secure asset hosting.
 
 ## **7\. Expected Outcome**
 
-Upon completion, the Placement Management System will deliver a professional-grade platform that significantly reduces the manual workload of the TPC. It is expected to improve placement efficiency by at least 40%, ensure 100% transparency in the application process, and provide a seamless, premium experience for students and recruiters alike, making it a state-of-the-art solution for university recruitment management.
+Upon completion, the Placement Management System will deliver a professional-grade platform that significantly reduces the administrative burden on Training and Placement Cells. It is expected to improve placement efficiency by at least 40%, ensure 100% transparency in the recruitment lifecycle, and provide a premium, seamless experience for all stakeholders. The system stands as a state-of-the-art solution, effectively bridging the gap between talent and opportunity.
 
