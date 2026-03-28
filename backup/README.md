@@ -1,22 +1,33 @@
-# Code Backup
+# Project Backup System
 
-This folder contains a full backup of the **Placement Management System** project.
+This folder contains the automated backups for the **Placement Management System**.
 
-## Backup File Details
+## 🚀 Automated Backup
 
-- **File**: `project_backup.zip`
-- **Created on**: 2026-03-28
-- **Contents**: Full source code for `frontend`, `backend`, and project documentation.
-- **Excluded**: `.git`, `node_modules`, `tmp`, and this `backup` folder.
+To create a new timestamped backup, run this command from the project root:
 
-## How to Restore
+```ps1
+npm run backup
+```
 
-1.  **Extract the Zip**: Unzip `project_backup.zip` into a new directory.
-2.  **Install Dependencies**:
-    -   Navigate to `frontend/` and run `npm install`.
-    -   Navigate to `backend/` and run `npm install`.
-3.  **Run the Project**:
-    -   Follow the instructions in the main project `README.md`.
+### What it Does
+1.  **Timestamping**: Creates a new zip file named `pms_backup_YYYYMMDD_HHMM.zip`.
+2.  **Smart Exclusions**: Automatically excludes `node_modules`, `.git`, and the `backup` folder to keep the backup efficient.
+3.  **Rotation Logic**: Automatically keeps only the **last 5 backups** to save disk space.
 
 ---
-*Created by PMS developers*
+
+## 📂 Manual Backup File Details
+
+- **File Pattern**: `pms_backup_*.zip`
+- **Contents**: Full source code (`frontend`, `backend`), documentation, `.env` files, and `uploads`.
+- **Restoration**: Unzip into a new directory and run `npm run install-all` from the root.
+
+## 🛠️ Restoration Steps
+
+1.  **Extract the Zip**: Unzip any preferred backup into a new directory.
+2.  **Install Dependencies**: Run `npm run install-all` from the root folder.
+3.  **Run Dev Environment**: Run `npm run dev` from the root (requires `concurrently` package).
+
+---
+*Maintained by Antigravity*

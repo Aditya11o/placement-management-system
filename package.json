@@ -1,0 +1,13 @@
+{
+  "name": "placement-management-system",
+  "version": "1.0.0",
+  "description": "Placement Management System - Full Stack Application",
+  "scripts": {
+    "backup": "powershell ./scripts/backup.ps1",
+    "dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\"",
+    "install-all": "npm install --prefix frontend && npm install --prefix backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

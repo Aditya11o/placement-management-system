@@ -46,7 +46,6 @@ Thumbs.db
 
 # Other
 tmp
-backup
 /*.txt
 /error_output.txt
 /load_err.txt
