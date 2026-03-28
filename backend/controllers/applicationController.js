@@ -317,12 +317,25 @@ const respondToOffer = async (req, res, next) => {
 const bulkUpdateStatus = async (req, res, next) => {
   const { ids, status } = req.body;
   try {
+    // Verify ownership: all applications must belong to the recruiter's own jobs
+    if (req.user.role === 'recruiter') {
+      const recruiterJobs = await Job.find({ recruiter: req.user.id }).select('_id');
+      const recruiterJobIds = recruiterJobs.map(j => j._id.toString());
+
+      const applications = await Application.find({ _id: { $in: ids } }).select('job');
+      const unauthorized = applications.filter(app => !recruiterJobIds.includes(app.job.toString()));
+
+      if (unauthorized.length > 0) {
+        return res.status(403).json({ message: 'Not authorized to update applications for jobs you do not own' });
+      }
+    }
+
     const result = await Application.updateMany(
       { _id: { $in: ids } },
       { $set: { status } }
     );
 
-    // Fetch updated applications to send notifications (simplified)
+    // Fetch updated applications to send notifications
     const applications = await Application.find({ _id: { $in: ids } }).populate('student', 'name email').populate('job', 'title');
     
     // Create notifications for all students

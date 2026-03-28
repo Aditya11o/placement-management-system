@@ -13,10 +13,17 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
+const csrfProtection = require('./middleware/csrfMiddleware');
 const logger = require('./utils/logger');
 
 // Load environment variables
 dotenv.config();
+
+// Fail-fast: ensure critical secrets are configured
+if (!process.env.JWT_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
+  console.error('FATAL: JWT_SECRET and REFRESH_TOKEN_SECRET must be set in .env');
+  process.exit(1);
+}
 
 // Connect to database
 connectDB();
@@ -48,6 +55,7 @@ app.use(helmet()); // Security headers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(csrfProtection); // CSRF protection (Double Submit Cookie)
 
 // Express 5 compatibility fix for older middlewares (req.query and req.params are getters by default)
 app.use((req, res, next) => {
@@ -122,15 +130,27 @@ app.use('/api/mock-interviews', require('./routes/mockInterviewRoutes'));
 app.use('/api/reminders', require('./routes/reminderRoutes'));
 app.use('/api/interviews', require('./routes/interviewRoutes'));
 
-// Socket.io connection
-io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+// Socket.io authentication middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  if (!token) {
+    return next(new Error('Authentication required'));
+  }
+  try {
+    const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+    next();
+  } catch (err) {
+    return next(new Error('Invalid token'));
+  }
+});
 
-  // User joins their own private room
-  socket.on('join', (userId) => {
-    socket.join(userId.toString());
-    console.log(`User ${userId} joined their private room`);
-  });
+// Socket.io connection (authenticated)
+io.on('connection', (socket) => {
+  console.log('Authenticated user connected:', socket.userId, socket.id);
+
+  // Auto-join the user to their own private room (no client-controlled room joining)
+  socket.join(socket.userId.toString());
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);

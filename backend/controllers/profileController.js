@@ -3,6 +3,24 @@ const RecruiterProfile = require('../models/RecruiterProfile');
 const AdminProfile = require('../models/AdminProfile');
 const User = require('../models/User');
 const cloudinary = require('../utils/cloudinary');
+const { Readable } = require('stream');
+
+// Helper: stream a buffer to Cloudinary without writing to disk
+const uploadBufferToCloudinary = (buffer, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      options,
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    const readableStream = new Readable();
+    readableStream.push(buffer);
+    readableStream.push(null);
+    readableStream.pipe(uploadStream);
+  });
+};
 
 // Helper to get the correct model based on role
 const getProfileModel = (role) => {
@@ -88,10 +106,10 @@ const updateProfile = async (req, res, next) => {
       updateData.full_name = req.user.name;
     }
 
-    // Handle profile photo upload
+    // Handle profile photo upload (streamed from memory, never touches disk)
     if (req.file) {
       try {
-        const result = await cloudinary.uploader.upload(req.file.path, {
+        const result = await uploadBufferToCloudinary(req.file.buffer, {
           folder: 'profiles',
           public_id: `user_${req.user.id}_avatar`,
           overwrite: true
@@ -196,7 +214,14 @@ const uploadResume = async (req, res, next) => {
       return res.status(400).json({ message: 'Please upload a file' });
     }
 
-    const filePath = `/uploads/resumes/${req.file.filename}`;
+    // Stream resume directly to Cloudinary from memory (never touches disk)
+    const result = await uploadBufferToCloudinary(req.file.buffer, {
+      folder: 'pms/resumes',
+      resource_type: 'auto',
+      public_id: `resume_${req.user.id}_${Date.now()}`,
+    });
+
+    const resumeUrl = result.secure_url;
 
     let profile = await StudentProfile.findOne({ user_id: req.user.id });
 
@@ -205,11 +230,11 @@ const uploadResume = async (req, res, next) => {
         user_id: req.user.id,
         full_name: req.user.name,
         email: req.user.email,
-        resume_path: filePath,
+        resume_path: resumeUrl,
         updated_at: new Date()
       });
     } else {
-      profile.resume_path = filePath;
+      profile.resume_path = resumeUrl;
       profile.updated_at = new Date();
     }
 
@@ -219,7 +244,7 @@ const uploadResume = async (req, res, next) => {
     res.status(201).json({ 
       success: true, 
       message: 'Resume uploaded successfully',
-      resume_path: filePath,
+      resume_path: resumeUrl,
       profile_completion: profile.profile_completion
     });
   } catch (error) {
@@ -360,9 +385,15 @@ const deleteProject = async (req, res, next) => {
 
 // @desc    Get student profile by ID
 // @route   GET /api/profile/student/profile/:id
-// @access  Private
+// @access  Private (Admin, Recruiter, or Self)
 const getStudentProfileById = async (req, res, next) => {
   try {
+    // IDOR Protection: Only admins, recruiters, or the student themselves can access
+    const allowedRoles = ['admin', 'recruiter'];
+    if (!allowedRoles.includes(req.user.role) && req.user.id !== req.params.id) {
+      return res.status(403).json({ message: 'Not authorized to view this profile' });
+    }
+
     const profile = await StudentProfile.findOne({ user_id: req.params.id }).select('full_name email phone address city state linkedin github portfolio dob gender profile_photo');
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
     res.json(profile);
@@ -373,9 +404,14 @@ const getStudentProfileById = async (req, res, next) => {
 
 // @desc    Get student skills by ID
 // @route   GET /api/profile/student/skills/:id
-// @access  Private
+// @access  Private (Admin, Recruiter, or Self)
 const getStudentSkillsById = async (req, res, next) => {
   try {
+    const allowedRoles = ['admin', 'recruiter'];
+    if (!allowedRoles.includes(req.user.role) && req.user.id !== req.params.id) {
+      return res.status(403).json({ message: 'Not authorized to view this data' });
+    }
+
     const profile = await StudentProfile.findOne({ user_id: req.params.id }).select('skills');
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
     res.json(profile.skills || []);
@@ -386,9 +422,14 @@ const getStudentSkillsById = async (req, res, next) => {
 
 // @desc    Get student projects by ID
 // @route   GET /api/profile/student/projects/:id
-// @access  Private
+// @access  Private (Admin, Recruiter, or Self)
 const getStudentProjectsById = async (req, res, next) => {
   try {
+    const allowedRoles = ['admin', 'recruiter'];
+    if (!allowedRoles.includes(req.user.role) && req.user.id !== req.params.id) {
+      return res.status(403).json({ message: 'Not authorized to view this data' });
+    }
+
     const profile = await StudentProfile.findOne({ user_id: req.params.id }).select('projects');
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
     res.json(profile.projects || []);
@@ -399,9 +440,14 @@ const getStudentProjectsById = async (req, res, next) => {
 
 // @desc    Get student academic info by ID
 // @route   GET /api/profile/student/academic/:id
-// @access  Private
+// @access  Private (Admin, Recruiter, or Self)
 const getStudentAcademicById = async (req, res, next) => {
   try {
+    const allowedRoles = ['admin', 'recruiter'];
+    if (!allowedRoles.includes(req.user.role) && req.user.id !== req.params.id) {
+      return res.status(403).json({ message: 'Not authorized to view this data' });
+    }
+
     const profile = await StudentProfile.findOne({ user_id: req.params.id }).select('course department passing_year current_cgpa tenth_percentage twelfth_percentage');
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
     res.json(profile);

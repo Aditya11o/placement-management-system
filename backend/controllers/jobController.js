@@ -102,6 +102,8 @@ const updateJobStatus = async (req, res, next) => {
       job.status = req.body.status || job.status;
       const updatedJob = await job.save();
       res.json(updatedJob);
+    } else {
+      return res.status(403).json({ message: 'Not authorized to update this job' });
     }
   } catch (error) {
     next(error);

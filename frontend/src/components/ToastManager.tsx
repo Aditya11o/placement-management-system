@@ -11,11 +11,12 @@ const ToastManager: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Connect to Socket
-    const socket = io('http://localhost:5000');
-    
-    // Register user room
-    socket.emit('setup', user.id);
+    // Connect to Socket with JWT authentication
+    const token = localStorage.getItem('token');
+    const socket = io('http://localhost:5000', {
+      auth: { token },
+    });
+    // Server auto-joins user to their private room via verified token
 
     // Listeners
     socket.on('notification', (msg) => {

@@ -136,14 +136,10 @@ const authUser = async (req, res, next) => {
     }
 
     if (await user.matchPassword(password)) {
-      // Reset login attempts on success
-      user.loginAttempts = 0;
-      user.lockUntil = undefined;
-      await user.save();
-
       // Check if 2FA is required (Admin or Recruiter)
       if (user.role === 'admin' || user.role === 'recruiter') {
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        // Do NOT reset loginAttempts here — only after OTP is verified
+        const otp = crypto.randomInt(100000, 999999).toString();
         user.otp = otp;
         user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
         await user.save();
@@ -160,6 +156,11 @@ const authUser = async (req, res, next) => {
           return res.status(500).json({ message: 'Failed to send verification code' });
         }
       }
+
+      // For non-2FA roles (students), reset login attempts on password success
+      user.loginAttempts = 0;
+      user.lockUntil = undefined;
+      await user.save();
 
       const { token, refreshToken } = setTokenCookies(res, user);
 
@@ -198,7 +199,7 @@ const refreshAccessToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET || 'your_refresh_token_secret');
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
     const user = await User.findById(decoded.id);
 
     if (!user) {
@@ -226,20 +227,33 @@ const verifyOTP = async (req, res, next) => {
   const { email, otp } = req.body;
 
   try {
-    const user = await User.findOne({ 
-      email, 
-      otp, 
-      otpExpires: { $gt: Date.now() } 
-    });
+    // First, find the user to check lockout status
+    const user = await User.findOne({ email }).select('+otp +otpExpires +loginAttempts +lockUntil');
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid or expired OTP' });
     }
 
-    // Clear OTP after successful use
+    // Check if account is locked
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      return res.status(401).json({ message: 'Account is temporarily locked. Please try again later.' });
+    }
+
+    // Verify OTP and expiry
+    if (!user.otp || user.otp !== otp || !user.otpExpires || user.otpExpires < Date.now()) {
+      // Increment login attempts on failed OTP
+      user.loginAttempts = (user.loginAttempts || 0) + 1;
+      if (user.loginAttempts >= 5) {
+        user.lockUntil = Date.now() + 30 * 60 * 1000; // Lock for 30 minutes
+      }
+      await user.save();
+      return res.status(401).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // OTP verified — clear OTP and reset lockout
     user.otp = undefined;
     user.otpExpires = undefined;
-    user.loginAttempts = 0; // Reset on successful 2FA as well
+    user.loginAttempts = 0;
     user.lockUntil = undefined;
     await user.save();
 

@@ -19,9 +19,12 @@ const Chat: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Initialize socket
-    socketRef.current = io('http://localhost:5000');
-    socketRef.current.emit('join', user._id);
+    // Initialize socket with JWT authentication
+    const token = localStorage.getItem('token');
+    socketRef.current = io('http://localhost:5000', {
+      auth: { token },
+    });
+    // Server auto-joins user to their private room via verified token
 
     socketRef.current.on('new_message', (msg: any) => {
       if (selectedChat && msg.sender === selectedChat.user._id) {

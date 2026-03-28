@@ -4,7 +4,7 @@ const { getFAQs, createFAQ } = require('../controllers/faqController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 router.route('/')
-  .get(getFAQs)
+  .get(protect, getFAQs)
   .post(protect, admin, createFAQ);
 
 module.exports = router;

@@ -9,7 +9,7 @@ router.get('/my', protect, authorize('recruiter'), getRecruiterJobs);
 
 router.route('/')
   .post(protect, authorize('recruiter'), createJob)
-  .get(getJobs);
+  .get(protect, getJobs);
 
 router.get('/:id', protect, getJobById);
 router.get('/:id/analytics', protect, authorize('recruiter', 'admin'), getJobAnalytics);

@@ -1,19 +1,9 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    const dir = 'uploads/resumes/';
-    if (!fs.existsSync(dir)){
-        fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename(req, file, cb) {
-    cb(null, `${req.user.id}_resume${path.extname(file.originalname)}`);
-  },
-});
+// Use memory storage instead of disk to prevent sensitive resume files
+// from persisting on the server filesystem
+const storage = multer.memoryStorage();
 
 function checkFileType(file, cb) {
   const filetypes = /pdf|doc|docx/;

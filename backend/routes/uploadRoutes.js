@@ -2,10 +2,27 @@ const express = require('express');
 const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 const cloudinary = require('../utils/cloudinary');
-const fs = require('fs');
+const { Readable } = require('stream');
 const router = express.Router();
 
-// @desc    Upload file to Cloudinary
+// Helper: stream a buffer to Cloudinary without writing to disk
+const uploadBufferToCloudinary = (buffer, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      options,
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    const readableStream = new Readable();
+    readableStream.push(buffer);
+    readableStream.push(null);
+    readableStream.pipe(uploadStream);
+  });
+};
+
+// @desc    Upload file to Cloudinary (streamed from memory, never touches disk)
 // @route   POST /api/upload
 // @access  Private
 router.post('/', protect, upload.single('file'), async (req, res) => {
@@ -15,13 +32,10 @@ router.post('/', protect, upload.single('file'), async (req, res) => {
       return res.json({ message: 'No file uploaded' });
     }
 
-    const result = await cloudinary.uploader.upload(req.file.path, {
+    const result = await uploadBufferToCloudinary(req.file.buffer, {
       folder: 'pms',
       resource_type: 'auto',
     });
-
-    // Remove file from local uploads folder
-    fs.unlinkSync(req.file.path);
 
     res.json({
       url: result.secure_url,

@@ -1,17 +1,9 @@
 const multer = require('multer');
 const path = require('path');
 
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename(req, file, cb) {
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-    );
-  },
-});
+// Use memory storage instead of disk to prevent sensitive files
+// from persisting on the server filesystem
+const storage = multer.memoryStorage();
 
 function checkFileType(file, cb) {
   const filetypes = /pdf|doc|docx|jpg|jpeg|png/;
