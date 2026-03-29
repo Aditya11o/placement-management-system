@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, Briefcase, Calendar, 
   ArrowUpRight, Download, Filter,
@@ -24,6 +25,9 @@ const RecruiterDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [selectedJobId, setSelectedJobId] = useState('');
   const [analytics, setAnalytics] = useState<any>(null);
+  const [activeRound, setActiveRound] = useState('Technical');
+  
+  const navigate = useNavigate();
 
   const fetchAnalytics = async (jobId: string) => {
     if (!jobId) return;
@@ -121,7 +125,13 @@ const RecruiterDashboard: React.FC = () => {
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
               <h2 className="text-lg font-black text-gray-900 tracking-tight">Recent Applicants</h2>
-              <button className="text-[11px] font-black text-gray-900 uppercase tracking-widest hover:underline flex items-center gap-1">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate('/recruiter/applicants');
+                }}
+                className="text-[11px] font-black text-gray-900 dark:text-gray-100 uppercase tracking-widest hover:underline flex items-center gap-1 cursor-pointer relative z-20"
+              >
                 View All <ArrowUpRight size={14} />
               </button>
             </div>
@@ -188,13 +198,13 @@ const RecruiterDashboard: React.FC = () => {
 
         {/* Upcoming Interviews - Right column */}
         <div className="col-span-12 lg:col-span-4">
-          <div className="bg-[#000613] rounded-2xl shadow-xl p-6 text-white h-full border border-white/5 relative overflow-hidden group">
+          <div className="bg-white dark:bg-[#000613] rounded-2xl shadow-xl p-6 text-gray-900 dark:text-white h-full border border-gray-100 dark:border-white/5 relative overflow-hidden group">
             {/* Subtle background decoration */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl -mr-16 -mt-16 group-hover:bg-blue-500/20 transition-colors" />
             
             <div className="flex justify-between items-center mb-8 relative z-10">
-              <h2 className="text-lg font-black tracking-tight">Upcoming Interviews</h2>
-              <Calendar className="text-white/40" size={20} />
+              <h2 className="text-lg font-black tracking-tight text-gray-900 dark:text-white">Upcoming Interviews</h2>
+              <Calendar className="text-gray-400 dark:text-white/40" size={20} />
             </div>
 
             <div className="space-y-5 relative z-10">
@@ -203,19 +213,19 @@ const RecruiterDashboard: React.FC = () => {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h4 className="text-sm font-black tracking-tight">{interview.student?.name}</h4>
-                      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wide mt-0.5">{interview.job?.title}</p>
+                      <p className="text-[11px] font-bold text-gray-500 dark:text-white/40 uppercase tracking-wide mt-0.5">{interview.job?.title}</p>
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest 
-                      ${interview.mode === 'ONLINE' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-orange-500/20 text-orange-300'}`}>
+                      ${interview.mode === 'ONLINE' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300' : 'bg-orange-500/20 text-orange-600 dark:text-orange-300'}`}>
                       {interview.mode || 'ONLINE'}
                     </span>
                   </div>
                   <div className="flex items-center gap-4 mt-4">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/60">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 dark:text-white/60">
                       <Clock size={12} />
                       {new Date(interview.interviewDate).toLocaleDateString()}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/60">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 dark:text-white/60">
                       <Globe size={12} />
                       {new Date(interview.interviewDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
@@ -223,11 +233,17 @@ const RecruiterDashboard: React.FC = () => {
                 </div>
               ))}
               {interviews.length === 0 && (
-                <div className="p-4 text-center text-white/30 text-sm font-bold italic">No interviews scheduled</div>
+                <div className="p-4 text-center text-gray-400 dark:text-white/30 text-sm font-bold italic">No interviews scheduled</div>
               )}
             </div>
 
-            <button className="w-full mt-8 py-3.5 bg-white text-[#000613] rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all flex items-center justify-center gap-2 relative z-10 shadow-lg active:scale-95">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/recruiter/interviews');
+              }}
+              className="w-full mt-8 py-3.5 bg-[#000613] dark:bg-white text-white dark:text-[#000613] rounded-xl text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all flex items-center justify-center gap-2 relative z-20 shadow-lg active:scale-95 cursor-pointer"
+            >
               <span>View Calendar</span>
               <ArrowUpRight size={16} />
             </button>
@@ -335,8 +351,12 @@ const RecruiterDashboard: React.FC = () => {
         </div>
         <div className="flex flex-wrap gap-3">
           {['Technical', 'HR Round', 'Management', 'Final Offer'].map(round => (
-            <button key={round} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
-              ${round === 'Technical' ? 'bg-[#000613] text-white shadow-lg' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}>
+            <button 
+              key={round} 
+              onClick={() => setActiveRound(round)}
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer
+                ${round === activeRound ? 'bg-[#000613] text-white shadow-lg' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
+            >
               {round}
             </button>
           ))}

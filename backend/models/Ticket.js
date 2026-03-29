@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const ticketSchema = new mongoose.Schema(
   {
-    student: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -23,7 +23,13 @@ const ticketSchema = new mongoose.Schema(
         'Interview Support',
         'Resume Builder',
         'Technical Issues',
-        'Other Queries'
+        'Other Queries',
+        'Job Posting Help',
+        'Candidate Management',
+        'Interview Scheduling',
+        'Account & Billing',
+        'Platform Tutorials',
+        'Technical Support'
       ],
       required: true,
     },

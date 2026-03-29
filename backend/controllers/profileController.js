@@ -49,7 +49,14 @@ const getMyProfile = async (req, res, next) => {
     const query = req.user.role === 'student' ? { user_id: req.user.id } : { user: req.user.id };
     const populateField = req.user.role === 'student' ? 'user_id' : 'user';
     
-    let profile = await Model.findOne(query).populate(populateField, 'name email role');
+    let profile;
+    if (req.user.role === 'recruiter') {
+      profile = await Model.findOne(query)
+        .populate(populateField, 'name email role')
+        .populate('company');
+    } else {
+      profile = await Model.findOne(query).populate(populateField, 'name email role');
+    }
     
     // If no profile exists yet, return user info and isNew flag
     if (!profile) {
@@ -64,14 +71,32 @@ const getMyProfile = async (req, res, next) => {
       });
     }
 
-    // Map user_id to user for frontend compatibility
+    // Map user_id to user for frontend compatibility and format recruiterDetails
+    const profileObj = profile.toObject();
+    
     if (req.user.role === 'student') {
-      const profileObj = profile.toObject();
       profileObj.user = profileObj.user_id;
-      return res.json(profileObj);
+    } else if (req.user.role === 'recruiter') {
+      // Synthesize recruiterDetails for frontend if not present
+      if (!profileObj.recruiterDetails) {
+        profileObj.recruiterDetails = {
+          recruiterId: profileObj.recruiter_id,
+          companyName: profileObj.company?.company_name,
+          companyWebsite: profileObj.company?.website,
+          companyLogo: profileObj.company?.company_logo,
+          industry: profileObj.company?.industry,
+          size: profileObj.company?.company_size,
+          location: profileObj.company?.location,
+          phone: profileObj.phone,
+          designation: profileObj.designation
+        };
+      }
+      // Map company description to bio so the frontend can read it!
+      profileObj.bio = profileObj.company?.description || '';
+
     }
     
-    res.json(profile);
+    return res.json(profileObj);
   } catch (error) {
     console.error('GetMyProfile Error:', error);
     next(error);
@@ -93,10 +118,12 @@ const updateProfile = async (req, res, next) => {
       updateData = typeof req.body.studentDetails === 'string' 
         ? JSON.parse(req.body.studentDetails) 
         : req.body.studentDetails;
+      if (req.body.bio !== undefined) updateData.bio = req.body.bio;
     } else if (req.body.recruiterDetails) {
       updateData = typeof req.body.recruiterDetails === 'string' 
         ? JSON.parse(req.body.recruiterDetails) 
         : req.body.recruiterDetails;
+      if (req.body.bio !== undefined) updateData.bio = req.body.bio;
     } else {
       updateData = { ...req.body };
     }
@@ -130,6 +157,51 @@ const updateProfile = async (req, res, next) => {
     }
     
     // Recalculate completion for students
+
+    if (req.user.role === 'recruiter') {
+      const CompanyProfile = require('../models/CompanyProfile');
+      let companyProfile = await CompanyProfile.findOne({ recruiter_id: req.user.id });
+      
+      const companyData = {};
+      if (updateData.companyName || updateData.recruiterDetails?.companyName) 
+        companyData.company_name = updateData.companyName || updateData.recruiterDetails?.companyName;
+      if (updateData.companyLogo || updateData.recruiterDetails?.companyLogo)
+        companyData.company_logo = updateData.companyLogo || updateData.recruiterDetails?.companyLogo;
+      if (updateData.companyWebsite || updateData.recruiterDetails?.companyWebsite)
+        companyData.website = updateData.companyWebsite || updateData.recruiterDetails?.companyWebsite;
+      if (updateData.industry || updateData.recruiterDetails?.industry)
+        companyData.industry = updateData.industry || updateData.recruiterDetails?.industry;
+      if (updateData.size || updateData.recruiterDetails?.size)
+        companyData.company_size = updateData.size || updateData.recruiterDetails?.size;
+      if (updateData.location || updateData.recruiterDetails?.location)
+        companyData.location = updateData.location || updateData.recruiterDetails?.location;
+      if (updateData.bio !== undefined)
+        companyData.description = updateData.bio;
+      else if (!companyProfile)
+        companyData.description = 'Company description not provided yet.';
+        
+      companyData.hr_name = req.user.name;
+      companyData.hr_email = req.user.email;
+      if (updateData.phone || updateData.recruiterDetails?.phone)
+        companyData.hr_phone = updateData.phone || updateData.recruiterDetails?.phone;
+
+      if (!companyProfile) {
+        companyData.company_id = 'COMP' + Date.now().toString().slice(-6);
+        companyData.recruiter_id = req.user.id;
+        companyProfile = new CompanyProfile(companyData);
+      } else {
+        Object.assign(companyProfile, companyData);
+      }
+      await companyProfile.save();
+      
+      // Update recruiter profile fields
+      updateData.company = companyProfile._id;
+      updateData.recruiter_id = updateData.recruiter_id || `REC${req.user.id.slice(-6)}`;
+      updateData.full_name = req.user.name;
+      updateData.email = req.user.email;
+      updateData.phone = updateData.phone || updateData.recruiterDetails?.phone;
+      updateData.designation = updateData.designation || updateData.recruiterDetails?.designation || 'Recruiter';
+    }
 
     const query = req.user.role === 'student' ? { user_id: req.user.id } : { user: req.user.id };
 

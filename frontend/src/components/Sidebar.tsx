@@ -66,9 +66,14 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose })
     } ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
       <div className={`h-20 flex items-center justify-between px-6 border-b border-outline-variant/30 ${isCollapsed ? 'justify-center px-0' : ''}`}>
         {!isCollapsed && (
-          <h1 className="text-xl font-bold font-display text-primary tracking-tight uppercase lg:block md:hidden block">
-            Placement <span className="opacity-40 font-normal">Portal</span>
-          </h1>
+          <div className="lg:block md:hidden block">
+            <h1 className="text-xl font-black font-display text-gray-900 tracking-tight uppercase leading-none">
+              Placement <span className="text-blue-600">Portal</span>
+            </h1>
+            {role === 'recruiter' && (
+              <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] mt-1">RECRUITER CONSOLE</p>
+            )}
+          </div>
         )}
         {isCollapsed && (
            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-on-primary font-black">P</div>

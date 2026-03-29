@@ -92,7 +92,7 @@ app.use(hpp());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 mins
-  max: 100, // max 100 requests per window
+  max: 5000, // max 5000 requests per window (relaxed for SPA activity)
   message: 'Too many requests from this IP, please try again after 15 minutes',
 });
 app.use('/api/', limiter);

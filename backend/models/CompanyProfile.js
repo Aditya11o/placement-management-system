@@ -24,41 +24,28 @@ const companyProfileSchema = new mongoose.Schema(
     },
     website: {
       type: String,
-      required: true,
-      validate: {
-        validator: function(v) {
-          return /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/.test(v);
-        },
-        message: 'Please enter a valid website URL',
-      },
     },
     description: {
       type: String,
-      required: true,
     },
     industry: {
       type: String,
-      required: true,
     },
     company_size: {
       type: String,
     },
     location: {
       type: String,
-      required: true,
     },
     hr_name: {
       type: String,
-      required: true,
     },
     hr_email: {
       type: String,
-      required: true,
       lowercase: true,
     },
     hr_phone: {
       type: String,
-      required: true,
     },
   },
   {

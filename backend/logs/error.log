@@ -309,3 +309,136 @@ Error: REFRESH_TOKEN_SECRET is not defined in environment variables
     at authUser (D:\Desktop\PMS\Placement Management System\backend\controllers\authController.js:164:39)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
 --------------------------------------------------
+[2026-03-28T12:03:03.784Z] PUT /api/profile
+ValidationError: RecruiterProfile validation failed: designation: Path `designation` is required., password: Path `password` is required., email: Path `email` is required., recruiter_id: Path `recruiter_id` is required., company: Path `company` is required., phone: Path `phone` is required.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:148:5)
+--------------------------------------------------
+[2026-03-28T13:07:44.545Z] PUT /api/profile
+ValidationError: CompanyProfile validation failed: website: Path `website` is required., location: Path `location` is required.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async updateProfile (D:\Desktop\PMS\Placement Management System\backend\controllers\profileController.js:179:7)
+--------------------------------------------------
+[2026-03-28T13:54:37.085Z] POST /api/tickets
+ValidationError: Ticket validation failed: issue_type: `Job Posting Help` is not a valid enum value for path `issue_type`.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async createTicket (D:\Desktop\PMS\Placement Management System\backend\controllers\ticketController.js:15:20)
+--------------------------------------------------
+[2026-03-28T13:56:11.552Z] POST /api/tickets
+ValidationError: Ticket validation failed: issue_type: `Technical Support` is not a valid enum value for path `issue_type`.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async createTicket (D:\Desktop\PMS\Placement Management System\backend\controllers\ticketController.js:15:20)
+--------------------------------------------------
+[2026-03-28T13:57:57.185Z] POST /api/tickets
+ValidationError: Ticket validation failed: issue_type: `Technical Support` is not a valid enum value for path `issue_type`.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async createTicket (D:\Desktop\PMS\Placement Management System\backend\controllers\ticketController.js:15:20)
+--------------------------------------------------
+[2026-03-28T13:59:15.298Z] POST /api/tickets
+ValidationError: Ticket validation failed: issue_type: `Technical Support` is not a valid enum value for path `issue_type`.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async createTicket (D:\Desktop\PMS\Placement Management System\backend\controllers\ticketController.js:15:20)
+--------------------------------------------------
+[2026-03-28T14:06:24.934Z] POST /api/jobs
+ValidationError: Job validation failed: companyName: Path `companyName` is required.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async createJob (D:\Desktop\PMS\Placement Management System\backend\controllers\jobController.js:14:17)
+--------------------------------------------------
+[2026-03-28T14:07:11.053Z] POST /api/jobs
+ValidationError: Job validation failed: companyName: Path `companyName` is required.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async createJob (D:\Desktop\PMS\Placement Management System\backend\controllers\jobController.js:14:17)
+--------------------------------------------------
+[2026-03-28T14:07:41.830Z] POST /api/jobs
+ValidationError: Job validation failed: companyName: Path `companyName` is required.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:390:7)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async createJob (D:\Desktop\PMS\Placement Management System\backend\controllers\jobController.js:14:17)
+--------------------------------------------------
+[2026-03-28T14:11:13.266Z] POST /api/jobs
+MongoServerError: E11000 duplicate key error collection: pms.jobs index: job_id_1 dup key: { job_id: null }
+    at InsertOneOperation.handleOk (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at tryOperation (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\execute_operation.js:217:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async executeOperation (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async Collection.insertOne (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:425:16)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async createJob (D:\Desktop\PMS\Placement Management System\backend\controllers\jobController.js:21:17)
+--------------------------------------------------
+[2026-03-28T14:13:06.523Z] POST /api/jobs
+MongoServerError: E11000 duplicate key error collection: pms.jobs index: job_id_1 dup key: { job_id: null }
+    at InsertOneOperation.handleOk (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at tryOperation (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\execute_operation.js:217:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async executeOperation (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async Collection.insertOne (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:425:16)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async createJob (D:\Desktop\PMS\Placement Management System\backend\controllers\jobController.js:21:17)
+--------------------------------------------------
+[2026-03-28T14:15:46.303Z] POST /api/jobs
+MongoServerError: E11000 duplicate key error collection: pms.jobs index: job_id_1 dup key: { job_id: null }
+    at InsertOneOperation.handleOk (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\insert.js:51:19)
+    at tryOperation (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\execute_operation.js:217:34)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async executeOperation (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async Collection.insertOne (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\collection.js:154:16)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:425:16)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2751:5)
+    at async createJob (D:\Desktop\PMS\Placement Management System\backend\controllers\jobController.js:21:17)
+--------------------------------------------------
+[2026-03-28T14:18:52.518Z] POST /api/jobs
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\Job.js:86:3)
+    at Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:68:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+--------------------------------------------------
+[2026-03-28T14:19:57.234Z] POST /api/jobs
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\Job.js:86:3)
+    at Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:68:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+--------------------------------------------------
+[2026-03-28T14:21:00.918Z] POST /api/jobs
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\Job.js:86:3)
+    at Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:68:39)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+--------------------------------------------------

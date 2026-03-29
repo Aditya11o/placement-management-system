@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 const jobSchema = new mongoose.Schema(
   {
+    job_id: {
+      type: String,
+      unique: true,
+    },
     recruiter: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -73,8 +77,15 @@ const jobSchema = new mongoose.Schema(
   }
 );
 
+// Pre-save hook to generate job_id
+jobSchema.pre('save', async function() {
+  if (this.isNew && !this.job_id) {
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    this.job_id = `JOB-${random}`;
+  }
+});
+
 // Virtuals for compatibility with snake_case code if any
-jobSchema.virtual('job_id').get(function() { return this._id.toString(); });
 jobSchema.virtual('job_type').get(function() { return this.jobType; });
 jobSchema.virtual('last_date').get(function() { return this.deadline; });
 jobSchema.virtual('created_at').get(function() { return this.createdAt; });

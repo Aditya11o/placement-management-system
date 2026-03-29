@@ -13,7 +13,7 @@ const createTicket = async (req, res, next) => {
     }
 
     const ticket = await Ticket.create({
-      student: req.user.id,
+      user: req.user.id,
       subject: subject || issue_type,
       message,
       issue_type,
@@ -31,10 +31,10 @@ const createTicket = async (req, res, next) => {
 const getTickets = async (req, res, next) => {
   try {
     let query = {};
-    if (req.user.role === 'student') {
-      query.student = req.user.id;
+    if (req.user.role !== 'admin') {
+      query.user = req.user.id;
     }
-    const tickets = await Ticket.find(query).populate('student', 'name email').sort({ createdAt: -1 });
+    const tickets = await Ticket.find(query).populate('user', 'name email').sort({ createdAt: -1 });
     res.json(tickets);
   } catch (error) {
     next(error);

@@ -11,12 +11,19 @@ const createJob = async (req, res, next) => {
   try {
     const { title, description, companyName, location, salary, jobType, eligibility, deadline } = req.body;
 
+    // Auto-fetch profile for company name if not provided
+    const profile = await Profile.findOne({ user: req.user.id });
+    
+    // Check recruiter/company information
+    const finalCompanyName = companyName || profile?.recruiterDetails?.companyName || req.user.name || 'Your Organization';
+    const finalLocation = location || profile?.recruiterDetails?.location || 'Remote';
+
     const job = await Job.create({
       recruiter: req.user.id,
       title,
       description,
-      companyName,
-      location,
+      companyName: finalCompanyName,
+      location: finalLocation,
       salary,
       jobType,
       eligibility,
@@ -29,13 +36,13 @@ const createJob = async (req, res, next) => {
       'CREATE_JOB',
       'Job',
       job._id,
-      `Created job: ${title} at ${companyName}`,
+      `Created job: ${title} at ${finalCompanyName}`,
       req.ip
     );
 
     // Emit live socket event to all students
     const io = req.app.get('io');
-    io.emit('new_job', { title, companyName });
+    io.emit('new_job', { title, companyName: finalCompanyName });
 
     res.status(201).json(job);
   } catch (error) {
@@ -213,6 +220,67 @@ const getJobAnalytics = async (req, res, next) => {
   }
 };
 
+// @desc    Update a job
+// @route   PUT /api/jobs/:id
+// @access  Private (Recruiter/Admin)
+const updateJob = async (req, res, next) => {
+  try {
+    const job = await Job.findById(req.params.id);
+
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    // Authorization check
+    if (job.recruiter.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    const {
+      title,
+      role,
+      jobType,
+      description,
+      skills,
+      eligibility,
+      location,
+      salary,
+      deadline,
+      openings,
+      screeningQuestions
+    } = req.body;
+
+    // Update fields
+    job.title = title || job.title;
+    job.role = role || job.role;
+    job.jobType = jobType || job.jobType;
+    job.description = description || job.description;
+    job.skills = skills || job.skills;
+    job.eligibility = eligibility || job.eligibility;
+    job.location = location || job.location;
+    job.salary = salary || job.salary;
+    job.deadline = deadline || job.deadline;
+    job.openings = openings || job.openings;
+    job.screeningQuestions = screeningQuestions || job.screeningQuestions;
+
+    const updatedJob = await job.save();
+
+    // Audit Log
+    await createAuditLog(
+      req.user.id,
+      'UPDATE_JOB',
+      'Job',
+      job._id,
+      `Updated job: ${job.title}`,
+      req.ip
+    );
+
+    res.json(updatedJob);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Delete a job
 // @route   DELETE /api/jobs/:id
 // @access  Private (Recruiter/Admin)
@@ -258,6 +326,7 @@ module.exports = {
   getMatchedJobs, 
   getRecruiterStats, 
   getRecruiterJobs, 
+  updateJob,
   deleteJob, 
   getJobById, 
   getJobAnalytics 

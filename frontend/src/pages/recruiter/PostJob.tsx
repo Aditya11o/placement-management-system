@@ -1,17 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Save, Send, RotateCcw, 
   MapPin, Calendar, Users, Briefcase, 
   Eye, Info, ChevronRight, X, 
-  Building2, DollarSign, Plus, Trash2
+  Building2, DollarSign, Plus, Trash2, Loader2
 } from 'lucide-react';
 import { useAutosave } from '../../hooks/useAutosave';
 import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 
 const PostJob: React.FC = () => {
   const { showSuccess, showError } = useNotification();
+  const { profile } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const editId = queryParams.get('edit');
+
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
+
   const [formData, setFormData] = useState({
     title: '',
     role: '',
@@ -30,6 +41,75 @@ const PostJob: React.FC = () => {
 
   const [newSkill, setNewSkill] = useState('');
   const { clearAutosave } = useAutosave('post-job', formData, setFormData);
+
+  useEffect(() => {
+    if (editId) {
+      const fetchJob = async () => {
+        setFetching(true);
+        try {
+          const { data } = await api.get(`/jobs/${editId}`);
+          setFormData({
+            title: data.title || '',
+            role: data.role || '',
+            type: data.jobType || 'Full-time',
+            description: data.description || '',
+            skills: data.skills || [],
+            minCGPA: data.eligibility?.minCGPA || '7.0',
+            course: data.eligibility?.course || '',
+            passingYear: data.eligibility?.passingYear || '',
+            location: data.location || '',
+            salary: data.salary || '',
+            deadline: data.deadline ? new Date(data.deadline).toISOString().split('T')[0] : '',
+            openings: data.openings?.toString() || '1',
+            screeningQuestions: data.screeningQuestions || []
+          });
+        } catch (err: any) {
+          showError('Failed to fetch job details');
+          navigate('/recruiter/jobs');
+        } finally {
+          setFetching(false);
+        }
+      };
+      fetchJob();
+    }
+  }, [editId]);
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const payload = {
+        title: formData.title,
+        role: formData.role,
+        jobType: formData.type,
+        description: formData.description,
+        skills: formData.skills,
+        eligibility: {
+          minCGPA: formData.minCGPA,
+          course: formData.course,
+          passingYear: formData.passingYear
+        },
+        location: formData.location,
+        salary: formData.salary,
+        deadline: formData.deadline,
+        openings: parseInt(formData.openings),
+        screeningQuestions: formData.screeningQuestions
+      };
+
+      if (editId) {
+        await api.put(`/jobs/${editId}`, payload);
+        showSuccess('Job updated successfully!');
+      } else {
+        await api.post('/jobs', payload);
+        showSuccess('Job posted successfully!');
+      }
+      clearAutosave();
+      navigate('/recruiter/jobs');
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to save job');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const addSkill = () => {
     if (newSkill && !formData.skills.includes(newSkill)) {
@@ -50,9 +130,9 @@ const PostJob: React.FC = () => {
       
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Post New Role</h1>
+        <h1 className="text-3xl font-black text-gray-900 tracking-tight">{editId ? 'Edit Role' : 'Post New Role'}</h1>
         <p className="text-gray-500 mt-2 max-w-2xl text-[14px] leading-relaxed">
-          Publish a new job opening to the student portal. Ensure all criteria are accurate to attract the best matching candidates.
+          {editId ? 'Modify the job details and requirements for this position.' : 'Publish a new job opening to the student portal. Ensure all criteria are accurate to attract the best matching candidates.'}
         </p>
       </div>
 
@@ -316,25 +396,20 @@ const PostJob: React.FC = () => {
                 Reset Form
               </button>
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                <button className="w-full sm:w-auto px-8 py-3.5 border border-gray-200 text-gray-600 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                <button 
+                  disabled={loading || fetching}
+                  className="w-full sm:w-auto px-8 py-3.5 border border-gray-200 text-gray-600 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
                   <Save size={14} />
                   Save as Draft
                 </button>
                 <button 
-                  onClick={async () => {
-                    try {
-                      await api.post('/jobs', formData);
-                      showSuccess('Job posted successfully!', 'Job Published');
-                      clearAutosave();
-                    } catch (err: any) {
-                      console.error(err);
-                      showError(err.response?.data?.message || 'Failed to post job. Please check all fields.', 'Publication Error');
-                    }
-                  }}
-                  className="w-full sm:w-auto px-12 py-3.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-2 active:scale-95"
+                  onClick={handleSubmit}
+                  disabled={loading || fetching}
+                  className="w-full sm:w-auto px-12 py-3.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                 >
-                  <Send size={14} />
-                  Post Job
+                  {loading ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />}
+                  {editId ? 'Update Role' : 'Publish Role'}
                 </button>
               </div>
             </div>
@@ -366,7 +441,9 @@ const PostJob: React.FC = () => {
                   <h4 className="text-lg font-black text-gray-900 tracking-tight leading-tight">
                     {formData.title || 'e.g. Associate Software Engineer'}
                   </h4>
-                  <p className="text-[11px] font-bold text-gray-400 mt-1 uppercase tracking-wide">Global Dynamics Inc.</p>
+                  <p className="text-[11px] font-bold text-gray-400 mt-1 uppercase tracking-wide">
+                    {profile?.recruiterDetails?.companyName || 'Your Organization'}
+                  </p>
                 </div>
 
                 <div className="space-y-2 border-t border-gray-50 pt-4">

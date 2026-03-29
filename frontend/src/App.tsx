@@ -37,6 +37,7 @@ import Shortlisted from './pages/recruiter/Shortlisted';
 import RecruiterInterviews from './pages/recruiter/InterviewSchedule';
 import RecruiterNotifications from './pages/recruiter/Notifications';
 import RecruiterSettings from './pages/recruiter/Settings';
+import RecruiterHelpSupport from './pages/recruiter/HelpSupport';
 import ManageStudents from './pages/admin/ManageStudents';
 import ManageRecruiters from './pages/admin/ManageRecruiters';
 import AdminManageApplications from './pages/admin/ManageApplications';
@@ -109,6 +110,7 @@ const App: React.FC = () => {
         <Route path="interviews" element={<RecruiterInterviews />} />
         <Route path="notifications" element={<RecruiterNotifications />} />
         <Route path="settings" element={<RecruiterSettings />} />
+        <Route path="help-support" element={<RecruiterHelpSupport />} />
         <Route path="chat" element={<Chat />} />
       </Route>
 

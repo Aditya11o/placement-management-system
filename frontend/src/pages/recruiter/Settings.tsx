@@ -1,16 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  User, Lock, Bell, Building2, 
+  User as UserIcon, Lock, Bell, Building2, 
   Upload, Camera, 
   AlertTriangle, Shield, 
-  MapPin, ChevronRight
+  MapPin, ChevronRight, Loader2
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useNotification } from '../../context/NotificationContext';
+import api from '../../api';
+import Avatar from '../../components/Avatar';
 
 const Settings: React.FC = () => {
+  const { user, profile, refreshUser } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const [activeMenu, setActiveMenu] = useState('Account Settings');
+  const [loading, setLoading] = useState(false);
+
+  // Form states
+  const [accountData, setAccountData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: profile?.recruiterDetails?.phone || '',
+  });
+
+  const [companyData, setCompanyData] = useState({
+    name: profile?.recruiterDetails?.companyName || '',
+    website: profile?.recruiterDetails?.companyWebsite || '',
+    location: profile?.recruiterDetails?.location || '',
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  useEffect(() => {
+    if (user && profile) {
+      setAccountData({
+        name: user.name,
+        email: user.email,
+        phone: profile.recruiterDetails?.phone || '',
+      });
+      setCompanyData({
+        name: profile.recruiterDetails?.companyName || '',
+        website: profile.recruiterDetails?.companyWebsite || '',
+        location: profile.recruiterDetails?.location || '',
+      });
+    }
+  }, [user, profile]);
+
+  const handleUpdateProfile = async () => {
+    setLoading(true);
+    try {
+      await api.put('/profile', {
+        recruiterDetails: {
+          ...profile?.recruiterDetails,
+          phone: accountData.phone,
+          companyName: companyData.name,
+          companyWebsite: companyData.website,
+          location: companyData.location,
+        }
+      });
+      await refreshUser();
+      showSuccess('Profile updated successfully!', 'Settings Updated');
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      return showError('Passwords do not match');
+    }
+    setLoading(true);
+    try {
+      await api.put('/auth/update-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+      showSuccess('Password updated successfully!');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to update password');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const menuItems = [
-    { id: 'Account Settings', icon: <User size={18} /> },
+    { id: 'Account Settings', icon: <UserIcon size={18} /> },
     { id: 'Security', icon: <Lock size={18} /> },
     { id: 'Notifications', icon: <Bell size={18} /> },
     { id: 'Company Details', icon: <Building2 size={18} /> },
@@ -68,10 +149,11 @@ const Settings: React.FC = () => {
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Profile Photo</label>
                 <div className="relative group">
                   <div className="w-32 h-32 bg-gray-50 rounded-[28px] border-2 border-dashed border-gray-200 overflow-hidden flex items-center justify-center group-hover:border-gray-900 transition-all">
-                    <img 
-                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alexander" 
-                      alt="Profile" 
-                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                    <Avatar 
+                      name={user?.name || ''} 
+                      profilePhoto={profile?.profile_photo} 
+                      size="xl" 
+                      className="w-full h-full object-cover" 
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Camera size={24} className="text-white" />
@@ -91,30 +173,38 @@ const Settings: React.FC = () => {
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Recruiter Name</label>
                     <input 
                       type="text" 
-                      defaultValue="Alexander Sterling"
-                      className="w-full px-5 py-3.5 bg-gray-50 border border-transparent focus:bg-white focus:border-gray-900 rounded-xl font-bold text-gray-900 text-[14px] outline-none transition-all"
+                      value={accountData.name}
+                      readOnly
+                      className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-xl font-bold text-gray-400 text-[14px] outline-none cursor-not-allowed"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Email Address</label>
                     <input 
                       type="email" 
-                      defaultValue="alexander.sterling@academicauthority.edu"
-                      className="w-full px-5 py-3.5 bg-gray-50 border border-transparent focus:bg-white focus:border-gray-900 rounded-xl font-bold text-gray-900 text-[14px] outline-none transition-all"
+                      value={accountData.email}
+                      readOnly
+                      className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-xl font-bold text-gray-400 text-[14px] outline-none cursor-not-allowed"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Phone Number</label>
                     <input 
                       type="tel" 
-                      defaultValue="+1 (555) 902-1234"
+                      value={accountData.phone}
+                      onChange={e => setAccountData({...accountData, phone: e.target.value})}
+                      placeholder="+1 (555) 000-0000"
                       className="w-full px-5 py-3.5 bg-gray-50 border border-transparent focus:bg-white focus:border-gray-900 rounded-xl font-bold text-gray-900 text-[14px] outline-none transition-all"
                     />
                   </div>
                 </div>
                 <div className="pt-4 flex justify-end">
-                  <button className="px-10 py-4 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-3 active:scale-95 group">
-                    Update Profile
+                  <button 
+                    onClick={handleUpdateProfile}
+                    disabled={loading}
+                    className="px-10 py-4 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-3 active:scale-95 group disabled:opacity-50"
+                  >
+                    {loading ? <Loader2 className="animate-spin" size={14} /> : 'Update Profile'}
                   </button>
                 </div>
               </div>
@@ -134,6 +224,8 @@ const Settings: React.FC = () => {
                 <input 
                   type="password" 
                   placeholder="••••••••"
+                  value={passwordData.currentPassword}
+                  onChange={e => setPasswordData({...passwordData, currentPassword: e.target.value})}
                   className="w-full px-5 py-3.5 bg-gray-50 border border-transparent focus:bg-white focus:border-gray-900 rounded-xl font-bold text-gray-900 text-[14px] outline-none transition-all"
                 />
               </div>
@@ -142,6 +234,8 @@ const Settings: React.FC = () => {
                 <input 
                   type="password" 
                   placeholder="••••••••"
+                  value={passwordData.newPassword}
+                  onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})}
                   className="w-full px-5 py-3.5 bg-gray-50 border border-transparent focus:bg-white focus:border-gray-900 rounded-xl font-bold text-gray-900 text-[14px] outline-none transition-all"
                 />
               </div>
@@ -150,13 +244,19 @@ const Settings: React.FC = () => {
                 <input 
                   type="password" 
                   placeholder="••••••••"
+                  value={passwordData.confirmPassword}
+                  onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})}
                   className="w-full px-5 py-3.5 bg-gray-50 border border-transparent focus:bg-white focus:border-gray-900 rounded-xl font-bold text-gray-900 text-[14px] outline-none transition-all"
                 />
               </div>
             </div>
             <div className="mt-8 flex justify-end">
-              <button className="px-10 py-4 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-3 active:scale-95 group">
-                Change Password
+              <button 
+                onClick={handleChangePassword}
+                disabled={loading}
+                className="px-10 py-4 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-3 active:scale-95 group disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="animate-spin" size={14} /> : 'Change Password'}
               </button>
             </div>
           </div>
@@ -208,7 +308,9 @@ const Settings: React.FC = () => {
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Company Name</label>
                   <input 
                     type="text" 
-                    defaultValue="The Academic Authority"
+                    value={companyData.name}
+                    onChange={e => setCompanyData({...companyData, name: e.target.value})}
+                    placeholder="e.g. Acme Corp"
                     className="w-full px-5 py-3.5 bg-gray-50 border border-transparent focus:bg-white focus:border-gray-900 rounded-xl font-bold text-gray-900 text-[14px] outline-none transition-all"
                   />
                 </div>
@@ -217,7 +319,9 @@ const Settings: React.FC = () => {
                   <div className="relative flex items-center">
                     <input 
                       type="text" 
-                      defaultValue="https://academicauthority.edu"
+                      value={companyData.website}
+                      onChange={e => setCompanyData({...companyData, website: e.target.value})}
+                      placeholder="e.g. acme.com"
                       className="w-full px-5 py-3.5 bg-gray-50 border border-transparent focus:bg-white focus:border-gray-900 rounded-xl font-bold text-gray-900 text-[14px] outline-none transition-all"
                     />
                   </div>
@@ -228,7 +332,9 @@ const Settings: React.FC = () => {
                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input 
                       type="text" 
-                      defaultValue="San Francisco, CA"
+                      value={companyData.location}
+                      onChange={e => setCompanyData({...companyData, location: e.target.value})}
+                      placeholder="e.g. Bangalore, India"
                       className="w-full pl-11 pr-5 py-3.5 bg-gray-50 border border-transparent focus:bg-white focus:border-gray-900 rounded-xl font-bold text-gray-900 text-[14px] outline-none transition-all"
                     />
                   </div>
@@ -236,8 +342,12 @@ const Settings: React.FC = () => {
               </div>
 
               <div className="mt-8 pt-8 border-t border-gray-50 items-center justify-center flex">
-                 <button className="w-full py-4 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 active:scale-95">
-                  Update Company Info
+                 <button 
+                  onClick={handleUpdateProfile}
+                  disabled={loading}
+                  className="w-full py-4 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 active:scale-95 disabled:opacity-50"
+                 >
+                  {loading ? <Loader2 className="animate-spin" size={14} /> : 'Update Company Info'}
                 </button>
               </div>
             </div>

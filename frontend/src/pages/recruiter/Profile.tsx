@@ -12,9 +12,11 @@ import { useAuth } from '../../context/AuthContext';
 
 const CompanyProfile: React.FC = () => {
   const { showSuccess, showError } = useNotification();
-  const { refreshUser } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const { user, profile: authProfile, refreshUser } = useAuth();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(!authProfile);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [profile, setProfile] = useState<any>(authProfile);
   const [companyInfo, setCompanyInfo] = useState({
     name: '',
     website: '',
@@ -24,47 +26,103 @@ const CompanyProfile: React.FC = () => {
     location: '',
   });
 
+  const [saving, setSaving] = useState(false);
+
   const [hrContact, setHrContact] = useState({
     name: '',
     email: '',
     phone: '',
   });
 
-  const fetchProfile = async () => {
+  const syncProfileData = (data: any) => {
+    if (!data) return;
+    const rec = data.recruiterDetails || {};
+    setCompanyInfo({
+      name: rec.companyName || '',
+      website: rec.companyWebsite || '',
+      description: data.bio || '',
+      industry: rec.industry || 'Software & Technology',
+      size: rec.size || '501 - 1,000 employees',
+      location: rec.location || '',
+    });
+    setHrContact({
+      name: data.user?.name || user?.name || '',
+      email: data.user?.email || user?.email || '',
+      phone: rec.phone || '',
+    });
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
     try {
-      const { data } = await api.get('/profile/me');
-      setProfile(data);
-      const rec = data.recruiterDetails || {};
-      setCompanyInfo({
-        name: rec.companyName || '',
-        website: rec.companyWebsite || '',
-        description: data.bio || '',
-        industry: rec.industry || 'Software & Technology',
-        size: rec.size || '501 - 1,000 employees',
-        location: rec.location || '',
+      const { data } = await api.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setHrContact({
-        name: data.user?.name || '',
-        email: data.user?.email || '',
-        phone: rec.phone || '',
+      
+      const updatedLogoUrl = data.url;
+      
+      // Update local state and backend
+      setProfile({
+        ...profile,
+        recruiterDetails: {
+          ...profile?.recruiterDetails,
+          companyLogo: updatedLogoUrl
+        }
       });
+
+      await api.put('/profile', {
+        recruiterDetails: {
+          ...profile?.recruiterDetails,
+          companyLogo: updatedLogoUrl
+        }
+      });
+
+      await refreshUser();
+      showSuccess('Company logo updated successfully!');
     } catch (err: any) {
       console.error(err);
-      showError(err.response?.data?.message || 'Failed to fetch profile', 'Fetch Error');
+      showError('Failed to upload company logo');
     } finally {
-      setLoading(false);
+      setUploadingLogo(false);
     }
   };
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (authProfile) {
+      setProfile(authProfile);
+      syncProfileData(authProfile);
+      setLoading(false);
+    } else {
+      const fetchProfile = async () => {
+        try {
+          await refreshUser();
+        } catch (err: any) {
+          console.error(err);
+          // Only show error if it's not a 429 which we are already handling
+          if (err.response?.status !== 429) {
+            showError(err.response?.data?.message || 'Failed to fetch profile', 'Fetch Error');
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProfile();
+    }
+  }, [authProfile]);
 
   const handleSave = async () => {
+    setSaving(true);
     try {
       await api.put('/profile', {
         bio: companyInfo.description,
         recruiterDetails: {
+          ...profile?.recruiterDetails,
           companyName: companyInfo.name,
           companyWebsite: companyInfo.website,
           industry: companyInfo.industry,
@@ -78,6 +136,8 @@ const CompanyProfile: React.FC = () => {
     } catch (err: any) {
       console.error(err);
       showError(err.response?.data?.message || 'Failed to update company profile', 'Update Error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -100,17 +160,18 @@ const CompanyProfile: React.FC = () => {
         </div>
         <div className="flex gap-3">
           <button 
-            onClick={() => fetchProfile()}
+            onClick={() => refreshUser()}
             className="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95"
           >
             Discard Changes
           </button>
           <button 
             onClick={handleSave}
-            className="px-6 py-2.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 flex items-center gap-2 active:scale-95"
+            disabled={saving}
+            className="px-6 py-2.5 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 flex items-center gap-2 active:scale-95 disabled:opacity-50"
           >
-            <Save size={14} />
-            Save Profile
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            {saving ? 'Saving...' : 'Save Profile'}
           </button>
         </div>
       </div>
@@ -126,15 +187,28 @@ const CompanyProfile: React.FC = () => {
             <div className="flex flex-col md:flex-row gap-8">
               {/* Logo Upload Section */}
               <div className="space-y-4">
-                <div className="relative group cursor-pointer">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleLogoUpload} 
+                />
+                <div 
+                  className="relative group cursor-pointer"
+                  onClick={() => !uploadingLogo && fileInputRef.current?.click()}
+                >
                   <Avatar 
                     name={companyInfo.name || 'Company'} 
                     profilePhoto={profile?.recruiterDetails?.companyLogo} 
                     size="xl" 
-                    className="rounded-2xl border-2 border-dashed border-gray-200 group-hover:border-[#000613] group-hover:bg-gray-50 transition-all overflow-hidden" 
+                    className={`rounded-2xl border-2 border-dashed border-gray-200 group-hover:border-[#000613] group-hover:bg-gray-50 transition-all overflow-hidden ${uploadingLogo ? 'opacity-50' : ''}`} 
                   />
-                  <button className="absolute -bottom-2 -right-2 w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-600 shadow-lg hover:bg-gray-100 transition-all active:scale-90">
-                    <Camera size={18} />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
+                    <p className="text-[10px] font-black text-white uppercase tracking-widest">Change Logo</p>
+                  </div>
+                  <button className="absolute -bottom-2 -right-2 w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-600 shadow-lg group-hover:bg-gray-100 transition-all active:scale-90">
+                    {uploadingLogo ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
                   </button>
                 </div>
               </div>
@@ -269,10 +343,18 @@ const CompanyProfile: React.FC = () => {
 
               {/* Company Logo and Info */}
               <div className="px-6 -mt-8 relative z-10 flex justify-between items-end">
-                <div className="w-16 h-16 bg-white border-4 border-white rounded-2xl shadow-lg flex items-center justify-center overflow-hidden">
-                  <div className="w-full h-full bg-[#000613] flex items-center justify-center text-white">
-                    <Building2 size={24} />
-                  </div>
+                <div className="w-16 h-16 bg-white border-4 border-white rounded-2xl shadow-lg flex items-center justify-center overflow-hidden bg-[#000613]">
+                  {profile?.recruiterDetails?.companyLogo ? (
+                    <img 
+                      src={profile.recruiterDetails.companyLogo} 
+                      alt="Company Logo" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white">
+                      <Building2 size={24} />
+                    </div>
+                  )}
                 </div>
                 <button className="w-8 h-8 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center border border-gray-100 mb-1 hover:text-rose-500 transition-colors">
                   <Heart size={14} />

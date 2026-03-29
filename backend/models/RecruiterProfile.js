@@ -21,28 +21,23 @@ const recruiterProfileSchema = new mongoose.Schema(
     },
     full_name: {
       type: String,
-      required: true,
+      default: '',
     },
     email: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
     },
     phone: {
       type: String,
-      required: true,
-    },
-    password: {
-      type: String,
-      required: true,
+      default: '',
     },
     profile_photo: {
       type: String,
     },
     designation: {
       type: String,
-      required: true,
+      default: '',
     },
     status: {
       type: String,

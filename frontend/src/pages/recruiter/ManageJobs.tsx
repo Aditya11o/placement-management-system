@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, MapPin, 
-  Edit3, Trash2,
+  Edit3, Trash2, AlertTriangle,
   TrendingUp, Archive, MousePointer2, Loader2, Users
 } from 'lucide-react';
 import api from '../../api';
@@ -14,6 +14,8 @@ const ManageJobs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const fetchJobs = async () => {
     try {
@@ -32,16 +34,29 @@ const ManageJobs: React.FC = () => {
     fetchJobs();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this job?')) {
-      try {
-        await api.delete(`/jobs/${id}`);
-        setJobs(jobs.filter(j => j._id !== id));
-        showSuccess('Job deleted successfully!', 'Delete Job');
-      } catch (error: any) {
-        console.error(error);
-        showError(error.response?.data?.message || 'Failed to delete job', 'Delete Error');
-      }
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await api.delete(`/jobs/${deleteConfirmId}`);
+      setJobs(jobs.filter(j => j._id !== deleteConfirmId));
+      showSuccess('Job deleted successfully!', 'Delete Job');
+    } catch (error: any) {
+      console.error(error);
+      showError(error.response?.data?.message || 'Failed to delete job', 'Delete Error');
+    } finally {
+      setDeleteConfirmId(null);
+    }
+  };
+
+  const handleToggleStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'open' ? 'closed' : 'open';
+    try {
+      await api.patch(`/jobs/${id}/status`, { status: newStatus });
+      setJobs(jobs.map(j => j._id === id ? { ...j, status: newStatus } : j));
+      showSuccess(`Job status updated to ${newStatus}!`, 'Status Update');
+    } catch (error: any) {
+      console.error(error);
+      showError(error.response?.data?.message || 'Failed to update status');
     }
   };
 
@@ -142,14 +157,19 @@ const ManageJobs: React.FC = () => {
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex justify-center">
-                        <span className={`flex items-center gap-1.5 font-bold ${
-                          job.status === 'open' ? 'text-blue-600' : 'text-gray-400'
-                        }`}>
+                        <button 
+                          onClick={() => handleToggleStatus(job._id, job.status)}
+                          className={`flex items-center gap-1.5 font-bold transition-all hover:scale-105 active:scale-95 px-3 py-1 rounded-full ${
+                            job.status === 'open' 
+                              ? 'text-blue-600 bg-blue-50 border border-blue-100' 
+                              : 'text-gray-400 bg-gray-50 border border-gray-100'
+                          }`}
+                        >
                           <span className={`w-1.5 h-1.5 rounded-full ${
                             job.status === 'open' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'
                           }`} />
-                          {job.status}
-                        </span>
+                          {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                        </button>
                       </div>
                     </td>
                     <td className="px-6 py-5 text-center">
@@ -165,11 +185,13 @@ const ManageJobs: React.FC = () => {
                           className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="View Applicants">
                           <Users size={16} />
                         </button>
-                        <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all" title="Edit Job">
+                        <button 
+                          onClick={() => navigate(`/recruiter/post-job?edit=${job._id}`)}
+                          className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all" title="Edit Job">
                           <Edit3 size={16} />
                         </button>
                         <button 
-                          onClick={() => handleDelete(job._id)}
+                          onClick={() => setDeleteConfirmId(job._id)}
                           className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Delete Job">
                           <Trash2 size={16} />
                         </button>
@@ -228,6 +250,39 @@ const ManageJobs: React.FC = () => {
         </div>
 
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm transition-all duration-300">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="absolute top-0 left-0 w-full h-1 bg-rose-500" />
+            <div className="flex flex-col items-center text-center mt-2">
+              <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mb-4 shadow-inner">
+                <AlertTriangle size={32} strokeWidth={2.5} />
+              </div>
+              <h3 className="text-xl font-black text-gray-900 tracking-tight mb-2">Delete Job Post?</h3>
+              <p className="text-gray-500 text-[13px] leading-relaxed mb-8">
+                Are you sure you want to permanently remove this job listing and all its associated applications? This action cannot be undone.
+              </p>
+              
+              <div className="flex w-full gap-3">
+                <button 
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 py-3 px-4 bg-gray-50 text-gray-600 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={executeDelete}
+                  className="flex-1 py-3 px-4 bg-rose-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-md shadow-rose-500/20 active:scale-95"
+                >
+                  Yes, Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
