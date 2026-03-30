@@ -99,7 +99,7 @@ const studentProfileSchema = new mongoose.Schema(
   }
 );
 
-studentProfileSchema.pre('save', function() {
+studentProfileSchema.pre('save', function(next) {
   const fields = [
     'full_name', 'phone', 'dob', 'gender', 'address', 
     'city', 'state', 'department', 'course', 'passing_year', 
@@ -116,6 +116,7 @@ studentProfileSchema.pre('save', function() {
   });
 
   this.profile_completion = Math.round((filledCount / fields.length) * 100);
+  next();
 });
 
 const StudentProfile = mongoose.model('StudentProfile', studentProfileSchema);

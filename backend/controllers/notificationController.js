@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 
@@ -68,22 +69,23 @@ const createBroadcast = async (req, res, next) => {
       query.role = 'student';
     } else if (sendTo === 'All Recruiters') {
       query.role = 'recruiter';
-    } else if (sendTo === 'Selected Students') {
-      query.role = 'student';
-    }
+    } 
 
     const recipients = await User.find(query).select('_id');
+    const broadcastId = new mongoose.Types.ObjectId().toString(); // Generate unique broadcast grouping ID
     
     const notifications = recipients.map(user => ({
       user_id: user._id,
       title: title || 'Broadcast',
       message: message || body,
       type: (type || 'system').toLowerCase(),
+      isBroadcast: true,
+      broadcastId: broadcastId
     }));
 
-    await Notification.insertMany(notifications);
+    await Notification.create(notifications);
 
-    // Emit live socket event if available
+    // Emit live socket event...
     const io = req.app.get('io');
     if (io) {
       recipients.forEach(user => {
@@ -91,25 +93,92 @@ const createBroadcast = async (req, res, next) => {
           title: title || 'Broadcast',
           message: message || body,
           type: type || 'system',
+          broadcastId: broadcastId
         });
       });
     }
 
-    res.status(201).json({ message: `Broadcast sent to ${recipients.length} users` });
+    res.status(201).json({ message: `Broadcast sent to ${recipients.length} users`, broadcastId });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get all broadcast notifications (Admin)
-// @route   GET /api/notifications/admin
-// @access  Private (Admin)
-const adminGetNotifications = async (req, res, next) => {
+// @desc    Get all broadcast notifications (Announcements)
+// @route   GET /api/notifications/announcements
+// @access  Private
+const getAnnouncements = async (req, res, next) => {
   try {
-    const notifications = await Notification.find({ type: 'system' })
+    // Return latest individual notifications that are broadcasts
+    // For general public view, we don't care about grouping
+    const notifications = await Notification.find({ isBroadcast: true })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(10);
     res.json(notifications);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get unique broadcasts for admin history
+// @route   GET /api/notifications/admin
+const adminGetBroadcasts = async (req, res, next) => {
+  try {
+    // Use aggregation to get unique broadcasts by broadcastId
+    const broadcasts = await Notification.aggregate([
+      { $match: { isBroadcast: true, broadcastId: { $ne: null } } },
+      { $sort: { createdAt: -1 } },
+      { $group: {
+          _id: "$broadcastId",
+          title: { $first: "$title" },
+          message: { $first: "$message" },
+          type: { $first: "$type" },
+          createdAt: { $first: "$createdAt" },
+          recipientCount: { $sum: 1 }
+      }},
+      { $sort: { createdAt: -1 } }
+    ]);
+    res.json(broadcasts);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update a broadcast
+// @route   PUT /api/notifications/broadcast/:id
+const updateBroadcast = async (req, res, next) => {
+  try {
+    const { title, message, type } = req.body;
+    const { id } = req.params; // id is the broadcastId
+
+    const result = await Notification.updateMany(
+      { broadcastId: id },
+      { $set: { title, message, type: type.toLowerCase() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'Broadcast not found' });
+    }
+
+    res.json({ message: `Broadcast updated successfully (${result.modifiedCount} recipients updated)` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Delete a broadcast
+// @route   DELETE /api/notifications/broadcast/:id
+const deleteBroadcast = async (req, res, next) => {
+  try {
+    const { id } = req.params; // id is the broadcastId
+
+    const result = await Notification.deleteMany({ broadcastId: id });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Broadcast not found' });
+    }
+
+    res.json({ message: `Broadcast deleted successfully (${result.deletedCount} notifications removed)` });
   } catch (error) {
     next(error);
   }
@@ -120,5 +189,8 @@ module.exports = {
   markAsRead, 
   markAllAsRead,
   createBroadcast, 
-  adminGetNotifications 
+  getAnnouncements,
+  adminGetBroadcasts,
+  updateBroadcast,
+  deleteBroadcast
 };

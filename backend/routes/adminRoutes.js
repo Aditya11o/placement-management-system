@@ -4,7 +4,8 @@ const {
   getStats, getUsers, verifyUser, sendBroadcast, 
   getInterviews, getPlacementReports, getRecentActivities,
   getPendingVerifications, verifySkill, getCompanyHistory, getAdvancedAnalytics,
-  getPendingRecruiters, approveRecruiter
+  getPendingRecruiters, approveRecruiter,
+  createStudent, createRecruiter, runVerificationBatch
 } = require('../controllers/adminController');
 const { archiveYear, getArchives } = require('../controllers/archiveController');
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -19,7 +20,9 @@ router.get('/stats', getStats);
 router.get('/activities', getRecentActivities);
 router.get('/users', getUsers);
 router.patch('/users/:id/verify', verifyUser);
-// Notification broadcasts are handled in notificationRoutes.js
+router.post('/students', createStudent);
+router.post('/recruiters', createRecruiter);
+router.post('/verify-batch', runVerificationBatch);
 router.get('/interviews', getInterviews);
 router.get('/reports/placements', getPlacementReports);
 router.get('/analytics', getAdvancedAnalytics);

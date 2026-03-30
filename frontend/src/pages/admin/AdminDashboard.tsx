@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, Briefcase, FileText, Calendar, 
   CheckCircle, MoreVertical, Loader2
@@ -7,6 +8,7 @@ import api from '../../api';
 import AnnouncementsBoard from '../../components/AnnouncementsBoard';
 
 const AdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState([
     { label: 'Total Students', value: '0', change: 'Active', icon: Users, color: 'blue' },
     { label: 'Total Recruiters', value: '0', change: 'Active', icon: Briefcase, color: 'indigo' },
@@ -18,6 +20,13 @@ const AdminDashboard: React.FC = () => {
 
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [companyJobs, setCompanyJobs] = useState<any[]>([]);
+  const [appStatus, setAppStatus] = useState<any[]>([
+    { label: 'Applied', value: 0, color: 'bg-[#000613]' },
+    { label: 'Shortlisted', value: 0, color: 'bg-[#1a2b4b]' },
+    { label: 'Selected', value: 0, color: 'bg-[#4a5d7e]' },
+    { label: 'Rejected', value: 0, color: 'bg-[#e2e4e6]' },
+  ]);
 
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -37,6 +46,34 @@ const AdminDashboard: React.FC = () => {
           { label: 'Selected Students', value: s.placedStudents.toLocaleString(), sub: '68% Rate', icon: CheckCircle, color: 'emerald' },
         ]);
         setActivities(activitiesRes.data);
+
+        // Process dynamic charts
+        if (s.jobsPerCompany && s.jobsPerCompany.length > 0) {
+          const colors = ['#000613', '#1a2b4b', '#4a5d7e', '#8a9ab3', '#c4ced9'];
+          setCompanyJobs(s.jobsPerCompany.map((c: any, i: number) => ({
+            name: c._id.toUpperCase(),
+            jobs: c.count,
+            color: colors[i % colors.length]
+          })));
+        } else {
+          setCompanyJobs([
+            { name: 'TECHCORP', jobs: 0, color: '#000613' },
+            { name: 'SYSTEMS', jobs: 0, color: '#1a2b4b' },
+          ]);
+        }
+
+        if (s.appBreakdown && s.totalApplications > 0) {
+          const breakdown = s.appBreakdown;
+          const getCount = (label: string) => breakdown.find((b: any) => b._id === label)?.count || 0;
+          const total = s.totalApplications;
+          
+          setAppStatus([
+            { label: 'Applied', value: Math.round((getCount('Applied') / total) * 100), color: 'bg-[#000613]' },
+            { label: 'Shortlisted', value: Math.round((getCount('Shortlisted') / total) * 100), color: 'bg-[#1a2b4b]' },
+            { label: 'Selected', value: Math.round((getCount('Selected') / total) * 100), color: 'bg-[#4a5d7e]' },
+            { label: 'Rejected', value: Math.round((getCount('Rejected') / total) * 100), color: 'bg-[#e2e4e6]' },
+          ]);
+        }
       } catch (error) {
         console.error('Error fetching admin data:', error);
       } finally {
@@ -47,19 +84,6 @@ const AdminDashboard: React.FC = () => {
     fetchAdminData();
   }, []);
 
-  const companyJobs = [
-    { name: 'GOOGLE', jobs: 85, color: '#000613' },
-    { name: 'AMAZON', jobs: 64, color: '#1a2b4b' },
-    { name: 'MICROSOFT', jobs: 72, color: '#4a5d7e' },
-    { name: 'META', jobs: 45, color: '#8a9ab3' },
-  ];
-
-  const appStatus = [
-    { label: 'Applied', value: 45, color: 'bg-[#000613]' },
-    { label: 'Shortlisted', value: 25, color: 'bg-[#1a2b4b]' },
-    { label: 'Selected', value: 20, color: 'bg-[#4a5d7e]' },
-    { label: 'Rejected', value: 10, color: 'bg-[#e2e4e6]' },
-  ];
 
   if (loading) {
     return (
@@ -120,7 +144,7 @@ const AdminDashboard: React.FC = () => {
                   <div 
                     className="h-full rounded-full transition-all duration-1000 ease-out"
                     style={{ 
-                      width: `${(company.jobs / 85) * 100}%`,
+                      width: `${companyJobs.length > 0 ? (company.jobs / Math.max(...companyJobs.map(c => c.jobs))) * 100 : 0}%`,
                       backgroundColor: company.color 
                     }}
                   ></div>
@@ -142,14 +166,14 @@ const AdminDashboard: React.FC = () => {
               {/* Custom Donut implementation using SVG */}
               <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
                 <circle cx="18" cy="18" r="16" fill="transparent" stroke="#f3f4f6" strokeWidth="4"></circle>
-                {/* Applied - 45% */}
-                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#000613" strokeWidth="4" strokeDasharray="45 100" strokeDashoffset="0"></circle>
-                {/* Shortlisted - 25% */}
-                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#1a2b4b" strokeWidth="4" strokeDasharray="25 100" strokeDashoffset="-45"></circle>
-                {/* Selected - 20% */}
-                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#4a5d7e" strokeWidth="4" strokeDasharray="20 100" strokeDashoffset="-70"></circle>
-                {/* Rejected - 10% */}
-                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#e2e4e6" strokeWidth="4" strokeDasharray="10 100" strokeDashoffset="-90"></circle>
+                {/* Applied */}
+                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#000613" strokeWidth="4" strokeDasharray={`${appStatus[0].value} 100`} strokeDashoffset="0"></circle>
+                {/* Shortlisted */}
+                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#1a2b4b" strokeWidth="4" strokeDasharray={`${appStatus[1].value} 100`} strokeDashoffset={`-${appStatus[0].value}`}></circle>
+                {/* Selected */}
+                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#4a5d7e" strokeWidth="4" strokeDasharray={`${appStatus[2].value} 100`} strokeDashoffset={`-${appStatus[0].value + appStatus[1].value}`}></circle>
+                {/* Rejected */}
+                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#e2e4e6" strokeWidth="4" strokeDasharray={`${appStatus[3].value} 100`} strokeDashoffset={`-${appStatus[0].value + appStatus[1].value + appStatus[2].value}`}></circle>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-3xl font-black text-gray-900">
@@ -175,7 +199,11 @@ const AdminDashboard: React.FC = () => {
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-50 flex justify-between items-center">
           <h3 className="text-base font-black text-gray-900 tracking-tight">Recent Activities</h3>
-          <button className="text-[11px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest transition-colors">View History</button>
+          <button 
+            onClick={() => navigate('/admin/audit')}
+            className="text-[11px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest transition-colors">
+            View History
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">

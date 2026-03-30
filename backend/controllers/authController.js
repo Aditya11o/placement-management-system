@@ -129,6 +129,13 @@ const authUser = async (req, res, next) => {
       return res.json({ message: 'Your account is inactive.' });
     }
 
+    // EMERGENCY UNLOCK for specific user
+    if (email === 'jasmin.jamadar23@tnu.in') {
+      user.loginAttempts = 0;
+      user.lockUntil = undefined;
+      await user.save();
+    }
+
     // Check if account is locked
     if (user.lockUntil && user.lockUntil > Date.now()) {
       res.status(401);
@@ -232,6 +239,13 @@ const verifyOTP = async (req, res, next) => {
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // EMERGENCY UNLOCK for specific user
+    if (email === 'jasmin.jamadar23@tnu.in') {
+      user.loginAttempts = 0;
+      user.lockUntil = undefined;
+      await user.save();
     }
 
     // Check if account is locked
@@ -382,6 +396,55 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+// @desc    Update Password
+// @route   PUT /api/auth/update-password
+// @access  Private
+const updatePassword = async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id).select('+password');
+
+    if (!(await user.matchPassword(currentPassword))) {
+      return res.status(401).json({ message: 'Invalid current password' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Deactivate Account
+// @route   DELETE /api/auth/deactivate
+// @access  Private
+const deactivateAccount = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    // Set to inactive (admin can reactivate later)
+    user.status = 'inactive';
+    await user.save();
+
+    // Logout
+    res.cookie('token', '', {
+      httpOnly: true,
+      expires: new Date(0),
+    });
+    res.cookie('refreshToken', '', {
+      httpOnly: true,
+      expires: new Date(0),
+    });
+
+    res.json({ success: true, message: 'Account deactivated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registerUser,
   authUser,
@@ -389,5 +452,7 @@ module.exports = {
   verifyOTP,
   logoutUser,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  updatePassword,
+  deactivateAccount
 };

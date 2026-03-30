@@ -19,6 +19,11 @@ const logger = require('./utils/logger');
 // Load environment variables
 dotenv.config();
 
+console.log('--- STARTUP DEBUG ---');
+console.log('PWD:', process.cwd());
+console.log('JWT_SECRET keys found:', Object.keys(process.env).filter(k => k.includes('SECRET')));
+console.log('--- END STARTUP DEBUG ---');
+
 // Fail-fast: ensure critical secrets are configured
 if (!process.env.JWT_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
   console.error('FATAL: JWT_SECRET and REFRESH_TOKEN_SECRET must be set in .env');
@@ -59,23 +64,27 @@ app.use(csrfProtection); // CSRF protection (Double Submit Cookie)
 
 // Express 5 compatibility fix for older middlewares (req.query and req.params are getters by default)
 app.use((req, res, next) => {
-  if (req.query) {
-    const rawQuery = req.query;
-    Object.defineProperty(req, 'query', {
-      value: { ...rawQuery },
-      writable: true,
-      configurable: true,
-      enumerable: true
-    });
-  }
-  if (req.params) {
-    const rawParams = req.params;
-    Object.defineProperty(req, 'params', {
-      value: { ...rawParams },
-      writable: true,
-      configurable: true,
-      enumerable: true
-    });
+  try {
+    if (req.query && Object.getOwnPropertyDescriptor(req, 'query')?.configurable !== false) {
+      const rawQuery = { ...req.query };
+      Object.defineProperty(req, 'query', {
+        value: rawQuery,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      });
+    }
+    if (req.params && Object.getOwnPropertyDescriptor(req, 'params')?.configurable !== false) {
+      const rawParams = { ...req.params };
+      Object.defineProperty(req, 'params', {
+        value: rawParams,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      });
+    }
+  } catch (e) {
+    console.warn('Express 5 compatibility shim failed for this request:', e.message);
   }
   next();
 });
@@ -89,11 +98,16 @@ app.use(xss());
 // Prevent HTTP Parameter Pollution
 app.use(hpp());
 
+// Trust proxy if behind one (important for rate limiting accuracy)
+app.set('trust proxy', 1);
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 mins
-  max: 5000, // max 5000 requests per window (relaxed for SPA activity)
+  max: 10000, // max 10000 requests per window (relaxed for SPA activity and development)
   message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api/', limiter);
 
@@ -109,14 +123,12 @@ app.use('/api/auth/login', loginLimiter);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-const auditLogRoutes = require('./routes/auditLogRoutes');
-
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/jobs', require('./routes/jobRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/applications', require('./routes/applicationRoutes'));
-app.use('/api/audit', auditLogRoutes);
+app.use('/api/audit', require('./routes/auditLogRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));

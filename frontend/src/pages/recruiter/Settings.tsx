@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   User as UserIcon, Lock, Bell, Building2, 
   Upload, Camera, 
@@ -11,10 +11,11 @@ import api from '../../api';
 import Avatar from '../../components/Avatar';
 
 const Settings: React.FC = () => {
-  const { user, profile, refreshUser } = useAuth();
+  const { user, profile, refreshUser, logout } = useAuth();
   const { showSuccess, showError } = useNotification();
   const [activeMenu, setActiveMenu] = useState('Account Settings');
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
   const [accountData, setAccountData] = useState({
@@ -35,6 +36,15 @@ const Settings: React.FC = () => {
     confirmPassword: '',
   });
 
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailSummary: true,
+    interviewAlerts: true,
+    applicationAlerts: true,
+  });
+
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
   useEffect(() => {
     if (user && profile) {
       setAccountData({
@@ -48,21 +58,53 @@ const Settings: React.FC = () => {
         location: profile.recruiterDetails?.location || '',
       });
     }
+    fetchSettings();
   }, [user, profile]);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get('/settings/recruiter');
+      setNotificationSettings(response.data.notifications);
+    } catch (err) {
+      console.error('Failed to fetch settings:', err);
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
-      await api.put('/profile', {
-        recruiterDetails: {
-          ...profile?.recruiterDetails,
-          phone: accountData.phone,
-          companyName: companyData.name,
-          companyWebsite: companyData.website,
-          location: companyData.location,
-        }
+      const formData = new FormData();
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      }
+      
+      formData.append('recruiterDetails', JSON.stringify({
+        ...profile?.recruiterDetails,
+        phone: accountData.phone,
+        companyName: companyData.name,
+        companyWebsite: companyData.website,
+        location: companyData.location,
+      }));
+
+      await api.put('/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
+      
       await refreshUser();
+      setAvatarFile(null);
+      setAvatarPreview(null);
       showSuccess('Profile updated successfully!', 'Settings Updated');
     } catch (err: any) {
       showError(err.response?.data?.message || 'Failed to update profile');
@@ -72,6 +114,9 @@ const Settings: React.FC = () => {
   };
 
   const handleChangePassword = async () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword) {
+      return showError('Please fill in all password fields');
+    }
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       return showError('Passwords do not match');
     }
@@ -87,6 +132,31 @@ const Settings: React.FC = () => {
       showError(err.response?.data?.message || 'Failed to update password');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    setLoading(true);
+    try {
+      await api.put('/settings/recruiter', {
+        notifications: notificationSettings
+      });
+      showSuccess('Notification preferences saved!');
+    } catch (err: any) {
+      showError('Failed to save preferences');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (window.confirm('Are you absolutely sure? This will deactivate your account and log you out.')) {
+      try {
+        await api.delete('/auth/deactivate');
+        logout();
+      } catch (err: any) {
+        showError('Failed to deactivate account');
+      }
     }
   };
 
@@ -137,7 +207,7 @@ const Settings: React.FC = () => {
         <div className="col-span-12 lg:col-span-9 space-y-6">
           
           {/* Account Settings Card */}
-          <div className="bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm">
+          <div className={`bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm ${activeMenu !== 'Account Settings' && 'hidden'}`}>
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-xl font-black text-gray-900 tracking-tight">Account Settings</h2>
               <span className="px-3 py-1 bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-gray-100">Primary</span>
@@ -148,18 +218,35 @@ const Settings: React.FC = () => {
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Profile Photo</label>
                 <div className="relative group">
-                  <div className="w-32 h-32 bg-gray-50 rounded-[28px] border-2 border-dashed border-gray-200 overflow-hidden flex items-center justify-center group-hover:border-gray-900 transition-all">
-                    <Avatar 
-                      name={user?.name || ''} 
-                      profilePhoto={profile?.profile_photo} 
-                      size="xl" 
-                      className="w-full h-full object-cover" 
-                    />
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-32 h-32 bg-gray-50 rounded-[28px] border-2 border-dashed border-gray-200 overflow-hidden flex items-center justify-center group-hover:border-gray-900 transition-all cursor-pointer"
+                  >
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Avatar 
+                        name={user?.name || ''} 
+                        profilePhoto={profile?.profile_photo} 
+                        size="xl" 
+                        className="w-full h-full object-cover" 
+                      />
+                    )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Camera size={24} className="text-white" />
                     </div>
                   </div>
-                  <button className="absolute -bottom-2 -right-2 w-10 h-10 bg-white border border-gray-100 rounded-xl flex items-center justify-center text-gray-900 shadow-xl hover:scale-110 active:scale-95 transition-all">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleAvatarChange} 
+                  />
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-white border border-gray-100 rounded-xl flex items-center justify-center text-gray-900 shadow-xl hover:scale-110 active:scale-95 transition-all"
+                  >
                     <Upload size={18} />
                   </button>
                 </div>
@@ -212,7 +299,7 @@ const Settings: React.FC = () => {
           </div>
 
           {/* Change Password Card */}
-          <div className="bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm">
+          <div className={`bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm ${activeMenu !== 'Security' && 'hidden'}`}>
             <div className="flex items-center gap-3 mb-8">
               <Shield size={20} className="text-gray-400" />
               <h2 className="text-xl font-black text-gray-900 tracking-tight">Change Password</h2>
@@ -265,7 +352,7 @@ const Settings: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Notification Settings Card */}
-            <div className="bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm flex flex-col h-full">
+            <div className={`bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm flex flex-col h-full ${activeMenu !== 'Notifications' && 'hidden md:flex'}`}>
               <div className="flex items-center gap-3 mb-8">
                 <Bell size={20} className="text-gray-400" />
                 <h2 className="text-xl font-black text-gray-900 tracking-tight">Notification Settings</h2>
@@ -273,31 +360,38 @@ const Settings: React.FC = () => {
 
               <div className="space-y-6 flex-1">
                 {[
-                  { id: 1, label: 'Email Notifications', desc: 'Receive weekly summary emails', active: true },
-                  { id: 2, label: 'Interview Notifications', desc: 'Alerts for upcoming interviews', active: true },
-                  { id: 3, label: 'Application Notifications', desc: 'Real-time new applicant alerts', active: false },
+                  { id: 'emailSummary', label: 'Email Notifications', desc: 'Receive weekly summary emails' },
+                  { id: 'interviewAlerts', label: 'Interview Notifications', desc: 'Alerts for upcoming interviews' },
+                  { id: 'applicationAlerts', label: 'Application Notifications', desc: 'Real-time new applicant alerts' },
                 ].map((item) => (
                   <div key={item.id} className="flex items-center justify-between group">
                     <div className="space-y-1">
                       <p className="text-[13px] font-black text-gray-900 tracking-tight leading-none">{item.label}</p>
                       <p className="text-[11px] font-bold text-gray-400">{item.desc}</p>
                     </div>
-                    <button className={`w-12 h-6 rounded-full transition-all relative ${item.active ? 'bg-gray-900' : 'bg-gray-200'}`}>
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${item.active ? 'left-7' : 'left-1'}`} />
+                    <button 
+                      onClick={() => setNotificationSettings(prev => ({ ...prev, [item.id]: !prev[item.id as keyof typeof prev] }))}
+                      className={`w-12 h-6 rounded-full transition-all relative ${notificationSettings[item.id as keyof typeof notificationSettings] ? 'bg-gray-900' : 'bg-gray-200'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${notificationSettings[item.id as keyof typeof notificationSettings] ? 'left-7' : 'left-1'}`} />
                     </button>
                   </div>
                 ))}
               </div>
 
               <div className="mt-8 pt-8 border-t border-gray-50 items-center justify-center flex">
-                 <button className="w-full py-4 border-2 border-gray-900 text-gray-900 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all active:scale-95">
-                  Save Preferences
+                 <button 
+                  onClick={handleSaveNotifications}
+                  disabled={loading}
+                  className="w-full py-4 border-2 border-gray-900 text-gray-900 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="animate-spin inline mr-2" size={14} /> : 'Save Preferences'}
                 </button>
               </div>
             </div>
 
             {/* Company Settings Card */}
-            <div className="bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm h-full flex flex-col">
+            <div className={`bg-white border border-gray-100 rounded-[32px] p-8 shadow-sm h-full flex flex-col ${activeMenu !== 'Company Details' && 'hidden md:flex'}`}>
               <div className="flex items-center gap-3 mb-8">
                 <Building2 size={20} className="text-gray-400" />
                 <h2 className="text-xl font-black text-gray-900 tracking-tight">Company Settings</h2>
@@ -355,7 +449,7 @@ const Settings: React.FC = () => {
           </div>
 
           {/* Deactivate Account */}
-          <div className="bg-red-50 border border-red-100 rounded-[32px] p-8 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className={`bg-red-50 border border-red-100 rounded-[32px] p-8 flex flex-col md:flex-row justify-between items-center gap-6 ${activeMenu !== 'Security' && 'hidden'}`}>
             <div className="flex items-center gap-6">
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-red-500 shadow-sm border border-red-50 flex-shrink-0">
                 <AlertTriangle size={24} />
@@ -363,11 +457,14 @@ const Settings: React.FC = () => {
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-red-900 tracking-tight leading-none">Deactivate Account</h3>
                 <p className="text-[13px] font-medium text-red-600 max-w-sm">
-                  Permanently delete your recruiter account and all associated data. This action cannot be undone.
+                  Permanently deactivate your recruiter account. This will log you out immediately.
                 </p>
               </div>
             </div>
-            <button className="px-10 py-4 bg-red-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-900/20 active:scale-95">
+            <button 
+              onClick={handleDeactivate}
+              className="px-10 py-4 bg-red-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-900/20 active:scale-95"
+            >
               Deactivate
             </button>
           </div>

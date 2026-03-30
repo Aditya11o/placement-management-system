@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Building2, Check, ExternalLink, Loader2, MapPin, Search, UserPlus, X, Eye
+  Building2, Check, ExternalLink, Loader2, MapPin, Search, UserPlus, X, Eye, Edit2
 } from 'lucide-react';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
@@ -14,6 +14,20 @@ const ManageRecruiters: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedRecruiter, setSelectedRecruiter] = useState<any>(null);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    companyName: '',
+    website: '',
+    industry: '',
+    location: ''
+  });
+
   const fetchRecruiters = async () => {
     try {
       setLoading(true);
@@ -23,20 +37,21 @@ const ManageRecruiters: React.FC = () => {
         .map((u: any) => ({
           _id: u._id,
           company: {
-            name: u.profile?.companyName || 'N/A',
-            logo: u.profile?.companyName?.[0] || 'C',
-            website: u.profile?.website || 'N/A',
+            name: u.profile?.companyName || u.profile?.recruiterDetails?.companyName || 'N/A',
+            logo: u.profile?.companyLogo || u.profile?.recruiterDetails?.companyLogo || u.profilePhoto || (u.profile?.companyName || u.profile?.recruiterDetails?.companyName)?.[0] || 'C',
+            website: u.profile?.website || u.profile?.recruiterDetails?.companyWebsite || '',
           },
           recruiter: {
             name: u.name,
             email: u.email,
           },
-          industry: u.profile?.industry || 'N/A',
-          location: u.profile?.location || 'N/A',
+          industry: u.profile?.industry || u.profile?.recruiterDetails?.industry || 'N/A',
+          location: u.profile?.location || u.profile?.recruiterDetails?.location || 'N/A',
           regDate: new Date(u.createdAt).toLocaleDateString(),
           status: u.status === 'blacklisted' ? 'Blacklisted' : (u.isVerified ? 'Approved' : 'Pending'),
           rawStatus: u.status,
-          isVerified: u.isVerified
+          isVerified: u.isVerified,
+          original: u
         }));
       setRecruiters(filtered);
     } catch (err: any) {
@@ -83,6 +98,31 @@ const ManageRecruiters: React.FC = () => {
     item.recruiter.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/admin/recruiters', formData);
+      showSuccess('Recruiter added successfully! A temporary password has been assigned if none was provided.', 'Success');
+      setShowAddModal(false);
+      setFormData({ name: '', email: '', password: '', companyName: '', website: '', industry: '', location: '' });
+      fetchRecruiters();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to add recruiter', 'Error');
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.patch(`/admin/users/${selectedRecruiter._id}/verify`, formData);
+      showSuccess('Recruiter profile updated successfully!', 'Success');
+      setShowEditModal(false);
+      fetchRecruiters();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to update recruiter', 'Error');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -93,7 +133,12 @@ const ManageRecruiters: React.FC = () => {
             Approve, monitor, and manage recruitment partners.
           </p>
         </div>
-        <button className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-[#000613] text-white rounded-xl font-bold text-sm shadow-lg shadow-black/10 hover:scale-105 transition-all">
+        <button 
+          onClick={() => {
+            setFormData({ name: '', email: '', password: '', companyName: '', website: '', industry: '', location: '' });
+            setShowAddModal(true);
+          }}
+          className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-[#000613] text-white rounded-xl font-bold text-sm shadow-lg shadow-black/10 hover:scale-105 transition-all">
           <UserPlus size={18} />
           Add New Recruiter
         </button>
@@ -140,15 +185,23 @@ const ManageRecruiters: React.FC = () => {
                   <tr key={item._id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-xs font-black text-gray-400 border border-gray-50 group-hover:scale-110 transition-transform">
-                          {item.company.logo}
+                        <div className="w-10 h-10 rounded-xl bg-gray-100 border border-gray-50 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
+                          {item.company.logo && item.company.logo.length > 2 ? (
+                            <img src={item.company.logo} alt="Logo" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xs font-black text-gray-400">
+                              {item.company.logo || 'C'}
+                            </span>
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-black text-gray-900 leading-tight">{item.company.name}</p>
-                          <p className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors cursor-pointer flex items-center gap-1">
-                            {item.company.website}
-                            <ExternalLink size={8} />
-                          </p>
+                          {item.company.website && item.company.website !== 'N/A' && (
+                            <a href={item.company.website.startsWith('http') ? item.company.website : `https://${item.company.website}`} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1 mt-0.5 w-max">
+                              {item.company.website}
+                              <ExternalLink size={8} />
+                            </a>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -212,8 +265,23 @@ const ManageRecruiters: React.FC = () => {
                             title="Activate" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><Check size={16} /></button>
                         )}
                         <button 
+                          onClick={() => {
+                            setSelectedRecruiter(item);
+                            setFormData({
+                              name: item.recruiter.name,
+                              email: item.recruiter.email,
+                              password: '',
+                              companyName: item.company.name,
+                              website: item.company.website !== 'N/A' ? item.company.website : '',
+                              industry: item.industry !== 'N/A' ? item.industry : '',
+                              location: item.location !== 'N/A' ? item.location : ''
+                            });
+                            setShowEditModal(true);
+                          }}
+                          title="Edit" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit2 size={16} /></button>
+                        <button 
                           onClick={() => handleViewHistory(item._id)}
-                          title="View History" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Eye size={16} /></button>
+                          title="View History" className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Eye size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -325,6 +393,110 @@ const ManageRecruiters: React.FC = () => {
                   No placement history found
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Recruiter Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#000613]/80 backdrop-blur-sm" onClick={() => setShowAddModal(false)}></div>
+          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl relative z-10 overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
+            <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+              <div>
+                <h3 className="text-2xl font-black text-gray-900 tracking-tighter uppercase italic">Add Recruiter</h3>
+                <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Create a new partner account</p>
+              </div>
+              <button onClick={() => setShowAddModal(false)} className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all shadow-sm">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-8 overflow-y-auto custom-scrollbar">
+              <form id="add-recruiter-form" onSubmit={handleAddSubmit} className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Recruiter Name*</label>
+                    <input required type="text" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" placeholder="John Doe" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Email Address*</label>
+                    <input required type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" placeholder="john@company.com" />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Password (Optional)</label>
+                    <input type="text" value={formData.password} onChange={e => setFormData(p => ({ ...p, password: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" placeholder="Leave blank for 'Password@123'" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Company Name*</label>
+                    <input required type="text" value={formData.companyName} onChange={e => setFormData(p => ({ ...p, companyName: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" placeholder="Company Inc." />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Website</label>
+                    <input type="text" value={formData.website} onChange={e => setFormData(p => ({ ...p, website: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" placeholder="www.company.com" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Industry</label>
+                    <input type="text" value={formData.industry} onChange={e => setFormData(p => ({ ...p, industry: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" placeholder="e.g. Technology" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Location</label>
+                    <input type="text" value={formData.location} onChange={e => setFormData(p => ({ ...p, location: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" placeholder="e.g. Mumbai, India" />
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div className="p-8 border-t border-gray-100 bg-white flex justify-end gap-3 shrink-0">
+              <button onClick={() => setShowAddModal(false)} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-all text-sm">Cancel</button>
+              <button type="submit" form="add-recruiter-form" className="px-6 py-3 rounded-xl font-bold text-white bg-[#000613] hover:scale-105 transition-all text-sm shadow-xl shadow-black/10">Create Recruiter</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Recruiter Modal */}
+      {showEditModal && selectedRecruiter && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#000613]/80 backdrop-blur-sm" onClick={() => setShowEditModal(false)}></div>
+          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl relative z-10 overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
+            <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+              <div>
+                <h3 className="text-2xl font-black text-gray-900 tracking-tighter uppercase italic">Edit Profile</h3>
+                <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Update partner details</p>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all shadow-sm">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-8 overflow-y-auto custom-scrollbar">
+              <form id="edit-recruiter-form" onSubmit={handleEditSubmit} className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Recruiter Name</label>
+                    <input type="text" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Company Name</label>
+                    <input type="text" value={formData.companyName} onChange={e => setFormData(p => ({ ...p, companyName: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Website</label>
+                    <input type="text" value={formData.website} onChange={e => setFormData(p => ({ ...p, website: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Industry</label>
+                    <input type="text" value={formData.industry} onChange={e => setFormData(p => ({ ...p, industry: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Location</label>
+                    <input type="text" value={formData.location} onChange={e => setFormData(p => ({ ...p, location: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#000613]/10 focus:border-[#000613] transition-all" />
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div className="p-8 border-t border-gray-100 bg-white flex justify-end gap-3 shrink-0">
+              <button onClick={() => setShowEditModal(false)} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-all text-sm">Cancel</button>
+              <button type="submit" form="edit-recruiter-form" className="px-6 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/20 transition-all text-sm">Save Changes</button>
             </div>
           </div>
         </div>

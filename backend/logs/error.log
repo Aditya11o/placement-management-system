@@ -442,3 +442,92 @@ TypeError: next is not a function
     at Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:68:39)
     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
 --------------------------------------------------
+[2026-03-29T14:11:09.845Z] POST /api/notifications/broadcast
+ValidationError: Notification validation failed: type: `general` is not a valid enum value for path `type`.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+--------------------------------------------------
+[2026-03-29T14:11:47.446Z] POST /api/notifications/broadcast
+ValidationError: Notification validation failed: type: `general` is not a valid enum value for path `type`.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+--------------------------------------------------
+[2026-03-29T14:12:21.286Z] POST /api/notifications/broadcast
+ValidationError: Notification validation failed: type: `placement` is not a valid enum value for path `type`.
+    at model.validate (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\document.js:2864:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+--------------------------------------------------
+[2026-03-29T14:15:13.808Z] POST /api/notifications/broadcast
+MongoBulkWriteError: E11000 duplicate key error collection: pms.notifications index: notification_id_1 dup key: { notification_id: null }
+    at OrderedBulkOperation.handleWriteError (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\bulk\common.js:802:19)
+    at executeCommands (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\bulk\common.js:346:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\bulk\common.js:788:24
+    at async MongoClient.withSession (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\mongo_client.js:469:20)
+    at async OrderedBulkOperation.execute (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\bulk\common.js:787:20)
+    at async Collection.bulkWrite (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\collection.js:224:16)
+    at async Collection.insertMany (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\collection.js:171:25)
+    at async model.insertMany (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:3140:11)
+    at async createBroadcast (D:\Desktop\PMS\Placement Management System\backend\controllers\notificationController.js:85:5)
+--------------------------------------------------
+[2026-03-29T14:16:06.027Z] POST /api/notifications/broadcast
+MongoBulkWriteError: E11000 duplicate key error collection: pms.notifications index: notification_id_1 dup key: { notification_id: null }
+    at OrderedBulkOperation.handleWriteError (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\bulk\common.js:802:19)
+    at executeCommands (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\bulk\common.js:346:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\bulk\common.js:788:24
+    at async MongoClient.withSession (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\mongo_client.js:469:20)
+    at async OrderedBulkOperation.execute (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\bulk\common.js:787:20)
+    at async Collection.bulkWrite (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\collection.js:224:16)
+    at async Collection.insertMany (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongodb\lib\collection.js:171:25)
+    at async model.insertMany (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:3140:11)
+    at async createBroadcast (D:\Desktop\PMS\Placement Management System\backend\controllers\notificationController.js:85:5)
+--------------------------------------------------
+[2026-03-29T14:17:46.136Z] POST /api/notifications/broadcast
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\Notification.js:65:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:70:24)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2820:9
+    at async Promise.all (index 0)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2805:11)
+    at async createBroadcast (D:\Desktop\PMS\Placement Management System\backend\controllers\notificationController.js:85:5)
+--------------------------------------------------
+[2026-03-29T14:19:30.262Z] POST /api/notifications/broadcast
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\Notification.js:65:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:70:24)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2820:9
+    at async Promise.all (index 0)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2805:11)
+    at async createBroadcast (D:\Desktop\PMS\Placement Management System\backend\controllers\notificationController.js:85:5)
+--------------------------------------------------
+[2026-03-29T14:21:25.878Z] POST /api/notifications/broadcast
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\Notification.js:65:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:70:24)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2820:9
+    at async Promise.all (index 0)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2805:11)
+    at async createBroadcast (D:\Desktop\PMS\Placement Management System\backend\controllers\notificationController.js:85:5)
+--------------------------------------------------
+[2026-03-29T14:21:48.459Z] POST /api/notifications/broadcast
+TypeError: next is not a function
+    at model.<anonymous> (D:\Desktop\PMS\Placement Management System\backend\models\Notification.js:65:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Kareem.execPre (D:\Desktop\PMS\Placement Management System\backend\node_modules\kareem\index.js:70:24)
+    at async model.$__save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:394:5)
+    at async model.save (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:664:5)
+    at async D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2820:9
+    at async Promise.all (index 0)
+    at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2805:11)
+    at async createBroadcast (D:\Desktop\PMS\Placement Management System\backend\controllers\notificationController.js:85:5)
+--------------------------------------------------

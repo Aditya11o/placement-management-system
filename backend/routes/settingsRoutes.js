@@ -1,9 +1,8 @@
 const express = require('express');
-const { getSettings, updateSettings } = require('../controllers/settingsController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { getRecruiterSettings, updateRecruiterSettings } = require('../controllers/settingsController');
+const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
 
-router.get('/', protect, getSettings);
-router.put('/', protect, authorize('admin'), updateSettings);
+router.route('/recruiter').get(protect, getRecruiterSettings).put(protect, updateRecruiterSettings);
 
 module.exports = router;

@@ -226,7 +226,7 @@ const ManageJobs: React.FC = () => {
               <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-blue-400 border border-white/5">
                 <TrendingUp size={24} />
               </div>
-              <h2 className="text-2xl font-black tracking-tight">Recruitment Insights</h2>
+              <h2 className="text-2xl font-black tracking-tight text-white mb-2">Recruitment Insights</h2>
               <p className="text-gray-400 text-[14px] leading-relaxed max-w-md">
                 Your listings have received a <span className="text-blue-400 font-black">active</span> participation this month.
               </p>

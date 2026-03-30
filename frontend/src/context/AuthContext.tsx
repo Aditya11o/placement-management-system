@@ -36,41 +36,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [profile, setProfile] = useState<any>(null);
+  const fetchInProgress = React.useRef(false);
 
   const fetchUserProfile = async () => {
+    if (fetchInProgress.current) return;
+    fetchInProgress.current = true;
+    
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        fetchInProgress.current = false;
+        return;
+      }
+      
       const { data } = await api.get('/profile/me');
+      
+      // Update profile state
       setProfile(data);
-      // Sync names etc. if needed
+      
+      // Selectively sync user info to prevent infinite loops
       if (data.user && user && data.user.name !== user.name) {
-        setUser({ ...user, name: data.user.name });
+        setUser(prev => prev ? ({ ...prev, name: data.user.name }) : null);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      // On error, we still clear the ref but we don't clear profile
+      // to avoid the useEffect triggering another fetch immediately
+      if (!profile) {
+        setProfile({ _error: true }); // Marker to prevent immediate retry
+      }
+    } finally {
+      fetchInProgress.current = false;
     }
   };
 
+  // Synchronize user to localStorage only when user object changes
   useEffect(() => {
     if (user) {
       localStorage.setItem('userInfo', JSON.stringify(user));
-      if (!profile) {
-        fetchUserProfile();
-      }
     } else {
       localStorage.removeItem('userInfo');
       setProfile(null);
     }
   }, [user]);
 
-  // Initial profile fetch if token exists
+  // Initial and reactive profile fetch when user logs in
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && user && !profile) {
       fetchUserProfile();
     }
-  }, []);
+  }, [user, profile]);
 
   const login = async (email: string, password: string): Promise<any> => {
     setLoading(true);
@@ -82,6 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('userInfo', JSON.stringify(response.data));
       setUser(response.data);
       setLoading(false);
       return response.data;
@@ -97,6 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await api.post('/auth/verify-otp', { email, otp });
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('userInfo', JSON.stringify(response.data));
       setUser(response.data);
       setLoading(false);
       return response.data;
@@ -112,6 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await api.post('/auth/register', userData);
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('refreshToken', response.data.refreshToken);
+      localStorage.setItem('userInfo', JSON.stringify(response.data));
       setUser(response.data);
       setLoading(false);
       return response.data;

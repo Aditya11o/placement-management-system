@@ -1,5 +1,9 @@
 const User = require('../models/User');
 const Profile = require('../models/Profile');
+const StudentProfile = require('../models/StudentProfile');
+const RecruiterProfile = require('../models/RecruiterProfile');
+const CompanyProfile = require('../models/CompanyProfile');
+const Application = require('../models/Application');
 const { createAuditLog } = require('./auditLogController');
 
 // @desc    Get all pending skill verifications
@@ -66,9 +70,7 @@ const verifySkill = async (req, res, next) => {
   }
 };
 const Job = require('../models/Job');
-const Application = require('../models/Application');
 const Notification = require('../models/Notification');
-const CompanyProfile = require('../models/CompanyProfile');
 
 // @desc    Get dashboard statistics
 // @route   GET /api/admin/stats
@@ -84,32 +86,78 @@ const getStats = async (req, res, next) => {
       'interviewDate': { $exists: true, $ne: null } 
     });
 
+    // Application Status Breakdown
+    const appBreakdown = await Application.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    // Jobs per Company (Top 5)
+    const jobsPerCompany = await Job.aggregate([
+      { $group: { _id: '$companyName', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+
     res.json({
       totalStudents,
       totalRecruiters,
       totalJobs,
       totalApplications,
       placedStudents,
-      totalInterviews
+      totalInterviews,
+      appBreakdown,
+      jobsPerCompany
     });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Get all users with profile data
-// @route   GET /api/admin/users
-// @access  Private (Admin)
 const getUsers = async (req, res, next) => {
   try {
     const users = await User.find({}).select('-password').sort({ createdAt: -1 }).lean();
     
     const usersWithProfiles = await Promise.all(users.map(async (user) => {
       let profile = null;
-      if (user.role === 'student') {
-        profile = await Profile.findOne({ user: user._id }).lean();
-      } else if (user.role === 'recruiter') {
-        profile = await CompanyProfile.findOne({ user: user._id }).lean();
+      try {
+        if (user.role === 'student') {
+          // Look in both specialized StudentProfile and legacy Profile
+          profile = await StudentProfile.findOne({ user_id: user._id }).lean();
+          if (!profile) {
+            const legacyProfile = await Profile.findOne({ user: user._id }).lean();
+            if (legacyProfile && legacyProfile.studentDetails) {
+              // Map legacy to new format for frontend consistency
+              profile = {
+                ...legacyProfile.studentDetails,
+                _id: legacyProfile._id
+              };
+            }
+          }
+        } else if (user.role === 'recruiter') {
+          // Recruiters use RecruiterProfile which links to CompanyProfile
+          const recruiterProfile = await RecruiterProfile.findOne({ user: user._id }).populate('company').lean();
+          if (recruiterProfile) {
+            profile = {
+              ...recruiterProfile,
+              companyName: recruiterProfile.company?.company_name,
+              website: recruiterProfile.company?.website,
+              location: recruiterProfile.company?.location,
+              industry: recruiterProfile.company?.industry,
+              companyLogo: recruiterProfile.company?.company_logo
+            };
+          } else {
+            // Check legacy
+            const legacyProfile = await Profile.findOne({ user: user._id }).lean();
+            if (legacyProfile && legacyProfile.recruiterDetails) {
+              profile = {
+                ...legacyProfile.recruiterDetails,
+                _id: legacyProfile._id
+              };
+            }
+          }
+        }
+      } catch (profileErr) {
+        console.error(`Error fetching profile for user ${user._id}:`, profileErr);
       }
       return { ...user, profile };
     }));
@@ -178,12 +226,50 @@ const approveRecruiter = async (req, res, next) => {
 // @desc    Verify/Update user status
 // @route   PATCH /api/admin/users/:id/verify
 // @access  Private (Admin)
+// @desc    Update user status / profile data
+// @route   PATCH /api/admin/users/:id/verify
+// @access  Private (Admin)
 const verifyUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
     if (user) {
       user.isVerified = req.body.isVerified ?? user.isVerified;
       user.status = req.body.status ?? user.status;
+      user.name = req.body.name || user.name;
+      
+      // Handle Profile update if provided
+      if (user.role === 'student' && (req.body.course || req.body.cgpa)) {
+        let profile = await StudentProfile.findOne({ user_id: user._id });
+        if (!profile) {
+          profile = await Profile.findOne({ user: user._id });
+        }
+        
+        if (profile) {
+          if (profile.studentDetails) {
+            // Legacy format
+            profile.studentDetails.course = req.body.course || profile.studentDetails.course;
+            profile.studentDetails.cgpa = req.body.cgpa || profile.studentDetails.cgpa;
+          } else {
+            // New format
+            profile.course = req.body.course || profile.course;
+            profile.current_cgpa = req.body.cgpa || profile.current_cgpa;
+          }
+          await profile.save();
+        }
+      } else if (user.role === 'recruiter') {
+        let recruiterProfile = await RecruiterProfile.findOne({ user: user._id });
+        if (recruiterProfile) {
+          let company = await CompanyProfile.findById(recruiterProfile.company);
+          if (company) {
+            if (req.body.companyName) company.company_name = req.body.companyName;
+            if (req.body.website !== undefined) company.website = req.body.website;
+            if (req.body.industry !== undefined) company.industry = req.body.industry;
+            if (req.body.location !== undefined) company.location = req.body.location;
+            await company.save();
+          }
+        }
+      }
+
       await user.save();
 
       // Audit Log
@@ -196,8 +282,127 @@ const verifyUser = async (req, res, next) => {
         req.ip
       );
 
-      res.json({ message: 'User verification status updated' });
+      res.json({ message: 'User updated successfully' });
+    } else {
+      res.status(404).json({ message: 'User not found' });
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Create a new student manually
+// @route   POST /api/admin/students
+// @access  Private (Admin)
+const createStudent = async (req, res, next) => {
+  const { name, email, password, course, branch, cgpa } = req.body;
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    const user = await User.create({
+      name,
+      email,
+      password: password || 'Password@123',
+      role: 'student',
+      isVerified: true,
+      status: 'active'
+    });
+
+    // Create Student Profile
+    await StudentProfile.create({
+      user_id: user._id,
+      course,
+      department: branch,
+      current_cgpa: cgpa || 0,
+      skills: []
+    });
+
+    res.status(201).json({ message: 'Student created successfully', user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Admin manually create a recruiter
+// @route   POST /api/admin/recruiters
+// @access  Private (Admin)
+const createRecruiter = async (req, res, next) => {
+  try {
+    const { name, email, password, companyName, website, industry, location } = req.body;
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    const tempPassword = password || 'Password@123';
+    
+    // Create base user
+    const user = await User.create({
+      name,
+      email,
+      password: tempPassword,
+      role: 'recruiter',
+      isVerified: true,
+      status: 'active'
+    });
+
+    // Create related Company and Recruiter profiles
+    const company = await CompanyProfile.create({
+      company_id: 'COMP' + Date.now().toString().slice(-6),
+      recruiter_id: user._id,
+      company_name: companyName,
+      website: website || '',
+      industry: industry || '',
+      location: location || ''
+    });
+
+    await RecruiterProfile.create({
+      user: user._id,
+      company: company._id,
+      recruiter_id: 'REC' + Date.now().toString().slice(-6),
+      full_name: name
+    });
+
+    res.status(201).json({ message: 'Recruiter created successfully', user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Run automated verification on all students
+// @route   POST /api/admin/verify-batch
+// @access  Private (Admin)
+const runVerificationBatch = async (req, res, next) => {
+  try {
+    const students = await User.find({ role: 'student', isVerified: false });
+    let updatedCount = 0;
+
+    for (const student of students) {
+      let profile = await StudentProfile.findOne({ user_id: student._id });
+      if (!profile) profile = await Profile.findOne({ user: student._id });
+
+      if (profile) {
+        const cgpa = profile.current_cgpa || profile.studentDetails?.cgpa || 0;
+        const skills = profile.skills || profile.studentDetails?.skills || [];
+        
+        // Simple logic: If CGPA > 0 and has profile data, approve
+        if (cgpa > 0) {
+          student.isVerified = true;
+          student.status = 'active';
+          await student.save();
+          updatedCount++;
+        }
+      }
+    }
+
+    res.json({ 
+      message: `Batch verification complete. ${updatedCount} students verified out of ${students.length} pending.`,
+      updatedCount 
+    });
   } catch (error) {
     next(error);
   }
@@ -405,5 +610,8 @@ module.exports = {
   getCompanyHistory,
   getAdvancedAnalytics,
   getPendingRecruiters,
-  approveRecruiter
+  approveRecruiter,
+  createStudent,
+  createRecruiter,
+  runVerificationBatch
 };

@@ -1,0 +1,20 @@
+src/pages/admin/AuditLogs.tsx(4,22): error TS6133: 'RefreshCw' is declared but its value is never read.
+src/pages/admin/AuditLogs.tsx(5,3): error TS6133: 'FileText' is declared but its value is never read.
+src/pages/admin/AuditLogs.tsx(5,13): error TS6133: 'Shield' is declared but its value is never read.
+src/pages/admin/AuditLogs.tsx(5,21): error TS6133: 'UserPlus' is declared but its value is never read.
+src/pages/admin/AuditLogs.tsx(5,31): error TS6133: 'Send' is declared but its value is never read.
+src/pages/admin/ManageRecruiters.tsx(270,41): error TS2345: Argument of type '{ name: any; email: any; companyName: any; website: any; industry: any; location: any; }' is not assignable to parameter of type 'SetStateAction<{ name: string; email: string; password: string; companyName: string; website: string; industry: string; location: string; }>'.
+  Property 'password' is missing in type '{ name: any; email: any; companyName: any; website: any; industry: any; location: any; }' but required in type '{ name: string; email: string; password: string; companyName: string; website: string; industry: string; location: string; }'.
+src/pages/ComingSoon.tsx(3,35): error TS6133: 'Sparkles' is declared but its value is never read.
+src/pages/recruiter/InterviewSchedule.tsx(30,9): error TS6133: 'getStatusBadge' is declared but its value is never read.
+src/pages/recruiter/Notifications.tsx(3,13): error TS6133: 'CheckCircle2' is declared but its value is never read.
+src/pages/recruiter/Notifications.tsx(5,3): error TS6133: 'Undo2' is declared but its value is never read.
+src/pages/recruiter/Notifications.tsx(5,10): error TS6133: 'MoreVertical' is declared but its value is never read.
+src/pages/recruiter/Shortlisted.tsx(4,13): error TS6133: 'Eye' is declared but its value is never read.
+src/pages/recruiter/Shortlisted.tsx(5,3): error TS6133: 'Calendar' is declared but its value is never read.
+src/pages/recruiter/Shortlisted.tsx(7,3): error TS6133: 'Video' is declared but its value is never read.
+src/pages/recruiter/Shortlisted.tsx(7,10): error TS6133: 'MapPin' is declared but its value is never read.
+src/pages/recruiter/Shortlisted.tsx(22,10): error TS6133: 'loading' is declared but its value is never read.
+src/pages/student/Profile.tsx(4,42): error TS6133: 'ExternalLink' is declared but its value is never read.
+src/pages/student/Profile.tsx(5,3): error TS6133: 'Github' is declared but its value is never read.
+src/pages/student/Profile.tsx(5,11): error TS6133: 'Linkedin' is declared but its value is never read.

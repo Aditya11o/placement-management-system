@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Send, Trash2, 
   Layers, 
-  Loader2
+  Loader2,
+  Edit3,
+  XCircle,
+  Users
 } from 'lucide-react';
 import api from '../../api';
 import Dropdown from '../../components/Dropdown';
@@ -13,6 +16,7 @@ const ManageNotifications: React.FC = () => {
   const { showSuccess, showError, showWarning } = useNotification();
   const [activeTab, setActiveTab] = useState('Send Notification');
   const [loading, setLoading] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [sentNotifications, setSentNotifications] = useState<any[]>([]);
   
   // Form State
@@ -31,10 +35,10 @@ const ManageNotifications: React.FC = () => {
     try {
       const { data } = await api.get('/notifications/admin');
       const mapped = data.map((n: any) => ({
-        id: n._id,
+        id: n._id, // This is broadcastId
         title: n.title,
         message: n.message,
-        sentTo: n.recipientRole?.toUpperCase() || 'EXTERNAL',
+        recipientCount: n.recipientCount || 'All',
         type: n.type?.toUpperCase() || 'GENERAL',
         dateTime: new Date(n.createdAt).toLocaleString('en-US', { 
           month: 'short', day: 'numeric', year: 'numeric',
@@ -60,8 +64,15 @@ const ManageNotifications: React.FC = () => {
 
     try {
       setLoading(true);
-      await api.post('/notifications/broadcast', formData);
-      showSuccess('Broadcast notification sent successfully to all recipients!', 'Broadcast Success');
+      if (editId) {
+        await api.put(`/notifications/broadcast/${editId}`, formData);
+        showSuccess('Broadcast notification updated successfully!', 'Update Success');
+        setEditId(null);
+      } else {
+        await api.post('/notifications/broadcast', formData);
+        showSuccess('Broadcast notification sent successfully to all recipients!', 'Broadcast Success');
+      }
+      
       clearAutosave();
       setFormData({
         title: '',
@@ -72,10 +83,34 @@ const ManageNotifications: React.FC = () => {
       fetchSentNotifications();
       setActiveTab('Sent Notifications');
     } catch (err: any) {
-      showError(err.response?.data?.message || 'Error broadcasting notification', 'Broadcast Error');
+      showError(err.response?.data?.message || 'Error processing notification', 'Error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this broadcast? It will be removed from all recipients.')) return;
+
+    try {
+      await api.delete(`/notifications/broadcast/${id}`);
+      showSuccess('Broadcast deleted successfully', 'Deleted');
+      fetchSentNotifications();
+    } catch (err: any) {
+      showError('Failed to delete broadcast', 'Delete Error');
+    }
+  };
+
+  const startEdit = (notif: any) => {
+    setEditId(notif.id);
+    setFormData({
+      title: notif.title,
+      message: notif.message,
+      type: notif.type.charAt(0) + notif.type.slice(1).toLowerCase(),
+      sendTo: 'All Students' // We don't track original sendTo easily in aggregation yet
+    });
+    setActiveTab('Send Notification');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -115,7 +150,9 @@ const ManageNotifications: React.FC = () => {
                 <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center text-[#000613] group-hover:scale-110 transition-transform">
                   <Layers size={22} />
                 </div>
-                <h2 className="text-xl font-black text-gray-900 tracking-tight">Compose New Broadcast</h2>
+                <h2 className="text-xl font-black text-gray-900 tracking-tight">
+                  {editId ? 'Edit Broadcast' : 'Compose New Broadcast'}
+                </h2>
               </div>
 
               <div className="space-y-6">
@@ -131,12 +168,14 @@ const ManageNotifications: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
-                  <Dropdown 
-                    label="Send To"
-                    value={formData.sendTo}
-                    onChange={(val) => setFormData({...formData, sendTo: val})}
-                    options={['All Students', 'All Recruiters']}
-                  />
+                  {!editId && (
+                    <Dropdown 
+                      label="Send To"
+                      value={formData.sendTo}
+                      onChange={(val) => setFormData({...formData, sendTo: val})}
+                      options={['All Students', 'All Recruiters']}
+                    />
+                  )}
                   <Dropdown 
                     label="Notification Type"
                     value={formData.type}
@@ -156,14 +195,30 @@ const ManageNotifications: React.FC = () => {
                   ></textarea>
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end gap-3 pt-2">
+                  {editId && (
+                    <button 
+                      onClick={() => {
+                        setEditId(null);
+                        setFormData({ title: '', message: '', sendTo: 'All Students', type: 'General' });
+                      }}
+                      className="flex items-center gap-2 px-6 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black text-sm hover:bg-gray-200 transition-all active:scale-95"
+                    >
+                      <XCircle size={18} />
+                      Cancel Edit
+                    </button>
+                  )}
                   <button 
                     onClick={handleSend}
                     disabled={loading}
                     className="flex items-center gap-3 px-8 py-4 bg-[#000613] text-white rounded-2xl font-black text-sm shadow-xl shadow-black/20 hover:scale-105 transition-all active:scale-95 group disabled:opacity-50"
                   >
-                    {loading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
-                    Send Notification
+                    {loading ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    )}
+                    {editId ? 'Update Broadcast' : 'Send Notification'}
                   </button>
                 </div>
               </div>
@@ -201,8 +256,8 @@ const ManageNotifications: React.FC = () => {
               <thead>
                 <tr className="bg-gray-50/30">
                   <th className="pl-8 pr-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Title & Message</th>
-                  <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Sent To</th>
                   <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Type</th>
+                  <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Recipients</th>
                   <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Date & Time</th>
                   <th className="pr-8 pl-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>
@@ -216,21 +271,35 @@ const ManageNotifications: React.FC = () => {
                         <p className="text-xs font-bold text-gray-400 mt-1 italic line-clamp-1">{notif.message}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-6">
-                      <span className="px-3 py-1.5 bg-gray-50 rounded-lg text-[9px] font-black text-gray-600 border border-gray-100 uppercase tracking-widest shadow-sm">
-                        {notif.sentTo}
-                      </span>
-                    </td>
-                    <td className="px-6 py-6">
+                    <td className="px-6 py-6 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <p className="text-[10px] font-black text-gray-700 uppercase tracking-[0.2em]">{notif.type}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      <div className="flex items-center justify-center gap-1.5 text-gray-500 font-black">
+                        <Users size={12} />
+                        <span className="text-[11px] uppercase tracking-widest">{notif.recipientCount}</span>
                       </div>
                     </td>
                     <td className="px-6 py-6">
                       <p className="text-[11px] font-bold text-gray-500 uppercase tracking-tight">{notif.dateTime}</p>
                     </td>
                     <td className="pr-8 pl-6 py-6 text-right">
-                      <button className="p-2 text-gray-300 hover:text-rose-600 hover:scale-125 transition-all"><Trash2 size={18} /></button>
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => startEdit(notif)}
+                          className="p-2 text-gray-300 hover:text-blue-600 hover:scale-125 transition-all"
+                        >
+                          <Edit3 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(notif.id)}
+                          className="p-2 text-gray-300 hover:text-rose-600 hover:scale-125 transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

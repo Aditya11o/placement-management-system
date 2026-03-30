@@ -1,46 +1,50 @@
-const Settings = require('../models/Settings');
+const RecruiterSettings = require('../models/RecruiterSettings');
 
-// @desc    Get portal settings
-// @route   GET /api/settings
-// @access  Public
-const getSettings = async (req, res, next) => {
+// @desc    Get recruiter settings
+// @route   GET /api/settings/recruiter
+// @access  Private
+const getRecruiterSettings = async (req, res, next) => {
   try {
-    let settings = await Settings.findOne();
+    let settings = await RecruiterSettings.findOne({ user_id: req.user.id });
+    
     if (!settings) {
-      // Create default settings if not exists
-      settings = await Settings.create({});
+      settings = await RecruiterSettings.create({
+        user_id: req.user.id,
+        notifications: {
+          emailSummary: true,
+          interviewAlerts: true,
+          applicationAlerts: true
+        }
+      });
     }
+    
     res.json(settings);
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Update portal settings
-// @route   PUT /api/settings
-// @access  Private (Admin)
-const updateSettings = async (req, res, next) => {
+// @desc    Update recruiter settings
+// @route   PUT /api/settings/recruiter
+// @access  Private
+const updateRecruiterSettings = async (req, res, next) => {
   try {
-    let settings = await Settings.findOne();
+    let settings = await RecruiterSettings.findOne({ user_id: req.user.id });
+    
     if (!settings) {
-      settings = new Settings({});
+      settings = new RecruiterSettings({ user_id: req.user.id, ...req.body });
+    } else {
+      Object.assign(settings, req.body);
     }
-
-    const { portalName, logo, primaryColor, secondaryColor, contactEmail, universityName } = req.body;
-
-    settings.portalName = portalName || settings.portalName;
-    settings.logo = logo || settings.logo;
-    settings.primaryColor = primaryColor || settings.primaryColor;
-    settings.secondaryColor = secondaryColor || settings.secondaryColor;
-    settings.contactEmail = contactEmail || settings.contactEmail;
-    settings.universityName = universityName || settings.universityName;
-    settings.updatedBy = req.user.id;
-
-    const updatedSettings = await settings.save();
-    res.json(updatedSettings);
+    
+    await settings.save();
+    res.json(settings);
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { getSettings, updateSettings };
+module.exports = {
+  getRecruiterSettings,
+  updateRecruiterSettings
+};
