@@ -13,6 +13,8 @@ const Avatar: React.FC<AvatarProps> = ({
   size = 'md',
   className = ''
 }) => {
+  const [hasError, setHasError] = React.useState(false);
+
   const getInitials = (userName: string) => {
     const parts = userName.trim().split(/\s+/);
     if (parts.length === 0) return '?';
@@ -48,15 +50,12 @@ const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <div className={`relative inline-flex items-center justify-center shrink-0 rounded-xl overflow-hidden shadow-sm border border-white/10 ${sizeClasses[size]} ${className}`}>
-      {profilePhoto ? (
+      {profilePhoto && !hasError ? (
         <img 
           src={profilePhoto} 
           alt={name} 
           className="w-full h-full object-cover"
-          onError={(e) => {
-            // If image fails to load, fallback to initials
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
+          onError={() => setHasError(true)}
         />
       ) : (
         <div className={`w-full h-full flex items-center justify-center text-white font-black tracking-tighter ${bgColor}`}>

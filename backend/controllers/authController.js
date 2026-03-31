@@ -176,6 +176,7 @@ const authUser = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        profilePhoto: user.profilePhoto,
         token,
         refreshToken,
       });
@@ -279,6 +280,7 @@ const verifyOTP = async (req, res, next) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      profilePhoto: user.profilePhoto,
       token,
       refreshToken,
     });

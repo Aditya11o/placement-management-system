@@ -531,3 +531,42 @@ TypeError: next is not a function
     at async model.create (D:\Desktop\PMS\Placement Management System\backend\node_modules\mongoose\lib\model.js:2805:11)
     at async createBroadcast (D:\Desktop\PMS\Placement Management System\backend\controllers\notificationController.js:85:5)
 --------------------------------------------------
+[2026-03-31T17:10:23.340Z] PATCH /api/admin/me
+PayloadTooLargeError: request entity too large
+    at readStream (D:\Desktop\PMS\Placement Management System\backend\node_modules\raw-body\index.js:163:17)
+    at getRawBody (D:\Desktop\PMS\Placement Management System\backend\node_modules\raw-body\index.js:116:12)
+    at read (D:\Desktop\PMS\Placement Management System\backend\node_modules\body-parser\lib\read.js:113:3)
+    at jsonParser (D:\Desktop\PMS\Placement Management System\backend\node_modules\body-parser\lib\types\json.js:88:5)
+    at Layer.handleRequest (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:342:13)
+    at D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:297:9
+    at processParams (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:582:12)
+    at next (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:291:5)
+    at internalNext (D:\Desktop\PMS\Placement Management System\backend\node_modules\helmet\index.cjs:531:6)
+--------------------------------------------------
+[2026-03-31T17:11:31.472Z] PATCH /api/admin/me
+PayloadTooLargeError: request entity too large
+    at readStream (D:\Desktop\PMS\Placement Management System\backend\node_modules\raw-body\index.js:163:17)
+    at getRawBody (D:\Desktop\PMS\Placement Management System\backend\node_modules\raw-body\index.js:116:12)
+    at read (D:\Desktop\PMS\Placement Management System\backend\node_modules\body-parser\lib\read.js:113:3)
+    at jsonParser (D:\Desktop\PMS\Placement Management System\backend\node_modules\body-parser\lib\types\json.js:88:5)
+    at Layer.handleRequest (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:342:13)
+    at D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:297:9
+    at processParams (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:582:12)
+    at next (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:291:5)
+    at internalNext (D:\Desktop\PMS\Placement Management System\backend\node_modules\helmet\index.cjs:531:6)
+--------------------------------------------------
+[2026-03-31T17:11:50.798Z] PATCH /api/admin/me
+PayloadTooLargeError: request entity too large
+    at readStream (D:\Desktop\PMS\Placement Management System\backend\node_modules\raw-body\index.js:163:17)
+    at getRawBody (D:\Desktop\PMS\Placement Management System\backend\node_modules\raw-body\index.js:116:12)
+    at read (D:\Desktop\PMS\Placement Management System\backend\node_modules\body-parser\lib\read.js:113:3)
+    at jsonParser (D:\Desktop\PMS\Placement Management System\backend\node_modules\body-parser\lib\types\json.js:88:5)
+    at Layer.handleRequest (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:342:13)
+    at D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:297:9
+    at processParams (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:582:12)
+    at next (D:\Desktop\PMS\Placement Management System\backend\node_modules\router\index.js:291:5)
+    at internalNext (D:\Desktop\PMS\Placement Management System\backend\node_modules\helmet\index.cjs:531:6)
+--------------------------------------------------

@@ -204,7 +204,9 @@ const Navbar: React.FC<NavbarProps> = ({ role, onToggleSidebar, onHelpOpen }) =>
             </div>
             <Avatar 
               name={profile?.user?.name || user?.name || ''} 
-              profilePhoto={role === 'recruiter' ? (profile?.recruiterDetails?.companyLogo || profile?.profile_photo) : profile?.profile_photo} 
+              profilePhoto={role === 'recruiter' 
+                ? (profile?.recruiterDetails?.companyLogo || profile?.profilePhoto || profile?.profile_photo || user?.profilePhoto) 
+                : (profile?.profilePhoto || profile?.profile_photo || user?.profilePhoto)} 
               size="md" 
             />
             <ChevronDown size={14} className={`text-on-surface-variant transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />

@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Shield, Camera, Save, Loader2 } from 'lucide-react';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminProfile: React.FC = () => {
   const { showSuccess, showError } = useNotification();
+  const { refreshUser } = useAuth();
+  
   const [adminData, setAdminData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -35,6 +41,20 @@ const AdminProfile: React.FC = () => {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({
+          ...formData,
+          profilePhoto: reader.result as string
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -43,8 +63,10 @@ const AdminProfile: React.FC = () => {
          name: formData.name,
          profilePhoto: formData.profilePhoto
       });
+      
       showSuccess('Admin profile updated successfully!', 'Profile Update');
-      fetchProfile();
+      await fetchProfile();
+      await refreshUser(); // Sync navbar photo
     } catch (error: any) {
        console.error('Error updating profile:', error);
        showError(error.response?.data?.message || 'Failed to update admin profile', 'Update Error');
@@ -56,39 +78,52 @@ const AdminProfile: React.FC = () => {
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
-      <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
-        {/* Header/Cover */}
-        <div className="h-40 bg-[#000613] relative">
-          <div className="absolute -bottom-16 left-12">
+    <div className="w-full flex justify-center py-6 px-4">
+      <div className="w-full max-w-4xl bg-white rounded-[2rem] shadow-xl border border-gray-100 flex flex-col overflow-hidden">
+        {/* Header/Cover - Fixed at top */}
+        <div className="h-28 bg-[#000613] relative shrink-0 z-10 w-full">
+          {/* Avatar positioned halfway down the cover */}
+          <div className="absolute -bottom-10 left-8 md:left-12">
             <div className="relative group">
-              <div className="h-32 w-32 rounded-3xl bg-white p-1 shadow-2xl">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleFileChange}
+              />
+              <div className="h-24 w-24 rounded-3xl bg-white p-1 shadow-lg">
                 <img 
                   src={formData.profilePhoto || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200&auto=format&fit=crop"} 
                   className="h-full w-full object-cover rounded-[1.25rem]"
                   alt="Avatar" 
                 />
               </div>
-              <button className="absolute bottom-2 right-2 p-2 bg-blue-600 text-white rounded-xl shadow-lg hover:scale-110 transition-all">
-                <Camera size={16} />
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-1 right-1 p-1.5 bg-blue-600 text-white rounded-xl shadow-lg hover:scale-110 transition-all z-20"
+              >
+                <Camera size={14} />
               </button>
             </div>
           </div>
         </div>
 
-        <div className="pt-20 px-12 pb-12">
-          <div className="flex justify-between items-start mb-12">
+        {/* Content Body */}
+        <div className="pt-16 px-8 pb-8 md:px-12 md:pb-10 bg-white z-0">
+          <div className="flex justify-between items-start mb-8">
             <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                {adminData.name} <Shield size={24} className="text-blue-600" />
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                {adminData.name} <Shield size={20} className="text-blue-600" />
               </h1>
-              <p className="text-sm font-bold text-gray-400 mt-2 uppercase tracking-widest">
+              <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">
                 System Administrator • {adminData.email}
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div className="space-y-2">
               <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
               <div className="relative">
@@ -122,11 +157,11 @@ const AdminProfile: React.FC = () => {
                 value={formData.profilePhoto}
                 onChange={(e) => setFormData({...formData, profilePhoto: e.target.value})}
                 placeholder="Enter image URL..."
-                className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl text-sm font-medium focus:ring-4 focus:ring-blue-500/10 transition-all"
+                className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl text-sm font-medium focus:ring-4 focus:ring-blue-500/10 transition-all truncate"
               />
             </div>
 
-            <div className="md:col-span-2 pt-6">
+            <div className="md:col-span-2 pt-4">
               <button 
                 type="submit"
                 disabled={saving}

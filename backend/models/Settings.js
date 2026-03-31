@@ -17,6 +17,26 @@ const settingsSchema = new mongoose.Schema(
     },
     contactEmail: String,
     universityName: String,
+    studentRegistration: {
+      type: Boolean,
+      default: true,
+    },
+    recruiterRegistration: {
+      type: Boolean,
+      default: true,
+    },
+    jobApproval: {
+      type: Boolean,
+      default: true,
+    },
+    emailNotifications: {
+      type: Boolean,
+      default: true,
+    },
+    maintenanceMode: {
+      type: Boolean,
+      default: false,
+    },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

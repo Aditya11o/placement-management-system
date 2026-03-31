@@ -1,7 +1,7 @@
 import React, { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
 import loginBg from '../assets/login_bg.png';
 import { useNotification } from '../context/NotificationContext';
 
@@ -13,11 +13,14 @@ const Login: React.FC = () => {
   const [role, setRole] = useState<'student' | 'admin' | 'recruiter'>('student');
   const [otp, setOtp] = useState<string>('');
   const [requireOTP, setRequireOTP] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
   const { login, verifyOTP } = useAuth();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    setLoading(true);
     try {
       if (requireOTP) {
         const user = await verifyOTP(email, otp);
@@ -45,6 +48,8 @@ const Login: React.FC = () => {
       navigate(`/${user.role}/dashboard`);
     } catch (err: any) {
       showError(err || 'Invalid credentials', 'Login Error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -211,10 +216,20 @@ const Login: React.FC = () => {
             <div className="pt-2">
               <button 
                 type="submit" 
-                className="w-full py-3 bg-gradient-to-r from-blue-950 to-blue-800 hover:shadow-lg hover:scale-105 text-white text-sm font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
+                disabled={loading}
+                className="w-full py-3 bg-gradient-to-r from-blue-950 to-blue-800 hover:shadow-lg hover:scale-105 disabled:opacity-70 disabled:hover:scale-100 text-white text-sm font-bold rounded-lg shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
               >
-                {requireOTP ? 'Verify Account' : 'Log In'}
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    Authenticating...
+                  </>
+                ) : (
+                  <>
+                    {requireOTP ? 'Verify Account' : 'Log In'}
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </button>
             </div>
 

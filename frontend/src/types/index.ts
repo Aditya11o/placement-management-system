@@ -6,6 +6,7 @@ export interface User {
   role: 'student' | 'recruiter' | 'admin';
   isVerified: boolean;
   status: 'active' | 'inactive';
+  profilePhoto?: string;
   token?: string;
   refreshToken?: string;
   createdAt?: string;

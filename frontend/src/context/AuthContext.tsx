@@ -55,8 +55,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setProfile(data);
       
       // Selectively sync user info to prevent infinite loops
-      if (data.user && user && data.user.name !== user.name) {
-        setUser(prev => prev ? ({ ...prev, name: data.user.name }) : null);
+      if (data.user && user) {
+        let changed = false;
+        const newUserData = { ...user };
+        
+        if (data.user.name !== user.name) {
+          newUserData.name = data.user.name;
+          changed = true;
+        }
+        
+        if (data.user.profilePhoto !== user.profilePhoto) {
+          newUserData.profilePhoto = data.user.profilePhoto;
+          changed = true;
+        }
+        
+        if (changed) {
+          setUser(newUserData);
+        }
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);

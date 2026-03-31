@@ -52,10 +52,10 @@ const getMyProfile = async (req, res, next) => {
     let profile;
     if (req.user.role === 'recruiter') {
       profile = await Model.findOne(query)
-        .populate(populateField, 'name email role')
+        .populate(populateField, 'name email role profilePhoto')
         .populate('company');
     } else {
-      profile = await Model.findOne(query).populate(populateField, 'name email role');
+      profile = await Model.findOne(query).populate(populateField, 'name email role profilePhoto');
     }
     
     // If no profile exists yet, return user info and isNew flag
@@ -65,7 +65,8 @@ const getMyProfile = async (req, res, next) => {
           _id: req.user.id, 
           name: req.user.name, 
           email: req.user.email, 
-          role: req.user.role 
+          role: req.user.role,
+          profilePhoto: req.user.profilePhoto
         },
         isNew: true 
       });

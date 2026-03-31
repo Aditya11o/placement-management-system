@@ -5,7 +5,8 @@ const {
   getInterviews, getPlacementReports, getRecentActivities,
   getPendingVerifications, verifySkill, getCompanyHistory, getAdvancedAnalytics,
   getPendingRecruiters, approveRecruiter,
-  createStudent, createRecruiter, runVerificationBatch
+  createStudent, createRecruiter, runVerificationBatch,
+  getSystemSettings, updateSystemSettings
 } = require('../controllers/adminController');
 const { archiveYear, getArchives } = require('../controllers/archiveController');
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -23,6 +24,8 @@ router.patch('/users/:id/verify', verifyUser);
 router.post('/students', createStudent);
 router.post('/recruiters', createRecruiter);
 router.post('/verify-batch', runVerificationBatch);
+router.get('/settings', getSystemSettings);
+router.patch('/settings', updateSystemSettings);
 router.get('/interviews', getInterviews);
 router.get('/reports/placements', getPlacementReports);
 router.get('/analytics', getAdvancedAnalytics);

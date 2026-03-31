@@ -4,7 +4,10 @@ const StudentProfile = require('../models/StudentProfile');
 const RecruiterProfile = require('../models/RecruiterProfile');
 const CompanyProfile = require('../models/CompanyProfile');
 const Application = require('../models/Application');
+const AdminProfile = require('../models/AdminProfile');
+const Settings = require('../models/Settings');
 const { createAuditLog } = require('./auditLogController');
+const cloudinary = require('../utils/cloudinary');
 
 // @desc    Get all pending skill verifications
 // @route   GET /api/admin/verifications
@@ -572,7 +575,20 @@ const getAdvancedAnalytics = async (req, res, next) => {
 const getAdminMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
+    let adminProfile = await AdminProfile.findOne({ user: user._id });
+    
+    if (!adminProfile) {
+      adminProfile = new AdminProfile({
+        user: user._id,
+        admin_id: 'ADM-' + Math.floor(100000 + Math.random() * 900000),
+        full_name: user.name,
+        email: user.email,
+        phone: 'Not provided',
+        password: user.password || 'default'
+      });
+      await adminProfile.save();
+    }
+    res.json({ ...user.toObject(), phone: adminProfile.phone, admin_id: adminProfile.admin_id });
   } catch (error) {
     next(error);
   }
@@ -586,11 +602,80 @@ const updateAdminProfile = async (req, res, next) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'Admin not found' });
 
-    user.name = req.body.name || user.name;
-    user.profilePhoto = req.body.profilePhoto || user.profilePhoto;
+    if (req.body.name) user.name = req.body.name;
+    
+    if (req.body.profilePhoto) {
+      if (req.body.profilePhoto.startsWith('data:image')) {
+        const uploadRes = await cloudinary.uploader.upload(req.body.profilePhoto, {
+          folder: 'pms/profiles'
+        });
+        user.profilePhoto = uploadRes.secure_url;
+      } else {
+        user.profilePhoto = req.body.profilePhoto;
+      }
+    }
+    
+    if (req.body.email && req.body.email !== user.email) {
+      const emailExists = await User.findOne({ email: req.body.email });
+      if (emailExists) return res.status(400).json({ message: 'Email is already in use' });
+      user.email = req.body.email;
+    }
     
     const updatedUser = await user.save();
-    res.json(updatedUser);
+
+    let adminProfile = await AdminProfile.findOne({ user: user._id });
+    if (adminProfile) {
+      adminProfile.full_name = updatedUser.name;
+      adminProfile.email = updatedUser.email;
+      if (req.body.phone !== undefined) adminProfile.phone = req.body.phone;
+      await adminProfile.save();
+    }
+
+    res.json({ ...updatedUser.toObject(), phone: adminProfile?.phone || req.body.phone });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get global system settings
+// @route   GET /api/admin/settings
+// @access  Private (Admin)
+const getSystemSettings = async (req, res, next) => {
+  try {
+    let settings = await Settings.findOne();
+    if (!settings) {
+      settings = await Settings.create({});
+    }
+    res.json(settings);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update global system settings
+// @route   PATCH /api/admin/settings
+// @access  Private (Admin)
+const updateSystemSettings = async (req, res, next) => {
+  try {
+    let settings = await Settings.findOne();
+    if (!settings) settings = new Settings({});
+    
+    const updatableFields = [
+      'studentRegistration', 'recruiterRegistration', 'jobApproval',
+      'emailNotifications', 'maintenanceMode', 'portalName', 'universityName'
+    ];
+    
+    updatableFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        settings[field] = req.body[field];
+      }
+    });
+    
+    settings.updatedBy = req.user.id;
+    await settings.save();
+    
+    await createAuditLog(req.user.id, 'UPDATE_SETTINGS', 'System', null, { changes: req.body });
+    res.json(settings);
   } catch (error) {
     next(error);
   }
@@ -613,5 +698,7 @@ module.exports = {
   approveRecruiter,
   createStudent,
   createRecruiter,
-  runVerificationBatch
+  runVerificationBatch,
+  getSystemSettings,
+  updateSystemSettings
 };
