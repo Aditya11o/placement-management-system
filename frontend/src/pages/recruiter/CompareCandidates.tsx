@@ -23,11 +23,12 @@ const CompareCandidates: React.FC = () => {
       try {
         const [jobRes, appsRes] = await Promise.all([
           api.get(`/jobs/${jobId}`),
-          api.get(`/applications/job/${jobId}`)
+          api.get(`/applications/job/${jobId}`, { params: { limit: 0 } })
         ]);
         setJob(jobRes.data);
+        const items = appsRes.data?.data || appsRes.data;
         // Only compare shortlisted or pending for now
-        setApplications(appsRes.data.filter((app: any) => app.status !== 'rejected'));
+        setApplications(items.filter((app: any) => app.status !== 'rejected'));
       } catch (err) {
         console.error(err);
       } finally {

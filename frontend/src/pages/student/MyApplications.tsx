@@ -23,10 +23,11 @@ const MyApplications: React.FC = () => {
       setLoading(true);
       const queryStatus = status || statusFilter;
       const { data } = await api.get('/applications/my', {
-        params: { status: queryStatus }
+        params: { status: queryStatus, limit: 0 }
       });
-      setApps(data);
-      setFilteredApps(data);
+      const items = data?.data || data;
+      setApps(items);
+      setFilteredApps(items);
     } catch (err: any) {
       console.error(err);
       showError('Failed to fetch applications', 'Fetch Error');

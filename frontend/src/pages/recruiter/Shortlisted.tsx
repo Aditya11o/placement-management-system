@@ -32,9 +32,10 @@ const Shortlisted: React.FC = () => {
 
   const fetchJobs = async () => {
     try {
-      const res = await api.get('/jobs/my');
-      setJobs(res.data);
-      if (res.data.length > 0) setSelectedJob(res.data[0]._id);
+      const res = await api.get('/jobs/my', { params: { limit: 0 } });
+      const items = res.data?.data || res.data;
+      setJobs(items);
+      if (items.length > 0) setSelectedJob(items[0]._id);
     } catch (err: any) {
       console.error('Error fetching jobs:', err);
       showError('Failed to fetch jobs', 'Fetch Error');
@@ -45,9 +46,10 @@ const Shortlisted: React.FC = () => {
     if (!selectedJob) return;
     try {
       setLoading(true);
-      const res = await api.get(`/applications/job/${selectedJob}`);
+      const res = await api.get(`/applications/job/${selectedJob}`, { params: { limit: 0 } });
+      const items = res.data?.data || res.data;
       // Filter only shortlisted, accepted, or Selected
-      const filtered = res.data.filter((app: any) => 
+      const filtered = items.filter((app: any) => 
         ['shortlisted', 'accepted', 'Selected'].includes(app.status)
       );
       setCandidates(filtered);

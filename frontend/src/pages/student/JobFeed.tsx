@@ -33,12 +33,12 @@ const JobFeed: React.FC = () => {
     try {
       setLoading(true);
       const [jobsRes, appsRes] = await Promise.all([
-        api.get('/jobs', { params: { jobType: type || jobType } }),
-        api.get('/applications/my')
+        api.get('/jobs', { params: { jobType: type || jobType, limit: 0 } }),
+        api.get('/applications/my', { params: { limit: 0 } })
       ]);
       
-      const allJobs = jobsRes.data;
-      const myApps = appsRes.data;
+      const allJobs = jobsRes.data?.data || jobsRes.data;
+      const myApps = appsRes.data?.data || appsRes.data;
       
       // Mark jobs as applied
       const jobsWithStatus = allJobs.map((job: any) => {

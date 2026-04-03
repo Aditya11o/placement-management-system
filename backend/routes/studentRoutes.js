@@ -16,6 +16,12 @@ const {
 } = require('../controllers/studentController');
 const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/resumeUploadMiddleware');
+const { 
+  validateChangePassword, 
+  validateUpdateStudentProfile, 
+  validateNotificationSettings, 
+  validatePrivacySettings 
+} = require('../middleware/validateMiddleware');
 const router = express.Router();
 
 router.get('/resume', protect, getStudentResumes); 
@@ -24,14 +30,14 @@ router.post('/upload-resume', protect, upload.single('resume'), uploadStudentRes
 router.delete('/resume/:id', protect, deleteStudentResume);
 
 router.get('/dashboard', protect, getStudentDashboard);
-router.put('/profile', protect, updateStudentProfile);
-router.put('/change-password', protect, changePassword);
+router.put('/profile', protect, validateUpdateStudentProfile, updateStudentProfile);
+router.put('/change-password', protect, validateChangePassword, changePassword);
 
 router.get('/notification-settings', protect, getNotificationSettings);
-router.put('/notification-settings', protect, updateNotificationSettings);
+router.put('/notification-settings', protect, validateNotificationSettings, updateNotificationSettings);
 
 router.get('/privacy-settings', protect, getPrivacySettings);
-router.put('/privacy-settings', protect, updatePrivacySettings);
+router.put('/privacy-settings', protect, validatePrivacySettings, updatePrivacySettings);
 
 router.put('/deactivate', protect, deactivateAccount);
 router.delete('/delete-account', protect, deleteAccount);

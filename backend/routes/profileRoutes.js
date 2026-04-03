@@ -18,17 +18,22 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 const resumeUpload = require('../middleware/resumeUploadMiddleware');
+const { 
+  validateUpdateProfile, 
+  validateAddProject, 
+  validateRequestSkillVerification 
+} = require('../middleware/validateMiddleware');
 const router = express.Router();
 
 router.route('/me').get(protect, getMyProfile);
-router.route('/').put(protect, upload.single('avatar'), updateProfile);
+router.route('/').put(protect, upload.single('avatar'), validateUpdateProfile, updateProfile);
 router.route('/resumes').post(protect, addResume);
 router.route('/resumes/:id').delete(protect, deleteResume);
-router.route('/verify-skill').post(protect, requestSkillVerification);
+router.route('/verify-skill').post(protect, validateRequestSkillVerification, requestSkillVerification);
 router.route('/student/resume').post(protect, updateResume);
 
 // New Routes
-router.route('/projects').post(protect, addProject);
+router.route('/projects').post(protect, validateAddProject, addProject);
 router.route('/projects/:projectId').put(protect, updateProject).delete(protect, deleteProject);
 router.route('/upload-resume').post(protect, resumeUpload.single('resume'), uploadResume);
 

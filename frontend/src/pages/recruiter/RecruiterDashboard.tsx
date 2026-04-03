@@ -44,9 +44,9 @@ const RecruiterDashboard: React.FC = () => {
       try {
         const [statsRes, appsRes, interviewsRes, jobsRes] = await Promise.all([
           api.get('/jobs/stats'),
-          api.get('/applications/recruiter'),
+          api.get('/applications/recruiter', { params: { limit: 10 } }),
           api.get('/applications/interviews'),
-          api.get('/jobs/my')
+          api.get('/jobs/my', { params: { limit: 0 } })
         ]);
         
         const s = statsRes.data;
@@ -56,12 +56,14 @@ const RecruiterDashboard: React.FC = () => {
           { label: 'Shortlisted Candidates', value: s.shortlisted.toString(), icon: Filter, color: 'text-purple-600', bg: 'bg-purple-50', badge: 'Active' },
           { label: 'Interviews Scheduled', value: s.selected.toString(), icon: Calendar, color: 'text-orange-600', bg: 'bg-orange-50', badge: 'Updated' },
         ]);
-        setRecentApplicants(appsRes.data);
+        const recentApps = appsRes.data?.data || appsRes.data;
+        setRecentApplicants(Array.isArray(recentApps) ? recentApps : []);
         setInterviews(interviewsRes.data);
-        setJobs(jobsRes.data);
-        if (jobsRes.data.length > 0) {
-          setSelectedJobId(jobsRes.data[0]._id);
-          fetchAnalytics(jobsRes.data[0]._id);
+        const jobsList = jobsRes.data?.data || jobsRes.data;
+        setJobs(jobsList);
+        if (jobsList.length > 0) {
+          setSelectedJobId(jobsList[0]._id);
+          fetchAnalytics(jobsList[0]._id);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);

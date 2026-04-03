@@ -16,8 +16,9 @@ const ManageJobs: React.FC = () => {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get('/jobs/admin');
-      const mapped = data.map((job: any) => ({
+      const { data } = await api.get('/jobs/admin', { params: { limit: 0 } });
+      const items = data?.data || data;
+      const mapped = items.map((job: any) => ({
         _id: job._id,
         title: job.title,
         company: job.companyName || job.recruiter?.name || 'N/A',

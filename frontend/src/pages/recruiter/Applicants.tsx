@@ -35,10 +35,11 @@ const Applicants: React.FC = () => {
 
   const fetchRecruiterJobs = async () => {
     try {
-      const res = await api.get('/jobs/my');
-      setJobs(res.data);
-      if (!selectedJob && res.data.length > 0) {
-        setSelectedJob(res.data[0]._id);
+      const res = await api.get('/jobs/my', { params: { limit: 0 } });
+      const items = res.data?.data || res.data;
+      setJobs(items);
+      if (!selectedJob && items.length > 0) {
+        setSelectedJob(items[0]._id);
       }
     } catch (err: any) {
       console.error('Error fetching jobs:', err);
@@ -50,8 +51,9 @@ const Applicants: React.FC = () => {
     if (!selectedJob) return;
     try {
       setLoading(true);
-      const res = await api.get(`/applications/job/${selectedJob}`);
-      setApplicants(res.data);
+      const res = await api.get(`/applications/job/${selectedJob}`, { params: { limit: 0 } });
+      const items = res.data?.data || res.data;
+      setApplicants(items);
     } catch (err: any) {
       console.error('Error fetching applicants:', err);
       showError('Failed to fetch applicants list', 'Fetch Error');

@@ -3,6 +3,7 @@ const Profile = require('../models/Profile');
 const Notification = require('../models/Notification');
 const Application = require('../models/Application');
 const { createAuditLog } = require('./auditLogController');
+const { parsePagination } = require('../utils/pagination');
 
 // @desc    Create a job
 // @route   POST /api/jobs
@@ -56,16 +57,22 @@ const createJob = async (req, res, next) => {
 const getJobs = async (req, res, next) => {
   try {
     const { jobType } = req.query;
+    const { skip, limit, paginate } = parsePagination(req.query);
     let query = { status: 'open', deadline: { $gte: new Date() } };
 
     if (jobType && jobType !== 'All Job Types') {
       query.jobType = jobType;
     }
 
-    const jobs = await Job.find(query)
-      .sort({ createdAt: -1 })
-      .populate('recruiter', 'name email');
-    res.json(jobs);
+    const [jobs, total] = await Promise.all([
+      Job.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('recruiter', 'name email'),
+      Job.countDocuments(query)
+    ]);
+    res.json(paginate(jobs, total));
   } catch (error) {
     next(error);
   }
@@ -76,17 +83,31 @@ const getJobs = async (req, res, next) => {
 // @access  Private (Admin)
 const adminGetJobs = async (req, res, next) => {
   try {
-    const jobs = await Job.find({})
-      .sort({ createdAt: -1 })
-      .populate('recruiter', 'name email');
+    const { skip, limit, paginate } = parsePagination(req.query);
+
+    const [jobs, total] = await Promise.all([
+      Job.find({})
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('recruiter', 'name email'),
+      Job.countDocuments({})
+    ]);
     
-    // Get applicant counts for each job
-    const jobsWithCounts = await Promise.all(jobs.map(async (job) => {
-      const applicantCount = await Application.countDocuments({ job: job._id });
-      return { ...job.toObject(), applicantCount };
+    // Batch: get applicant counts for this page's jobs only
+    const jobIds = jobs.map(j => j._id);
+    const counts = await Application.aggregate([
+      { $match: { job: { $in: jobIds } } },
+      { $group: { _id: '$job', count: { $sum: 1 } } }
+    ]);
+    const countMap = new Map(counts.map(c => [c._id.toString(), c.count]));
+
+    const jobsWithCounts = jobs.map(job => ({
+      ...job.toObject(),
+      applicantCount: countMap.get(job._id.toString()) || 0
     }));
 
-    res.json(jobsWithCounts);
+    res.json(paginate(jobsWithCounts, total));
   } catch (error) {
     next(error);
   }
@@ -168,12 +189,28 @@ const getRecruiterStats = async (req, res, next) => {
 
 const getRecruiterJobs = async (req, res, next) => {
   try {
-    const jobs = await Job.find({ recruiter: req.user.id }).sort({ createdAt: -1 });
-    const jobsWithCounts = await Promise.all(jobs.map(async (job) => {
-      const applicantCount = await Application.countDocuments({ job: job._id });
-      return { ...job._doc, applicantCount };
+    const { skip, limit, paginate } = parsePagination(req.query);
+    const filter = { recruiter: req.user.id };
+
+    const [jobs, total] = await Promise.all([
+      Job.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Job.countDocuments(filter)
+    ]);
+
+    // Batch: get applicant counts for this page's jobs only
+    const jobIds = jobs.map(j => j._id);
+    const counts = await Application.aggregate([
+      { $match: { job: { $in: jobIds } } },
+      { $group: { _id: '$job', count: { $sum: 1 } } }
+    ]);
+    const countMap = new Map(counts.map(c => [c._id.toString(), c.count]));
+
+    const jobsWithCounts = jobs.map(job => ({
+      ...job._doc,
+      applicantCount: countMap.get(job._id.toString()) || 0
     }));
-    res.json(jobsWithCounts);
+
+    res.json(paginate(jobsWithCounts, total));
   } catch (error) {
     next(error);
   }

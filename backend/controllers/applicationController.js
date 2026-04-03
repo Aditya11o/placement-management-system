@@ -4,6 +4,7 @@ const Profile = require('../models/Profile');
 const Notification = require('../models/Notification');
 const sendEmail = require('../utils/emailUtils');
 const { createAuditLog } = require('./auditLogController');
+const { parsePagination } = require('../utils/pagination');
 
 // @desc    Apply for a job
 // @route   POST /api/applications/:jobId
@@ -65,18 +66,22 @@ const applyForJob = async (req, res, next) => {
 const getMyApplications = async (req, res, next) => {
   try {
     const { status } = req.query;
+    const { skip, limit, paginate } = parsePagination(req.query);
     let query = { student: req.user.id };
 
     if (status && status !== 'Any Status') {
-      // Handle "Offered" vs "Selected" mapping if necessary, 
-      // but standard approach is to use the actual status stored.
       query.status = status;
     }
 
-    const applications = await Application.find(query)
-      .populate('job', 'title companyName status deadline')
-      .sort({ createdAt: -1 });
-    res.json(applications);
+    const [applications, total] = await Promise.all([
+      Application.find(query)
+        .populate('job', 'title companyName status deadline')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Application.countDocuments(query)
+    ]);
+    res.json(paginate(applications, total));
   } catch (error) {
     next(error);
   }
@@ -99,19 +104,29 @@ const getJobApplicants = async (req, res, next) => {
       return res.json({ message: 'Not authorized' });
     }
 
-    const applicants = await Application.find({ job: req.params.jobId })
-      .populate('student', 'name email')
-      .sort({ createdAt: -1 });
+    const { skip, limit, paginate } = parsePagination(req.query);
+    const filter = { job: req.params.jobId };
 
-    const enrichedApplicants = await Promise.all(applicants.map(async (app) => {
-      const profile = await Profile.findOne({ user: app.student._id });
-      return {
-        ...app.toObject(),
-        studentProfile: profile
-      };
+    const [applicants, total] = await Promise.all([
+      Application.find(filter)
+        .populate('student', 'name email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Application.countDocuments(filter)
+    ]);
+
+    // Batch: fetch all profiles in one query
+    const studentIds = applicants.map(a => a.student._id);
+    const profiles = await Profile.find({ user: { $in: studentIds } });
+    const profileMap = new Map(profiles.map(p => [p.user.toString(), p]));
+
+    const enrichedApplicants = applicants.map(app => ({
+      ...app.toObject(),
+      studentProfile: profileMap.get(app.student._id.toString()) || null
     }));
 
-    res.json(enrichedApplicants);
+    res.json(paginate(enrichedApplicants, total));
   } catch (error) {
     next(error);
   }
@@ -122,21 +137,29 @@ const getJobApplicants = async (req, res, next) => {
 // @access  Private (Admin)
 const getAllApplications = async (req, res, next) => {
   try {
-    const applications = await Application.find({})
-      .populate('student', 'name email')
-      .populate('job', 'title companyName')
-      .sort({ createdAt: -1 });
+    const { skip, limit, paginate } = parsePagination(req.query);
 
-    // Fetch profile data for each application
-    const enrichedApplications = await Promise.all(applications.map(async (app) => {
-      const profile = await Profile.findOne({ user: app.student._id });
-      return {
-        ...app.toObject(),
-        studentProfile: profile
-      };
+    const [applications, total] = await Promise.all([
+      Application.find({})
+        .populate('student', 'name email')
+        .populate('job', 'title companyName')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Application.countDocuments({})
+    ]);
+
+    // Batch: fetch all profiles in one query
+    const studentIds = applications.map(a => a.student._id);
+    const profiles = await Profile.find({ user: { $in: studentIds } });
+    const profileMap = new Map(profiles.map(p => [p.user.toString(), p]));
+
+    const enrichedApplications = applications.map(app => ({
+      ...app.toObject(),
+      studentProfile: profileMap.get(app.student._id.toString()) || null
     }));
 
-    res.json(enrichedApplications);
+    res.json(paginate(enrichedApplications, total));
   } catch (error) {
     next(error);
   }
@@ -265,16 +288,22 @@ const getStudentStats = async (req, res, next) => {
 
 const getRecruiterApplicants = async (req, res, next) => {
   try {
+    const { skip, limit, paginate } = parsePagination(req.query);
     const jobs = await Job.find({ recruiter: req.user.id });
     const jobIds = jobs.map(j => j._id);
+    const filter = { job: { $in: jobIds } };
     
-    const applicants = await Application.find({ job: { $in: jobIds } })
-      .populate('student', 'name email')
-      .populate('job', 'title')
-      .sort({ createdAt: -1 })
-      .limit(10);
+    const [applicants, total] = await Promise.all([
+      Application.find(filter)
+        .populate('student', 'name email')
+        .populate('job', 'title')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Application.countDocuments(filter)
+    ]);
 
-    res.json(applicants);
+    res.json(paginate(applicants, total));
   } catch (error) {
     next(error);
   }
@@ -363,19 +392,23 @@ const getExportData = async (req, res, next) => {
       .populate('student', 'name email')
       .populate('job', 'title');
 
-    // Fetch full student profiles
-    const exportData = await Promise.all(applications.map(async (app) => {
-      const profile = await Profile.findOne({ user: app.student._id });
+    // Batch: fetch all profiles in one query
+    const studentIds = applications.map(a => a.student._id);
+    const profiles = await Profile.find({ user: { $in: studentIds } });
+    const profileMap = new Map(profiles.map(p => [p.user.toString(), p]));
+
+    const exportData = applications.map(app => {
+      const profile = profileMap.get(app.student._id.toString());
       return {
         StudentName: app.student.name,
         Email: app.student.email,
-        Course: profile?.studentDetails.course,
-        Branch: profile?.studentDetails.branch,
-        CGPA: profile?.studentDetails.cgpa,
+        Course: profile?.studentDetails?.course,
+        Branch: profile?.studentDetails?.branch,
+        CGPA: profile?.studentDetails?.cgpa,
         Status: app.status,
         AppliedDate: app.applied_date
       };
-    }));
+    });
 
     res.json(exportData);
   } catch (error) {

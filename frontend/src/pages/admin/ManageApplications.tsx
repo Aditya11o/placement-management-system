@@ -14,8 +14,9 @@ const ManageApplications: React.FC = () => {
   const fetchApplications = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get('/applications/admin');
-      const mapped = data.map((app: any) => ({
+      const { data } = await api.get('/applications/admin', { params: { limit: 0 } });
+      const items = data?.data || data;
+      const mapped = items.map((app: any) => ({
         id: app._id,
         student: {
           name: app.student?.name || 'Unknown',

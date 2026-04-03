@@ -20,8 +20,9 @@ const ManageJobs: React.FC = () => {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/jobs/my');
-      setJobs(res.data);
+      const res = await api.get('/jobs/my', { params: { limit: 0 } });
+      const items = res.data?.data || res.data;
+      setJobs(items);
     } catch (error: any) {
       console.error('Error fetching recruiter jobs:', error);
       showError(error.response?.data?.message || 'Failed to fetch jobs', 'Fetch Error');
