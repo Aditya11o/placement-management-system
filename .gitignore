@@ -48,8 +48,14 @@ Thumbs.db
 tmp
 /*.txt
 /error_output.txt
-/load_err.txt
-/provision_log.txt
-/server_log.txt
-/test_log.txt
-/verify_results.txt
+
+# Debug / temporary output files
+backend/*.log
+backend/*.txt
+backend/*.json
+!backend/package.json
+!backend/package-lock.json
+backend/seed_*.js
+backend/test_*.js
+backend/unlock_*.js
+hash.txt

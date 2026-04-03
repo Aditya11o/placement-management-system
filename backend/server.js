@@ -19,10 +19,8 @@ const logger = require('./utils/logger');
 // Load environment variables
 dotenv.config();
 
-console.log('--- STARTUP DEBUG ---');
-console.log('PWD:', process.cwd());
-console.log('JWT_SECRET keys found:', Object.keys(process.env).filter(k => k.includes('SECRET')));
-console.log('--- END STARTUP DEBUG ---');
+
+
 
 // Fail-fast: ensure critical secrets are configured
 if (!process.env.JWT_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
@@ -144,7 +142,19 @@ app.use('/api/interviews', require('./routes/interviewRoutes'));
 
 // Socket.io authentication middleware
 io.use((socket, next) => {
-  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  // Try auth header first, then query, then cookie
+  let token = socket.handshake.auth?.token || socket.handshake.query?.token;
+  
+  // Fallback: parse token from cookies in handshake headers
+  if (!token && socket.handshake.headers.cookie) {
+    const cookies = socket.handshake.headers.cookie.split(';').reduce((acc, c) => {
+      const [key, val] = c.trim().split('=');
+      if (key && val) acc[key] = decodeURIComponent(val);
+      return acc;
+    }, {});
+    token = cookies.token;
+  }
+  
   if (!token) {
     return next(new Error('Authentication required'));
   }

@@ -14,9 +14,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ role }) => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isHelpOpen, setHelpOpen] = useState(false);
   const userInfo: User | null = JSON.parse(localStorage.getItem('userInfo') || 'null');
-  const token = localStorage.getItem('token');
 
-  if (!token || !userInfo || userInfo.role !== role) {
+  if (!userInfo || userInfo.role !== role) {
     return <Navigate to="/login" replace />;
   }
 

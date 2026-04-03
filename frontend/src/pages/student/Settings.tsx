@@ -5,10 +5,12 @@ import {
   Trash2, Upload, Camera, X, Loader2
 } from 'lucide-react';
 import api from '../../api';
+import { useAuth } from '../../context/AuthContext';
 // @ts-ignore
 import { toast } from 'react-hot-toast';
 
 const Settings: React.FC = () => {
+  const { logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -164,7 +166,7 @@ const Settings: React.FC = () => {
     if (!window.confirm('Are you sure you want to deactivate your account? You will be logged out.')) return;
     try {
       await api.put('/students/deactivate');
-      localStorage.removeItem('token');
+      await logout();
       window.location.href = '/login';
     } catch (err) {
       toast.error('Failed to deactivate account');
@@ -175,7 +177,7 @@ const Settings: React.FC = () => {
     if (!window.confirm('WARNING: THIS IS PERMANENT. Are you sure you want to delete your account?')) return;
     try {
       await api.delete('/students/delete-account');
-      localStorage.removeItem('token');
+      await logout();
       window.location.href = '/login';
     } catch (err) {
       toast.error('Failed to delete account');
@@ -520,10 +522,9 @@ const Settings: React.FC = () => {
               </button>
 
               <button 
-                onClick={() => {
+                onClick={async () => {
                   if (window.confirm('Are you sure you want to logout?')) {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('userInfo');
+                    await logout();
                     window.location.href = '/login';
                   }
                 }}

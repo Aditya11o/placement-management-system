@@ -28,6 +28,12 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Helper: strip sensitive tokens before persisting user info to localStorage
+const sanitizeUserForStorage = (data: any): User => {
+  const { token, refreshToken, ...safeUser } = data;
+  return safeUser as User;
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('userInfo');
@@ -43,12 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     fetchInProgress.current = true;
     
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        fetchInProgress.current = false;
-        return;
-      }
-      
+      // Cookies are sent automatically via withCredentials — no localStorage check needed
       const { data } = await api.get('/profile/me');
       
       // Update profile state
@@ -97,8 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Initial and reactive profile fetch when user logs in
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token && user && !profile) {
+    if (user && !profile) {
       fetchUserProfile();
     }
   }, [user, profile]);
@@ -111,10 +111,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoading(false);
         return response.data; // { requireOTP: true, email: ... }
       }
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-      localStorage.setItem('userInfo', JSON.stringify(response.data));
-      setUser(response.data);
+      // Tokens are now set as httpOnly cookies by the backend.
+      // Only store non-sensitive user info in localStorage for UI state.
+      const safeUser = sanitizeUserForStorage(response.data);
+      setUser(safeUser);
       setLoading(false);
       return response.data;
     } catch (error: any) {
@@ -127,10 +127,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     try {
       const response = await api.post('/auth/verify-otp', { email, otp });
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-      localStorage.setItem('userInfo', JSON.stringify(response.data));
-      setUser(response.data);
+      const safeUser = sanitizeUserForStorage(response.data);
+      setUser(safeUser);
       setLoading(false);
       return response.data;
     } catch (error: any) {
@@ -143,10 +141,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     try {
       const response = await api.post('/auth/register', userData);
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-      localStorage.setItem('userInfo', JSON.stringify(response.data));
-      setUser(response.data);
+      const safeUser = sanitizeUserForStorage(response.data);
+      setUser(safeUser);
       setLoading(false);
       return response.data;
     } catch (error: any) {
@@ -155,9 +151,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
+  const logout = async () => {
+    try {
+      // Call backend to clear httpOnly cookies
+      await api.post('/auth/logout');
+    } catch (err) {
+      // Proceed with local cleanup even if API call fails
+      console.error('Logout API call failed:', err);
+    }
     setUser(null);
   };
 

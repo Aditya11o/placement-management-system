@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   User, GraduationCap, Award, Shield, FileText, Plus, Edit2, 
-  Trash2, Camera, Loader2, ChevronRight, ExternalLink, 
-  Github, Linkedin
+  Trash2, Camera, Loader2, ChevronRight
 } from 'lucide-react';
 import Dropdown from '../../components/Dropdown';
 import Avatar from '../../components/Avatar';
@@ -15,7 +14,7 @@ import UploadResumeModal from '../../components/profile/UploadResumeModal';
 
 const Profile: React.FC = () => {
   const { showSuccess, showError } = useNotification();
-  const { refreshUser } = useAuth();
+  const { refreshUser, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [skills, setSkills] = useState<string[]>([]);
@@ -671,8 +670,8 @@ const Profile: React.FC = () => {
                                 try {
                                     await api.put('/profile', { role: 'alumni' });
                                     showSuccess('Welcome to the Alumni Network! Please relogin to access your new portal.', 'Program Joined');
-                                    setTimeout(() => {
-                                        localStorage.removeItem('token');
+                                    setTimeout(async () => {
+                                        await logout();
                                         window.location.href = '/login';
                                     }, 2000);
                                 } catch(err: any) { 

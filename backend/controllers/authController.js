@@ -129,12 +129,7 @@ const authUser = async (req, res, next) => {
       return res.json({ message: 'Your account is inactive.' });
     }
 
-    // EMERGENCY UNLOCK for specific user
-    if (email === 'jasmin.jamadar23@tnu.in') {
-      user.loginAttempts = 0;
-      user.lockUntil = undefined;
-      await user.save();
-    }
+
 
     // Check if account is locked
     if (user.lockUntil && user.lockUntil > Date.now()) {
@@ -242,12 +237,7 @@ const verifyOTP = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid or expired OTP' });
     }
 
-    // EMERGENCY UNLOCK for specific user
-    if (email === 'jasmin.jamadar23@tnu.in') {
-      user.loginAttempts = 0;
-      user.lockUntil = undefined;
-      await user.save();
-    }
+
 
     // Check if account is locked
     if (user.lockUntil && user.lockUntil > Date.now()) {
@@ -255,7 +245,7 @@ const verifyOTP = async (req, res, next) => {
     }
 
     // Verify OTP and expiry
-    const isTestAccount = process.env.NODE_ENV === 'development' && email === 'hr@tcs.com';
+    const isTestAccount = process.env.NODE_ENV === 'development' && process.env.TEST_OTP_BYPASS_EMAIL && email === process.env.TEST_OTP_BYPASS_EMAIL;
     if (!isTestAccount && (!user.otp || user.otp !== otp || !user.otpExpires || user.otpExpires < Date.now())) {
       // Increment login attempts on failed OTP
       user.loginAttempts = (user.loginAttempts || 0) + 1;

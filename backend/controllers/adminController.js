@@ -681,6 +681,36 @@ const updateSystemSettings = async (req, res, next) => {
   }
 };
 
+// @desc    Unlock a locked user account (reset login attempts & lockout)
+// @route   PATCH /api/admin/users/:id/unlock
+// @access  Private (Admin)
+const unlockUserAccount = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id).select('+loginAttempts +lockUntil');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
+    await user.save();
+
+    // Audit Log
+    await createAuditLog(
+      req.user.id,
+      'UNLOCK_USER',
+      'User',
+      user._id,
+      `Admin unlocked account for: ${user.email}`,
+      req.ip
+    );
+
+    res.json({ message: `Account for ${user.email} has been unlocked successfully` });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = { 
   getAdminMe,
   updateAdminProfile,
@@ -700,5 +730,6 @@ module.exports = {
   createRecruiter,
   runVerificationBatch,
   getSystemSettings,
-  updateSystemSettings
+  updateSystemSettings,
+  unlockUserAccount
 };

@@ -19,10 +19,9 @@ const Chat: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Initialize socket with JWT authentication
-    const token = localStorage.getItem('token');
+    // Initialize socket — auth handled via httpOnly cookies
     socketRef.current = io('http://localhost:5000', {
-      auth: { token },
+      withCredentials: true,
     });
     // Server auto-joins user to their private room via verified token
 

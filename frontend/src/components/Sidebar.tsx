@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
@@ -10,6 +11,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose }) => {
+  const { logout } = useAuth();
 
   const getLinks = () => {
     // ... existing links logic
@@ -143,9 +145,8 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose })
           <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>Settings</span>
         </NavLink>
         <button
-          onClick={() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('userInfo');
+          onClick={async () => {
+            await logout();
             window.location.href = '/login';
           }}
           title={isCollapsed ? "Logout" : ""}
