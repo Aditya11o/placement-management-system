@@ -146,6 +146,22 @@ const Reports: React.FC = () => {
     return <DashboardSkeleton />;
   }
 
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2.5rem] border border-gray-100 italic">
+        <FileText size={48} className="text-gray-200 mb-4" />
+        <h2 className="text-xl font-black text-gray-900 uppercase tracking-widest uppercase tracking-tight">Intelligence <span className="text-blue-600">Unavailable</span></h2>
+        <p className="text-xs font-bold text-gray-400 mt-2 uppercase tracking-widest italic">We encountered an error loading the strategic placement metrics.</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-6 px-6 py-3 bg-[#000613] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all"
+        >
+          Try Refreshing
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       {/* Page Header */}
@@ -378,7 +394,7 @@ const Reports: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {data.placementRecords.map((record: any, idx: number) => (
+              {data?.placementRecords?.map((record: any, idx: number) => (
                 <tr key={idx} className="hover:bg-gray-50/40 transition-all duration-300 group">
                   <td className="pl-10 pr-4 py-6">
                     <div className="flex items-center gap-3">

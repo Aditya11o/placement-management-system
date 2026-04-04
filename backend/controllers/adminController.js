@@ -7,6 +7,7 @@ const Application = require('../models/Application');
 const AdminProfile = require('../models/AdminProfile');
 const Job = require('../models/Job');
 const Notification = require('../models/Notification');
+const Settings = require('../models/Settings');
 const { createAuditLog } = require('./auditLogController');
 const { cloudinary, uploadToCloudinary } = require('../utils/cloudinary');
 const sendEmail = require('../utils/emailUtils');
@@ -631,7 +632,45 @@ const getCompanyHistory = async (req, res, next) => {
 // @access  Private (Admin)
 const getAdvancedAnalytics = async (req, res, next) => {
   try {
-    // 4. Yearly Placement Trends (Past 5 Years)
+    // 1. Department Placement Mix
+    const deptPlacement = await StudentProfile.aggregate([
+      { $group: {
+        _id: '$department',
+        total: { $sum: 1 },
+        placed: { $sum: { $cond: [{ $eq: ['$placement_status', 'Placed'] }, 1, 0] } }
+      }}
+    ]);
+
+    // 2. Salary Aggregates
+    const salaryTrends = await Job.aggregate([
+      { $addFields: {
+        numSalary: { $toDouble: { $ifNull: [ "$salary", "0" ] } }
+      }},
+      { $group: {
+        _id: null,
+        min: { $min: "$numSalary" },
+        max: { $max: "$numSalary" },
+        avg: { $avg: "$numSalary" }
+      }}
+    ]);
+
+    // 3. Top Hiring Companies
+    const topHiring = await Application.aggregate([
+      { $match: { status: 'Selected' } },
+      { $lookup: {
+        from: 'jobs',
+        localField: 'job',
+        foreignField: '_id',
+        as: 'jobDetails'
+      }},
+      { $unwind: '$jobDetails' },
+      { $group: {
+        _id: '$jobDetails.companyName',
+        count: { $sum: 1 }
+      }},
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
     const currentYear = new Date().getFullYear();
     const yearlyTrends = await StudentProfile.aggregate([
       { $match: { passing_year: { $gte: currentYear - 4, $lte: currentYear + 1 } } },

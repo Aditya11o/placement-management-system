@@ -58,7 +58,9 @@ const RecruiterDashboard: React.FC = () => {
         ]);
         const recentApps = appsRes.data?.data || appsRes.data;
         setRecentApplicants(Array.isArray(recentApps) ? recentApps : []);
-        setInterviews(interviewsRes.data);
+        // Handle both paginated { data, pagination } and flat array responses
+        const interviewData = interviewsRes.data;
+        setInterviews(Array.isArray(interviewData) ? interviewData : (interviewData.data || []));
         const jobsList = jobsRes.data?.data || jobsRes.data;
         setJobs(jobsList);
         if (jobsList.length > 0) {

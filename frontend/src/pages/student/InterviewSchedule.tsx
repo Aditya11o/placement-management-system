@@ -25,7 +25,8 @@ const InterviewSchedule: React.FC = () => {
   const fetchInterviews = async () => {
     try {
       const { data: response } = await api.get('/applications/interviews');
-      const data = response.data;
+      // Handle both paginated { data, pagination } and flat array responses
+      const data = Array.isArray(response) ? response : (response.data || []);
       setInterviews(data);
       const now = new Date();
       const upcoming = data.filter((i: any) => new Date(i.interviewDate) > now).length;

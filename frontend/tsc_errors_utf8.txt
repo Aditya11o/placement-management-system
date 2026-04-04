@@ -1,8 +1,0 @@
-﻿src/pages/student/MyApplications.tsx(7,3): error TS6133: 'Eye' is declared but its value is never read.
-src/pages/student/Profile.tsx(247,21): error TS2322: Type '{ profile: any; previewUrl: string | null; skills: string[]; fileInputRef: RefObject<HTMLInputElement | null>; onFileChange: (e: ChangeEvent<HTMLInputElement, Element>) => void; onSave: (e?: FormEvent<...> | undefined) => Promise<...>; className: string; }' is not assignable to type 'IntrinsicAttributes & ProfileHeaderProps'.
-  Property 'className' does not exist on type 'IntrinsicAttributes & ProfileHeaderProps'.
-src/pages/student/Profile.tsx(261,51): error TS2322: Type '{ student: any; className: string; }' is not assignable to type 'IntrinsicAttributes & AcademicCardProps'.
-  Property 'className' does not exist on type 'IntrinsicAttributes & AcademicCardProps'.
-src/pages/student/ResumeManager.tsx(4,3): error TS6133: 'CheckCircle' is declared but its value is never read.
-src/pages/student/ResumeManager.tsx(4,16): error TS6133: 'Globe' is declared but its value is never read.
-src/pages/student/ResumeManager.tsx(5,14): error TS6133: 'MoreVertical' is declared but its value is never read.

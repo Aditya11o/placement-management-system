@@ -16,7 +16,9 @@ const ManageInterviews: React.FC = () => {
     try {
       setLoading(true);
       const { data: response } = await api.get('/applications/interviews');
-      const mapped = response.data.map((app: any) => ({
+      // Handle both paginated { data, pagination } and flat array responses
+      const data = Array.isArray(response) ? response : (response.data || []);
+      const mapped = data.map((app: any) => ({
         id: app._id,
         student: {
           name: app.student?.name || 'Unknown',

@@ -22,7 +22,8 @@ const InterviewPanel: React.FC<InterviewPanelProps> = ({ initialInterviews = [] 
     const fetchInterviews = async () => {
       try {
         const { data } = await api.get('/applications/interviews');
-        setInterviews(data);
+        // Handle both paginated { data, pagination } and flat array responses
+        setInterviews(Array.isArray(data) ? data : (data.data || []));
       } catch (err) {
         console.error(err);
       } finally {

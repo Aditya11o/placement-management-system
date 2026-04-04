@@ -1,12 +1,9 @@
+require('dotenv').config();
 const http = require('http');
-const dotenv = require('dotenv');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const { initCron } = require('./utils/cron');
 const app = require('./app');
-
-// Load environment variables
-dotenv.config();
 
 // Fail-fast: ensure critical secrets are configured
 if (!process.env.JWT_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
