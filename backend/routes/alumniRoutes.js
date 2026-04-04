@@ -11,7 +11,7 @@ const {
   updateMentorshipStatus
 } = require('../controllers/alumniController');
 
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
 // Dashboard & Profile (Alumni/Mentor Only)
 router.get('/dashboard', protect, authorize('alumni', 'mentor'), getDashboardStats);

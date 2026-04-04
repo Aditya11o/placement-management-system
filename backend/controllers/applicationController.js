@@ -17,12 +17,22 @@ const applyForJob = async (req, res, next) => {
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    const { resumeId } = req.body;
+    const { resumeId } = req.body || {};
     
     // Check if profile exists and has resume
     const profile = await Profile.findOne({ user: req.user.id });
     if (!profile) {
       return res.status(400).json({ message: 'Profile not found' });
+    }
+
+    // Check for existing application
+    const existingApplication = await Application.findOne({
+      student: req.user.id,
+      job: req.params.jobId
+    });
+
+    if (existingApplication) {
+      return res.status(400).json({ message: 'You have already applied for this job' });
     }
 
     // Eligibility check (Basic)

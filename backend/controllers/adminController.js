@@ -9,6 +9,7 @@ const Job = require('../models/Job');
 const Notification = require('../models/Notification');
 const { createAuditLog } = require('./auditLogController');
 const cloudinary = require('../utils/cloudinary');
+const sendEmail = require('../utils/emailUtils');
 
 // @desc    Get all pending skill verifications
 // @route   GET /api/admin/verifications
@@ -118,8 +119,6 @@ const verifySkill = async (req, res, next) => {
     next(error);
   }
 };
-const Job = require('../models/Job');
-const Notification = require('../models/Notification');
 
 // @desc    Get dashboard statistics
 // @route   GET /api/admin/stats
@@ -255,7 +254,7 @@ const approveRecruiter = async (req, res, next) => {
     );
 
     // Send notification email
-    const { sendEmail } = require('../utils/emailUtils');
+    // Notify recruiter
     try {
       await sendEmail({
         email: user.email,
@@ -384,7 +383,6 @@ const bulkUpdateUsers = async (req, res, next) => {
 // @access  Private (Admin)
 const bulkSendEmail = async (req, res, next) => {
   const { userIds, subject, message, title } = req.body;
-  const { sendEmail } = require('../utils/emailUtils');
   try {
     const users = await User.find({ _id: { $in: userIds } }).select('email name');
     
@@ -424,28 +422,6 @@ const bulkSendEmail = async (req, res, next) => {
   }
 };
 
-// @desc    Bulk verify skills
-// @route   PATCH /api/admin/skills/bulk-verify
-// @access  Private (Admin)
-const bulkVerifySkills = async (req, res, next) => {
-  const { skillIds, status } = req.body;
-  try {
-    const profiles = await Profile.find({ 'studentDetails.verifiedSkills._id': { $in: skillIds } });
-    
-    for (const profile of profiles) {
-      profile.studentDetails.verifiedSkills.forEach(skill => {
-        if (skillIds.includes(skill._id.toString())) {
-          skill.status = status;
-        }
-      });
-      await profile.save();
-    }
-
-    res.json({ message: `Successfully updated ${skillIds.length} skills` });
-  } catch (error) {
-    next(error);
-  }
-};
 
 // @desc    Create a new student manually
 // @route   POST /api/admin/students

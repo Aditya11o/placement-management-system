@@ -100,14 +100,14 @@ const registerUser = async (req, res, next) => {
         refreshToken,
       });
     } else {
-      return res.status(400).json({ message: 'Invalid user data' });
+      res.status(400).json({ message: 'Invalid user data' });
     }
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Auth user & get token
+// @desc    Authenticate a user
 // @route   POST /api/auth/login
 // @access  Public
 const authUser = async (req, res, next) => {
@@ -120,35 +120,28 @@ const authUser = async (req, res, next) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Check account status
-    if (user.status === 'pending') {
-      return res.status(403).json({ message: 'Your account is pending administrator approval.' });
-    }
-
-    if (user.status === 'blacklisted') {
-      return res.status(403).json({ message: 'Your account has been blacklisted.' });
-    }
-
-    if (user.status === 'inactive') {
-      return res.status(403).json({ message: 'Your account is inactive.' });
-    }
-
-
-
     // Check if account is locked
     if (user.lockUntil && user.lockUntil > Date.now()) {
-      return res.status(401).json({ message: 'Account is temporarily locked. Please try again later.' });
+      return res.status(401).json({ 
+        message: 'Account is locked. Please try again after 15 minutes or reset your password.' 
+      });
     }
 
     if (await user.matchPassword(password)) {
-      // Check if 2FA is required (Admin or Recruiter)
-      if (user.role === 'admin' || user.role === 'recruiter') {
-        // Do NOT reset loginAttempts here — only after OTP is verified
-        const otp = crypto.randomInt(100000, 999999).toString();
+      // Reset login attempts on success
+      user.loginAttempts = 0;
+      user.lockUntil = undefined;
+      await user.save();
+
+      // Check if 2FA is needed (for Admin and Mentors)
+      if (user.role === 'admin' || user.role === 'mentor') {
+        // Generate OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
         user.otp = otp;
-        user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
         await user.save();
 
+        // Send OTP Email
         try {
           await sendEmail({
             email: user.email,
@@ -156,20 +149,20 @@ const authUser = async (req, res, next) => {
             template: 'otp',
             context: {
               name: user.name,
-              otp: otp
+              otp: otp,
+              expiryTime: '10 minutes'
             }
           });
-          return res.json({ requireOTP: true, email: user.email });
         } catch (err) {
-          console.error('2FA Email failed:', err);
-          return res.status(500).json({ message: 'Failed to send verification code' });
+          console.error('OTP Email Error:', err);
         }
-      }
 
-      // For non-2FA roles (students), reset login attempts on password success
-      user.loginAttempts = 0;
-      user.lockUntil = undefined;
-      await user.save();
+        return res.json({ 
+          requireOTP: true, 
+          email: user.email,
+          message: 'OTP sent to your institutional email' 
+        });
+      }
 
       const { token, refreshToken } = setTokenCookies(res, user);
 
@@ -178,95 +171,41 @@ const authUser = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        profilePhoto: user.profilePhoto,
+        status: user.status,
         token,
         refreshToken,
       });
     } else {
-      // Increment login attempts on failure
+      // Increment login attempts
       user.loginAttempts += 1;
       if (user.loginAttempts >= 5) {
-        user.lockUntil = Date.now() + 30 * 60 * 1000; // Lock for 30 minutes
+        user.lockUntil = Date.now() + 15 * 60 * 1000; // 15 min lock
       }
       await user.save();
-
-      return res.status(401).json({ message: 'Invalid email or password' });
+      
+      res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Refresh access token
-// @route   POST /api/auth/refresh
-// @access  Public
-const refreshAccessToken = async (req, res, next) => {
-  const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
-
-  if (!refreshToken) {
-    return res.status(401).json({ message: 'Refresh Token is required' });
-  }
-
-  try {
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-    const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid Refresh Token' });
-    }
-
-    const accessToken = generateToken(user._id);
-    res.cookie('token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 1 * 24 * 60 * 60 * 1000,
-    });
-
-    res.json({ accessToken });
-  } catch (error) {
-    res.status(401).json({ message: 'Invalid Refresh Token' });
-  }
-};
-
-// @desc    Verify OTP
+// @desc    Verify OTP for 2FA
 // @route   POST /api/auth/verify-otp
 // @access  Public
 const verifyOTP = async (req, res, next) => {
   const { email, otp } = req.body;
 
   try {
-    // First, find the user to check lockout status
-    const user = await User.findOne({ email }).select('+otp +otpExpires +loginAttempts +lockUntil');
+    const user = await User.findOne({ email }).select('+otp +otpExpires');
 
-    if (!user) {
+    if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
       return res.status(401).json({ message: 'Invalid or expired OTP' });
     }
 
-
-
-    // Check if account is locked
-    if (user.lockUntil && user.lockUntil > Date.now()) {
-      return res.status(401).json({ message: 'Account is temporarily locked. Please try again later.' });
-    }
-
-    // Verify OTP and expiry
-    const isTestAccount = process.env.NODE_ENV === 'development' && process.env.TEST_OTP_BYPASS_EMAIL && email === process.env.TEST_OTP_BYPASS_EMAIL;
-    if (!isTestAccount && (!user.otp || user.otp !== otp || !user.otpExpires || user.otpExpires < Date.now())) {
-      // Increment login attempts on failed OTP
-      user.loginAttempts = (user.loginAttempts || 0) + 1;
-      if (user.loginAttempts >= 5) {
-        user.lockUntil = Date.now() + 30 * 60 * 1000; // Lock for 30 minutes
-      }
-      await user.save();
-      return res.status(401).json({ message: 'Invalid or expired OTP' });
-    }
-
-    // OTP verified — clear OTP and reset lockout
+    // Clear OTP
     user.otp = undefined;
     user.otpExpires = undefined;
-    user.loginAttempts = 0;
-    user.lockUntil = undefined;
     await user.save();
 
     const { token, refreshToken } = setTokenCookies(res, user);
@@ -276,7 +215,7 @@ const verifyOTP = async (req, res, next) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      profilePhoto: user.profilePhoto,
+      status: user.status,
       token,
       refreshToken,
     });
@@ -285,18 +224,40 @@ const verifyOTP = async (req, res, next) => {
   }
 };
 
-// @desc    Logout user & clear cookies
+// @desc    Refresh Access Token
+// @route   POST /api/auth/refresh
+// @access  Public (via Refresh Cookie)
+const refreshAccessToken = async (req, res, next) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Refresh token missing' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid user' });
+    }
+
+    const accessToken = generateToken(user._id);
+    
+    // Optional: Rotate refresh token here
+    
+    res.json({ accessToken });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid refresh token' });
+  }
+};
+
+// @desc    Logout user
 // @route   POST /api/auth/logout
 // @access  Private
-const logoutUser = async (req, res, next) => {
-  res.cookie('token', '', {
-    httpOnly: true,
-    expires: new Date(0),
-  });
-  res.cookie('refreshToken', '', {
-    httpOnly: true,
-    expires: new Date(0),
-  });
+const logoutUser = async (req, res) => {
+  res.clearCookie('token');
+  res.clearCookie('refreshToken');
   res.status(200).json({ message: 'Logged out successfully' });
 };
 
@@ -313,6 +274,7 @@ const forgotPassword = async (req, res, next) => {
 
     // Generate token
     const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
 
     // Hash and set to reset_token field
     user.reset_token = crypto
@@ -353,8 +315,8 @@ const forgotPassword = async (req, res, next) => {
 // @access  Public
 const resetPassword = async (req, res, next) => {
   const { token, password } = req.body;
+
   try {
-    // Hash the token sent in the link
     const hashedToken = crypto
       .createHash('sha256')
       .update(token)
@@ -363,13 +325,13 @@ const resetPassword = async (req, res, next) => {
     const user = await User.findOne({
       reset_token: hashedToken,
       reset_token_expiry: { $gt: Date.now() }
-    }).select('+reset_token +reset_token_expiry');
+    });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
     }
 
-    // Set new password
+    // Update password
     user.password = password;
     user.reset_token = undefined;
     user.reset_token_expiry = undefined;
@@ -381,50 +343,40 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-// @desc    Update Password
+// @desc    Update Password (Logged In)
 // @route   PUT /api/auth/update-password
 // @access  Private
 const updatePassword = async (req, res, next) => {
-  const { currentPassword, newPassword } = req.body;
+  const { current_password, new_password } = req.body;
 
   try {
     const user = await User.findById(req.user.id).select('+password');
-
-    if (!(await user.matchPassword(currentPassword))) {
-      return res.status(401).json({ message: 'Invalid current password' });
+    
+    if (!(await user.matchPassword(current_password))) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
     }
 
-    user.password = newPassword;
+    user.password = new_password;
     await user.save();
 
-    res.json({ success: true, message: 'Password updated successfully' });
+    res.json({ message: 'Password updated successfully' });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Deactivate Account
+// @desc    Deactivate account
 // @route   DELETE /api/auth/deactivate
 // @access  Private
 const deactivateAccount = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-    
-    // Set to inactive (admin can reactivate later)
     user.status = 'inactive';
     await user.save();
-
-    // Logout
-    res.cookie('token', '', {
-      httpOnly: true,
-      expires: new Date(0),
-    });
-    res.cookie('refreshToken', '', {
-      httpOnly: true,
-      expires: new Date(0),
-    });
-
-    res.json({ success: true, message: 'Account deactivated successfully' });
+    
+    res.clearCookie('token');
+    res.clearCookie('refreshToken');
+    res.json({ message: 'Account deactivated' });
   } catch (error) {
     next(error);
   }
@@ -433,8 +385,8 @@ const deactivateAccount = async (req, res, next) => {
 module.exports = {
   registerUser,
   authUser,
-  refreshAccessToken,
   verifyOTP,
+  refreshAccessToken,
   logoutUser,
   forgotPassword,
   resetPassword,

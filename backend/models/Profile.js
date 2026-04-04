@@ -17,6 +17,7 @@ const profileSchema = new mongoose.Schema(
       course: String,
       branch: String,
       cgpa: Number,
+      resume: String, // Path to base resume URL
       passingYear: Number,
       skills: [String],
       verifiedSkills: [

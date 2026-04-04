@@ -12,14 +12,15 @@ router.route('/')
   .post(protect, authorize('recruiter'), validateCreateJob, createJob)
   .get(protect, getJobs);
 
+// Matched must be before :id
+router.get('/matched', protect, authorize('student'), getMatchedJobs);
+
 router.route('/:id')
   .get(protect, validateMongoId, getJobById)
   .put(protect, authorize('recruiter', 'admin'), validateUpdateJob, updateJob)
   .delete(protect, authorize('recruiter', 'admin'), validateMongoId, deleteJob);
 
 router.get('/:id/analytics', protect, authorize('recruiter', 'admin'), validateMongoId, getJobAnalytics);
-
-router.get('/matched', protect, authorize('student'), getMatchedJobs);
 
 router.route('/:id/status')
   .patch(protect, authorize('admin', 'recruiter'), validateUpdateJobStatus, updateJobStatus);
