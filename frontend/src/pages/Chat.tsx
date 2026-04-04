@@ -20,7 +20,7 @@ const Chat: React.FC = () => {
     if (!user) return;
 
     // Initialize socket — auth handled via httpOnly cookies
-    socketRef.current = io('http://localhost:5000', {
+    socketRef.current = io(import.meta.env.VITE_BASE_URL || 'http://localhost:5000', {
       withCredentials: true,
     });
     // Server auto-joins user to their private room via verified token

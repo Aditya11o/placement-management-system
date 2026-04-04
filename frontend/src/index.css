@@ -14,24 +14,24 @@
   --surface-container-highest: #e1e3e4;
   --on-surface: #191c1d;
   --on-surface-variant: #43474e;
-  --outline-variant: #c4c6cf;
+  --outline-variant: #e0e0e0;
   --surface-tint: #476083;
   color-scheme: light;
 }
 
 [data-theme='dark'] {
-  --primary: #e8eaed;
+  --primary: #ffffff;
   --primary-container: #1e2128;
   --on-primary: #0d1117;
-  --surface: #0d1117;
+  --surface: #0a0c10;
   --surface-container-lowest: #010409;
-  --surface-container-low: #161b22;
-  --surface-container: #1c2128;
-  --surface-container-high: #272c33;
-  --surface-container-highest: #333940;
-  --on-surface: #e6edf3;
+  --surface-container-low: #0d1117;
+  --surface-container: #161b22;
+  --surface-container-high: #21262d;
+  --surface-container-highest: #30363d;
+  --on-surface: #f0f6fc;
   --on-surface-variant: #8b949e;
-  --outline-variant: #3d444d;
+  --outline-variant: #30363d;
   --surface-tint: #58a6ff;
   color-scheme: dark;
 }
@@ -109,6 +109,43 @@
   .dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--outline-variant) !important; }
   .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--outline-variant) !important; }
 
+  
+/* Accessibility Utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--primary);
+  color: var(--on-primary);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0 0 1rem 1rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  z-index: 9999;
+  transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: none;
+  ring: 4px solid var(--primary-container);
+}
   /* Hover states */
   .dark .hover\:bg-gray-50:hover { background-color: var(--surface-container) !important; }
   .dark .hover\:bg-gray-100:hover { background-color: var(--surface-container-high) !important; }

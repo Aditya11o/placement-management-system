@@ -16,7 +16,7 @@ const InterviewSchedule: React.FC = () => {
     try {
       setLoading(true);
       const res = await api.get('/applications/interviews');
-      setInterviews(res.data);
+      setInterviews(res.data.data);
     } catch (err) {
       console.error('Error fetching interviews:', err);
     } finally {

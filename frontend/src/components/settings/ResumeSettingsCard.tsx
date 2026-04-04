@@ -37,7 +37,7 @@ const ResumeSettingsCard: React.FC<ResumeSettingsCardProps> = ({ resumes, onDele
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <button 
-                    onClick={() => window.open(resume.resume_url.startsWith('/') ? `http://localhost:5000${resume.resume_url}` : resume.resume_url, '_blank')}
+                    onClick={() => window.open(resume.resume_url.startsWith('/') ? `${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}${resume.resume_url}` : resume.resume_url, '_blank')}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-50 transition-all shadow-sm"
                   >
                     <FileText size={14} className="text-blue-600" />

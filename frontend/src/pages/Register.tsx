@@ -34,7 +34,7 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full overflow-hidden font-body bg-[#f8f9fa]">
+    <div className="flex min-h-screen w-full overflow-hidden font-body bg-surface">
       {/* Left Section: Compact Branding */}
       <div className="hidden md:flex relative w-1/2 flex-col justify-between p-10 lg:p-12 bg-gradient-to-br from-[#0B1E3F] via-[#0D2544] to-[#0E2A47] text-white">
         {/* Decorative Background Shapes */}
@@ -81,26 +81,26 @@ const Register: React.FC = () => {
       </div>
 
       {/* Right Section: Form Centered Vertically */}
-      <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-8 bg-white">
+      <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-8 bg-surface-container-lowest">
         <div className="w-full max-w-md space-y-6 animate-fade-in py-4">
           <div className="text-center md:text-left">
-             <span className="text-[10px] uppercase tracking-[0.2em] font-black text-blue-600 block mb-1.5 opacity-60">Registration</span>
-             <h2 className="text-2xl lg:text-[1.75rem] font-display font-bold text-primary tracking-tight mb-1">Create Your Account</h2>
-             <p className="text-sm text-gray-400 font-medium">Elevate your career trajectory with our specialized network.</p>
+              <span className="text-[10px] uppercase tracking-[0.2em] font-black text-surface-tint block mb-1.5 opacity-60">Registration</span>
+              <h2 className="text-2xl lg:text-[1.75rem] font-display font-bold text-on-surface tracking-tight mb-1">Create Your Account</h2>
+              <p className="text-sm text-on-surface-variant font-medium">Elevate your career trajectory with our specialized network.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Role Tracker - Reduced space-y */}
             <div className="space-y-2">
-               <label className="text-[10px] uppercase tracking-widest font-black text-gray-400 ml-1">I am registering as a</label>
-               <div className="flex p-1 bg-gray-100 rounded-2xl gap-1">
+               <label className="text-[10px] uppercase tracking-widest font-black text-on-surface-variant ml-1">I am registering as a</label>
+               <div className="flex p-1 bg-surface-container rounded-2xl gap-1">
                  {(['student', 'recruiter'] as const).map((r) => (
-                   <button
-                     key={r}
-                     type="button"
-                     onClick={() => setFormData({...formData, role: r})}
-                     className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-300 capitalize ${formData.role === r ? 'bg-white text-primary shadow-md' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200/50'}`}
-                   >
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setFormData({...formData, role: r})}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-300 capitalize ${formData.role === r ? 'bg-surface-container-lowest text-on-surface shadow-md' : 'text-on-surface-variant/60 hover:text-on-surface hover:bg-surface-container-high/50'}`}
+                    >
                      {r}
                    </button>
                  ))}
@@ -110,55 +110,55 @@ const Register: React.FC = () => {
             {/* Inputs - Space-y-3.5 */}
             <div className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 ml-1">Full Name</label>
+                <label className="text-xs font-bold text-on-surface ml-1">Full Name</label>
                 <div className="relative group">
-                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
+                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-surface-tint transition-colors text-on-surface-variant/40">
                       <User className="w-4 h-4" />
                    </div>
-                   <input 
-                     type="text" 
-                     value={formData.name} 
-                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                     className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 pl-11 text-sm font-medium text-primary outline-none transition-all duration-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder:text-gray-300 shadow-sm"
-                     placeholder="e.g. Alexander Hamilton"
-                     required
-                   />
+                    <input 
+                      type="text" 
+                      value={formData.name} 
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-2.5 pl-11 text-sm font-medium text-on-surface outline-none transition-all duration-300 focus:bg-surface-container-lowest focus:border-surface-tint focus:ring-4 focus:ring-surface-tint/5 placeholder:text-on-surface-variant/30 shadow-sm"
+                      placeholder="e.g. Alexander Hamilton"
+                      required
+                    />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 ml-1">University Email / ID</label>
+                <label className="text-xs font-bold text-on-surface ml-1">University Email / ID</label>
                 <div className="relative group">
-                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
+                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-surface-tint transition-colors text-on-surface-variant/40">
                       <Mail className="w-4 h-4" />
                    </div>
-                   <input 
-                     type="email" 
-                     value={formData.email} 
-                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                     className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 pl-11 text-sm font-medium text-primary outline-none transition-all duration-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder:text-gray-300 shadow-sm"
-                     placeholder="student.id@university.edu"
-                     required
-                   />
+                    <input 
+                      type="email" 
+                      value={formData.email} 
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-2.5 pl-11 text-sm font-medium text-on-surface outline-none transition-all duration-300 focus:bg-surface-container-lowest focus:border-surface-tint focus:ring-4 focus:ring-surface-tint/5 placeholder:text-on-surface-variant/30 shadow-sm"
+                      placeholder="student.id@university.edu"
+                      required
+                    />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 ml-1">Password</label>
+                <label className="text-xs font-bold text-on-surface ml-1">Password</label>
                 <div className="relative group">
-                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
+                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-surface-tint transition-colors text-on-surface-variant/40">
                       <Lock className="w-4 h-4" />
                    </div>
-                   <input 
-                     type="password" 
-                     value={formData.password} 
-                     onChange={(e) => setFormData({...formData, password: e.target.value})}
-                     className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 pl-11 text-sm font-medium text-primary outline-none transition-all duration-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 placeholder:text-gray-300 shadow-sm"
-                     placeholder="••••••••"
-                     required
-                   />
+                    <input 
+                      type="password" 
+                      value={formData.password} 
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-2.5 pl-11 text-sm font-medium text-on-surface outline-none transition-all duration-300 focus:bg-surface-container-lowest focus:border-surface-tint focus:ring-4 focus:ring-surface-tint/5 placeholder:text-on-surface-variant/30 shadow-sm"
+                      placeholder="••••••••"
+                      required
+                    />
                 </div>
-                <p className="text-[10px] text-gray-400 ml-1 font-medium">Minimum 8 characters with letters and numbers.</p>
+                <p className="text-[10px] text-on-surface-variant/60 ml-1 font-medium">Minimum 8 characters with letters and numbers.</p>
               </div>
             </div>
 
@@ -171,8 +171,8 @@ const Register: React.FC = () => {
                  onChange={(e) => setAgree(e.target.checked)}
                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/10 cursor-pointer" 
                />
-               <label htmlFor="agree" className="text-[11px] font-semibold text-gray-500 leading-tight">
-                 I agree to the <Link to="/terms" className="text-blue-600 font-bold hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-blue-600 font-bold hover:underline">Privacy Policy</Link>.
+               <label htmlFor="agree" className="text-[11px] font-semibold text-on-surface-variant leading-tight">
+                 I agree to the <Link to="/terms" className="text-surface-tint font-bold hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-surface-tint font-bold hover:underline">Privacy Policy</Link>.
                </label>
             </div>
 
@@ -188,14 +188,14 @@ const Register: React.FC = () => {
 
             {/* Alternate Link - Reduced spacing */}
             <div className="text-center pt-4 space-y-3">
-              <p className="text-sm font-medium text-gray-400">
+              <p className="text-sm font-medium text-on-surface-variant">
                 Already have an account? {' '}
-                <Link to="/login" className="text-blue-600 font-bold hover:underline underline-offset-4">
+                <Link to="/login" className="text-surface-tint font-bold hover:underline underline-offset-4">
                   Sign In
                 </Link>
               </p>
               
-              <div className="flex justify-center gap-6 text-[10px] uppercase tracking-widest text-[#c4c6cf] font-black border-t border-gray-50 pt-8 mt-4">
+              <div className="flex justify-center gap-6 text-[10px] uppercase tracking-widest text-on-surface-variant/40 font-black border-t border-outline-variant/30 pt-8 mt-4">
                  <Link to="/privacy" className="hover:text-blue-600 transition-colors cursor-pointer">Privacy</Link>
                  <Link to="/terms" className="hover:text-blue-600 transition-colors cursor-pointer">Terms</Link>
                  <Link to="/help" className="hover:text-blue-600 transition-colors cursor-pointer">Help</Link>

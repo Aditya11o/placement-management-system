@@ -3,11 +3,12 @@ import React from 'react';
 
 interface AcademicCardProps {
   student: any;
+  className?: string;
 }
 
-const AcademicCard: React.FC<AcademicCardProps> = ({ student }) => {
+const AcademicCard: React.FC<AcademicCardProps> = ({ student, className = "" }) => {
   return (
-    <div className="col-span-12 lg:col-span-4">
+    <div className={`col-span-12 lg:col-span-4 ${className}`}>
       <div className="bg-gradient-to-br from-blue-950 to-blue-900 rounded-xl shadow-md p-6 text-white h-full flex flex-col justify-between relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform duration-1000 group-hover:scale-150"></div>
         <div>

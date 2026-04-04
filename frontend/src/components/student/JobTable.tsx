@@ -36,7 +36,7 @@ const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-4 px-2">
-        <h3 className="text-xl font-semibold text-gray-900">Recent Job Openings</h3>
+        <h3 className="text-xl font-semibold text-on-surface">Recent Job Openings</h3>
         <button 
           onClick={() => navigate('/student/jobs')}
           className="text-blue-600 font-semibold text-sm hover:underline"
@@ -44,43 +44,43 @@ const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
           View All Openings
         </button>
       </div>
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden w-full transition-all hover:shadow-lg">
+      <div className="bg-surface-container-lowest rounded-xl shadow-ambient border border-outline-variant overflow-hidden w-full transition-all hover:shadow-lg">
         <div className="w-full overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
-              <tr className="text-gray-400 text-xs font-medium border-b border-gray-50">
-                <th className="px-4 py-3 uppercase">Company</th>
-                <th className="px-4 py-3 uppercase">Role & Package</th>
-                <th className="px-4 py-3 uppercase">Location</th>
-                <th className="px-4 py-3 uppercase">Deadline</th>
-                <th className="px-4 py-3 uppercase text-center">Status</th>
-                <th className="px-4 py-3 uppercase text-center">Action</th>
+              <tr className="text-on-surface-variant text-xs font-medium border-b border-outline-variant/30">
+                <th scope="col" className="px-4 py-3 uppercase">Company</th>
+                <th scope="col" className="px-4 py-3 uppercase">Role & Package</th>
+                <th scope="col" className="px-4 py-3 uppercase">Location</th>
+                <th scope="col" className="px-4 py-3 uppercase">Deadline</th>
+                <th scope="col" className="px-4 py-3 uppercase text-center">Status</th>
+                <th scope="col" className="px-4 py-3 uppercase text-center">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-outline-variant/30">
               {jobs.map((job: any) => {
                 const isApplied = appliedJobIds.includes(job._id);
                 return (
-                  <tr key={job._id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={job._id} className="hover:bg-surface-container transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-500 flex-shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center font-bold text-on-surface-variant flex-shrink-0">
                           {job.companyName?.[0] || 'J'}
                         </div>
-                        <span className="font-semibold text-gray-900 truncate">{job.companyName || 'Tech Corp'}</span>
+                        <span className="font-semibold text-on-surface truncate">{job.companyName || 'Tech Corp'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
-                        <span className="font-medium text-sm text-gray-900">{job.title}</span>
-                        <span className="text-xs text-gray-500">{job.salary}</span>
+                        <span className="font-medium text-sm text-on-surface">{job.title}</span>
+                        <span className="text-xs text-on-surface-variant">{job.salary}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-gray-600">{job.location}</span>
+                      <span className="text-sm text-on-surface-variant">{job.location}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-on-surface-variant">
                         {new Date(job.last_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     </td>
@@ -88,7 +88,7 @@ const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
                       <span className={`px-3 py-1 rounded-full text-[11px] font-medium uppercase ${
                         isApplied ? 'bg-orange-100 text-orange-700' :
                         job.status === 'Open' ? 'bg-green-100 text-green-700' :
-                        'bg-gray-100 text-gray-600'
+                        'bg-surface-container text-on-surface-variant'
                       }`}>
                         {isApplied ? 'Applied' : job.status}
                       </span>
@@ -97,10 +97,11 @@ const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
                       <button 
                         onClick={() => handleApply(job._id)}
                         disabled={isApplied || loading}
+                        aria-label={isApplied ? `Already applied for ${job.title} at ${job.companyName}` : `Apply for ${job.title} at ${job.companyName}`}
                         className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${
                           isApplied || loading
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'bg-blue-950 text-white hover:bg-black shadow-sm'
+                            ? 'bg-surface-container-high text-on-surface-variant cursor-not-allowed' 
+                            : 'bg-primary text-on-primary hover:opacity-90 shadow-sm'
                         }`}
                       >
                         {loading && !isApplied ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : (isApplied ? 'Applied' : 'Apply')}

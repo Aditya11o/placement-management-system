@@ -77,6 +77,10 @@ const jobSchema = new mongoose.Schema(
   }
 );
 
+// Indexes
+jobSchema.index({ status: 1, deadline: 1 });
+jobSchema.index({ recruiter: 1 });
+
 // Pre-save hook to generate job_id
 jobSchema.pre('save', async function() {
   if (this.isNew && !this.job_id) {

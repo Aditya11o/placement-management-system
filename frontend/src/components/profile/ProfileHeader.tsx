@@ -9,15 +9,16 @@ interface ProfileHeaderProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSave: () => void;
+  className?: string;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
-  profile, previewUrl, skills, fileInputRef, onFileChange, onSave
+  profile, previewUrl, skills, fileInputRef, onFileChange, onSave, className = ""
 }) => {
   const student = profile || {};
 
   return (
-    <div className="col-span-12 lg:col-span-8">
+    <div className={`col-span-12 lg:col-span-8 ${className}`}>
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group hover:shadow-lg transition-all duration-300">
         <div className="relative">
           <Avatar 

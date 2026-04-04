@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, Check, Edit2, XCircle, UserPlus, CheckCircle, Mail, X, AlertCircle, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Search, Eye, Check, Edit2, XCircle, UserPlus, CheckCircle, Mail, X, AlertCircle, ShieldCheck, ArrowRight, Power } from 'lucide-react';
 import ListSkeleton from '../../components/skeletons/ListSkeleton';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 import StudentFormModal from '../../components/admin/StudentFormModal';
 import StudentViewModal from '../../components/admin/StudentViewModal';
 import BulkEmailModal from '../../components/admin/BulkEmailModal';
+import ConfirmModal from '../../components/ConfirmModal';
+import EmptyState from '../../components/EmptyState';
 
 const ManageStudents: React.FC = () => {
   const { showSuccess, showError } = useNotification();
@@ -20,6 +22,20 @@ const ManageStudents: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', course: 'BCA', branch: 'Computer Science', cgpa: '' });
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+    icon?: any;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    onConfirm: () => {}
+  });
 
   const fetchStudents = async () => {
     try {
@@ -45,8 +61,27 @@ const ManageStudents: React.FC = () => {
   useEffect(() => { fetchStudents(); }, []);
 
   const handleVerify = async (id: string, isVerified: boolean) => {
-    try { await api.patch(`/admin/users/${id}/verify`, { isVerified }); fetchStudents(); showSuccess(`Student ${isVerified ? 'verified' : 'unverified'} successfully!`, 'Update Status'); }
-    catch (err: any) { showError(err.response?.data?.message || 'Failed to update student status', 'Update Error'); }
+    const execute = async () => {
+      try { 
+        await api.patch(`/admin/users/${id}/verify`, { isVerified }); 
+        fetchStudents(); 
+        showSuccess(`Student ${isVerified ? 'verified' : 'unverified'} successfully!`, 'Update Status'); 
+      }
+      catch (err: any) { showError(err.response?.data?.message || 'Failed to update student status', 'Update Error'); }
+    };
+
+    if (!isVerified) {
+      setConfirmState({
+        isOpen: true,
+        type: 'danger',
+        title: 'Deactivate Student?',
+        message: 'Are you sure you want to deactivate this student? They will lose access to the portal immediately.',
+        onConfirm: execute,
+        icon: Power
+      });
+    } else {
+      execute();
+    }
   };
 
   const handleBulkStatusUpdate = async (isVerified: boolean, status?: string) => {
@@ -191,7 +226,22 @@ const ManageStudents: React.FC = () => {
                     </td>
                   </tr>
                 ))}
-                {filteredStudents.length === 0 && !loading && <tr><td colSpan={7} className="px-6 py-20 text-center font-bold text-gray-400 italic">No students matching the database filter.</td></tr>}
+                {filteredStudents.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={7} className="p-0">
+                      <EmptyState 
+                        icon={Search}
+                        title={searchQuery ? "No Matches Found" : "No Students Registered"}
+                        description={searchQuery 
+                          ? `We couldn't find any students matching "${searchQuery}".` 
+                          : "The student database is currently empty. Start growing the community!"}
+                        actionText={searchQuery ? "Clear Search" : "Add Student"}
+                        onAction={() => searchQuery ? setSearchQuery('') : setIsAddModalOpen(true)}
+                        className="py-12"
+                      />
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -257,6 +307,15 @@ const ManageStudents: React.FC = () => {
       <StudentFormModal isOpen={isAddModalOpen || isEditModalOpen} isEdit={isEditModalOpen} formData={formData} submitting={submitting} onFormChange={(u) => setFormData(p => ({...p, ...u}))} onSubmit={isAddModalOpen ? handleCreateStudent : handleUpdateStudent} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} />
       <StudentViewModal isOpen={isViewModalOpen} student={selectedStudent} onClose={() => setIsViewModalOpen(false)} onEdit={openEditModal} />
       <BulkEmailModal isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)} onSubmit={handleBulkEmail} selectedCount={selectedIds.length} submitting={submitting} />
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState(p => ({ ...p, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        type={confirmState.type}
+        icon={confirmState.icon}
+      />
     </div>
   );
 };

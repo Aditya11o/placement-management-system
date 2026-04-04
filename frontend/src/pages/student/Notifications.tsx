@@ -9,12 +9,14 @@ import ListSkeleton from '../../components/skeletons/ListSkeleton';
 const Notifications: React.FC = () => {
   const [activeTab, setActiveTab] = useState('All');
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [_pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchNotifications = async () => {
     try {
       const { data } = await api.get('/notifications');
-      setNotifications(data);
+      setNotifications(data.data);
+      setPagination(data.pagination);
     } catch (err) {
       console.error(err);
     } finally {

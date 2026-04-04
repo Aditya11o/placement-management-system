@@ -1,54 +1,59 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Briefcase, 
   RotateCcw,
   CheckCircle, Clock, Calendar, 
-  Trophy, XCircle, Download, FileText, File
+  Trophy, XCircle, Download, FileText
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import ListSkeleton from '../../components/skeletons/ListSkeleton';
 import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMyApplications } from '../../hooks/useApplications';
 import ResponsiveTable from '../../components/ResponsiveTable';
+import EmptyState from '../../components/EmptyState';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const MyApplications: React.FC = () => {
   const { showSuccess, showError } = useNotification();
-  const [apps, setApps] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [filteredApps, setFilteredApps] = useState<any[]>([]);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { data: apps = [], isLoading: loading } = useMyApplications();
   const [statusFilter, setStatusFilter] = useState('Any Status');
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+    icon?: any;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {}
+  });
 
-  const fetchApps = async (status?: string) => {
-    try {
-      setLoading(true);
-      const queryStatus = status || statusFilter;
-      const { data } = await api.get('/applications/my', {
-        params: { status: queryStatus, limit: 0 }
-      });
-      const items = data?.data || data;
-      setApps(items);
-      setFilteredApps(items);
-    } catch (err: any) {
-      console.error(err);
-      showError('Failed to fetch applications', 'Fetch Error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filteredApps = apps.filter((app: any) => 
+    statusFilter === 'Any Status' || app.status === statusFilter
+  );
 
   const exportToCSV = () => {
     if (apps.length === 0) return;
     const headers = ['Company', 'Job Title', 'Applied Date', 'Status', 'Interview Date'];
-    const rows = apps.map(app => [
+    const rows = apps.map((app: any) => [
       `"${app.job?.companyName || 'N/A'}"`,
       `"${app.job?.title || 'N/A'}"`,
       new Date(app.createdAt).toLocaleDateString(),
       app.status,
       app.interviewDate ? new Date(app.interviewDate).toLocaleDateString() : 'N/A'
     ]);
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const csvContent = [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -74,7 +79,7 @@ const MyApplications: React.FC = () => {
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
     doc.text(`Total Applications: ${apps.length}`, 14, 45);
 
-    const tableData = apps.map(app => [
+    const tableData = apps.map((app: any) => [
       app.job?.companyName || 'N/A',
       app.job?.title || 'N/A',
       new Date(app.createdAt).toLocaleDateString(),
@@ -96,33 +101,34 @@ const MyApplications: React.FC = () => {
     showSuccess('Exported history to PDF!', 'Export Success');
   };
 
-  const handleOfferResponse = async (id: string, response: 'Accepted' | 'Declined') => {
-    try {
-      if (!window.confirm(`Are you sure you want to ${response.toLowerCase()} this offer?`)) return;
-      await api.patch(`/applications/${id}/offer`, { response });
-      fetchApps();
-      showSuccess(`Offer ${response.toLowerCase()}ed successfully!`, 'Offer Response');
-    } catch (err: any) {
-      console.error(err);
-      showError(err.response?.data?.message || `Failed to ${response.toLowerCase()} offer`, 'Response Error');
-    }
+  const handleOfferResponse = (id: string, response: 'Accepted' | 'Declined') => {
+    const isAccept = response === 'Accepted';
+    setConfirmState({
+      isOpen: true,
+      type: isAccept ? 'info' : 'danger',
+      title: `${response} Job Offer?`,
+      message: `Are you sure you want to ${response.toLowerCase()} this job offer? This action is formal and will be communicated to the recruiter immediately.`,
+      icon: isAccept ? CheckCircle : XCircle,
+      onConfirm: async () => {
+        try {
+          await api.patch(`/applications/${id}/offer`, { response });
+          queryClient.invalidateQueries({ queryKey: ['applications'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+          showSuccess(`Offer ${response.toLowerCase()}ed successfully!`, 'Offer Response');
+        } catch (err: any) {
+          showError(err.response?.data?.message || `Failed to ${response.toLowerCase()} offer`, 'Response Error');
+        }
+      }
+    });
   };
-
-  useEffect(() => {
-    fetchApps();
-  }, []);
-
-  useEffect(() => {
-    // Component Mount logic
-  }, []);
 
   const stats = [
     { label: 'Total', value: apps.length.toString().padStart(2, '0'), icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Reviewing', value: apps.filter(a => a.status === 'Applied').length.toString().padStart(2, '0'), icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
-    { label: 'Shortlisted', value: apps.filter(a => a.status === 'Shortlisted').length.toString().padStart(2, '0'), icon: Trophy, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Interview', value: apps.filter(a => a.interviewDate).length.toString().padStart(2, '0'), icon: Calendar, color: 'text-cyan-600', bg: 'bg-cyan-50' },
-    { label: 'Selected', value: apps.filter(a => a.status === 'Selected' || a.status === 'Accepted').length.toString().padStart(2, '0'), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Rejected', value: apps.filter(a => a.status === 'Rejected').length.toString().padStart(2, '0'), icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { label: 'Reviewing', value: apps.filter((a: any) => a.status === 'Applied').length.toString().padStart(2, '0'), icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { label: 'Shortlisted', value: apps.filter((a: any) => a.status === 'Shortlisted').length.toString().padStart(2, '0'), icon: Trophy, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Interview', value: apps.filter((a: any) => a.interviewDate).length.toString().padStart(2, '0'), icon: Calendar, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+    { label: 'Selected', value: apps.filter((a: any) => a.status === 'Selected' || a.status === 'Accepted').length.toString().padStart(2, '0'), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Rejected', value: apps.filter((a: any) => a.status === 'Rejected').length.toString().padStart(2, '0'), icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
   ];
 
   const getStatusBadge = (status: string) => {
@@ -189,7 +195,6 @@ const MyApplications: React.FC = () => {
               value={statusFilter}
               onChange={(status) => {
                 setStatusFilter(status);
-                fetchApps(status);
               }}
               options={[
                 'Any Status', 'Applied', 'Reviewing', 
@@ -202,7 +207,6 @@ const MyApplications: React.FC = () => {
           <button
             onClick={() => {
               setStatusFilter('Any Status');
-              fetchApps('Any Status');
             }}
             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-blue-900 transition-colors py-2 px-4 italic"
           >
@@ -213,91 +217,107 @@ const MyApplications: React.FC = () => {
       </div>
 
       {/* Applications Table */}
-      <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-        <ResponsiveTable>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-100">
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Company & Role</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic text-center">Date Applied</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic text-center">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Next Step</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredApps.map((app, i) => (
-                <tr key={i} className="hover:bg-gray-50/50 transition-colors group">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-bold text-xs group-hover:scale-110 transition-transform shadow-sm`}>
-                        {app.job?.companyName?.[0] || 'C'}
-                      </div>
-                      <div>
-                        <h4 className="text-[13px] font-black text-gray-900 leading-tight uppercase tracking-tight">{app.job?.companyName}</h4>
-                        <p className="text-[11px] font-bold text-gray-400 mt-0.5">{app.job?.title}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-center text-xs font-bold text-gray-500 italic">
-                    {new Date(app.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    {getStatusBadge(app.status)}
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col">
-                      <span className={`text-[11px] font-black ${app.interviewDate ? 'text-blue-600' : 'text-gray-400'} leading-tight`}>
-                        {app.interviewDate ? `Interview: ${new Date(app.interviewDate).toLocaleDateString()}` : 'Awaiting Update'}
-                      </span>
-                      {app.interviewLink && <span className="text-[10px] font-bold text-blue-400 mt-0.5 leading-none">Meeting Link Shared</span>}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                     <div className="flex justify-end gap-2 items-center">
-                       {app.status === 'Selected' && (
-                         <>
-                           <button
-                             onClick={() => handleOfferResponse(app._id, 'Accepted')}
-                             className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-sm"
-                           >
-                             Accept Offer
-                           </button>
-                           <button
-                             onClick={() => handleOfferResponse(app._id, 'Declined')}
-                             className="px-3 py-1 border border-rose-200 text-rose-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all font-black"
-                           >
-                             Decline
-                           </button>
-                         </>
-                       )}
-                       {app.offerLetter && (
-                         <a
-                           href={app.offerLetter}
-                           target="_blank"
-                           rel="noreferrer"
-                           className="px-3 py-1 bg-blue-950 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center gap-1.5 shadow-sm"
-                         >
-                           <Download size={10} /> Offer Letter
-                         </a>
-                       )}
-                       <button className="px-4 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">
-                         View Details
-                       </button>
-                     </div>
-                  </td>
+      <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden min-h-[400px]">
+        {filteredApps.length === 0 ? (
+          <EmptyState 
+            icon={Briefcase}
+            title={statusFilter === 'Any Status' ? "No Applications Yet" : "No Matches Found"}
+            description={statusFilter === 'Any Status' 
+              ? "You haven't applied to any jobs yet. Start exploring active postings and land your dream role!" 
+              : `No applications found with the status "${statusFilter}". Try adjusting your filters.`}
+            actionText={statusFilter === 'Any Status' ? "Browse Open Jobs" : "Clear Filters"}
+            onAction={() => statusFilter === 'Any Status' ? navigate('/student/jobs') : setStatusFilter('Any Status')}
+          />
+        ) : (
+          <ResponsiveTable>
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50/50 border-b border-gray-100">
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Company & Role</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic text-center">Date Applied</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic text-center">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Next Step</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest italic text-right">Actions</th>
                 </tr>
-              ))}
-              {filteredApps.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-10 text-center text-gray-400 font-bold italic">No applications found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </ResponsiveTable>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredApps.map((app: any, i: number) => (
+                  <tr key={i} className="hover:bg-gray-50/50 transition-colors group">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-bold text-xs group-hover:scale-110 transition-transform shadow-sm`}>
+                          {app.job?.companyName?.[0] || 'C'}
+                        </div>
+                        <div>
+                          <h4 className="text-[13px] font-black text-gray-900 leading-tight uppercase tracking-tight">{app.job?.companyName}</h4>
+                          <p className="text-[11px] font-bold text-gray-400 mt-0.5">{app.job?.title}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-center text-xs font-bold text-gray-500 italic">
+                      {new Date(app.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-5 text-center">
+                      {getStatusBadge(app.status)}
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <span className={`text-[11px] font-black ${app.interviewDate ? 'text-blue-600' : 'text-gray-400'} leading-tight`}>
+                          {app.interviewDate ? `Interview: ${new Date(app.interviewDate).toLocaleDateString()}` : 'Awaiting Update'}
+                        </span>
+                        {app.interviewLink && <span className="text-[10px] font-bold text-blue-400 mt-0.5 leading-none">Meeting Link Shared</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                       <div className="flex justify-end gap-2 items-center">
+                         {app.status === 'Selected' && (
+                           <>
+                             <button
+                               onClick={() => handleOfferResponse(app._id, 'Accepted')}
+                               className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-sm"
+                             >
+                               Accept Offer
+                             </button>
+                             <button
+                               onClick={() => handleOfferResponse(app._id, 'Declined')}
+                               className="px-3 py-1 border border-rose-200 text-rose-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all font-black"
+                             >
+                               Decline
+                             </button>
+                           </>
+                         )}
+                         {app.offerLetter && (
+                           <a
+                             href={app.offerLetter}
+                             target="_blank"
+                             rel="noreferrer"
+                             className="px-3 py-1 bg-blue-950 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center gap-1.5 shadow-sm"
+                           >
+                             <Download size={10} /> Offer Letter
+                           </a>
+                         )}
+                         <button className="px-4 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">
+                           View Details
+                         </button>
+                       </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ResponsiveTable>
+        )}
       </div>
 
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState(p => ({ ...p, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        type={confirmState.type}
+        icon={confirmState.icon}
+      />
     </div>
   );
 };

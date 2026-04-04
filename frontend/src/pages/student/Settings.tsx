@@ -12,6 +12,8 @@ import PasswordSettingsCard from '../../components/settings/PasswordSettingsCard
 import ResumeSettingsCard from '../../components/settings/ResumeSettingsCard';
 import NotificationPrivacyCards from '../../components/settings/NotificationPrivacyCards';
 import AccountActionsCard from '../../components/settings/AccountActionsCard';
+import ConfirmModal from '../../components/ConfirmModal';
+import { LogOut, Trash2, AlertTriangle, Power } from 'lucide-react';
 
 const Settings: React.FC = () => {
   const { logout } = useAuth();
@@ -46,6 +48,20 @@ const Settings: React.FC = () => {
   });
 
   const [resumes, setResumes] = useState<any[]>([]);
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    type: 'danger' | 'warning' | 'info';
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    icon?: any;
+  }>({
+    isOpen: false,
+    type: 'warning',
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -138,15 +154,23 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleResumeDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this resume?')) return;
-    try {
-      await api.delete(`/students/resume/${id}`);
-      setResumes(resumes.filter(r => r._id !== id));
-      toast.success('Resume deleted successfully');
-    } catch (err) {
-      toast.error('Failed to delete resume');
-    }
+  const handleResumeDelete = (id: string) => {
+    setConfirmState({
+      isOpen: true,
+      type: 'danger',
+      title: 'Delete Resume',
+      message: 'Are you sure you want to permanently remove this resume from your profile?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/students/resume/${id}`);
+          setResumes(resumes.filter(r => r._id !== id));
+          toast.success('Resume deleted successfully');
+        } catch (err) {
+          toast.error('Failed to delete resume');
+        }
+      },
+      icon: Trash2
+    });
   };
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,33 +190,56 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleDeactivate = async () => {
-    if (!window.confirm('Are you sure you want to deactivate your account? You will be logged out.')) return;
-    try {
-      await api.put('/students/deactivate');
-      await logout();
-      window.location.href = '/login';
-    } catch (err) {
-      toast.error('Failed to deactivate account');
-    }
+  const handleDeactivate = () => {
+    setConfirmState({
+      isOpen: true,
+      type: 'warning',
+      title: 'Deactivate Account',
+      message: 'Are you sure you want to deactivate your account? You will be logged out and your profile will be hidden.',
+      onConfirm: async () => {
+        try {
+          await api.put('/students/deactivate');
+          await logout();
+          window.location.href = '/login';
+        } catch (err) {
+          toast.error('Failed to deactivate account');
+        }
+      },
+      icon: Power
+    });
   };
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm('WARNING: THIS IS PERMANENT. Are you sure you want to delete your account?')) return;
-    try {
-      await api.delete('/students/delete-account');
-      await logout();
-      window.location.href = '/login';
-    } catch (err) {
-      toast.error('Failed to delete account');
-    }
+  const handleDeleteAccount = () => {
+    setConfirmState({
+      isOpen: true,
+      type: 'danger',
+      title: 'Delete Account Permanently',
+      message: 'WARNING: This action cannot be undone. All your data, applications, and resumes will be permanently erased.',
+      onConfirm: async () => {
+        try {
+          await api.delete('/students/delete-account');
+          await logout();
+          window.location.href = '/login';
+        } catch (err) {
+          toast.error('Failed to delete account');
+        }
+      },
+      icon: AlertTriangle
+    });
   };
 
-  const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      await logout();
-      window.location.href = '/login';
-    }
+  const handleLogout = () => {
+    setConfirmState({
+      isOpen: true,
+      type: 'warning',
+      title: 'Confirm Logout',
+      message: 'Are you sure you want to end your session?',
+      onConfirm: async () => {
+        await logout();
+        window.location.href = '/login';
+      },
+      icon: LogOut
+    });
   };
 
   return (
@@ -246,6 +293,15 @@ const Settings: React.FC = () => {
 
       </div>
 
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState(p => ({ ...p, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        type={confirmState.type}
+        icon={confirmState.icon}
+      />
     </div>
   );
 };

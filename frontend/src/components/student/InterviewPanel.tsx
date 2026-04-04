@@ -34,8 +34,8 @@ const InterviewPanel: React.FC<InterviewPanelProps> = ({ initialInterviews = [] 
 
   if (loading) {
     return (
-      <div className="bg-white p-5 rounded-xl shadow-md border border-gray-200 h-full flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+      <div className="bg-surface-container-low p-5 rounded-xl shadow-ambient border border-outline-variant h-full flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-surface-tint" />
       </div>
     );
   }
@@ -43,22 +43,22 @@ const InterviewPanel: React.FC<InterviewPanelProps> = ({ initialInterviews = [] 
   return (
     <div 
       onClick={() => navigate('/student/interviews')}
-      className="bg-white p-5 rounded-xl shadow-md border border-gray-200 h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+      className="bg-surface-container-low p-5 rounded-xl shadow-ambient border border-outline-variant h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
     >
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-gray-900">
+        <h3 className="text-xl font-semibold text-on-surface">
           Upcoming Interviews {interviews.length > 0 && `(${interviews.length})`}
         </h3>
-        <ChevronRight size={20} className="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+        <ChevronRight size={20} className="text-on-surface-variant group-hover:text-surface-tint group-hover:translate-x-1 transition-all" />
       </div>
       <div className="space-y-4">
         {interviews.map((interview: any, i: number) => (
-          <div key={i} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm transition-all">
+          <div key={i} className="p-4 rounded-xl border border-outline-variant/50 bg-surface-container-lowest hover:border-outline-variant hover:shadow-sm transition-all">
             <div className="flex justify-between items-start">
               <div>
-                <h4 className="font-semibold text-gray-900">{interview.job?.title || 'Job Interview'}</h4>
-                <p className="text-xs text-gray-700 font-bold mt-1">{interview.job?.companyName}</p>
-                <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-wider font-medium">
+                <h4 className="font-semibold text-on-surface">{interview.job?.title || 'Job Interview'}</h4>
+                <p className="text-xs text-on-surface-variant font-bold mt-1">{interview.job?.companyName}</p>
+                <p className="text-[10px] text-on-surface-variant/70 mt-1 uppercase tracking-wider font-medium">
                   {new Date(interview.interviewDate).toLocaleString()}
                 </p>
               </div>
@@ -81,7 +81,7 @@ const InterviewPanel: React.FC<InterviewPanelProps> = ({ initialInterviews = [] 
           </div>
         ))}
         {interviews.length === 0 && (
-          <p className="text-center py-10 text-gray-400 font-medium italic">No upcoming interviews. Check your applications regularly.</p>
+          <p className="text-center py-10 text-on-surface-variant/60 font-medium italic">No upcoming interviews. Check your applications regularly.</p>
         )}
       </div>
     </div>

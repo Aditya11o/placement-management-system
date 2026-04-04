@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Briefcase, 
   CheckCircle, 
@@ -6,8 +6,8 @@ import {
   XCircle, 
   TrendingUp
 } from 'lucide-react';
-import api from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { useStudentDashboard } from '../../hooks/useDashboard';
 import DashboardSkeleton from '../../components/skeletons/DashboardSkeleton';
 
 import ProfileProgress from '../../components/student/ProfileProgress';
@@ -20,41 +20,16 @@ import AnnouncementsBoard from '../../components/AnnouncementsBoard';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalJobs: 0,
-    applied: 0,
-    underReview: 0,
-    shortlisted: 0,
-    selected: 0,
-    rejected: 0
-  });
-  const [jobs, setJobs] = useState([]);
-  const [interviews, setInterviews] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  const { data, isLoading: loading, error } = useStudentDashboard();
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const { data } = await api.get('/students/dashboard');
-        
-        setStats(data.stats);
-        setJobs(data.jobs);
-        setInterviews(data.interviews);
-        setNotifications(data.notifications);
-        setError(null);
-      } catch (err: any) {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
+  const stats = data?.stats || {
+    totalJobs: 0, applied: 0, underReview: 0, 
+    shortlisted: 0, selected: 0, rejected: 0
+  };
+  const jobs = data?.jobs || [];
+  const interviews = data?.interviews || [];
+  const notifications = data?.notifications || [];
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -67,7 +42,7 @@ const StudentDashboard: React.FC = () => {
            <XCircle className="w-8 h-8" />
         </div>
         <h3 className="text-xl font-bold text-gray-900">Oops! Something went wrong</h3>
-        <p className="text-gray-500 max-w-xs">{error}</p>
+        <p className="text-gray-500 max-w-xs">{error instanceof Error ? error.message : 'Failed to load dashboard data. Please try again later.'}</p>
         <button 
           onClick={() => window.location.reload()}
           className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"

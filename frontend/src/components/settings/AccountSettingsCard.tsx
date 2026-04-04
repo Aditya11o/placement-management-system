@@ -25,7 +25,7 @@ const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({ profile, savi
             <div className="w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-gray-100">
               {profile.profile_photo ? (
                 <img 
-                  src={profile.profile_photo.startsWith('/') ? `http://localhost:5000${profile.profile_photo}` : profile.profile_photo} 
+                  src={profile.profile_photo.startsWith('/') ? `${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}${profile.profile_photo}` : profile.profile_photo} 
                   alt="Profile" 
                   className="w-full h-full object-cover"
                 />

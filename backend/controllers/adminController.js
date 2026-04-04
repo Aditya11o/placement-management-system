@@ -8,7 +8,7 @@ const AdminProfile = require('../models/AdminProfile');
 const Job = require('../models/Job');
 const Notification = require('../models/Notification');
 const { createAuditLog } = require('./auditLogController');
-const cloudinary = require('../utils/cloudinary');
+const { cloudinary, uploadToCloudinary } = require('../utils/cloudinary');
 const sendEmail = require('../utils/emailUtils');
 
 // @desc    Get all pending skill verifications
@@ -724,9 +724,9 @@ const updateAdminProfile = async (req, res, next) => {
     
     if (req.body.profilePhoto) {
       if (req.body.profilePhoto.startsWith('data:image')) {
-        const uploadRes = await cloudinary.uploader.upload(req.body.profilePhoto, {
+        const uploadRes = await uploadToCloudinary(req.body.profilePhoto, {
           folder: 'pms/profiles'
-        });
+        }, 'avatar');
         user.profilePhoto = uploadRes.secure_url;
       } else {
         user.profilePhoto = req.body.profilePhoto;

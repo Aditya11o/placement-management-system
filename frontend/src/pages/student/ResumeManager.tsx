@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, Plus, Trash2, 
-  CheckCircle, Globe, Download, 
-  BarChart2, MoreVertical, Layout,
+  Download, 
+  BarChart2, Layout,
   Upload, Sparkles, Loader2, AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -157,7 +157,7 @@ const ResumeManager: React.FC = () => {
                                 </button>
                             )}
                             <a 
-                                href={resume.resume_url.startsWith('/') ? `http://localhost:5000${resume.resume_url}` : '#'}
+                                href={resume.resume_url.startsWith('/') ? `${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}${resume.resume_url}` : '#'}
                                 target="_blank" rel="noreferrer"
                                 className="flex-1 px-4 py-3 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2"
                             >

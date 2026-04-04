@@ -12,7 +12,7 @@ const ToastManager: React.FC = () => {
     if (!user) return;
 
     // Connect to Socket — auth handled via httpOnly cookies
-    const socket = io('http://localhost:5000', {
+    const socket = io(import.meta.env.VITE_BASE_URL || 'http://localhost:5000', {
       withCredentials: true,
     });
     // Server auto-joins user to their private room via verified token

@@ -141,6 +141,7 @@ const updateJobStatus = async (req, res, next) => {
 // @access  Private (Student)
 const getMatchedJobs = async (req, res, next) => {
   try {
+    const { skip, limit, paginate } = parsePagination(req.query);
     const profile = await Profile.findOne({ user: req.user.id });
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
@@ -148,17 +149,23 @@ const getMatchedJobs = async (req, res, next) => {
 
     const { cgpa, branch } = profile.studentDetails;
 
-    // Filter jobs by CGPA and branch
-    const jobs = await Job.find({
+    const query = {
       status: 'open',
       deadline: { $gte: new Date() },
       'eligibility.minCGPA': { $lte: cgpa || 0 },
-      'eligibility.branches': { $in: [branch, 'All', ''] } // Match branch or "All"
-    })
-    .sort({ createdAt: -1 })
-    .populate('recruiter', 'name email');
+      'eligibility.branches': { $in: [branch, 'All', ''] }
+    };
 
-    res.json(jobs);
+    const [jobs, total] = await Promise.all([
+      Job.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate('recruiter', 'name email'),
+      Job.countDocuments(query)
+    ]);
+
+    res.json(paginate(jobs, total));
   } catch (error) {
     next(error);
   }

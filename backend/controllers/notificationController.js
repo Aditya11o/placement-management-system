@@ -1,16 +1,25 @@
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const { parsePagination } = require('../utils/pagination');
 
 // @desc    Get my notifications
 // @route   GET /api/notifications
 // @access  Private
 const getMyNotifications = async (req, res, next) => {
   try {
-    const notifications = await Notification.find({ user_id: req.user.id })
-      .sort({ createdAt: -1 })
-      .limit(20);
-    res.json(notifications);
+    const { skip, limit, paginate } = parsePagination(req.query);
+    const query = { user_id: req.user.id };
+
+    const [notifications, total] = await Promise.all([
+      Notification.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Notification.countDocuments(query)
+    ]);
+
+    res.json(paginate(notifications, total));
   } catch (error) {
     next(error);
   }
@@ -109,12 +118,18 @@ const createBroadcast = async (req, res, next) => {
 // @access  Private
 const getAnnouncements = async (req, res, next) => {
   try {
-    // Return latest individual notifications that are broadcasts
-    // For general public view, we don't care about grouping
-    const notifications = await Notification.find({ isBroadcast: true })
-      .sort({ createdAt: -1 })
-      .limit(10);
-    res.json(notifications);
+    const { skip, limit, paginate } = parsePagination(req.query);
+    const query = { isBroadcast: true };
+
+    const [notifications, total] = await Promise.all([
+      Notification.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Notification.countDocuments(query)
+    ]);
+
+    res.json(paginate(notifications, total));
   } catch (error) {
     next(error);
   }

@@ -1,7 +1,7 @@
-import React from 'react';
-import { Square, CheckSquare, CheckCircle2, XCircle } from 'lucide-react';
 import Avatar from '../../Avatar';
 import ListSkeleton from '../../skeletons/ListSkeleton';
+import EmptyState from '../../EmptyState';
+import { Square, CheckSquare, CheckCircle2, XCircle, Users } from 'lucide-react';
 
 interface ApplicantsTableProps {
   loading: boolean;
@@ -103,7 +103,14 @@ const ApplicantsTable: React.FC<ApplicantsTableProps> = ({
               ))}
               {filteredApplicants.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center font-bold text-gray-400">No applicants found</td>
+                  <td colSpan={5} className="p-0">
+                    <EmptyState 
+                      icon={Users}
+                      title="No Applicants Found"
+                      description="There are currently no candidates matching the active filters for this position."
+                      className="py-16"
+                    />
+                  </td>
                 </tr>
               )}
             </tbody>

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import ConfirmModal from './ConfirmModal';
 
 interface SidebarProps {
   role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
@@ -10,8 +11,9 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose }) => {
+ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose }) => {
   const { logout } = useAuth();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const getLinks = () => {
     // ... existing links logic
@@ -65,17 +67,20 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose })
   const links = getLinks();
 
   return (
-    <aside className={`h-screen bg-surface-container-low flex flex-col fixed left-0 top-0 border-r border-outline-variant z-40 transition-all duration-300 transform ${
+    <aside 
+      role="navigation"
+      aria-label="Main Sidebar"
+      className={`h-screen bg-surface-container-low flex flex-col fixed left-0 top-0 border-r border-outline-variant z-40 transition-all duration-300 transform ${
       isCollapsed ? 'w-20' : 'lg:w-64 md:w-20 w-64'
     } ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
       <div className={`h-20 flex items-center justify-between px-6 border-b border-outline-variant/30 ${isCollapsed ? 'justify-center px-0' : ''}`}>
         {!isCollapsed && (
           <div className="lg:block md:hidden block">
-            <h1 className="text-xl font-black font-display text-gray-900 tracking-tight uppercase leading-none">
-              Placement <span className="text-blue-600">Portal</span>
+            <h1 className="text-xl font-black font-display text-on-surface tracking-tight uppercase leading-none">
+              Placement <span className="text-surface-tint">Portal</span>
             </h1>
             {role === 'recruiter' && (
-              <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] mt-1">RECRUITER CONSOLE</p>
+              <p className="text-[10px] font-black text-on-surface-variant/60 tracking-[0.2em] mt-1">RECRUITER CONSOLE</p>
             )}
           </div>
         )}
@@ -84,9 +89,10 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose })
         )}
         <button 
           onClick={onClose}
-          className="md:hidden p-2 text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="Close sidebar"
+          className="md:hidden p-2 text-on-surface-variant hover:text-on-surface transition-colors"
         >
-          <X size={20} />
+          <X size={20} aria-hidden="true" />
         </button>
       </div>
       <nav className={`flex-1 px-4 py-8 space-y-1 overflow-y-auto custom-scrollbar ${isCollapsed ? 'px-2' : ''}`}>
@@ -97,6 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose })
               key={link.name}
               to={link.path}
               title={isCollapsed ? link.name : ""}
+              aria-label={`Navigate to ${link.name}`}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl font-bold text-[13px] transition-all duration-300 ${
                   isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'
@@ -107,7 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose })
                 }`
               }
             >
-              <Icon size={18} />
+              <Icon size={18} aria-hidden="true" />
               <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>{link.name}</span>
             </NavLink>
           );
@@ -117,6 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose })
         <NavLink
           to={`/${role}/chat`}
           title={isCollapsed ? "Messages" : ""}
+          aria-label="Navigate to Messages"
           className={({ isActive }) =>
             `flex items-center gap-3 rounded-xl font-bold text-[13px] transition-all duration-300 ${
               isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'
@@ -127,12 +135,13 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose })
             }`
           }
         >
-          <MessageSquare size={18} />
+          <MessageSquare size={18} aria-hidden="true" />
           <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>Messages</span>
         </NavLink>
         <NavLink
           to={`/${role}/settings`}
           title={isCollapsed ? "Settings" : ""}
+          aria-label="Navigate to Settings"
           className={({ isActive }) =>
             `flex items-center gap-3 rounded-xl font-bold text-[13px] transition-all duration-300 ${
               isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'
@@ -143,23 +152,36 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose })
             }`
           }
         >
-          <Settings size={18} />
+          <Settings size={18} aria-hidden="true" />
           <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>Settings</span>
         </NavLink>
         <button
-          onClick={async () => {
-            await logout();
-            window.location.href = '/login';
-          }}
+          onClick={() => setIsLogoutModalOpen(true)}
           title={isCollapsed ? "Logout" : ""}
-          className={`w-full flex items-center gap-3 rounded-xl font-bold text-[13px] text-rose-600 hover:bg-rose-50 transition-all duration-300 ${
+          aria-label="Logout of application"
+          className={`w-full flex items-center gap-3 rounded-xl font-bold text-[13px] text-rose-600 hover:bg-rose-500/10 transition-all duration-300 ${
             isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'
           }`}
         >
-          <LogOut size={18} />
+          <LogOut size={18} aria-hidden="true" />
           <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>Logout</span>
         </button>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={async () => {
+          await logout();
+          window.location.href = '/login';
+        }}
+        title="Confirm Logout"
+        message="Are you sure you want to end your session? You will need to login again to access your dashboard."
+        confirmText="Logout"
+        type="warning"
+        icon={LogOut}
+      />
     </aside>
   );
 };

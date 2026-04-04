@@ -15,8 +15,8 @@ const ManageInterviews: React.FC = () => {
   const fetchInterviews = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get('/applications/interviews');
-      const mapped = data.map((app: any) => ({
+      const { data: response } = await api.get('/applications/interviews');
+      const mapped = response.data.map((app: any) => ({
         id: app._id,
         student: {
           name: app.student?.name || 'Unknown',

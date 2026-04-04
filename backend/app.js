@@ -1,5 +1,7 @@
 const express = require('express');
 const path = require('path');
+const morgan = require('morgan');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -13,6 +15,11 @@ const { createRequestLogger } = require('./utils/logger');
 
 const app = express();
 
+// Request logging (Morgan) — Log early to capture all requests
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan('dev'));
+}
+
 if (process.env.NODE_ENV === 'test') {
   const mockIo = {
     emit: () => {},
@@ -23,7 +30,7 @@ if (process.env.NODE_ENV === 'test') {
 
 // CORS must be handled before other middlewares to correctly manage OPTIONS preflight requests
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL,
   credentials: true
 }));
 
@@ -125,10 +132,18 @@ app.use('/api/mock-interviews', require('./routes/mockInterviewRoutes'));
 app.use('/api/reminders', require('./routes/reminderRoutes'));
 app.use('/api/interviews', require('./routes/interviewRoutes'));
 
-// Basic Route
-app.get('/', (req, res) => {
-  res.send('Placement Management System API is running...');
+// Health Check Route
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    version: require('./package.json').version
+  });
 });
+
+// Basic Route Placeholder: Not used in production
 
 // Global Error Handler
 app.use((err, req, res, next) => {

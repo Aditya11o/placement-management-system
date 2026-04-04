@@ -30,6 +30,9 @@ const auditLogSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for common admin lookups
+auditLogSchema.index({ admin: 1, created_at: -1 });
+
 const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 
 module.exports = AuditLog;

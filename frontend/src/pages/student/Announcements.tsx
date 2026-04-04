@@ -14,11 +14,9 @@ const Announcements: React.FC = () => {
       try {
         setLoading(true);
         // Using limit=0 or large number to fetch all broadcasts for the page
-        const { data } = await api.get('/notifications?isBroadcast=true&limit=100');
-        // If the endpoint is nested differently (e.g. notifications/announcements), adjust accordingly.
-        // Assuming notifications endpoint returns { data: [...] } or just [...]
-        const results = data?.data || data || [];
-        setAnnouncements(results);
+        const { data: response } = await api.get('/notifications?isBroadcast=true&limit=100');
+        const { data: results, pagination: _pagination } = response;
+        setAnnouncements(results || []);
       } catch (err) {
         console.error('Error fetching announcements:', err);
       } finally {

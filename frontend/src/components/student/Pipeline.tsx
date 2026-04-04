@@ -21,8 +21,8 @@ const Pipeline: React.FC<PipelineProps> = ({ stats }) => {
   ];
 
   return (
-    <div className="bg-white p-5 rounded-xl shadow-md border border-gray-200 w-full hover:shadow-lg transition-shadow duration-300">
-      <h3 className="text-xl font-semibold text-gray-900 mb-4">Application Status Pipeline</h3>
+    <div className="bg-surface-container-low p-5 rounded-xl shadow-ambient border border-outline-variant w-full hover:shadow-lg transition-shadow duration-300">
+      <h3 className="text-xl font-semibold text-on-surface mb-4">Application Status Pipeline</h3>
       <div className="flex flex-wrap items-center justify-between gap-2 overflow-x-auto pb-2">
         {steps.map((step, i) => (
           <React.Fragment key={i}>
@@ -32,7 +32,7 @@ const Pipeline: React.FC<PipelineProps> = ({ stats }) => {
               <span className="text-[10px] uppercase font-semibold mt-1 opacity-90 tracking-wide">{step.label}</span>
             </div>
             {i < steps.length - 1 && (
-              <ChevronRight className="text-gray-300 flex-shrink-0" size={20} />
+              <ChevronRight className="text-on-surface-variant/30 flex-shrink-0" size={20} />
             )}
           </React.Fragment>
         ))}

@@ -65,7 +65,7 @@ const registerUser = async (req, res, next) => {
             context: {
               name: user.name,
               role: 'student',
-              loginUrl: `http://localhost:5173/login`
+              loginUrl: `${process.env.FRONTEND_URL}/login`
             }
           });
         } catch (err) {
@@ -80,7 +80,7 @@ const registerUser = async (req, res, next) => {
             context: {
               name: user.name,
               role: 'recruiter',
-              loginUrl: `http://localhost:5173/login`
+              loginUrl: `${process.env.FRONTEND_URL}/login`
             }
           });
         } catch (err) {
@@ -272,9 +272,8 @@ const forgotPassword = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Generate token
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
     // Hash and set to reset_token field
     user.reset_token = crypto

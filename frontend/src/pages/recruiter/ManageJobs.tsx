@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, MapPin, 
-  Edit3, Trash2, AlertTriangle,
-  TrendingUp, Archive, MousePointer2, Users
+  Edit3, Trash2,
+  TrendingUp, Archive, MousePointer2, Users,
+  Briefcase
 } from 'lucide-react';
 import api from '../../api';
 import ListSkeleton from '../../components/skeletons/ListSkeleton';
 import { useNotification } from '../../context/NotificationContext';
+import ConfirmModal from '../../components/ConfirmModal';
+import EmptyState from '../../components/EmptyState';
 
 const ManageJobs: React.FC = () => {
   const { showSuccess, showError } = useNotification();
@@ -15,8 +18,7 @@ const ManageJobs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchJobs = async () => {
     try {
@@ -36,17 +38,14 @@ const ManageJobs: React.FC = () => {
     fetchJobs();
   }, []);
 
-  const executeDelete = async () => {
-    if (!deleteConfirmId) return;
+  const executeDelete = async (id: string) => {
     try {
-      await api.delete(`/jobs/${deleteConfirmId}`);
-      setJobs(jobs.filter(j => j._id !== deleteConfirmId));
+      await api.delete(`/jobs/${id}`);
+      setJobs(jobs.filter(j => j._id !== id));
       showSuccess('Job deleted successfully!', 'Delete Job');
     } catch (error: any) {
       console.error(error);
       showError(error.response?.data?.message || 'Failed to delete job', 'Delete Error');
-    } finally {
-      setDeleteConfirmId(null);
     }
   };
 
@@ -100,9 +99,19 @@ const ManageJobs: React.FC = () => {
       </div>
 
       {/* Jobs Table */}
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-[13px]">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-[13px] min-h-[400px]">
         {loading ? (
           <ListSkeleton hideHeader={true} rows={8} />
+        ) : filteredJobs.length === 0 ? (
+          <EmptyState 
+            icon={Briefcase}
+            title={searchTerm ? "No Matches Found" : "No Jobs Posted"}
+            description={searchTerm 
+              ? `We couldn't find any jobs matching "${searchTerm}".` 
+              : "You haven't posted any job opportunities yet. Click below to start recruiting top talent!"}
+            actionText={searchTerm ? "Clear Search" : "Post Your First Job"}
+            onAction={() => searchTerm ? setSearchTerm('') : navigate('/recruiter/post-job')}
+          />
         ) : (
           <div className="w-full overflow-x-auto custom-scrollbar">
             <table className="w-full text-left min-w-[1000px]">
@@ -174,7 +183,7 @@ const ManageJobs: React.FC = () => {
                     </td>
                     <td className="px-6 py-5 text-center">
                       <div className="flex flex-col items-center">
-                        <span className="text-lg font-black text-gray-900 tracking-tight leading-none">{job.applicantCount}</span>
+                        <span className="text-lg font-black text-gray-900 tracking-tight leading-none">{job.applicantCount || job.applicants_count || 0}</span>
                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">Total</span>
                       </div>
                     </td>
@@ -191,7 +200,7 @@ const ManageJobs: React.FC = () => {
                           <Edit3 size={16} />
                         </button>
                         <button 
-                          onClick={() => setDeleteConfirmId(job._id)}
+                          onClick={() => setDeleteId(job._id)}
                           className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Delete Job">
                           <Trash2 size={16} />
                         </button>
@@ -199,11 +208,6 @@ const ManageJobs: React.FC = () => {
                     </td>
                   </tr>
                 ))}
-                {filteredJobs.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center font-bold text-gray-400">No jobs found</td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -251,39 +255,16 @@ const ManageJobs: React.FC = () => {
 
       </div>
       
-      {/* Delete Confirmation Modal */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm transition-all duration-300">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="absolute top-0 left-0 w-full h-1 bg-rose-500" />
-            <div className="flex flex-col items-center text-center mt-2">
-              <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mb-4 shadow-inner">
-                <AlertTriangle size={32} strokeWidth={2.5} />
-              </div>
-              <h3 className="text-xl font-black text-gray-900 tracking-tight mb-2">Delete Job Post?</h3>
-              <p className="text-gray-500 text-[13px] leading-relaxed mb-8">
-                Are you sure you want to permanently remove this job listing and all its associated applications? This action cannot be undone.
-              </p>
-              
-              <div className="flex w-full gap-3">
-                <button 
-                  onClick={() => setDeleteConfirmId(null)}
-                  className="flex-1 py-3 px-4 bg-gray-50 text-gray-600 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-200"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={executeDelete}
-                  className="flex-1 py-3 px-4 bg-rose-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-md shadow-rose-500/20 active:scale-95"
-                >
-                  Yes, Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+      <ConfirmModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => deleteId && executeDelete(deleteId)}
+        title="Delete Job Post?"
+        message="Are you sure you want to permanently remove this job listing and all its associated applications? This action cannot be undone."
+        confirmText="Yes, Delete"
+        type="danger"
+        icon={Trash2}
+      />
     </div>
   );
 };

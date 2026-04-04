@@ -21,6 +21,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ role }) => {
 
   return (
     <div className="min-h-screen bg-[var(--surface)] text-[var(--on-surface)] flex overflow-hidden relative">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <Sidebar 
         role={role} 
         isOpen={isSidebarOpen} 
@@ -51,7 +52,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ role }) => {
           onHelpOpen={() => setHelpOpen(true)}
         />
         
-        <main className="flex-1 overflow-y-auto pt-0 custom-scrollbar">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto pt-0 custom-scrollbar outline-none">
           <div className="pt-4 md:pt-5 lg:pt-6 pb-8 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto w-full min-h-full">
             <Outlet />
           </div>

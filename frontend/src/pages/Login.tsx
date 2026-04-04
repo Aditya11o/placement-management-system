@@ -112,12 +112,12 @@ const Login: React.FC = () => {
                <label className="text-[10px] uppercase tracking-widest font-black text-on-surface-variant ml-1">Select Role</label>
                <div className="flex p-1 bg-surface-container rounded-xl gap-1">
                  {(['student', 'admin', 'recruiter'] as const).map((r) => (
-                   <button
-                     key={r}
-                     type="button"
-                     onClick={() => setRole(r)}
-                     className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all duration-300 capitalize ${role === r ? 'bg-white text-primary shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200/50'}`}
-                   >
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRole(r)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all duration-300 capitalize ${role === r ? 'bg-surface-container-lowest text-on-surface shadow-sm' : 'text-on-surface-variant/60 hover:text-on-surface hover:bg-surface-container-high/50'}`}
+                    >
                      {r}
                    </button>
                  ))}
@@ -131,14 +131,14 @@ const Login: React.FC = () => {
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-on-surface ml-1">University Email / ID</label>
                     <div className="relative group">
-                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-surface-tint transition-colors text-on-surface-variant/40">
                           <Mail className="w-4 h-4" />
                        </div>
                        <input 
                          type="email" 
                          value={email} 
                          onChange={(e) => setEmail(e.target.value)}
-                         className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 pl-11 text-sm font-medium text-primary outline-none transition-all duration-300 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 placeholder:text-gray-300"
+                         className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 pl-11 text-sm font-medium text-on-surface outline-none transition-all duration-300 focus:bg-surface-container-lowest focus:border-surface-tint focus:ring-4 focus:ring-surface-tint/5 placeholder:text-on-surface-variant/30"
                          placeholder="name@university.edu"
                          required
                        />
@@ -151,21 +151,21 @@ const Login: React.FC = () => {
                        <Link to="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline transition-all">Forgot?</Link>
                     </div>
                     <div className="relative group">
-                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-blue-500 transition-colors text-gray-300">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-surface-tint transition-colors text-on-surface-variant/40">
                           <Lock className="w-4 h-4" />
                        </div>
                        <input 
                          type={showPassword ? "text" : "password"} 
                          value={password} 
                          onChange={(e) => setPassword(e.target.value)}
-                         className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 pl-11 pr-11 text-sm font-medium text-primary outline-none transition-all duration-300 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 placeholder:text-gray-300"
+                         className="w-full bg-surface-container border border-outline-variant/30 rounded-xl px-4 py-3 pl-11 pr-11 text-sm font-medium text-on-surface outline-none transition-all duration-300 focus:bg-surface-container-lowest focus:border-surface-tint focus:ring-4 focus:ring-surface-tint/5 placeholder:text-on-surface-variant/30"
                          placeholder="••••••••"
                          required
                        />
                        <button 
                          type="button"
                          onClick={() => setShowPassword(!showPassword)}
-                         className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-300 hover:text-blue-500 transition-colors"
+                         className="absolute inset-y-0 right-0 pr-4 flex items-center text-on-surface-variant/40 hover:text-surface-tint transition-colors"
                        >
                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                        </button>
@@ -234,7 +234,7 @@ const Login: React.FC = () => {
             </div>
 
             {/* Bottom CTA */}
-            <div className="text-center pt-6 border-t border-gray-50">
+            <div className="text-center pt-6 border-t border-outline-variant/30">
               <p className="text-xs text-on-surface-variant font-bold">
                 Don't have an account? {' '}
                 <Link to="/register" className="text-blue-600 font-bold hover:underline underline-offset-4">

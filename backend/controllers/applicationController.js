@@ -295,6 +295,7 @@ const updateApplicationStatus = async (req, res, next) => {
 // @access  Private
 const getScheduledInterviews = async (req, res, next) => {
   try {
+    const { skip, limit, paginate } = parsePagination(req.query);
     let query = { interviewDate: { $exists: true, $ne: null } };
     
     if (req.user.role === 'student') {
@@ -305,12 +306,17 @@ const getScheduledInterviews = async (req, res, next) => {
       query.job = { $in: jobIds };
     }
 
-    const interviews = await Application.find(query)
-      .populate('student', 'name email')
-      .populate('job', 'title companyName location')
-      .sort({ interviewDate: 1 });
+    const [interviews, total] = await Promise.all([
+      Application.find(query)
+        .populate('student', 'name email')
+        .populate('job', 'title companyName location')
+        .sort({ interviewDate: 1 })
+        .skip(skip)
+        .limit(limit),
+      Application.countDocuments(query)
+    ]);
 
-    res.json(interviews);
+    res.json(paginate(interviews, total));
   } catch (error) {
     next(error);
   }

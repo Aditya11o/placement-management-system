@@ -1,67 +1,75 @@
-import React from 'react';
+import React, { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
+import ErrorBoundary from './components/ErrorBoundary';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
+import { LoadingProvider } from './context/LoadingContext';
+import GlobalLoader from './components/GlobalLoader';
 import NotificationModal from './components/NotificationModal';
 import { AuthProvider } from './context/AuthContext';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
-import Help from './pages/Help';
-import Dashboard from './pages/Dashboard';
-import Support from './pages/student/Support';
-import AlumniPortal from './pages/alumni/AlumniPortal';
-import JobFeed from './pages/student/JobFeed';
-import MyApplications from './pages/student/MyApplications';
-import InterviewSchedule from './pages/student/InterviewSchedule';
-import Notifications from './pages/student/Notifications';
-import CareerResources from './pages/student/CareerResources';
-import Settings from './pages/student/Settings';
-import StudentProfile from './pages/student/Profile';
-import ResumeManager from './pages/student/ResumeManager';
-import ResumeBuilder from './pages/student/ResumeBuilder';
+const Login = React.lazy(() => import('./pages/Login'));
+const Register = React.lazy(() => import('./pages/Register'));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
+const Privacy = React.lazy(() => import('./pages/Privacy'));
+const Terms = React.lazy(() => import('./pages/Terms'));
+const Help = React.lazy(() => import('./pages/Help'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Support = React.lazy(() => import('./pages/student/Support'));
+const AlumniPortal = React.lazy(() => import('./pages/alumni/AlumniPortal'));
+const JobFeed = React.lazy(() => import('./pages/student/JobFeed'));
+const MyApplications = React.lazy(() => import('./pages/student/MyApplications'));
+const InterviewSchedule = React.lazy(() => import('./pages/student/InterviewSchedule'));
+const Notifications = React.lazy(() => import('./pages/student/Notifications'));
+const CareerResources = React.lazy(() => import('./pages/student/CareerResources'));
+const Settings = React.lazy(() => import('./pages/student/Settings'));
+const StudentProfile = React.lazy(() => import('./pages/student/Profile'));
+const ResumeManager = React.lazy(() => import('./pages/student/ResumeManager'));
+const ResumeBuilder = React.lazy(() => import('./pages/student/ResumeBuilder'));
 
-import MockInterviews from './pages/student/MockInterviews';
-import HelpSupport from './pages/student/HelpSupport';
-import Announcements from './pages/student/Announcements';
-import ResourceCategory from './pages/student/ResourceCategory';
-import AlumniDirectory from './pages/student/AlumniDirectory';
-import InterviewHistory from './pages/student/InterviewHistory';
-import ManageJobs from './pages/recruiter/ManageJobs';
-import AdminManageJobs from './pages/admin/ManageJobs';
-import Applicants from './pages/recruiter/Applicants';
-import RecruiterProfile from './pages/recruiter/Profile';
-import PostJob from './pages/recruiter/PostJob';
-import CompareCandidates from './pages/recruiter/CompareCandidates';
-import Shortlisted from './pages/recruiter/Shortlisted';
-import RecruiterInterviews from './pages/recruiter/InterviewSchedule';
-import RecruiterNotifications from './pages/recruiter/Notifications';
-import RecruiterSettings from './pages/recruiter/Settings';
-import RecruiterHelpSupport from './pages/recruiter/HelpSupport';
-import ManageStudents from './pages/admin/ManageStudents';
-import ManageRecruiters from './pages/admin/ManageRecruiters';
-import AdminManageApplications from './pages/admin/ManageApplications';
-import AdminManageInterviews from './pages/admin/ManageInterviews';
-import AdminReports from './pages/admin/Reports';
-import AdminManageNotifications from './pages/admin/ManageNotifications';
-import AdminSettings from './pages/admin/Settings';
-import AdminProfile from './pages/admin/Profile';
-import Chat from './pages/Chat';
-import ManageVerifications from './pages/admin/ManageVerifications';
-import AuditLogs from './pages/admin/AuditLogs';
+const MockInterviews = React.lazy(() => import('./pages/student/MockInterviews'));
+const HelpSupport = React.lazy(() => import('./pages/student/HelpSupport'));
+const Announcements = React.lazy(() => import('./pages/student/Announcements'));
+const ResourceCategory = React.lazy(() => import('./pages/student/ResourceCategory'));
+const AlumniDirectory = React.lazy(() => import('./pages/student/AlumniDirectory'));
+const InterviewHistory = React.lazy(() => import('./pages/student/InterviewHistory'));
+const ManageJobs = React.lazy(() => import('./pages/recruiter/ManageJobs'));
+const AdminManageJobs = React.lazy(() => import('./pages/admin/ManageJobs'));
+const Applicants = React.lazy(() => import('./pages/recruiter/Applicants'));
+const RecruiterProfile = React.lazy(() => import('./pages/recruiter/Profile'));
+const PostJob = React.lazy(() => import('./pages/recruiter/PostJob'));
+const CompareCandidates = React.lazy(() => import('./pages/recruiter/CompareCandidates'));
+const Shortlisted = React.lazy(() => import('./pages/recruiter/Shortlisted'));
+const RecruiterInterviews = React.lazy(() => import('./pages/recruiter/InterviewSchedule'));
+const RecruiterNotifications = React.lazy(() => import('./pages/recruiter/Notifications'));
+const RecruiterSettings = React.lazy(() => import('./pages/recruiter/Settings'));
+const RecruiterHelpSupport = React.lazy(() => import('./pages/recruiter/HelpSupport'));
+const ManageStudents = React.lazy(() => import('./pages/admin/ManageStudents'));
+const ManageRecruiters = React.lazy(() => import('./pages/admin/ManageRecruiters'));
+const AdminManageApplications = React.lazy(() => import('./pages/admin/ManageApplications'));
+const AdminManageInterviews = React.lazy(() => import('./pages/admin/ManageInterviews'));
+const AdminReports = React.lazy(() => import('./pages/admin/Reports'));
+const AdminManageNotifications = React.lazy(() => import('./pages/admin/ManageNotifications'));
+const AdminSettings = React.lazy(() => import('./pages/admin/Settings'));
+const AdminProfile = React.lazy(() => import('./pages/admin/Profile'));
+const Chat = React.lazy(() => import('./pages/Chat'));
+const ManageVerifications = React.lazy(() => import('./pages/admin/ManageVerifications'));
+const AuditLogs = React.lazy(() => import('./pages/admin/AuditLogs'));
 import ToastManager from './components/ToastManager';
 const App: React.FC = () => {
   return (
-    <NotificationProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <NotificationModal />
+    <ErrorBoundary>
+      <LoadingProvider>
+        <NotificationProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <GlobalLoader />
+              <NotificationModal />
           <ToastManager />
-          <Routes>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
+            <Routes>
           {/* Default Redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -144,10 +152,13 @@ const App: React.FC = () => {
         <Route path="settings" element={<Settings />} />
         <Route path="chat" element={<Chat />} />
       </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-    </NotificationProvider>
+            </Routes>
+          </Suspense>
+              </BrowserRouter>
+            </AuthProvider>
+          </NotificationProvider>
+        </LoadingProvider>
+      </ErrorBoundary>
   );
 }
 

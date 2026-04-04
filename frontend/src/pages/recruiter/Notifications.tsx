@@ -11,12 +11,14 @@ import ListSkeleton from '../../components/skeletons/ListSkeleton';
 const Notifications: React.FC = () => {
   const [activeTab, setActiveTab] = useState('All Notifications');
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [_pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchNotifications = async () => {
     try {
       const { data } = await api.get('/notifications');
-      setNotifications(data);
+      setNotifications(data.data);
+      setPagination(data.pagination);
     } catch (err) {
       console.error(err);
     } finally {
@@ -30,8 +32,8 @@ const Notifications: React.FC = () => {
 
   const handleMarkRead = async (id: string) => {
     try {
-      await api.patch(`/notifications/${id}/read`);
-      setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
+      await api.put(`/notifications/read/${id}`);
+      setNotifications(notifications.map(n => n._id === id ? { ...n, is_read: true } : n));
     } catch (err) {
       console.error(err);
     }
@@ -39,7 +41,7 @@ const Notifications: React.FC = () => {
 
   const handleMarkAllRead = async () => {
     try {
-      await Promise.all(notifications.filter(n => !n.isRead).map(n => api.patch(`/notifications/${n._id}/read`)));
+      await api.put(`/notifications/read-all/${notifications[0]?.user_id || ''}`);
       fetchNotifications();
     } catch (err) {
       console.error(err);
@@ -57,8 +59,8 @@ const Notifications: React.FC = () => {
 
   const filteredNotifications = notifications.filter(notif => {
     if (activeTab === 'All Notifications') return true;
-    if (activeTab === 'Unread') return !notif.isRead;
-    if (activeTab === 'Read') return notif.isRead;
+    if (activeTab === 'Unread') return !notif.is_read;
+    if (activeTab === 'Read') return notif.is_read;
     return true;
   });
 
@@ -133,7 +135,7 @@ const Notifications: React.FC = () => {
             <div 
               key={notif._id}
               className={`group bg-white border rounded-[28px] p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden flex flex-col md:flex-row gap-6 ${
-                !notif.isRead ? 'border-l-[6px] border-l-blue-600 border-gray-100' : 'border-gray-100'
+                !notif.is_read ? 'border-l-[6px] border-l-blue-600 border-gray-100' : 'border-gray-100'
               }`}
             >
               <div className={`w-14 h-14 rounded-2xl ${bg} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
@@ -148,7 +150,7 @@ const Notifications: React.FC = () => {
                       <Clock size={14} className="opacity-50" />
                       {new Date(notif.createdAt).toLocaleDateString()}
                     </span>
-                    {!notif.isRead && (
+                    {!notif.is_read && (
                       <div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm shadow-blue-200" />
                     )}
                     <button 
@@ -165,7 +167,7 @@ const Notifications: React.FC = () => {
                 </p>
 
                 <div className="flex flex-wrap gap-3 pt-2">
-                  {!notif.isRead && (
+                  {!notif.is_read && (
                     <button 
                       onClick={() => handleMarkRead(notif._id)}
                       className="px-5 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition-all border border-blue-100"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
@@ -11,41 +11,43 @@ import {
 import api from '../../api';
 import DashboardSkeleton from '../../components/skeletons/DashboardSkeleton';
 import { useNotification } from '../../context/NotificationContext';
+import { useQuery } from '@tanstack/react-query';
 
 const CareerPrepHub: React.FC = () => {
   const navigate = useNavigate();
   const { showError } = useNotification();
-  const [profile, setProfile] = useState<any>(null);
-  const [resources, setResources] = useState<any[]>([]);
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: profile, isLoading: loadingProfile, isError: errorProfile } = useQuery({
+    queryKey: ['profile', 'me'],
+    queryFn: async () => {
+      const { data } = await api.get('/profile/me');
+      return data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
+  const { data: resources = [], isLoading: loadingResources, isError: errorResources } = useQuery({
+    queryKey: ['resources'],
+    queryFn: async () => {
+      const { data } = await api.get('/resources');
+      return data;
+    },
+    staleTime: 60 * 60 * 1000, // 1 hour
+  });
 
+  const { data: announcements = [], isLoading: loadingAnnouncements } = useQuery({
+    queryKey: ['notifications', 'broadcasts'],
+    queryFn: async () => {
+      const { data } = await api.get('/notifications?isBroadcast=true&limit=3');
+      return data.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const [profileRes, resourcesRes, announcementsRes] = await Promise.all([
-        api.get('/profile/me'),
-        api.get('/resources'),
-        api.get('/notifications?isBroadcast=true&limit=3')
-      ]);
-      setProfile(profileRes.data);
-      setResources(resourcesRes.data);
-      setAnnouncements(announcementsRes.data);
-    } catch (err) {
-      console.error(err);
-      showError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = loadingProfile || loadingResources || loadingAnnouncements;
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-
+  if (errorProfile || errorResources) {
+    showError('Failed to load some dashboard data');
+  }
 
   if (loading) {
     return <DashboardSkeleton />;

@@ -1,9 +1,13 @@
 import React from 'react';
 import { X, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
+import { useRef } from 'react';
 import { useNotification } from '../context/NotificationContext';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 const NotificationModal: React.FC = () => {
   const { notification, hideNotification } = useNotification();
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(notification.isOpen, modalRef);
 
   if (!notification.isOpen) return null;
 
@@ -40,13 +44,21 @@ const NotificationModal: React.FC = () => {
       ></div>
 
       {/* Modal Card */}
-      <div className={`relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border ${getTheme()} p-8 animate-in zoom-in-95 duration-300`}>
+      <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+        className={`relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border ${getTheme()} p-8 animate-in zoom-in-95 duration-300`}
+      >
         {/* Close Button UI */}
         <button 
           onClick={hideNotification}
+          aria-label="Close notification"
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
         >
-          <X className="w-5 h-5" />
+          <X className="w-5 h-5" aria-hidden="true" />
         </button>
 
         <div className="flex flex-col items-center text-center space-y-4">
@@ -57,10 +69,10 @@ const NotificationModal: React.FC = () => {
 
           {/* Text Section */}
           <div className="space-y-2">
-            <h2 className="text-xl font-display font-bold text-gray-900 tracking-tight">
+            <h2 id="modal-title" className="text-xl font-display font-bold text-gray-900 tracking-tight">
               {notification.title}
             </h2>
-            <p className="text-gray-500 text-sm font-medium leading-relaxed">
+            <p id="modal-description" className="text-gray-500 text-sm font-medium leading-relaxed">
               {notification.message}
             </p>
           </div>

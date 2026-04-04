@@ -45,6 +45,10 @@ const notificationSchema = new mongoose.Schema(
   }
 );
 
+// Indexes
+notificationSchema.index({ user_id: 1, is_read: 1 });
+notificationSchema.index({ createdAt: -1 });
+
 // Auto-generate notification_id (e.g., NOTIF-0001)
 notificationSchema.pre('save', async function () {
   if (!this.notification_id) {

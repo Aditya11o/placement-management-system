@@ -2,25 +2,9 @@ const StudentProfile = require('../models/StudentProfile');
 const RecruiterProfile = require('../models/RecruiterProfile');
 const AdminProfile = require('../models/AdminProfile');
 const User = require('../models/User');
-const cloudinary = require('../utils/cloudinary');
-const { Readable } = require('stream');
+const { cloudinary, uploadToCloudinary } = require('../utils/cloudinary');
 
-// Helper: stream a buffer to Cloudinary without writing to disk
-const uploadBufferToCloudinary = (buffer, options = {}) => {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      options,
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      }
-    );
-    const readableStream = new Readable();
-    readableStream.push(buffer);
-    readableStream.push(null);
-    readableStream.pipe(uploadStream);
-  });
-};
+
 
 // Helper to get the correct model based on role
 const getProfileModel = (role) => {
@@ -137,11 +121,11 @@ const updateProfile = async (req, res, next) => {
     // Handle profile photo upload (streamed from memory, never touches disk)
     if (req.file) {
       try {
-        const result = await uploadBufferToCloudinary(req.file.buffer, {
+        const result = await uploadToCloudinary(req.file.buffer, {
           folder: 'profiles',
           public_id: `user_${req.user.id}_avatar`,
           overwrite: true
-        });
+        }, 'avatar');
         updateData.profile_photo = result.secure_url;
       } catch (uploadError) {
         console.error('Cloudinary Upload Error:', uploadError);
@@ -288,11 +272,11 @@ const uploadResume = async (req, res, next) => {
     }
 
     // Stream resume directly to Cloudinary from memory (never touches disk)
-    const result = await uploadBufferToCloudinary(req.file.buffer, {
+    const result = await uploadToCloudinary(req.file.buffer, {
       folder: 'pms/resumes',
       resource_type: 'auto',
       public_id: `resume_${req.user.id}_${Date.now()}`,
-    });
+    }, 'standard');
 
     const resumeUrl = result.secure_url;
 

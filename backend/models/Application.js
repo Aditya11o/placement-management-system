@@ -56,6 +56,10 @@ const applicationSchema = new mongoose.Schema(
   }
 );
 
+// Indexes
+applicationSchema.index({ student: 1, job: 1 }, { unique: true });
+applicationSchema.index({ job: 1, status: 1 });
+
 // Compatibility with old code that might expect application_id or student_id as virtuals
 applicationSchema.virtual('application_id').get(function() { return this._id.toString(); });
 applicationSchema.virtual('student_id').get(function() { return this.student; });

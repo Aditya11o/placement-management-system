@@ -9,81 +9,52 @@ import Dropdown from '../../components/Dropdown';
 import ListSkeleton from '../../components/skeletons/ListSkeleton';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useJobs } from '../../hooks/useJobs';
+import { useMyApplications } from '../../hooks/useApplications';
+import { useResumes } from '../../hooks/useResumes';
+import EmptyState from '../../components/EmptyState';
 
 const JobFeed: React.FC = () => {
   const { showSuccess, showError } = useNotification();
+  const queryClient = useQueryClient();
   const [jobType, setJobType] = useState('All Job Types');
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('All Locations');
-  // ... rest of state stays same
-  const [stats, setStats] = useState([
-    { label: 'Total Jobs', value: '0', subLabel: 'Active tracking', icon: Briefcase, iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
-    { label: 'New Jobs', value: '0', subLabel: 'Posted recently', icon: Sparkles, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
-    { label: 'Jobs Applied', value: '0', subLabel: 'Active tracking', icon: CheckCircle, iconBg: 'bg-orange-50', iconColor: 'text-orange-600' },
-    { label: 'Closing Soon', value: '0', subLabel: 'Action required', icon: AlertCircle, iconBg: 'bg-rose-50', iconColor: 'text-rose-600' },
-  ]);
+
+  const { data: allJobs = [], isLoading: loadingJobs } = useJobs(jobType);
+  const { data: myApps = [], isLoading: loadingApps } = useMyApplications();
+  const { data: resumes = [], isLoading: loadingResumes } = useResumes();
+  
+  const loading = loadingJobs || loadingApps || loadingResumes;
 
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [applying, setApplying] = useState(false);
-  const [resumes, setResumes] = useState<any[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
 
-  const fetchJobs = async (type?: string) => {
-    try {
-      setLoading(true);
-      const [jobsRes, appsRes] = await Promise.all([
-        api.get('/jobs', { params: { jobType: type || jobType, limit: 0 } }),
-        api.get('/applications/my', { params: { limit: 0 } })
-      ]);
-      
-      const allJobs = jobsRes.data?.data || jobsRes.data;
-      const myApps = appsRes.data?.data || appsRes.data;
-      
-      // Mark jobs as applied
-      const jobsWithStatus = allJobs.map((job: any) => {
-        const application = myApps.find((app: any) => app.job?._id === job._id);
-        return {
-          ...job,
-          status: application ? 'Applied' : job.status || 'Open'
-        };
-      });
-
-      setJobs(jobsWithStatus);
-      
-      // Update stats
-      setStats([
-        { label: 'Total Jobs', value: allJobs.length.toString(), subLabel: 'Active tracking', icon: Briefcase, iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
-        { label: 'New Jobs', value: allJobs.filter((j: any) => new Date(j.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length.toString(), subLabel: 'Posted this week', icon: Sparkles, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
-        { label: 'Jobs Applied', value: myApps.length.toString(), subLabel: 'Active tracking', icon: CheckCircle, iconBg: 'bg-orange-50', iconColor: 'text-orange-600' },
-        { label: 'Closing Soon', value: allJobs.filter((j: any) => new Date(j.deadline) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)).length.toString(), subLabel: 'Within 3 days', icon: AlertCircle, iconBg: 'bg-rose-50', iconColor: 'text-rose-600' },
-      ]);
-    } catch (err) {
-      console.error('Error fetching jobs:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchResumes = async () => {
-    try {
-      const { data } = await api.get('/students/resumes');
-      setResumes(data);
-      const primary = data.find((r: any) => r.isPrimary);
-      if (primary) setSelectedResumeId(primary._id);
-      else if (data.length > 0) setSelectedResumeId(data[0]._id);
-    } catch (err) {
-      console.error('Error fetching resumes:', err);
-    }
-  };
-
   useEffect(() => {
-    fetchJobs();
-    fetchResumes();
-  }, []);
+    if (resumes.length > 0 && !selectedResumeId) {
+      const primary = resumes.find((r: any) => r.isPrimary);
+      setSelectedResumeId(primary ? primary._id : resumes[0]._id);
+    }
+  }, [resumes, selectedResumeId]);
+
+  const jobs = allJobs.map((job: any) => {
+    const application = myApps.find((app: any) => app.job?._id === job._id || app.job === job._id);
+    return {
+      ...job,
+      status: application ? 'Applied' : job.status || 'Open'
+    };
+  });
+
+  const stats = [
+    { label: 'Total Jobs', value: allJobs.length.toString(), subLabel: 'Active tracking', icon: Briefcase, iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
+    { label: 'New Jobs', value: allJobs.filter((j: any) => new Date(j.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length.toString(), subLabel: 'Posted this week', icon: Sparkles, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
+    { label: 'Jobs Applied', value: myApps.length.toString(), subLabel: 'Active tracking', icon: CheckCircle, iconBg: 'bg-orange-50', iconColor: 'text-orange-600' },
+    { label: 'Closing Soon', value: allJobs.filter((j: any) => new Date(j.deadline) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)).length.toString(), subLabel: 'Within 3 days', icon: AlertCircle, iconBg: 'bg-rose-50', iconColor: 'text-rose-600' },
+  ];
 
   const handleApply = async () => {
     if (!selectedJob) return;
@@ -103,7 +74,9 @@ const JobFeed: React.FC = () => {
       setShowApplyModal(false);
       setSelectedJob(null);
       setAnswers({});
-      fetchJobs();
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+
     } catch (err: any) {
       console.error(err);
       showError(err.response?.data?.message || 'Failed to submit application', 'Application Error');
@@ -112,7 +85,7 @@ const JobFeed: React.FC = () => {
     }
   };
 
-  const filteredJobs = jobs.filter(job => {
+  const filteredJobs = jobs.filter((job: any) => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          job.companyName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLocation = locationFilter === 'All Locations' || job.location === locationFilter;
@@ -161,7 +134,7 @@ const JobFeed: React.FC = () => {
               label="Location"
               value={locationFilter}
               onChange={(val) => setLocationFilter(val)}
-              options={['All Locations', ...new Set(jobs.map(j => j.location))]}
+              options={['All Locations', ...new Set(jobs.map((j: any) => j.location))]}
             />
           </div>
 
@@ -171,7 +144,6 @@ const JobFeed: React.FC = () => {
               value={jobType}
               onChange={(newType) => {
                 setJobType(newType);
-                fetchJobs(newType);
               }}
               options={[
                 { label: 'All Job Types', value: 'All Job Types' },
@@ -189,8 +161,22 @@ const JobFeed: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {loading ? (
           <ListSkeleton hideHeader={true} rows={8} />
+        ) : filteredJobs.length === 0 ? (
+          <div className="lg:col-span-2">
+            <EmptyState 
+              icon={Search}
+              title="No Jobs Found"
+              description="We couldn't find any job postings matching your current search or filters. Try broadening your criteria."
+              actionText="Clear All Filters"
+              onAction={() => {
+                setSearchTerm('');
+                setJobType('All Job Types');
+                setLocationFilter('All Locations');
+              }}
+            />
+          </div>
         ) : (
-          filteredJobs.map((job) => (
+          filteredJobs.map((job: any) => (
             <div key={job._id} className="bg-white rounded-xl shadow-md border border-gray-200 p-5 flex flex-col hover:shadow-lg transition-all relative group h-full">
               
               <div className="flex justify-between items-start mb-4">
@@ -349,7 +335,7 @@ const JobFeed: React.FC = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-2">
-                       {resumes.map(r => (
+                       {resumes.map((r: any) => (
                          <div 
                            key={r._id}
                            onClick={() => setSelectedResumeId(r._id)}
