@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Briefcase,
-  Loader2, Calendar
+  Calendar
 } from 'lucide-react';
 import api from '../../api';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 
 const InterviewSchedule: React.FC = () => {
   const [activeTab, setActiveTab] = useState('All');
@@ -27,20 +28,7 @@ const InterviewSchedule: React.FC = () => {
     fetchInterviews();
   }, []);
 
-  const getStatusBadge = (status: string) => {
-    // Mapping backend status to UI badges
-    switch (status) {
-      case 'shortlisted':
-        return <span className="px-2.5 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-full text-[10px] font-black uppercase tracking-widest">Scheduled</span>;
-      case 'accepted':
-        return <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[10px] font-black uppercase tracking-widest">Selected</span>;
-      case 'rejected':
-        return <span className="px-2.5 py-1 bg-rose-50 text-rose-600 border border-rose-100 rounded-full text-[10px] font-black uppercase tracking-widest">Rejected</span>;
-      default:
-        return <span className="px-2.5 py-1 bg-gray-50 text-gray-500 border border-gray-200 rounded-full text-[10px] font-black uppercase tracking-widest">{status}</span>;
-    }
-  };
-
+  // getStatusBadge removed as unused
   const filteredInterviews = interviews.filter(inv => {
     if (activeTab === 'All') return true;
     if (activeTab === 'Scheduled') return inv.status === 'shortlisted';
@@ -96,9 +84,7 @@ const InterviewSchedule: React.FC = () => {
       {/* Interview Table */}
       <div className="bg-white border border-gray-200 rounded-[24px] shadow-sm overflow-hidden text-[13px]">
         {loading ? (
-          <div className="flex py-20 items-center justify-center">
-            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-          </div>
+          <ListSkeleton hideHeader={true} rows={6} />
         ) : viewMode === 'list' ? (
           <div className="overflow-x-auto">
             {/* ... table content remains same as before ... */}

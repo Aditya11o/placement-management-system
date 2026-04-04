@@ -7,7 +7,7 @@ const {
   getPendingRecruiters, approveRecruiter,
   createStudent, createRecruiter, runVerificationBatch,
   getSystemSettings, updateSystemSettings,
-  unlockUserAccount
+  unlockUserAccount, bulkUpdateUsers, bulkSendEmail, bulkVerifySkills
 } = require('../controllers/adminController');
 const { archiveYear, getArchives } = require('../controllers/archiveController');
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -36,6 +36,9 @@ router.get('/recruiters/:id/history', getCompanyHistory);
 router.get('/pending-recruiters', getPendingRecruiters);
 router.patch('/recruiters/:id/approve', approveRecruiter);
 router.patch('/users/:id/unlock', unlockUserAccount);
+router.patch('/users/bulk', bulkUpdateUsers);
+router.post('/users/bulk-email', bulkSendEmail);
+router.patch('/verifications/bulk', bulkVerifySkills);
 
 // Archive Routes
 router.post('/archive', protect, authorize('admin'), archiveYear);

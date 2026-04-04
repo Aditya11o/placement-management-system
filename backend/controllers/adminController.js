@@ -5,7 +5,8 @@ const RecruiterProfile = require('../models/RecruiterProfile');
 const CompanyProfile = require('../models/CompanyProfile');
 const Application = require('../models/Application');
 const AdminProfile = require('../models/AdminProfile');
-const Settings = require('../models/Settings');
+const Job = require('../models/Job');
+const Notification = require('../models/Notification');
 const { createAuditLog } = require('./auditLogController');
 const cloudinary = require('../utils/cloudinary');
 
@@ -37,6 +38,51 @@ const getPendingVerifications = async (req, res, next) => {
     });
 
     res.json(verifications);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Bulk verify student skills
+// @route   PATCH /api/admin/verifications/bulk
+// @access  Private (Admin)
+const bulkVerifySkills = async (req, res, next) => {
+  const { requests, status } = req.body; // requests: [{ profileId, verificationId }]
+  try {
+    let updatedCount = 0;
+    
+    // Group updates by profile profileId for efficiency
+    const profileUpdates = new Map();
+    requests.forEach(req => {
+      if (!profileUpdates.has(req.profileId)) profileUpdates.set(req.profileId, []);
+      profileUpdates.get(req.profileId).push(req.verificationId);
+    });
+
+    for (const [profileId, vIds] of profileUpdates.entries()) {
+      const profile = await Profile.findById(profileId);
+      if (profile) {
+        vIds.forEach(vId => {
+          const v = profile.studentDetails.verifiedSkills.id(vId);
+          if (v && v.status === 'Pending') {
+            v.status = status;
+            updatedCount++;
+          }
+        });
+        await profile.save();
+      }
+    }
+
+    // Audit Log
+    await createAuditLog(
+      req.user.id,
+      'BULK_VERIFY_SKILLS',
+      'Profile',
+      null,
+      `Bulk ${status.toLowerCase()}ed ${updatedCount} skill verifications`,
+      req.ip
+    );
+
+    res.json({ message: `Successfully ${status.toLowerCase()}ed ${updatedCount} skills` });
   } catch (error) {
     next(error);
   }
@@ -213,8 +259,16 @@ const approveRecruiter = async (req, res, next) => {
     try {
       await sendEmail({
         email: user.email,
-        subject: `Recruiter Account ${status === 'active' ? 'Approved' : 'Rejected'}`,
-        message: `<h1>Account Update</h1><p>Your recruiter account on Placement Management System has been <strong>${status === 'active' ? 'approved' : 'rejected'}</strong> by the administrator.</p>${status === 'active' ? '<p>You can now login and post job openings.</p>' : '<p>Please contact support for more information.</p>'}`,
+        subject: `Recruiter Account ${status === 'active' ? 'Approved' : 'Approved'}`,
+        template: 'status-update',
+        context: {
+          name: user.name,
+          jobTitle: 'Recruiter Dashboard',
+          companyName: 'Placement Cell',
+          status: status === 'active' ? 'Approved' : 'Rejected',
+          statusColor: status === 'active' ? '#10b981' : '#ef4444',
+          dashboardUrl: 'http://localhost:5173/login'
+        }
       });
     } catch (err) {
       console.error('Email failed to send:', err);
@@ -287,8 +341,107 @@ const verifyUser = async (req, res, next) => {
 
       res.json({ message: 'User updated successfully' });
     } else {
-      res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'User not found' });
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Bulk update user status/verification
+// @route   PATCH /api/admin/users/bulk
+// @access  Private (Admin)
+const bulkUpdateUsers = async (req, res, next) => {
+  const { userIds, isVerified, status } = req.body;
+  try {
+    const result = await User.updateMany(
+      { _id: { $in: userIds } },
+      { $set: { 
+          ...(isVerified !== undefined && { isVerified }),
+          ...(status !== undefined && { status })
+        } 
+      }
+    );
+
+    // Audit Log
+    await createAuditLog(
+      req.user.id,
+      'BULK_UPDATE_USERS',
+      'User',
+      null,
+      `Updated ${result.modifiedCount} users to status: ${status}, verified: ${isVerified}`,
+      req.ip
+    );
+
+    res.json({ message: `Successfully updated ${result.modifiedCount} users` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Bulk send email to users
+// @route   POST /api/admin/users/bulk-email
+// @access  Private (Admin)
+const bulkSendEmail = async (req, res, next) => {
+  const { userIds, subject, message, title } = req.body;
+  const { sendEmail } = require('../utils/emailUtils');
+  try {
+    const users = await User.find({ _id: { $in: userIds } }).select('email name');
+    
+    // Process in batches to prevent SMTP flooding
+    const batchSize = 10;
+    for (let i = 0; i < users.length; i += batchSize) {
+      const batch = users.slice(i, i + batchSize);
+      await Promise.all(batch.map(user => 
+        sendEmail({
+          email: user.email,
+          subject,
+          template: 'notification',
+          context: {
+            name: user.name,
+            title: title || 'Admin Message',
+            message: message.replace(/\n/g, '<br>'),
+            actionText: 'Go to Dashboard',
+            actionUrl: 'http://localhost:5173/login'
+          }
+        })
+      ));
+    }
+
+    // Audit Log
+    await createAuditLog(
+        req.user.id,
+        'BULK_SEND_EMAIL',
+        'User',
+        null,
+        `Sent bulk email "${subject}" to ${users.length} users`,
+        req.ip
+      );
+
+    res.json({ message: `Emails sent to ${users.length} users` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Bulk verify skills
+// @route   PATCH /api/admin/skills/bulk-verify
+// @access  Private (Admin)
+const bulkVerifySkills = async (req, res, next) => {
+  const { skillIds, status } = req.body;
+  try {
+    const profiles = await Profile.find({ 'studentDetails.verifiedSkills._id': { $in: skillIds } });
+    
+    for (const profile of profiles) {
+      profile.studentDetails.verifiedSkills.forEach(skill => {
+        if (skillIds.includes(skill._id.toString())) {
+          skill.status = status;
+        }
+      });
+      await profile.save();
+    }
+
+    res.json({ message: `Successfully updated ${skillIds.length} skills` });
   } catch (error) {
     next(error);
   }
@@ -502,67 +655,56 @@ const getCompanyHistory = async (req, res, next) => {
 // @access  Private (Admin)
 const getAdvancedAnalytics = async (req, res, next) => {
   try {
-    // 1. Department-wise Placement %
-    const totalByBranch = await Profile.aggregate([
-      { $match: { 'studentDetails.branch': { $exists: true, $ne: null } } },
-      { $group: { _id: '$studentDetails.branch', total: { $sum: 1 } } }
-    ]);
-
-    const placedByBranch = await Application.aggregate([
-      { $match: { status: 'Selected' } },
-      {
-        $lookup: {
-          from: 'profiles',
-          localField: 'student',
-          foreignField: 'user',
-          as: 'profile'
-        }
-      },
-      { $unwind: '$profile' },
-      { $group: { _id: '$profile.studentDetails.branch', placed: { $sum: 1 } } }
-    ]);
-
-    const deptPlacement = totalByBranch.map(dept => {
-      const placed = placedByBranch.find(p => p._id === dept._id)?.placed || 0;
-      return {
-        department: dept._id,
-        percentage: ((placed / dept.total) * 100).toFixed(1),
-        total: dept.total,
-        placed
-      };
-    });
-
-    // 2. Salary Trends
-    const salaryTrends = await Job.aggregate([
+    // 4. Yearly Placement Trends (Past 5 Years)
+    const currentYear = new Date().getFullYear();
+    const yearlyTrends = await StudentProfile.aggregate([
+      { $match: { passing_year: { $gte: currentYear - 4, $lte: currentYear + 1 } } },
       { $group: {
-          _id: null,
-          min: { $min: '$salary' },
-          max: { $max: '$salary' },
-          avg: { $avg: '$salary' }
-      }}
+          _id: '$passing_year',
+          total: { $sum: 1 },
+          placed: { $sum: { $cond: [{ $eq: ['$placement_status', 'Placed'] }, 1, 0] } }
+      }},
+      { $sort: { _id: 1 } }
     ]);
 
-    // 3. Top Hiring Companies
-    const topHiring = await Application.aggregate([
-      { $match: { status: 'Selected' } },
+    // 5. Salary Distribution (Density)
+    const salaryDistribution = await Job.aggregate([
       {
-        $lookup: {
-          from: 'jobs',
-          localField: 'job',
-          foreignField: '_id',
-          as: 'jobDetails'
+        $bucket: {
+          groupBy: '$salary',
+          boundaries: [0, 3, 6, 10, 15, 25, 100],
+          default: '25L+',
+          output: {
+            count: { $sum: 1 },
+            avgSalary: { $avg: '$salary' }
+          }
         }
-      },
-      { $unwind: '$jobDetails' },
-      { $group: { _id: '$jobDetails.companyName', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 10 }
+      }
+    ]);
+
+    // 6. Course-wise Breakdown
+    const courseStats = await StudentProfile.aggregate([
+      { $group: {
+          _id: '$course',
+          total: { $sum: 1 },
+          placed: { $sum: { $cond: [{ $eq: ['$placement_status', 'Placed'] }, 1, 0] } }
+      }},
+      { $sort: { total: -1 } }
+    ]);
+
+    // 7. Overall Placement Status (Pie Chart)
+    const statusBreakdown = await StudentProfile.aggregate([
+      { $group: { _id: '$placement_status', count: { $sum: 1 } } }
     ]);
 
     res.json({
       deptPlacement,
       salaryTrends: salaryTrends[0] || { min: 0, max: 0, avg: 0 },
-      topHiring
+      topHiring,
+      yearlyTrends,
+      salaryDistribution,
+      courseStats,
+      statusBreakdown
     });
   } catch (error) {
     next(error);
@@ -731,5 +873,8 @@ module.exports = {
   runVerificationBatch,
   getSystemSettings,
   updateSystemSettings,
-  unlockUserAccount
+  unlockUserAccount,
+  bulkUpdateUsers,
+  bulkSendEmail,
+  bulkVerifySkills
 };

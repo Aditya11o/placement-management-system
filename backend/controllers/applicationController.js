@@ -1,6 +1,7 @@
 const Application = require('../models/Application');
 const Job = require('../models/Job');
 const Profile = require('../models/Profile');
+const StudentResume = require('../models/StudentResume');
 const Notification = require('../models/Notification');
 const sendEmail = require('../utils/emailUtils');
 const { createAuditLog } = require('./auditLogController');
@@ -13,28 +14,56 @@ const applyForJob = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.jobId);
     if (!job) {
-      res.status(404);
-      return res.json({ message: 'Job not found' });
+      return res.status(404).json({ message: 'Job not found' });
     }
 
+    const { resumeId } = req.body;
+    
     // Check if profile exists and has resume
     const profile = await Profile.findOne({ user: req.user.id });
-    if (!profile || !profile.studentDetails.resume) {
-      res.status(400);
-      return res.json({ message: 'Please complete your profile and upload a resume before applying' });
+    if (!profile) {
+      return res.status(400).json({ message: 'Profile not found' });
     }
 
     // Eligibility check (Basic)
     if (profile.studentDetails.cgpa < job.eligibility.minCGPA) {
-       res.status(400);
-       return res.json({ message: `Insufficient CGPA. Minimum required is ${job.eligibility.minCGPA}` });
+       return res.status(400).json({ message: `Insufficient CGPA. Minimum required is ${job.eligibility.minCGPA}` });
+    }
+
+    let finalResumeUrl = profile.studentDetails.resume || '';
+    let finalResumeId = resumeId;
+
+    if (resumeId) {
+      const selectedResume = await StudentResume.findById(resumeId);
+      if (selectedResume && selectedResume.student_id.toString() === req.user.id) {
+        finalResumeUrl = selectedResume.resume_url;
+      }
+    } else {
+      // Find primary or latest
+      const primaryResume = await StudentResume.findOne({ student_id: req.user.id, isPrimary: true });
+      if (primaryResume) {
+        finalResumeId = primaryResume._id;
+        finalResumeUrl = primaryResume.resume_url;
+      } else if (profile.studentDetails.resume) {
+        finalResumeUrl = profile.studentDetails.resume;
+      }
+    }
+
+    if (!finalResumeUrl && !finalResumeId) {
+      return res.status(400).json({ message: 'Please upload or build a resume before applying' });
     }
 
     const application = await Application.create({
       student: req.user.id,
       job: req.params.jobId,
-      resume: profile.studentDetails.resume,
+      resume: finalResumeUrl,
+      resumeId: finalResumeId
     });
+
+    // Increment resume application count
+    if (finalResumeId) {
+      await StudentResume.findByIdAndUpdate(finalResumeId, { $inc: { 'stats.applications': 1 } });
+    }
 
     // Increment job application count
     job.applicationsCount += 1;
@@ -53,7 +82,7 @@ const applyForJob = async (req, res, next) => {
     res.status(201).json(application);
   } catch (error) {
     if (error.code === 11000) {
-      res.status(400).json({ message: 'You have already applied for this job' });
+      return res.status(400).json({ message: 'You have already applied for this job' });
     } else {
       next(error);
     }
@@ -94,14 +123,12 @@ const getJobApplicants = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.jobId);
     if (!job) {
-      res.status(404);
-      return res.json({ message: 'Job not found' });
+      return res.status(404).json({ message: 'Job not found' });
     }
 
     // Auth check
     if (req.user.role !== 'admin' && job.recruiter.toString() !== req.user.id) {
-      res.status(401);
-      return res.json({ message: 'Not authorized' });
+      return res.status(401).json({ message: 'Not authorized' });
     }
 
     const { skip, limit, paginate } = parsePagination(req.query);
@@ -171,11 +198,12 @@ const getAllApplications = async (req, res, next) => {
 const updateApplicationStatus = async (req, res, next) => {
   try {
     const { status, feedback, interviewDate, interviewLink, evaluation } = req.body;
-    const application = await Application.findById(req.params.id).populate('student', 'name email');
+    const application = await Application.findById(req.params.id)
+      .populate('student', 'name email')
+      .populate('job', 'title companyName');
 
     if (!application) {
-      res.status(404);
-      return res.json({ message: 'Application not found' });
+      return res.status(404).json({ message: 'Application not found' });
     }
 
     application.status = status || application.status;
@@ -186,17 +214,33 @@ const updateApplicationStatus = async (req, res, next) => {
 
     const updatedApplication = await application.save();
 
+    // Increment resume shortlist count if newly shortlisted
+    if (status === 'Shortlisted' && application.resumeId) {
+      await StudentResume.findByIdAndUpdate(application.resumeId, { $inc: { 'stats.shortlists': 1 } });
+    }
+
     // Send email to student
     try {
+      const statusColors = {
+        'Applied': '#64748b',
+        'Shortlisted': '#2563eb',
+        'Interviewing': '#7c3aed',
+        'Selected': '#10b981',
+        'Rejected': '#ef4444'
+      };
+
       await sendEmail({
         email: application.student.email,
-        subject: `Application Status Updated - ${application.job?.title || 'Placement Portal'}`,
-        message: `<h3>Hello ${application.student.name},</h3>
-                 <p>Your application status for <strong>${application.job?.title || 'the job'}</strong> has been updated to <strong>${status}</strong>.</p>
-                 ${feedback ? `<p><strong>Feedback:</strong> ${feedback}</p>` : ''}
-                 ${interviewDate ? `<p><strong>Interview Date:</strong> ${new Date(interviewDate).toLocaleString()}</p>` : ''}
-                 ${interviewLink ? `<p><strong>Interview Link:</strong> <a href="${interviewLink}">${interviewLink}</a></p>` : ''}
-                 <p>Login to the portal for more details.</p>`,
+        subject: `Application Update: ${application.job?.title || 'Placement Portal'}`,
+        template: 'status-update',
+        context: {
+          name: application.student.name,
+          jobTitle: application.job?.title || 'Job Application',
+          companyName: application.job?.companyName || 'Placement Cell',
+          status: status,
+          statusColor: statusColors[status] || '#000613',
+          dashboardUrl: 'http://localhost:5173/student/applications'
+        }
       });
     } catch (err) {
       console.error('Email failed to send:', err);

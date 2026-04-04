@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
   FileText, Clock, 
-  Sparkles, Loader2, CheckCircle2, 
+  Sparkles, CheckCircle2, 
   Play, Download, MessageSquare,
   Video, Award,
   ArrowUpRight, Users
 } from 'lucide-react';
 import api from '../../api';
+import DashboardSkeleton from '../../components/skeletons/DashboardSkeleton';
 import { useNotification } from '../../context/NotificationContext';
 
 const CareerPrepHub: React.FC = () => {
@@ -47,11 +48,7 @@ const CareerPrepHub: React.FC = () => {
 
 
   if (loading) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const interviewModules = [

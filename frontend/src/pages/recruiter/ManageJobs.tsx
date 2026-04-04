@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, MapPin, 
   Edit3, Trash2, AlertTriangle,
-  TrendingUp, Archive, MousePointer2, Loader2, Users
+  TrendingUp, Archive, MousePointer2, Users
 } from 'lucide-react';
 import api from '../../api';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 import { useNotification } from '../../context/NotificationContext';
 
 const ManageJobs: React.FC = () => {
@@ -101,9 +102,7 @@ const ManageJobs: React.FC = () => {
       {/* Jobs Table */}
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-[13px]">
         {loading ? (
-          <div className="flex py-20 items-center justify-center">
-            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-          </div>
+          <ListSkeleton hideHeader={true} rows={8} />
         ) : (
           <div className="w-full overflow-x-auto custom-scrollbar">
             <table className="w-full text-left min-w-[1000px]">

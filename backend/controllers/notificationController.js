@@ -28,7 +28,7 @@ const markAsRead = async (req, res, next) => {
       await notification.save();
       res.json({ message: 'Notification marked as read' });
     } else {
-      res.status(404).json({ message: 'Notification not found' });
+      return res.status(404).json({ message: 'Notification not found' });
     }
   } catch (error) {
     next(error);

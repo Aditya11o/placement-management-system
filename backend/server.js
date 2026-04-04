@@ -15,6 +15,7 @@ const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
 const csrfProtection = require('./middleware/csrfMiddleware');
 const logger = require('./utils/logger');
+const { createRequestLogger } = require('./utils/logger');
 
 // Load environment variables
 dotenv.config();
@@ -109,6 +110,9 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Request logging (morgan) — after security, before routes
+createRequestLogger().forEach(mw => app.use(mw));
+
 // Specific rate limit for login
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -131,8 +135,8 @@ app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
-app.use('/api/student', require('./routes/studentRoutes'));
 app.use('/api/students', require('./routes/studentRoutes'));
+app.use('/api/alumni', require('./routes/alumniRoutes'));
 app.use('/api/resources', require('./routes/resourceRoutes'));
 app.use('/api/tickets', require('./routes/ticketRoutes'));
 app.use('/api/faqs', require('./routes/faqRoutes'));

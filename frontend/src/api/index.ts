@@ -24,4 +24,30 @@ api.interceptors.request.use(
   (error: any) => Promise.reject(error)
 );
 
+// Response interceptor to handle token refresh on 401 Unauthorized
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If the error is 401 and we haven't tried refreshing yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        // Request backend to refresh the access token via httpOnly cookie
+        await axios.post('http://localhost:5000/api/auth/refresh', {}, { withCredentials: true });
+        
+        // Retry the original failed request
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed (e.g. refresh token expired), clear state by redirecting to login
+        localStorage.removeItem('userInfo');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

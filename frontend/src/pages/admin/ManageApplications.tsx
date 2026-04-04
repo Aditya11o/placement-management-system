@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Download, 
-  Eye, Calendar, Loader2
+  Eye, Calendar
 } from 'lucide-react';
 import Avatar from '../../components/Avatar';
 import api from '../../api';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 
 const ManageApplications: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,9 +90,7 @@ const ManageApplications: React.FC = () => {
       {/* Applications Table */}
       <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden min-h-[500px]">
         {loading ? (
-          <div className="flex py-40 items-center justify-center">
-            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-          </div>
+          <ListSkeleton hideHeader={true} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">

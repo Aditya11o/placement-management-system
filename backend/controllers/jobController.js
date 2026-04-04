@@ -121,8 +121,7 @@ const updateJobStatus = async (req, res, next) => {
     const job = await Job.findById(req.params.id);
 
     if (!job) {
-      res.status(404);
-      return res.json({ message: 'Job not found' });
+      return res.status(404).json({ message: 'Job not found' });
     }
 
     // Role check
@@ -144,8 +143,7 @@ const getMatchedJobs = async (req, res, next) => {
   try {
     const profile = await Profile.findOne({ user: req.user.id });
     if (!profile) {
-      res.status(404);
-      return res.json({ message: 'Profile not found' });
+      return res.status(404).json({ message: 'Profile not found' });
     }
 
     const { cgpa, branch } = profile.studentDetails;

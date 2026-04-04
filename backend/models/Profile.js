@@ -92,6 +92,19 @@ const profileSchema = new mongoose.Schema(
         twitter: String,
       },
     },
+    
+    // Alumni specific fields
+    alumniDetails: {
+      company: String,
+      designation: String,
+      graduationYear: Number,
+      expertise: [String],
+      isAvailableForMentorship: { type: Boolean, default: true },
+      socialLinks: {
+        linkedin: String,
+        github: String,
+      },
+    },
   },
   {
     timestamps: true,

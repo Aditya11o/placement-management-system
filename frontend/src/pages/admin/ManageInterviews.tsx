@@ -3,9 +3,10 @@ import {
   Calendar, 
   XCircle, 
   Plus, 
-  BarChart3, User, Loader2
+  BarChart3, User
 } from 'lucide-react';
 import api from '../../api';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 
 const ManageInterviews: React.FC = () => {
   const [interviews, setInterviews] = useState<any[]>([]);
@@ -67,9 +68,7 @@ const ManageInterviews: React.FC = () => {
       {/* Interviews Table */}
       <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden min-h-[400px]">
         {loading ? (
-          <div className="flex py-40 items-center justify-center">
-            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-          </div>
+          <ListSkeleton hideHeader={true} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">

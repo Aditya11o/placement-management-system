@@ -49,7 +49,7 @@ const archiveYear = async (req, res, next) => {
 
     res.status(201).json(archive);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -61,7 +61,7 @@ const getArchives = async (req, res, next) => {
     const archives = await Archive.find().sort({ academicYear: -1 });
     res.json(archives);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

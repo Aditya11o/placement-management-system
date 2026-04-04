@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { 
   CheckSquare, Square, 
-  Download, Eye, 
-  Calendar, X, UserMinus, 
+  Download, 
+  X, UserMinus, 
   UserCheck,
-  Video, MapPin, ArrowRight
+  ArrowRight,
+  FileText
 } from 'lucide-react';
 import api from '../../api';
 import Dropdown from '../../components/Dropdown';
 import { useNotification } from '../../context/NotificationContext';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const Shortlisted: React.FC = () => {
   const { showSuccess, showError } = useNotification();
@@ -19,7 +22,7 @@ const Shortlisted: React.FC = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [selectedJob, setSelectedJob] = useState('');
   const [candidates, setCandidates] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   // Evaluation state
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
@@ -102,6 +105,53 @@ const Shortlisted: React.FC = () => {
     }
   };
 
+  const exportToPDF = async () => {
+    if (!selectedJob) return;
+    const jobTitle = jobs.find(j => j._id === selectedJob)?.title || 'Job Posting';
+    try {
+      const res = await api.get(`/applications/export/${selectedJob}`);
+      const data = res.data;
+      const doc = new jsPDF() as any;
+
+      // Header
+      doc.setFontSize(22);
+      doc.setTextColor(0, 6, 19);
+      doc.text('Placement Cell', 14, 20);
+      doc.setFontSize(14);
+      doc.text(`Shortlisted Candidates Report: ${jobTitle}`, 14, 30);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
+      doc.text(`Total Shortlisted: ${data.length}`, 14, 45);
+
+      const tableData = data.map((row: any) => [
+        row.StudentName,
+        row.Email,
+        row.Course || '—',
+        row.Branch || '—',
+        row.CGPA || '—',
+        row.Status
+      ]);
+
+      doc.autoTable({
+        startY: 55,
+        head: [['Student Name', 'Email', 'Course', 'Branch', 'CGPA', 'Status']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [0, 6, 19], fontSize: 10, fontStyle: 'bold' },
+        bodyStyles: { fontSize: 9 },
+        alternateRowStyles: { fillColor: [245, 247, 250] }
+      });
+
+      doc.save(`Shortlisted_Report_${jobTitle.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+      showSuccess('Data exported to PDF successfully!', 'Export Success');
+    } catch (err: any) {
+      console.error('Export error:', err);
+      showError('Failed to export data', 'Export Error');
+    }
+  };
+
   const handleEvaluationSubmit = async () => {
     if (!candidateToSchedule) return;
     try {
@@ -137,15 +187,24 @@ const Shortlisted: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Shortlisted Candidates</h1>
-          <p className="text-gray-500 text-[14px] mt-1">Filter, evaluate, and manage candidates in your selection pipeline.</p>
+          <p className="text-gray-500 text-[14px] mt-1 font-bold">Filter, evaluate, and manage candidates in your selection pipeline.</p>
         </div>
-        <button 
-          onClick={exportToCSV}
-          className="px-6 py-3 bg-[#000613] text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-black/10 flex items-center gap-2 active:scale-95"
-        >
-          <Download size={16} />
-          Export to CSV
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={exportToCSV}
+            className="px-4 py-2 border border-gray-200 text-gray-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2"
+          >
+            <FileText size={16} />
+            CSV
+          </button>
+          <button 
+            onClick={exportToPDF}
+            className="px-6 py-3 bg-[#000613] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-2 active:scale-95"
+          >
+            <Download size={16} />
+            Export Shortlist
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}

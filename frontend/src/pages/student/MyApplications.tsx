@@ -3,13 +3,15 @@ import {
   Briefcase, 
   RotateCcw,
   CheckCircle, Clock, Calendar, 
-  Trophy, XCircle, Download,
-  Loader2
+  Trophy, XCircle, Download, FileText, File
 } from 'lucide-react';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 import ResponsiveTable from '../../components/ResponsiveTable';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const MyApplications: React.FC = () => {
   const { showSuccess, showError } = useNotification();
@@ -34,6 +36,64 @@ const MyApplications: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportToCSV = () => {
+    if (apps.length === 0) return;
+    const headers = ['Company', 'Job Title', 'Applied Date', 'Status', 'Interview Date'];
+    const rows = apps.map(app => [
+      `"${app.job?.companyName || 'N/A'}"`,
+      `"${app.job?.title || 'N/A'}"`,
+      new Date(app.createdAt).toLocaleDateString(),
+      app.status,
+      app.interviewDate ? new Date(app.interviewDate).toLocaleDateString() : 'N/A'
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Application_History_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    showSuccess('Exported history to CSV!', 'Export Success');
+  };
+
+  const exportToPDF = () => {
+    if (apps.length === 0) return;
+    const doc = new jsPDF() as any;
+    
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(0, 6, 19);
+    doc.text('Placement Cell', 14, 20);
+    doc.setFontSize(14);
+    doc.text('Personal Application History Report', 14, 30);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 40);
+    doc.text(`Total Applications: ${apps.length}`, 14, 45);
+
+    const tableData = apps.map(app => [
+      app.job?.companyName || 'N/A',
+      app.job?.title || 'N/A',
+      new Date(app.createdAt).toLocaleDateString(),
+      app.status,
+      app.interviewDate ? new Date(app.interviewDate).toLocaleDateString() : '—'
+    ]);
+
+    doc.autoTable({
+      startY: 55,
+      head: [['Company', 'Job Title', 'Date Applied', 'Status', 'Interview']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 6, 19], fontSize: 10, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 9 },
+      alternateRowStyles: { fillColor: [245, 247, 250] }
+    });
+
+    doc.save(`PMS_Application_History_${new Date().toISOString().split('T')[0]}.pdf`);
+    showSuccess('Exported history to PDF!', 'Export Success');
   };
 
   const handleOfferResponse = async (id: string, response: 'Accepted' | 'Declined') => {
@@ -78,11 +138,7 @@ const MyApplications: React.FC = () => {
     }
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="animate-spin h-8 w-8 text-blue-900" />
-    </div>
-  );
+  if (loading) return <ListSkeleton />;
 
   return (
     <div className="space-y-6 pb-12">
@@ -90,10 +146,24 @@ const MyApplications: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="max-w-2xl">
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight uppercase">My Applications</h1>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight uppercase tracking-tighter">My <span className="text-blue-600">Applications</span></h1>
           <p className="text-sm font-bold text-gray-400 mt-1 leading-relaxed">
-            Track and manage your professional journey. Review status updates, interview schedules, and job offers in real-time.
+            Strategic tracking of your professional journey & placement milestones.
           </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={exportToCSV}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all"
+          >
+            <FileText size={14} /> CSV
+          </button>
+          <button 
+            onClick={exportToPDF}
+            className="flex items-center gap-2 px-6 py-3 bg-[#000613] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-black/10 shadow-black/20"
+          >
+            <Download size={14} /> Export history
+          </button>
         </div>
       </div>
 

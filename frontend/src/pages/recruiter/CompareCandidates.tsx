@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Users,
-  Loader2, ArrowLeft, BarChart3, 
+  ArrowLeft, BarChart3, 
   Mail, Phone, 
   ChevronRight, ExternalLink
 } from 'lucide-react';
 import api from '../../api';
+import DashboardSkeleton from '../../components/skeletons/DashboardSkeleton';
 
 const CompareCandidates: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -39,11 +40,7 @@ const CompareCandidates: React.FC = () => {
   }, [jobId]);
 
   if (loading) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

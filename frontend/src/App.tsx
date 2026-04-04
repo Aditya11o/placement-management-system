@@ -22,10 +22,14 @@ import Notifications from './pages/student/Notifications';
 import CareerResources from './pages/student/CareerResources';
 import Settings from './pages/student/Settings';
 import StudentProfile from './pages/student/Profile';
+import ResumeManager from './pages/student/ResumeManager';
+import ResumeBuilder from './pages/student/ResumeBuilder';
 
 import MockInterviews from './pages/student/MockInterviews';
 import HelpSupport from './pages/student/HelpSupport';
-import ComingSoon from './pages/ComingSoon';
+import Announcements from './pages/student/Announcements';
+import ResourceCategory from './pages/student/ResourceCategory';
+import AlumniDirectory from './pages/student/AlumniDirectory';
 import InterviewHistory from './pages/student/InterviewHistory';
 import ManageJobs from './pages/recruiter/ManageJobs';
 import AdminManageJobs from './pages/admin/ManageJobs';
@@ -85,17 +89,14 @@ const App: React.FC = () => {
 
             <Route path="mock-interviews" element={<MockInterviews />} />
             <Route path="notifications" element={<Notifications />} />
-            <Route path="announcements" element={<ComingSoon featureName="Announcements" />} />
-            <Route path="resources/all" element={<ComingSoon featureName="All Resources" />} />
-            <Route path="resources/technical" element={<ComingSoon featureName="Technical Preparation" />} />
-            <Route path="resources/hr" element={<ComingSoon featureName="HR Interview Questions" />} />
-            <Route path="resources/aptitude" element={<ComingSoon featureName="Aptitude Preparation" />} />
-            <Route path="resources/gd" element={<ComingSoon featureName="Group Discussion" />} />
+            <Route path="announcements" element={<Announcements />} />
+            <Route path="resources/:category" element={<ResourceCategory />} />
+            <Route path="alumni" element={<AlumniDirectory />} />
             <Route path="support" element={<Support />} />
             <Route path="help-support" element={<HelpSupport />} />
-            <Route path="interview-guide" element={<ComingSoon featureName="Interview Guide" />} />
-            <Route path="package-stats" element={<ComingSoon featureName="Package Stats" />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="resumes" element={<ResumeManager />} />
+            <Route path="resume-builder" element={<ResumeBuilder />} />
             <Route path="chat" element={<Chat />} />
           </Route>
 

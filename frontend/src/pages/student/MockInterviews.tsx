@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Calendar, Clock, Video, 
   ChevronRight, Star, 
-  Layout, BookOpen, 
-  Trophy, MessageSquare, 
+  Layout, BookOpen,
+  Trophy, MessageSquare,
   MoreVertical, ArrowUpRight, 
   Loader2, CheckCircle2
 } from 'lucide-react';
+import DashboardSkeleton from '../../components/skeletons/DashboardSkeleton';
 import { useNavigate } from 'react-router-dom';
 import Dropdown from '../../components/Dropdown';
 import api from '../../api';
@@ -79,11 +80,7 @@ const MockInterviews: React.FC = () => {
     { label: 'CONFIDENCE', value: analytics.confidence, color: 'bg-emerald-400' },
   ];
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <Loader2 className="animate-spin h-10 w-10 text-blue-900" />
-    </div>
-  );
+  if (loading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">

@@ -16,6 +16,10 @@ const applicationSchema = new mongoose.Schema(
       type: String, // URL
       required: true,
     },
+    resumeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'StudentResume',
+    },
     status: {
       type: String,
       enum: ['Applied', 'Shortlisted', 'Rejected', 'Selected', 'Under Review', 'Scheduled', 'Placed', 'Accepted', 'Declined'],

@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, Briefcase, FileText, Calendar, 
-  CheckCircle, MoreVertical, Loader2
+  CheckCircle, MoreVertical
 } from 'lucide-react';
 import api from '../../api';
 import AnnouncementsBoard from '../../components/AnnouncementsBoard';
+import DashboardSkeleton from '../../components/skeletons/DashboardSkeleton';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -86,11 +87,7 @@ const AdminDashboard: React.FC = () => {
 
 
   if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

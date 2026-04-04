@@ -15,6 +15,21 @@ const studentResumeSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    isBuilt: {
+      type: Boolean,
+      default: false,
+    },
+    content: {
+      type: mongoose.Schema.Types.Mixed,
+    },
+    isPrimary: {
+      type: Boolean,
+      default: false,
+    },
+    stats: {
+      applications: { type: Number, default: 0 },
+      shortlists: { type: Number, default: 0 },
+    },
     upload_date: {
       type: Date,
       default: Date.now,

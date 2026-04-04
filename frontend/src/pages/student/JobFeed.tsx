@@ -3,9 +3,10 @@ import {
   Briefcase, Search, MapPin, DollarSign, 
   Bookmark, CheckCircle, 
   Sparkles, AlertCircle, FileText,
-  Loader2, X, ChevronRight
+  X, ChevronRight, Loader2
 } from 'lucide-react';
 import Dropdown from '../../components/Dropdown';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -28,6 +29,8 @@ const JobFeed: React.FC = () => {
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [applying, setApplying] = useState(false);
+  const [resumes, setResumes] = useState<any[]>([]);
+  const [selectedResumeId, setSelectedResumeId] = useState<string>('');
 
   const fetchJobs = async (type?: string) => {
     try {
@@ -65,8 +68,21 @@ const JobFeed: React.FC = () => {
     }
   };
 
+  const fetchResumes = async () => {
+    try {
+      const { data } = await api.get('/students/resumes');
+      setResumes(data);
+      const primary = data.find((r: any) => r.isPrimary);
+      if (primary) setSelectedResumeId(primary._id);
+      else if (data.length > 0) setSelectedResumeId(data[0]._id);
+    } catch (err) {
+      console.error('Error fetching resumes:', err);
+    }
+  };
+
   useEffect(() => {
     fetchJobs();
+    fetchResumes();
   }, []);
 
   const handleApply = async () => {
@@ -79,7 +95,10 @@ const JobFeed: React.FC = () => {
         answer: answers[q._id] || ''
       })) || [];
 
-      await api.post(`/applications/${selectedJob._id}`, { answers: formattedAnswers });
+      await api.post(`/applications/${selectedJob._id}`, { 
+        answers: formattedAnswers,
+        resumeId: selectedResumeId 
+      });
       showSuccess('Application submitted successfully!', 'Job Application');
       setShowApplyModal(false);
       setSelectedJob(null);
@@ -169,9 +188,7 @@ const JobFeed: React.FC = () => {
       {/* Jobs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {loading ? (
-          <div className="col-span-2 flex py-20 items-center justify-center">
-            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-          </div>
+          <ListSkeleton hideHeader={true} rows={8} />
         ) : (
           filteredJobs.map((job) => (
             <div key={job._id} className="bg-white rounded-xl shadow-md border border-gray-200 p-5 flex flex-col hover:shadow-lg transition-all relative group h-full">
@@ -250,11 +267,7 @@ const JobFeed: React.FC = () => {
                     <button 
                       onClick={() => {
                         setSelectedJob(job);
-                        if (job.screeningQuestions?.length > 0) {
-                          setShowApplyModal(true);
-                        } else {
-                          handleApply();
-                        }
+                        setShowApplyModal(true);
                       }}
                       className="w-full sm:w-auto px-6 py-2 bg-blue-950 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black shadow-md shadow-blue-900/10 active:scale-95 transition-all text-center"
                     >
@@ -321,6 +334,44 @@ const JobFeed: React.FC = () => {
                     )}
                   </div>
                 ))}
+
+                {/* Resume Selection Section */}
+                <div className="space-y-4 pt-4 border-t border-gray-100">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest italic">Select Resume Version</label>
+                    <a href="/student/resumes" className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline">Manage Resumes</a>
+                  </div>
+                  
+                  {resumes.length === 0 ? (
+                    <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center gap-3">
+                      <AlertCircle size={18} className="text-amber-500 shrink-0" />
+                      <p className="text-[10px] font-bold text-amber-900 leading-tight">No resumes found. Please build or upload a resume to continue.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2">
+                       {resumes.map(r => (
+                         <div 
+                           key={r._id}
+                           onClick={() => setSelectedResumeId(r._id)}
+                           className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                             selectedResumeId === r._id 
+                             ? 'bg-blue-50 border-blue-600' 
+                             : 'bg-gray-50 border-transparent hover:border-gray-200'
+                           }`}
+                         >
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <FileText size={16} className={selectedResumeId === r._id ? 'text-blue-600' : 'text-gray-400'} />
+                              <div className="truncate">
+                                <p className={`text-xs font-black truncate ${selectedResumeId === r._id ? 'text-blue-950' : 'text-gray-600'}`}>{r.resume_name}</p>
+                                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{new Date(r.createdAt).toLocaleDateString()} {r.isPrimary && '• PRIMARY'}</p>
+                              </div>
+                            </div>
+                            {selectedResumeId === r._id && <CheckCircle size={16} className="text-blue-600" />}
+                         </div>
+                       ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-4 pt-4">
@@ -331,7 +382,7 @@ const JobFeed: React.FC = () => {
                   Cancel
                 </button>
                 <button 
-                  disabled={applying || selectedJob.screeningQuestions.some((q: any) => !answers[q._id])}
+                  disabled={applying || selectedJob.screeningQuestions.some((q: any) => !answers[q._id]) || !selectedResumeId}
                   onClick={handleApply}
                   className="flex-[2] py-4 bg-blue-950 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-black shadow-xl shadow-blue-900/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >

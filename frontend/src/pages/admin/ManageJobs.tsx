@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, Plus, 
   Trash2, MapPin,
-  TrendingUp, Clock, Loader2
+  TrendingUp, Clock
 } from 'lucide-react';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 
 const ManageJobs: React.FC = () => {
   const { showSuccess, showError } = useNotification();
@@ -108,9 +109,7 @@ const ManageJobs: React.FC = () => {
       {/* Jobs Table */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden min-h-[400px]">
         {loading ? (
-          <div className="flex py-40 items-center justify-center">
-            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-          </div>
+          <ListSkeleton hideHeader={true} rows={8} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">

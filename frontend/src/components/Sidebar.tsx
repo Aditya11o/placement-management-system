@@ -25,6 +25,8 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose })
           { name: 'Interview Schedule', icon: Calendar, path: '/student/interviews' },
 
           { name: 'Career Prep', icon: BookOpen, path: '/student/resources' },
+          { name: 'Alumni Network', icon: Users, path: '/student/alumni' },
+          { name: 'Resumes', icon: FileText, path: '/student/resumes' },
           { name: 'Mock Interviews', icon: MessageSquare, path: '/student/mock-interviews' },
           { name: 'Notifications', icon: Bell, path: '/student/notifications' },
         ];

@@ -86,12 +86,18 @@ const bookMockInterview = async (req, res, next) => {
       await sendEmail({
         email: req.user.email,
         subject: `Mock Interview Confirmed: ${type}`,
-        message: `<h3>Mock Interview Booking Confirmed</h3>
-                 <p>Your ${type} mock interview has been scheduled with <strong>${mentor.name}</strong>.</p>
-                 <p><strong>Date:</strong> ${date}</p>
-                 <p><strong>Time:</strong> ${slot}</p>
-                 <p><strong>Mode:</strong> Online</p>
-                 <p>Please be ready 5 minutes before the start time.</p>`
+        template: 'notification',
+        context: {
+          name: req.user.name,
+          title: 'Mock Interview Booking Confirmed',
+          message: `Your <strong>${type}</strong> mock interview has been scheduled with <strong>${mentor.name}</strong>.<br><br>
+                   <strong>Date:</strong> ${date}<br>
+                   <strong>Time:</strong> ${slot}<br>
+                   <strong>Mode:</strong> Online<br><br>
+                   Please be ready 5 minutes before the start time.`,
+          actionUrl: 'http://localhost:5173/student/mock-interviews',
+          actionText: 'View My Interviews'
+        }
       });
     } catch (err) {
       console.error('Failed to send booking email:', err);

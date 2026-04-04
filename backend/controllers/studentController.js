@@ -215,23 +215,98 @@ const uploadStudentResume = async (req, res, next) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    const { makePrimary } = req.body;
     const resume_url = `/uploads/resumes/${req.file.filename}`;
     const resume_name = req.file.originalname;
+
+    if (makePrimary === 'true' || makePrimary === true) {
+      await StudentResume.updateMany({ student_id: req.user.id }, { isPrimary: false });
+    }
 
     const resume = await StudentResume.create({
       student_id: req.user.id,
       resume_url,
-      resume_name
+      resume_name,
+      isPrimary: makePrimary === 'true' || makePrimary === true
     });
 
-    // Also update StudentProfile resume_path for compatibility
+    // Also update StudentProfile resume_path for compatibility if primary
+    if (makePrimary === 'true' || makePrimary === true) {
+      await StudentProfile.findOneAndUpdate(
+        { user_id: req.user.id },
+        { resume_path: resume_url },
+        { upsert: true }
+      );
+    }
+
+    res.status(201).json({ success: true, message: 'Resume uploaded successfully', resume });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Create built resume (structured data)
+// @route   POST /api/students/build-resume
+// @access  Private
+const createBuiltResume = async (req, res, next) => {
+  try {
+    const { resume_name, content, makePrimary } = req.body;
+
+    if (!resume_name || !content) {
+      return res.status(400).json({ message: 'Resume name and content are required' });
+    }
+
+    if (makePrimary) {
+      await StudentResume.updateMany({ student_id: req.user.id }, { isPrimary: false });
+    }
+
+    // For a built resume, the URL might be a special placeholder or we'll generate it later.
+    // For now, let's just save the data.
+    const resume = await StudentResume.create({
+      student_id: req.user.id,
+      resume_name,
+      resume_url: 'built-resume', // Placeholder
+      isBuilt: true,
+      content,
+      isPrimary: !!makePrimary
+    });
+
+    if (makePrimary) {
+      await StudentProfile.findOneAndUpdate(
+        { user_id: req.user.id },
+        { resume_path: 'built-resume' },
+        { upsert: true }
+      );
+    }
+
+    res.status(201).json({ success: true, message: 'Resume built successfully', resume });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Set primary resume
+// @route   PATCH /api/students/resume/:id/primary
+// @access  Private
+const setPrimaryResume = async (req, res, next) => {
+  try {
+    const resume = await StudentResume.findOne({ _id: req.params.id, student_id: req.user.id });
+    if (!resume) {
+      return res.status(404).json({ message: 'Resume not found' });
+    }
+
+    await StudentResume.updateMany({ student_id: req.user.id }, { isPrimary: false });
+    resume.isPrimary = true;
+    await resume.save();
+
+    // Update profile
     await StudentProfile.findOneAndUpdate(
       { user_id: req.user.id },
-      { resume_path: resume_url },
+      { resume_path: resume.resume_url },
       { upsert: true }
     );
 
-    res.status(201).json({ success: true, message: 'Resume uploaded successfully', resume });
+    res.json({ success: true, message: 'Primary resume updated' });
   } catch (error) {
     next(error);
   }
@@ -316,6 +391,8 @@ module.exports = {
   getPrivacySettings,
   updatePrivacySettings,
   uploadStudentResume,
+  createBuiltResume,
+  setPrimaryResume,
   deleteStudentResume,
   getStudentResumes,
   deactivateAccount,

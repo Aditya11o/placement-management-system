@@ -3,8 +3,9 @@ import {
   Search, Calendar, 
   Building2, MapPin, Video, 
   ExternalLink, ChevronLeft, 
-  Loader2, Trophy
+  Trophy
 } from 'lucide-react';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 import api from '../../api';
 import Dropdown from '../../components/Dropdown';
 import { useAuth } from '../../context/AuthContext';
@@ -71,11 +72,7 @@ const InterviewHistory: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-      </div>
-    );
+    return <ListSkeleton />;
   }
 
   return (

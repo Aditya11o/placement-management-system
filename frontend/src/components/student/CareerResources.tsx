@@ -30,8 +30,8 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ label, desc, icon: Icon, on
 const CareerResources: React.FC = () => {
   const navigate = useNavigate();
   const resources = [ 
-    { label: 'Interview Guide', icon: PlayCircle, desc: 'Cracking top-tier companies', path: '/student/interview-guide' },
-    { label: 'Package Stats', icon: BarChart3, desc: 'Salary benchmarks 2024', path: '/student/package-stats' }
+    { label: 'Technical Guide', icon: PlayCircle, desc: 'Cracking top-tier companies', path: '/student/resources/technical' },
+    { label: 'Aptitude Prep', icon: BarChart3, desc: 'Master quant fundamentals', path: '/student/resources/aptitude' }
   ];
 
   return (

@@ -3,9 +3,9 @@ export interface User {
   id?: string;
   name: string;
   email: string;
-  role: 'student' | 'recruiter' | 'admin';
+  role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
   isVerified: boolean;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'blacklisted' | 'pending';
   profilePhoto?: string;
   token?: string;
   refreshToken?: string;
@@ -48,10 +48,19 @@ export interface Application {
 
 export interface ProfileData {
   bio?: string;
+  department?: string;
+  course?: string;
+  current_cgpa?: string | number;
+  skills?: string[];
+  role?: string;
+  profilePhoto?: string;
+  profile_photo?: string;
   studentDetails?: {
     cgpa: string | number;
     branch: string;
     graduationYear: string | number;
+    skills?: string[];
+    profilePhoto?: string;
   };
   companyDetails?: {
     companyName: string;
@@ -62,8 +71,13 @@ export interface ProfileData {
     companyName: string;
     designation: string;
     companyLogo?: string;
+    phone?: string;
+    companyWebsite?: string;
+    location?: string;
   };
   resume?: string;
+  user?: User;
+  _error?: boolean;
 }
 
 export interface SettingsData {

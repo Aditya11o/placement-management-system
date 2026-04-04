@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Search, CheckCircle2, XCircle, 
-  Loader2, Square, CheckSquare, Filter, BarChart3, X
+  Filter, BarChart3, X
 } from 'lucide-react';
-import Avatar from '../../components/Avatar';
+
 import Dropdown from '../../components/Dropdown';
+import ApplicantsTable from '../../components/recruiter/applicants/ApplicantsTable';
+import ApplicantScheduleModal from '../../components/recruiter/applicants/ApplicantScheduleModal';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -244,95 +246,17 @@ const Applicants: React.FC = () => {
         </div>
       </div>
 
-      {/* Applicants Table */}
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-[13px]">
-        {loading ? (
-          <div className="flex py-20 items-center justify-center">
-            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-          </div>
-        ) : (
-          <div className="w-full overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left min-w-[900px]">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-6 py-4 w-12">
-                    <button 
-                      onClick={toggleSelectAll}
-                      className="text-gray-300 hover:text-gray-900 transition-colors"
-                    >
-                      {selectedApplicants.length === filteredApplicants.length && filteredApplicants.length > 0 
-                        ? <CheckSquare size={18} className="text-blue-600" /> 
-                        : <Square size={18} />
-                      }
-                    </button>
-                  </th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student Name</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">CGPA</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredApplicants.map((applicant) => (
-                  <tr key={applicant._id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-6 py-5">
-                      <button 
-                        onClick={() => toggleSelect(applicant._id)}
-                        className={`${selectedApplicants.includes(applicant._id) ? 'text-blue-600' : 'text-gray-200 group-hover:text-gray-300'}`}
-                      >
-                        {selectedApplicants.includes(applicant._id) ? <CheckSquare size={18} /> : <Square size={18} />}
-                      </button>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-4">
-                        <Avatar 
-                          name={applicant.student?.name} 
-                          profilePhoto={applicant.studentProfile?.profile_photo} 
-                          size="sm" 
-                          className="rounded-full" 
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-black text-gray-900 tracking-tight text-[14px]">{applicant.student?.name}</span>
-                          <span className="text-[10px] font-bold text-gray-400 mt-0.5">{applicant.student?.email}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5 text-center font-black text-blue-600">
-                      {applicant.studentProfile?.studentDetails?.cgpa || 'N/A'}
-                    </td>
-                    <td className="px-6 py-5 text-center">
-                      {getStatusBadge(applicant.status)}
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center justify-end gap-3">
-                        {applicant.status === 'pending' && (
-                          <>
-                            <button 
-                              onClick={() => openScheduleModal(applicant)}
-                              className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all border border-transparent hover:border-emerald-100" title="Shortlist & Schedule">
-                              <CheckCircle2 size={18} />
-                            </button>
-                            <button 
-                              onClick={() => handleUpdateStatus(applicant._id, 'rejected')}
-                              className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all border border-transparent hover:border-rose-100" title="Reject">
-                              <XCircle size={18} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredApplicants.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-20 text-center font-bold text-gray-400">No applicants found</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Applicants Table Component */}
+      <ApplicantsTable 
+        loading={loading}
+        filteredApplicants={filteredApplicants}
+        selectedApplicants={selectedApplicants}
+        toggleSelect={toggleSelect}
+        toggleSelectAll={toggleSelectAll}
+        getStatusBadge={getStatusBadge}
+        openScheduleModal={openScheduleModal}
+        handleUpdateStatus={handleUpdateStatus}
+      />
 
       {/* Bulk Floating Action Bar */}
       {selectedApplicants.length > 0 && (
@@ -375,79 +299,15 @@ const Applicants: React.FC = () => {
         </button>
       </div>
 
-      {/* Schedule Modal */}
-      {showScheduleModal && (
-        <div className="fixed inset-0 bg-[#000613]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-            <div className="px-10 pt-10 pb-6 flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Schedule Interview</h2>
-                <p className="text-gray-400 text-[12px] font-bold mt-1 uppercase tracking-wide">Candidate: {schedulingApplicant?.student?.name}</p>
-              </div>
-              <button onClick={() => setShowScheduleModal(false)} className="p-2 text-gray-400 hover:text-gray-900 rounded-full"><X size={20} /></button>
-            </div>
-            
-            <div className="px-10 pb-8 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Date</label>
-                  <input 
-                    type="date" 
-                    value={interviewDetails.date}
-                    onChange={(e) => setInterviewDetails({...interviewDetails, date: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold text-[13px] outline-none" 
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Time</label>
-                  <input 
-                    type="time" 
-                    value={interviewDetails.time}
-                    onChange={(e) => setInterviewDetails({...interviewDetails, time: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold text-[13px] outline-none" 
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Interview Mode</label>
-                <div className="flex p-1 bg-gray-100 rounded-xl gap-1">
-                  <button 
-                    onClick={() => setInterviewDetails({...interviewDetails, mode: 'Online'})}
-                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${interviewDetails.mode === 'Online' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
-                    Online
-                  </button>
-                  <button 
-                    onClick={() => setInterviewDetails({...interviewDetails, mode: 'Offline'})}
-                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${interviewDetails.mode === 'Offline' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}>
-                    Offline
-                  </button>
-                </div>
-              </div>
-
-              {interviewDetails.mode === 'Online' && (
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Meeting Link</label>
-                  <input 
-                    type="text" 
-                    placeholder="https://meet.google.com/..."
-                    value={interviewDetails.link}
-                    onChange={(e) => setInterviewDetails({...interviewDetails, link: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold text-[13px] outline-none" 
-                  />
-                </div>
-              )}
-
-              <button 
-                onClick={handleConfirmSchedule}
-                className="w-full py-4 bg-[#000613] text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all active:scale-95 shadow-xl shadow-black/20"
-              >
-                Confirm & Shortlist
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Schedule Modal Component */}
+      <ApplicantScheduleModal 
+        isVisible={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        applicant={schedulingApplicant}
+        interviewDetails={interviewDetails}
+        setInterviewDetails={setInterviewDetails}
+        onConfirm={handleConfirmSchedule}
+      />
 
     </div>
   );

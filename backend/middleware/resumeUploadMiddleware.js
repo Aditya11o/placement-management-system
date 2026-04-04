@@ -6,14 +6,17 @@ const path = require('path');
 const storage = multer.memoryStorage();
 
 function checkFileType(file, cb) {
-  const filetypes = /pdf|doc|docx/;
+  // Allowed ext
+  const filetypes = /pdf/;
+  // Check ext
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype) || file.originalname.endsWith('.docx') || file.originalname.endsWith('.doc');
+  // Check mime
+  const mimetype = file.mimetype === 'application/pdf';
 
-  if (extname && mimetype) {
+  if (mimetype && extname) {
     return cb(null, true);
   } else {
-    cb(new Error('Only PDF files are allowed!'));
+    cb(new Error('Error: Only PDF files are allowed!'));
   }
 }
 
@@ -21,6 +24,8 @@ const resumeUpload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: function (req, file, cb) {
+    // Sanitize filename before processing
+    file.originalname = path.basename(file.originalname);
     checkFileType(file, cb);
   },
 });

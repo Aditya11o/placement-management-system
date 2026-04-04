@@ -9,6 +9,8 @@ const {
   getPrivacySettings,
   updatePrivacySettings,
   uploadStudentResume,
+  createBuiltResume,
+  setPrimaryResume,
   deleteStudentResume,
   getStudentResumes,
   deactivateAccount,
@@ -27,6 +29,8 @@ const router = express.Router();
 router.get('/resume', protect, getStudentResumes); 
 router.get('/resumes', protect, getStudentResumes); 
 router.post('/upload-resume', protect, upload.single('resume'), uploadStudentResume);
+router.post('/build-resume', protect, createBuiltResume);
+router.patch('/resume/:id/primary', protect, setPrimaryResume);
 router.delete('/resume/:id', protect, deleteStudentResume);
 
 router.get('/dashboard', protect, getStudentDashboard);

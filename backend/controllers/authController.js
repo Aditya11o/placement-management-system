@@ -41,8 +41,7 @@ const registerUser = async (req, res, next) => {
     const userExists = await User.findOne({ email });
 
     if (userExists) {
-      res.status(400);
-      return res.json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'User already exists' });
     }
 
     const user = await User.create({
@@ -62,7 +61,12 @@ const registerUser = async (req, res, next) => {
           await sendEmail({
             email: user.email,
             subject: 'Welcome to Placement Management System',
-            message: `<h1>Welcome ${user.name}!</h1><p>Your account has been created successfully. Please complete your profile to start applying for jobs.</p>`,
+            template: 'welcome',
+            context: {
+              name: user.name,
+              role: 'student',
+              loginUrl: `http://localhost:5173/login`
+            }
           });
         } catch (err) {
           console.error('Email failed to send:', err);
@@ -72,7 +76,12 @@ const registerUser = async (req, res, next) => {
           await sendEmail({
             email: user.email,
             subject: 'Recruiter Account Pending Approval',
-            message: `<h1>Welcome ${user.name}!</h1><p>Your recruiter account has been created and is currently pending administrator approval. You will be notified once your account is active.</p>`,
+            template: 'welcome',
+            context: {
+              name: user.name,
+              role: 'recruiter',
+              loginUrl: `http://localhost:5173/login`
+            }
           });
         } catch (err) {
           console.error('Email failed to send:', err);
@@ -91,8 +100,7 @@ const registerUser = async (req, res, next) => {
         refreshToken,
       });
     } else {
-      res.status(400);
-      res.json({ message: 'Invalid user data' });
+      return res.status(400).json({ message: 'Invalid user data' });
     }
   } catch (error) {
     next(error);
@@ -109,32 +117,27 @@ const authUser = async (req, res, next) => {
     const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
 
     if (!user) {
-      res.status(401);
-      return res.json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     // Check account status
     if (user.status === 'pending') {
-      res.status(403);
-      return res.json({ message: 'Your account is pending administrator approval.' });
+      return res.status(403).json({ message: 'Your account is pending administrator approval.' });
     }
 
     if (user.status === 'blacklisted') {
-      res.status(403);
-      return res.json({ message: 'Your account has been blacklisted.' });
+      return res.status(403).json({ message: 'Your account has been blacklisted.' });
     }
 
     if (user.status === 'inactive') {
-      res.status(403);
-      return res.json({ message: 'Your account is inactive.' });
+      return res.status(403).json({ message: 'Your account is inactive.' });
     }
 
 
 
     // Check if account is locked
     if (user.lockUntil && user.lockUntil > Date.now()) {
-      res.status(401);
-      return res.json({ message: 'Account is temporarily locked. Please try again later.' });
+      return res.status(401).json({ message: 'Account is temporarily locked. Please try again later.' });
     }
 
     if (await user.matchPassword(password)) {
@@ -150,7 +153,11 @@ const authUser = async (req, res, next) => {
           await sendEmail({
             email: user.email,
             subject: 'Your 2FA Login Code',
-            message: `<h1>Security Verification</h1><p>Your login OTP is: <strong>${otp}</strong>. It expires in 10 minutes.</p>`,
+            template: 'otp',
+            context: {
+              name: user.name,
+              otp: otp
+            }
           });
           return res.json({ requireOTP: true, email: user.email });
         } catch (err) {
@@ -183,8 +190,7 @@ const authUser = async (req, res, next) => {
       }
       await user.save();
 
-      res.status(401);
-      res.json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error) {
     next(error);
@@ -319,28 +325,15 @@ const forgotPassword = async (req, res, next) => {
 
     await user.save();
 
-    // Send email
-    const resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`;
-    const message = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
-        <h2 style="color: #1e1b4b; text-align: center;">Password Reset Request</h2>
-        <p>Hello ${user.name},</p>
-        <p>We received a request to reset the password for your Placement Management System account.</p>
-        <p style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" style="background-color: #1e1b4b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Reset Password</a>
-        </p>
-        <p>If you did not request this, please ignore this email or contact support if you have concerns.</p>
-        <p>This link will expire in 15 minutes.</p>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="font-size: 12px; color: #666; text-align: center;">Placement Management System (PMS)</p>
-      </div>
-    `;
-
     try {
       await sendEmail({
         email: user.email,
         subject: 'Password Reset Request',
-        message
+        template: 'password-reset',
+        context: {
+          name: user.name,
+          resetUrl: resetUrl
+        }
       });
       res.json({ message: 'Reset link sent to your email' });
     } catch (err) {

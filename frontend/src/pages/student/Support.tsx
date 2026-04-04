@@ -5,6 +5,7 @@ import {
   HelpCircle, History
 } from 'lucide-react';
 import api from '../../api';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 import { useNotification } from '../../context/NotificationContext';
 
 const Support: React.FC = () => {
@@ -131,7 +132,7 @@ const Support: React.FC = () => {
 
           <div className="space-y-4">
             {loading ? (
-              <div className="flex py-20 items-center justify-center"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>
+              <ListSkeleton hideHeader={true} rows={4} />
             ) : tickets.length === 0 ? (
                <div className="bg-white border border-gray-100 rounded-[32px] p-12 text-center text-gray-400 font-bold italic">No tickets found. Need help? Open a ticket on the left.</div>
             ) : tickets.map((ticket) => (

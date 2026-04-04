@@ -23,7 +23,14 @@ const checkJobDeadlines = async () => {
         await sendEmail({
           email: job.recruiter.email,
           subject: `Upcoming Deadline: ${job.title}`,
-          message: `Dear ${job.recruiter.name || 'Recruiter'},\n\nThis is a friendly reminder that the application deadline for your job posting "${job.title}" is approaching in 3 days (${new Date(job.deadline).toLocaleDateString()}).\n\nPlease ensure you have reviewed all applications by then.\n\nBest regards,\nPlacement Management Team`
+          template: 'notification',
+          context: {
+            name: job.recruiter.name || 'Recruiter',
+            title: 'Job Application Deadline Approaching',
+            message: `This is a friendly reminder that the application deadline for your job posting "<strong>${job.title}</strong>" is approaching in 3 days (<strong>${new Date(job.deadline).toLocaleDateString()}</strong>).<br><br>Please ensure you have reviewed all applications by then.`,
+            actionUrl: `http://localhost:5173/recruiter/jobs/${job._id}`,
+            actionText: 'Review Applications'
+          }
         });
         console.log(`Deadline alert sent to ${job.recruiter.email} for job: ${job.title}`);
       }

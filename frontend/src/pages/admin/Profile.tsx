@@ -3,6 +3,7 @@ import { User, Mail, Shield, Camera, Save, Loader2 } from 'lucide-react';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
+import ProfileSkeleton from '../../components/skeletons/ProfileSkeleton';
 
 const AdminProfile: React.FC = () => {
   const { showSuccess, showError } = useNotification();
@@ -75,7 +76,7 @@ const AdminProfile: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  if (loading) return <ProfileSkeleton />;
 
   return (
     <div className="w-full flex justify-center py-6 px-4">

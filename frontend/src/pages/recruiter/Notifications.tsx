@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  UserPlus, CheckCircle2, 
+  UserPlus, 
   XCircle, Calendar, Briefcase, 
-  Undo2, MoreVertical, Filter,
-  Check, Clock, Loader2, Trash2, Mail
+  Filter,
+  Check, Clock, Trash2, Mail
 } from 'lucide-react';
 import api from '../../api';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 
 const Notifications: React.FC = () => {
   const [activeTab, setActiveTab] = useState('All Notifications');
@@ -73,11 +74,7 @@ const Notifications: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-10 h-10 text-[#000613] animate-spin" />
-      </div>
-    );
+    return <ListSkeleton />;
   }
 
   return (

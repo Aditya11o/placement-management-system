@@ -4,11 +4,11 @@ import {
   CheckCircle, 
   Clock, 
   XCircle, 
-  TrendingUp,
-  Loader2
+  TrendingUp
 } from 'lucide-react';
 import api from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import DashboardSkeleton from '../../components/skeletons/DashboardSkeleton';
 
 import ProfileProgress from '../../components/student/ProfileProgress';
 import StatCard from '../../components/student/StatCard';
@@ -38,7 +38,7 @@ const StudentDashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const { data } = await api.get('/student/dashboard');
+        const { data } = await api.get('/students/dashboard');
         
         setStats(data.stats);
         setJobs(data.jobs);
@@ -57,12 +57,7 @@ const StudentDashboard: React.FC = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-        <p className="text-gray-500 font-medium animate-pulse">Loading your dashboard...</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {

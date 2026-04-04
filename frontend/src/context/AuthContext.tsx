@@ -1,13 +1,13 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import api from '../api';
-import type { User } from '../types';
+import type { User, ProfileData } from '../types';
 
 interface AuthContextType {
   user: User | null;
-  profile: any | null;
+  profile: ProfileData | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<any>;
-  register: (userData: any) => Promise<User>;
+  register: (userData: Record<string, any>) => Promise<User>;
   verifyOTP: (email: string, otp: string) => Promise<User>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   const [loading, setLoading] = useState<boolean>(false);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
   const fetchInProgress = React.useRef(false);
 
   const fetchUserProfile = async () => {
@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (userData: any): Promise<User> => {
+  const register = async (userData: Record<string, any>): Promise<User> => {
     setLoading(true);
     try {
       const response = await api.post('/auth/register', userData);

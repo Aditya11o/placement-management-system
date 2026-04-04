@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Bell, Mail, Briefcase, FileText, Calendar, 
-  Check, Trash2, MoreVertical, User, Loader2
+  Check, Trash2, MoreVertical, User
 } from 'lucide-react';
 import api from '../../api';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 
 const Notifications: React.FC = () => {
   const [activeTab, setActiveTab] = useState('All');
@@ -83,11 +84,7 @@ const Notifications: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-      </div>
-    );
+    return <ListSkeleton />;
   }
 
   return (

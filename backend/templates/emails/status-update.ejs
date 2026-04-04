@@ -1,0 +1,27 @@
+<h2>Application Status Update</h2>
+<p>Hello <%= name %>,</p>
+<p>Your job application for <strong><%= jobTitle %></strong> at <strong><%= companyName %></strong> has been updated.</p>
+<div style="background: <%= statusColor %>10; border: 2px solid <%= statusColor %>; padding: 24px; border-radius: 20px; margin: 32px 0; text-align: center;">
+  <p style="margin: 0; font-size: 11px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.15em;">
+    Current Progress:
+  </p>
+  <h3 style="margin: 8px 0 0; font-size: 24px; font-weight: 900; color: <%= statusColor %>; text-transform: uppercase; letter-spacing: -0.01em;">
+    <%= status %>
+  </h3>
+</div>
+<% if (status === 'Shortlisted') { %>
+  <p style="background: #eff6ff; padding: 16px; border-radius: 12px; border: 1px solid #bfdbfe; font-size: 13px; font-weight: 600; color: #1e40af;">
+    <strong>Next Phase:</strong> Please check your dashboard for interview schedules and additional requirements.
+  </p>
+<% } else if (status === 'Selected') { %>
+  <div style="background: #ecfdf5; padding: 24px; border-radius: 16px; border: 1px solid #10b981; text-align: center;">
+    <h3 style="color: #065f46; margin: 0;">Congratulations! 🎊</h3>
+    <p style="color: #065f46; font-size: 13px; font-weight: 600; margin: 8px 0 0;">An offer has been extended by <%= companyName %>.</p>
+  </div>
+<% } %>
+<div style="text-align: center; margin: 32px 0;">
+  <a href="<%= dashboardUrl %>" class="btn">View Dashboard</a>
+</div>
+<p style="font-size: 11px; font-weight: 600; color: #94a3b8; text-align: center; margin-top: 32px;">
+  Placement Excellence & Professional Success (PMS)
+</p>

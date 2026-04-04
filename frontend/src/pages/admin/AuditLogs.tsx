@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Filter, 
-  Calendar, Loader2, RefreshCw, 
-  FileText, Shield, UserPlus, Send
+  Calendar
 } from 'lucide-react';
 import api from '../../api';
+import ListSkeleton from '../../components/skeletons/ListSkeleton';
 
 const AuditLogs: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
@@ -48,11 +48,7 @@ const AuditLogs: React.FC = () => {
   );
 
   if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-      </div>
-    );
+    return <ListSkeleton />;
   }
 
   return (

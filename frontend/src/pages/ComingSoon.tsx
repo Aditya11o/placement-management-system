@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Construction, ArrowLeft, Sparkles } from 'lucide-react';
+import { Construction, ArrowLeft } from 'lucide-react';
 
 interface ComingSoonProps {
   featureName?: string;
