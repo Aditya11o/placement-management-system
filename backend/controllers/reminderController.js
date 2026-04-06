@@ -1,30 +1,30 @@
-const Reminder = require('../models/Reminder');
-const Notification = require('../models/Notification');
+const prisma = require('../utils/prisma');
 
 // @desc    Create a reminder
 // @route   POST /api/reminders
 // @access  Private (Student)
-exports.createReminder = async (req, res, next) => {
+const createReminder = async (req, res, next) => {
   try {
-    const { title, date, time, reminderBefore } = req.body;
+    const { title, date, time } = req.body;
+    const dueDate = new Date(`${date}T${time || '00:00'}`);
 
-    const reminder = await Reminder.create({
-      student: req.user.id,
-      title,
-      date,
-      time,
-      reminderBefore,
+    const reminder = await prisma.reminder.create({
+      data: {
+        userId: req.user.id,
+        title,
+        dueDate,
+      }
     });
 
-    // Create a notification for the reminder creation
-    await Notification.create({
-      recipient: req.user.id,
-      message: `Reminder set: ${title} on ${new Date(date).toLocaleDateString()} at ${time}.`,
-      type: 'alert',
-      link: '/student/interview-schedule',
+    await prisma.notification.create({
+      data: {
+        userId: req.user.id,
+        message: `Reminder set: ${title} on ${dueDate.toLocaleDateString()}`,
+        type: 'alert'
+      }
     });
 
-    res.status(201).json(reminder);
+    res.status(201).json({ ...reminder, _id: reminder.id });
   } catch (error) {
     next(error);
   }
@@ -33,11 +33,16 @@ exports.createReminder = async (req, res, next) => {
 // @desc    Get current student's reminders
 // @route   GET /api/reminders/my
 // @access  Private (Student)
-exports.getMyReminders = async (req, res, next) => {
+const getMyReminders = async (req, res, next) => {
   try {
-    const reminders = await Reminder.find({ student: req.user.id }).sort({ date: 1 });
-    res.json(reminders);
+    const reminders = await prisma.reminder.findMany({
+      where: { userId: req.user.id },
+      orderBy: { dueDate: 'asc' }
+    });
+    res.json(reminders.map(r => ({ ...r, _id: r.id })));
   } catch (error) {
     next(error);
   }
 };
+
+module.exports = { createReminder, getMyReminders };

@@ -1,6 +1,6 @@
-const User = require('../models/User');
+const prisma = require('../utils/prisma');
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const Profile = require('../models/Profile');
 const generateToken = require('../utils/generateToken');
 const generateRefreshToken = require('../utils/generateRefreshToken');
 const jwt = require('jsonwebtoken');
@@ -9,8 +9,8 @@ const { validateEmailDomain } = require('../utils/domainValidator');
 
 // Helper to set tokens as cookies
 const setTokenCookies = (res, user) => {
-  const token = generateToken(user._id);
-  const refreshToken = generateRefreshToken(user._id);
+  const token = generateToken(user.id);
+  const refreshToken = generateRefreshToken(user.id);
 
   const cookieOptions = {
     httpOnly: true,
@@ -31,67 +31,66 @@ const setTokenCookies = (res, user) => {
 const registerUser = async (req, res, next) => {
   const { name, email, password, role } = req.body;
 
-  // Domain Validation (Defense-in-depth)
+  // Domain Validation
   const { isValid, message } = validateEmailDomain(email, role);
   if (!isValid) {
     return res.status(400).json({ message });
   }
 
   try {
-    const userExists = await User.findOne({ email });
+    const userExists = await prisma.user.findUnique({ where: { email } });
 
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role,
-      status: role === 'recruiter' ? 'pending' : 'active',
+    // Hash password before saving (since Prisma doesn't have pre-save hooks easily)
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: role,
+        status: role === 'recruiter' ? 'pending' : 'active',
+      },
     });
 
     if (user) {
-      // Create empty profile for the user
-      await Profile.create({ user: user._id });
+      // Create specialized profile based on role
+      if (role === 'student') {
+        await prisma.studentProfile.create({ data: { userId: user.id, full_name: user.name } });
+      } else if (role === 'recruiter') {
+        await prisma.recruiterProfile.create({ data: { userId: user.id } });
+      } else if (role === 'admin') {
+        await prisma.adminProfile.create({ data: { userId: user.id } });
+      } else if (role === 'mentor') {
+        await prisma.mentorProfile.create({ data: { userId: user.id } });
+      }
 
-      if (user.role === 'student') {
-        try {
-          await sendEmail({
-            email: user.email,
-            subject: 'Welcome to Placement Management System',
-            template: 'welcome',
-            context: {
-              name: user.name,
-              role: 'student',
-              loginUrl: `${process.env.FRONTEND_URL}/login`
-            }
-          });
-        } catch (err) {
-          console.error('Email failed to send:', err);
-        }
-      } else if (user.role === 'recruiter') {
-        try {
-          await sendEmail({
-            email: user.email,
-            subject: 'Recruiter Account Pending Approval',
-            template: 'welcome',
-            context: {
-              name: user.name,
-              role: 'recruiter',
-              loginUrl: `${process.env.FRONTEND_URL}/login`
-            }
-          });
-        } catch (err) {
-          console.error('Email failed to send:', err);
-        }
+      // Email notifications
+      try {
+        await sendEmail({
+          email: user.email,
+          subject: role === 'recruiter' ? 'Recruiter Account Pending Approval' : 'Welcome to Placement Management System',
+          template: 'welcome',
+          context: {
+            name: user.name,
+            role: user.role,
+            loginUrl: `${process.env.FRONTEND_URL}/login`
+          }
+        });
+      } catch (err) {
+        console.error('Email failed to send:', err);
       }
 
       const { token, refreshToken } = setTokenCookies(res, user);
 
       res.status(201).json({
-        _id: user._id,
+        _id: user.id, // Mapping id to _id for frontend compatibility
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -114,32 +113,39 @@ const authUser = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     // Check if account is locked
-    if (user.lockUntil && user.lockUntil > Date.now()) {
+    if (user.lockUntil && Number(user.lockUntil) > Date.now()) {
       return res.status(401).json({ 
         message: 'Account is locked. Please try again after 15 minutes or reset your password.' 
       });
     }
 
-    if (await user.matchPassword(password)) {
+    // Compare password manually
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (isMatch) {
       // Reset login attempts on success
-      user.loginAttempts = 0;
-      user.lockUntil = undefined;
-      await user.save();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { loginAttempts: 0, lockUntil: null }
+      });
 
       // Check if 2FA is needed (for Admin and Mentors)
       if (user.role === 'admin' || user.role === 'mentor') {
-        // Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        user.otp = otp;
-        user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
-        await user.save();
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { 
+            otp, 
+            otpExpires: new DateTime(Date.now() + 10 * 60 * 1000) 
+          }
+        });
 
         // Send OTP Email
         try {
@@ -147,11 +153,7 @@ const authUser = async (req, res, next) => {
             email: user.email,
             subject: 'Your 2FA Login Code',
             template: 'otp',
-            context: {
-              name: user.name,
-              otp: otp,
-              expiryTime: '10 minutes'
-            }
+            context: { name: user.name, otp, expiryTime: '10 minutes' }
           });
         } catch (err) {
           console.error('OTP Email Error:', err);
@@ -167,7 +169,8 @@ const authUser = async (req, res, next) => {
       const { token, refreshToken } = setTokenCookies(res, user);
 
       res.json({
-        _id: user._id,
+        _id: user.id, // Mapping id to _id for frontend compatibility
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -177,11 +180,16 @@ const authUser = async (req, res, next) => {
       });
     } else {
       // Increment login attempts
-      user.loginAttempts += 1;
-      if (user.loginAttempts >= 5) {
-        user.lockUntil = Date.now() + 15 * 60 * 1000; // 15 min lock
+      const newAttempts = user.loginAttempts + 1;
+      let lockUntil = user.lockUntil;
+      if (newAttempts >= 5) {
+        lockUntil = Date.now() + 15 * 60 * 1000;
       }
-      await user.save();
+      
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { loginAttempts: newAttempts, lockUntil: lockUntil }
+      });
       
       res.status(401).json({ message: 'Invalid email or password' });
     }
@@ -197,21 +205,23 @@ const verifyOTP = async (req, res, next) => {
   const { email, otp } = req.body;
 
   try {
-    const user = await User.findOne({ email }).select('+otp +otpExpires');
+    const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
+    if (!user || user.otp !== otp || (user.otpExpires && user.otpExpires < new DateTime(Date.now()))) {
       return res.status(401).json({ message: 'Invalid or expired OTP' });
     }
 
     // Clear OTP
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    await user.save();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { otp: null, otpExpires: null }
+    });
 
     const { token, refreshToken } = setTokenCookies(res, user);
 
     res.json({
-      _id: user._id,
+      _id: user.id,
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
@@ -236,15 +246,13 @@ const refreshAccessToken = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-    const user = await User.findById(decoded.id);
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid user' });
     }
 
-    const accessToken = generateToken(user._id);
-    
-    // Optional: Rotate refresh token here
+    const accessToken = generateToken(user.id);
     
     res.json({ accessToken });
   } catch (error) {
@@ -267,7 +275,7 @@ const logoutUser = async (req, res) => {
 const forgotPassword = async (req, res, next) => {
   const { email } = req.body;
   try {
-    const user = await User.findOne({ email });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -275,33 +283,33 @@ const forgotPassword = async (req, res, next) => {
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
-    // Hash and set to reset_token field
-    user.reset_token = crypto
+    const hashedToken = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
 
-    // Set expiry
-    user.reset_token_expiry = Date.now() + 15 * 60 * 1000; // 15 mins
-
-    await user.save();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        reset_token: hashedToken,
+        reset_token_expiry: new Date(Date.now() + 15 * 60 * 1000)
+      }
+    });
 
     try {
       await sendEmail({
         email: user.email,
         subject: 'Password Reset Request',
         template: 'password-reset',
-        context: {
-          name: user.name,
-          resetUrl: resetUrl
-        }
+        context: { name: user.name, resetUrl }
       });
       res.json({ message: 'Reset link sent to your email' });
     } catch (err) {
       console.error('SMTP Error:', err);
-      user.reset_token = undefined;
-      user.reset_token_expiry = undefined;
-      await user.save();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { reset_token: null, reset_token_expiry: null }
+      });
       return res.status(500).json({ message: 'Email could not be sent. Please check SMTP settings.' });
     }
   } catch (error) {
@@ -321,20 +329,29 @@ const resetPassword = async (req, res, next) => {
       .update(token)
       .digest('hex');
 
-    const user = await User.findOne({
-      reset_token: hashedToken,
-      reset_token_expiry: { $gt: Date.now() }
+    const user = await prisma.user.findFirst({
+      where: {
+        reset_token: hashedToken,
+        reset_token_expiry: { gt: new Date(Date.now()) }
+      }
     });
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid or expired reset token' });
     }
 
-    // Update password
-    user.password = password;
-    user.reset_token = undefined;
-    user.reset_token_expiry = undefined;
-    await user.save();
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        reset_token: null,
+        reset_token_expiry: null
+      }
+    });
 
     res.json({ message: 'Password reset successful' });
   } catch (error) {
@@ -349,14 +366,19 @@ const updatePassword = async (req, res, next) => {
   const { current_password, new_password } = req.body;
 
   try {
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     
-    if (!(await user.matchPassword(current_password))) {
+    if (!(await bcrypt.compare(current_password, user.password))) {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
 
-    user.password = new_password;
-    await user.save();
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(new_password, salt);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword }
+    });
 
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
@@ -369,9 +391,10 @@ const updatePassword = async (req, res, next) => {
 // @access  Private
 const deactivateAccount = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
-    user.status = 'inactive';
-    await user.save();
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { status: 'inactive' }
+    });
     
     res.clearCookie('token');
     res.clearCookie('refreshToken');

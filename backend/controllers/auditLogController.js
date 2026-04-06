@@ -1,30 +1,31 @@
-const AuditLog = require('../models/AuditLog');
+const prisma = require('../utils/prisma');
 
 // @desc    Get all audit logs (Admin only)
 // @route   GET /api/audit
 // @access  Private/Admin
 const getAuditLogs = async (req, res, next) => {
   try {
-    const logs = await AuditLog.find()
-      .populate('admin', 'name email')
-      .sort({ createdAt: -1 })
-      .limit(100);
-    res.json(logs);
+    const logs = await prisma.auditLog.findMany({
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+    res.json(logs.map(log => ({ ...log, _id: log.id, admin: log.user })));
   } catch (error) {
     next(error);
   }
 };
 
 // Utility function to create a log entry
-const createAuditLog = async (adminId, action, targetType, targetId, details, ipAddress) => {
+const createAuditLog = async (userId, action, targetType, targetId, details, ipAddress) => {
   try {
-    await AuditLog.create({
-      admin: adminId,
-      action,
-      targetType,
-      targetId,
-      details,
-      ipAddress
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action,
+        details: typeof details === 'object' ? JSON.stringify(details) : details,
+        ipAddress
+      }
     });
   } catch (error) {
     console.error('Audit Log Error:', error);

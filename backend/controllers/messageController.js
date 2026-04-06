@@ -1,17 +1,20 @@
-const Message = require('../models/Message');
+const prisma = require('../utils/prisma');
 
 // @desc    Get messages for a conversation
 // @route   GET /api/messages/:otherUserId
 // @access  Private
 const getMessages = async (req, res, next) => {
   try {
-    const messages = await Message.find({
-      $or: [
-        { sender: req.user.id, recipient: req.params.otherUserId },
-        { sender: req.params.otherUserId, recipient: req.user.id }
-      ]
-    }).sort({ createdAt: 1 });
-    res.json(messages);
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: req.user.id, recipientId: req.params.otherUserId },
+          { senderId: req.params.otherUserId, recipientId: req.user.id }
+        ]
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+    res.json(messages.map(m => ({ ...m, _id: m.id, sender: m.senderId, recipient: m.recipientId })));
   } catch (error) {
     next(error);
   }
@@ -23,20 +26,20 @@ const getMessages = async (req, res, next) => {
 const sendMessage = async (req, res, next) => {
   try {
     const { recipient, content } = req.body;
-    const message = await Message.create({
-      sender: req.user.id,
-      recipient,
-      content,
+    const message = await prisma.message.create({
+      data: {
+        senderId: req.user.id,
+        recipientId: recipient,
+        content,
+      }
     });
 
-    // Emit live socket event to the recipient
     const io = req.app.get('io');
-    io.to(recipient.toString()).emit('new_message', {
-      sender: req.user.id,
-      content,
-    });
+    if (io) {
+      io.to(recipient).emit('new_message', { sender: req.user.id, content });
+    }
 
-    res.status(201).json(message);
+    res.status(201).json({ ...message, _id: message.id });
   } catch (error) {
     next(error);
   }
@@ -47,25 +50,27 @@ const sendMessage = async (req, res, next) => {
 // @access  Private
 const getConversations = async (req, res, next) => {
   try {
-    const messages = await Message.find({
-      $or: [{ sender: req.user.id }, { recipient: req.user.id }]
-    })
-    .sort({ createdAt: -1 })
-    .populate('sender', 'name email role')
-    .populate('recipient', 'name email role');
+    const messages = await prisma.message.findMany({
+      where: { OR: [{ senderId: req.user.id }, { recipientId: req.user.id }] },
+      include: {
+        sender: { select: { id: true, name: true, email: true, role: true } },
+        recipient: { select: { id: true, name: true, email: true, role: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
     const conversations = [];
     const userIds = new Set();
 
     messages.forEach(msg => {
-      const otherUser = msg.sender._id.toString() === req.user.id ? msg.recipient : msg.sender;
-      if (!userIds.has(otherUser._id.toString())) {
-        userIds.add(otherUser._id.toString());
+      const otherUser = msg.senderId === req.user.id ? msg.recipient : msg.sender;
+      if (!userIds.has(otherUser.id)) {
+        userIds.add(otherUser.id);
         conversations.push({
-          user: otherUser,
+          user: { ...otherUser, _id: otherUser.id },
           lastMessage: msg.content,
           timestamp: msg.createdAt,
-          isRead: msg.recipient.toString() === req.user.id ? msg.isRead : true
+          isRead: msg.recipientId === req.user.id ? msg.isRead : true
         });
       }
     });

@@ -1,4 +1,4 @@
-const Ticket = require('../models/Ticket');
+const prisma = require('../utils/prisma');
 
 // @desc    Create a new support ticket
 // @route   POST /api/tickets
@@ -6,20 +6,16 @@ const Ticket = require('../models/Ticket');
 const createTicket = async (req, res, next) => {
   try {
     const { subject, message, issue_type } = req.body;
-    let screenshot_path = '';
-
-    if (req.file) {
-      screenshot_path = req.file.path; // Assuming uploadMiddleware/Cloudinary
-    }
-
-    const ticket = await Ticket.create({
-      user: req.user.id,
-      subject: subject || issue_type,
-      message,
-      issue_type,
-      screenshot_path,
+    const ticket = await prisma.ticket.create({
+      data: {
+        userId: req.user.id,
+        subject: subject || issue_type,
+        message,
+        issueType: issue_type,
+        screenshotPath: req.file ? req.file.path : ''
+      }
     });
-    res.status(201).json(ticket);
+    res.status(201).json({ ...ticket, _id: ticket.id });
   } catch (error) {
     next(error);
   }
@@ -30,12 +26,13 @@ const createTicket = async (req, res, next) => {
 // @access  Private
 const getTickets = async (req, res, next) => {
   try {
-    let query = {};
-    if (req.user.role !== 'admin') {
-      query.user = req.user.id;
-    }
-    const tickets = await Ticket.find(query).populate('user', 'name email').sort({ createdAt: -1 });
-    res.json(tickets);
+    const where = req.user.role !== 'admin' ? { userId: req.user.id } : {};
+    const tickets = await prisma.ticket.findMany({
+      where,
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(tickets.map(t => ({ ...t, _id: t.id, user: { ...t.user, _id: t.userId } })));
   } catch (error) {
     next(error);
   }
@@ -47,25 +44,19 @@ const getTickets = async (req, res, next) => {
 const updateTicket = async (req, res, next) => {
   try {
     const { status, response } = req.body;
-    const ticket = await Ticket.findById(req.params.id);
+    const ticket = await prisma.ticket.update({
+      where: { id: req.params.id },
+      data: {
+        status,
+        response,
+        resolvedAt: status === 'resolved' ? new Date() : undefined
+      }
+    });
 
-    if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
-    }
-
-    if (status) ticket.status = status;
-    if (response) ticket.response = response;
-    if (status === 'resolved') ticket.resolvedAt = Date.now();
-
-    await ticket.save();
-    res.json(ticket);
+    res.json({ ...ticket, _id: ticket.id });
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = {
-  createTicket,
-  getTickets,
-  updateTicket,
-};
+module.exports = { createTicket, getTickets, updateTicket };

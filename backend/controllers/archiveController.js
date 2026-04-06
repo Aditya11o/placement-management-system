@@ -1,7 +1,4 @@
-const Archive = require('../models/Archive');
-const Job = require('../models/Job');
-const Application = require('../models/Application');
-const StudentProfile = require('../models/StudentProfile');
+const prisma = require('../utils/prisma');
 
 // @desc    Archive current academic year
 // @route   POST /api/admin/archive
@@ -9,45 +6,44 @@ const StudentProfile = require('../models/StudentProfile');
 const archiveYear = async (req, res, next) => {
   try {
     const { academicYear } = req.body;
+    const existing = await prisma.archive.findUnique({ where: { academicYear } });
+    if (existing) return res.status(400).json({ message: 'Academic year already archived' });
 
-    const existingArchive = await Archive.findOne({ academicYear });
-    if (existingArchive) {
-      return res.status(400).json({ message: 'Academic year already archived' });
-    }
-
-    // Aggregating statistics
-    const totalJobs = await Job.countDocuments();
-    const totalApplications = await Application.countDocuments();
-    const placedStudents = await StudentProfile.countDocuments({ placement_status: 'Placed' });
-    
-    // Calculate average salary (assuming salary is in Job model and we take placed applications)
-    const placedApps = await Application.find({ status: 'Placed' }).populate('job_id');
-    const totalSalary = placedApps.reduce((sum, app) => sum + (app.job_id?.salary || 0), 0);
-    const averageSalary = placedApps.length > 0 ? Math.round(totalSalary / placedApps.length) : 0;
-
-    // Get top companies
-    const companyStats = await Job.aggregate([
-      { $group: { _id: '$companyName', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 }
+    const [totalJobs, totalApplications, placedStudents] = await Promise.all([
+      prisma.job.count(),
+      prisma.application.count(),
+      prisma.studentProfile.count({ where: { placementStatus: 'Placed' } })
     ]);
-    const topCompanies = companyStats.map(c => c._id);
 
-    // Create Archive
-    const archive = await Archive.create({
-      academicYear,
-      totalJobs,
-      totalApplications,
-      placedStudents,
-      averageSalary,
-      topCompanies,
-      closedBy: req.user._id,
-      archivedData: {
-        // You could store more detailed snapshots here
+    const placedApps = await prisma.application.findMany({
+      where: { status: 'Placed' },
+      include: { job: { select: { salary: true } } }
+    });
+
+    const totalSalary = placedApps.reduce((sum, app) => sum + (app.job?.salary || 0), 0);
+    const averageSalary = placedApps.length > 0 ? totalSalary / placedApps.length : 0;
+
+    const companyStats = await prisma.job.groupBy({
+      by: ['companyName'],
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 5
+    });
+    const topCompanies = companyStats.map(c => c.companyName);
+
+    const archive = await prisma.archive.create({
+      data: {
+        academicYear,
+        totalJobs,
+        totalApplications,
+        placedStudents,
+        averageSalary,
+        topCompanies,
+        closedById: req.user.id
       }
     });
 
-    res.status(201).json(archive);
+    res.status(201).json({ ...archive, _id: archive.id });
   } catch (error) {
     next(error);
   }
@@ -58,8 +54,10 @@ const archiveYear = async (req, res, next) => {
 // @access  Private/Admin
 const getArchives = async (req, res, next) => {
   try {
-    const archives = await Archive.find().sort({ academicYear: -1 });
-    res.json(archives);
+    const archives = await prisma.archive.findMany({
+      orderBy: { academicYear: 'desc' }
+    });
+    res.json(archives.map(a => ({ ...a, _id: a.id })));
   } catch (error) {
     next(error);
   }

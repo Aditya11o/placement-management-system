@@ -1,38 +1,32 @@
-const Profile = require('../models/Profile');
-const Job = require('../models/Job');
-const MentorshipBooking = require('../models/MentorshipBooking');
-const User = require('../models/User');
+const prisma = require('../utils/prisma');
 
 // @desc    Get dashboard stats for alumni
 // @route   GET /api/alumni/dashboard
 // @access  Private (Alumni/Mentor only)
-exports.getDashboardStats = async (req, res) => {
+const getDashboardStats = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const profile = await prisma.alumniProfile.findUnique({ where: { userId: req.user.id } });
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
-    // Active referrals
-    const referralsGiven = await Job.countDocuments({ recruiter: userId, isAlumniPost: true });
+    const [referralsGiven, completedSessions] = await Promise.all([
+      prisma.job.count({ where: { alumniId: profile.id, isAlumniPost: true } }),
+      prisma.mentorshipBooking.count({ where: { alumniId: profile.id, status: 'completed' } })
+    ]);
     
-    // Mentorship hours (dummy calculation based on completed sessions, assuming 1hr per session)
-    const completedSessions = await MentorshipBooking.countDocuments({ alumni: userId, status: 'completed' });
+    const uniqueStudents = await prisma.mentorshipBooking.groupBy({
+      by: ['studentId'],
+      where: { alumniId: profile.id }
+    });
     
-    // Student impact (students booked + applicants on referrals)
-    // We'll count unique students who booked + dummy math for referrals
-    const uniqueStudents = await MentorshipBooking.distinct('student', { alumni: userId });
-    
-    // Sum of applicationsCount for their referrals
-    const referralJobs = await Job.find({ recruiter: userId, isAlumniPost: true });
+    const referralJobs = await prisma.job.findMany({ where: { alumniId: profile.id, isAlumniPost: true } });
     const applicantsOnReferrals = referralJobs.reduce((acc, job) => acc + (job.applicationsCount || 0), 0);
-
-    const studentImpact = uniqueStudents.length + applicantsOnReferrals;
 
     res.json({
       referralsGiven,
       mentorshipHours: completedSessions,
-      studentImpact
+      studentImpact: uniqueStudents.length + applicantsOnReferrals
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -40,30 +34,25 @@ exports.getDashboardStats = async (req, res) => {
 // @desc    Update alumni profile details
 // @route   PUT /api/alumni/profile
 // @access  Private
-exports.updateAlumniProfile = async (req, res) => {
+const updateAlumniProfile = async (req, res) => {
   try {
     const { company, designation, graduationYear, expertise, isAvailableForMentorship, linkedin, github } = req.body;
     
-    let profile = await Profile.findOne({ user: req.user._id });
-    
-    if (!profile) {
-      profile = new Profile({ user: req.user._id });
-    }
+    const profile = await prisma.alumniProfile.upsert({
+      where: { userId: req.user.id },
+      update: {
+        company, designation, graduationYear: parseInt(graduationYear), expertise,
+        isAvailableForMentorship: !!isAvailableForMentorship, linkedin, github
+      },
+      create: {
+        userId: req.user.id,
+        company, designation, graduationYear: parseInt(graduationYear), expertise,
+        isAvailableForMentorship: !!isAvailableForMentorship, linkedin, github
+      }
+    });
 
-    profile.alumniDetails = {
-      ...profile.alumniDetails,
-      company,
-      designation,
-      graduationYear,
-      expertise,
-      isAvailableForMentorship,
-      socialLinks: { linkedin, github }
-    };
-
-    await profile.save();
-    res.json(profile);
+    res.json({ ...profile, _id: profile.id });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -71,18 +60,13 @@ exports.updateAlumniProfile = async (req, res) => {
 // @desc    Get Alumni Directory for Students
 // @route   GET /api/alumni/directory
 // @access  Private (Students)
-exports.getDirectory = async (req, res) => {
+const getDirectory = async (req, res) => {
   try {
-    // Find all profiles where user is an alumni or mentor
-    const alumniUsers = await User.find({ role: { $in: ['alumni', 'mentor'] }, status: 'active' }).select('_id name email profilePhoto');
-    const alumniIds = alumniUsers.map(u => u._id);
-
-    const profiles = await Profile.find({ user: { $in: alumniIds } })
-      .populate('user', 'name email profilePhoto role');
-
-    res.json(profiles);
+    const profiles = await prisma.alumniProfile.findMany({
+      include: { user: { select: { name: true, email: true, profilePhoto: true, role: true } } }
+    });
+    res.json(profiles.map(p => ({ ...p, _id: p.id, user: { ...p.user, _id: p.userId } })));
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -90,12 +74,15 @@ exports.getDirectory = async (req, res) => {
 // @desc    Get all active job referrals by this alumni
 // @route   GET /api/alumni/referrals
 // @access  Private
-exports.getReferrals = async (req, res) => {
+const getReferrals = async (req, res) => {
   try {
-    const referrals = await Job.find({ recruiter: req.user._id, isAlumniPost: true }).sort('-createdAt');
-    res.json(referrals);
+    const profile = await prisma.alumniProfile.findUnique({ where: { userId: req.user.id } });
+    const referrals = await prisma.job.findMany({
+      where: { alumniId: profile?.id, isAlumniPost: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(referrals.map(r => ({ ...r, _id: r.id })));
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -103,32 +90,28 @@ exports.getReferrals = async (req, res) => {
 // @desc    Create a job referral
 // @route   POST /api/alumni/referrals
 // @access  Private
-exports.createReferral = async (req, res) => {
+const createReferral = async (req, res) => {
   try {
     const { title, description, companyName, location, salary, jobType, deadline, eligibility } = req.body;
-    
-    // Generate random Job ID if not passed
+    const profile = await prisma.alumniProfile.findUnique({ where: { userId: req.user.id } });
+    const recruiter = await prisma.recruiterProfile.findFirst(); // Fallback recruiter if needed, or link to a generic admin
+
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    
-    const referral = new Job({
-      job_id: `REF-${random}`,
-      recruiter: req.user._id,
-      title,
-      description,
-      companyName,
-      location,
-      salary,
-      jobType,
-      deadline,
-      eligibility,
-      isAlumniPost: true,
-      status: 'open'
+    const referral = await prisma.job.create({
+      data: {
+        jobId: `REF-${random}`,
+        recruiterId: recruiter.id, // Linking to a recruiter profile for compatibility
+        alumniId: profile.id,
+        title, description, companyName, location, salary,
+        jobType: jobType.replace(' ', '_'),
+        deadline: new Date(deadline),
+        isAlumniPost: true,
+        status: 'open'
+      }
     });
 
-    await referral.save();
-    res.status(201).json(referral);
+    res.status(201).json({ ...referral, _id: referral.id });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -136,27 +119,21 @@ exports.createReferral = async (req, res) => {
 // @desc    Book mentorship session
 // @route   POST /api/alumni/mentorship/request
 // @access  Private (Student)
-exports.bookMentorship = async (req, res) => {
+const bookMentorship = async (req, res) => {
   try {
     const { alumniId, requestedDate, query } = req.body;
     
-    const count = await MentorshipBooking.countDocuments({ student: req.user._id, alumni: alumniId, status: 'pending' });
-    if (count > 0) {
-      return res.status(400).json({ message: 'You already have a pending request with this mentor.' });
-    }
+    const existing = await prisma.mentorshipBooking.findFirst({
+      where: { studentId: req.user.id, alumniId, status: 'pending' }
+    });
+    if (existing) return res.status(400).json({ message: 'Pending request exists.' });
 
-    const booking = new MentorshipBooking({
-      student: req.user._id,
-      alumni: alumniId,
-      requestedDate,
-      query,
-      status: 'pending'
+    const booking = await prisma.mentorshipBooking.create({
+      data: { studentId: req.user.id, alumniId, requestedDate: new Date(requestedDate), query, status: 'pending' }
     });
 
-    await booking.save();
-    res.status(201).json(booking);
+    res.status(201).json({ ...booking, _id: booking.id });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -164,22 +141,26 @@ exports.bookMentorship = async (req, res) => {
 // @desc    Get Mentorship Requests (Incoming for Alumni, Outgoing for Student)
 // @route   GET /api/alumni/mentorship/requests
 // @access  Private
-exports.getMentorshipRequests = async (req, res) => {
+const getMentorshipRequests = async (req, res) => {
   try {
     let requests = [];
     if (req.user.role === 'student') {
-      requests = await MentorshipBooking.find({ student: req.user._id })
-        .populate('alumni', 'name profilePhoto email')
-        .sort('-createdAt');
+      requests = await prisma.mentorshipBooking.findMany({
+        where: { studentId: req.user.id },
+        include: { alumni: { include: { user: { select: { name: true, profilePhoto: true, email: true } } } } },
+        orderBy: { createdAt: 'desc' }
+      });
     } else {
-      requests = await MentorshipBooking.find({ alumni: req.user._id })
-        .populate('student', 'name profilePhoto email')
-        .sort('-createdAt');
+      const profile = await prisma.alumniProfile.findUnique({ where: { userId: req.user.id } });
+      requests = await prisma.mentorshipBooking.findMany({
+        where: { alumniId: profile?.id },
+        include: { student: { select: { name: true, profilePhoto: true, email: true } } },
+        orderBy: { createdAt: 'desc' }
+      });
     }
     
-    res.json(requests);
+    res.json(requests.map(r => ({ ...r, _id: r.id })));
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -187,26 +168,29 @@ exports.getMentorshipRequests = async (req, res) => {
 // @desc    Update Mentorship Status (Accept/Reject)
 // @route   PUT /api/alumni/mentorship/:id
 // @access  Private (Alumni)
-exports.updateMentorshipStatus = async (req, res) => {
+const updateMentorshipStatus = async (req, res) => {
   try {
     const { status, meetingLink, feedback } = req.body;
-    const booking = await MentorshipBooking.findById(req.params.id);
-
-    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    const profile = await prisma.alumniProfile.findUnique({ where: { userId: req.user.id } });
     
-    // Ensure only the assigned alumni can update
-    if (booking.alumni.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
+    const booking = await prisma.mentorshipBooking.update({
+      where: { id: req.params.id },
+      data: { status, meetingLink, feedback }
+    });
 
-    booking.status = status || booking.status;
-    if (meetingLink) booking.meetingLink = meetingLink;
-    if (feedback) booking.feedback = feedback;
-
-    await booking.save();
-    res.json(booking);
+    res.json({ ...booking, _id: booking.id });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
+module.exports = {
+  getDashboardStats,
+  updateAlumniProfile,
+  getDirectory,
+  getReferrals,
+  createReferral,
+  bookMentorship,
+  getMentorshipRequests,
+  updateMentorshipStatus
 };

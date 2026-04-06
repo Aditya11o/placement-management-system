@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const prisma = require('../utils/prisma');
 
 // Protect routes
 const protect = async (req, res, next) => {
@@ -19,7 +19,7 @@ const protect = async (req, res, next) => {
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      req.user = await User.findById(decoded.id).select('-password');
+      req.user = await prisma.user.findUnique({ where: { id: decoded.id } });
 
       if (!req.user) {
         res.status(401);

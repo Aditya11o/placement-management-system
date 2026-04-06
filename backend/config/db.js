@@ -1,11 +1,12 @@
-const mongoose = require('mongoose');
+const prisma = require('../utils/prisma');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/pms');
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    // Prisma connects lazily, but we can verify connection with a simple query
+    await prisma.$queryRaw`SELECT 1`;
+    console.log(`PostgreSQL Connected (via Prisma)`);
   } catch (error) {
-    console.error(`Error: ${error.message}`);
+    console.error(`Database Connection Error: ${error.message}`);
     process.exit(1);
   }
 };

@@ -1,4 +1,4 @@
-const Resource = require('../models/Resource');
+const prisma = require('../utils/prisma');
 
 // @desc    Get all resources
 // @route   GET /api/resources
@@ -6,9 +6,11 @@ const Resource = require('../models/Resource');
 const getResources = async (req, res, next) => {
   try {
     const { category } = req.query;
-    const query = category ? { category } : {};
-    const resources = await Resource.find(query).sort({ createdAt: -1 });
-    res.json(resources);
+    const resources = await prisma.resource.findMany({
+      where: category ? { category } : {},
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(resources.map(r => ({ ...r, _id: r.id })));
   } catch (error) {
     next(error);
   }
@@ -18,21 +20,24 @@ const getResources = async (req, res, next) => {
 // @route   POST /api/resources
 // @access  Private (Admin)
 const createResource = async (req, res, next) => {
-  const { title, description, category, type, content, instructor, duration, thumbnail, tags } = req.body;
+  const { title, description, category, type, content, instructor, duration, thumbnail, tags, url } = req.body;
   try {
-    const resource = await Resource.create({
-      title,
-      description,
-      category,
-      type,
-      content,
-      instructor,
-      duration,
-      thumbnail,
-      tags,
-      addedBy: req.user.id,
+    const resource = await prisma.resource.create({
+      data: {
+        title,
+        description,
+        category,
+        type,
+        content,
+        instructor,
+        duration,
+        thumbnail,
+        tags: Array.isArray(tags) ? tags : [],
+        url: url || '',
+        addedById: req.user.id,
+      },
     });
-    res.status(201).json(resource);
+    res.status(201).json({ ...resource, _id: resource.id });
   } catch (error) {
     next(error);
   }
@@ -43,10 +48,7 @@ const createResource = async (req, res, next) => {
 // @access  Private (Admin)
 const deleteResource = async (req, res, next) => {
   try {
-    const resource = await Resource.findById(req.params.id);
-    if (!resource) return res.status(404).json({ message: 'Resource not found' });
-
-    await resource.deleteOne();
+    await prisma.resource.delete({ where: { id: req.params.id } });
     res.json({ message: 'Resource removed' });
   } catch (error) {
     next(error);

@@ -1,10 +1,4 @@
-const StudentProfile = require('../models/StudentProfile');
-const Application = require('../models/Application');
-const Job = require('../models/Job');
-const Notification = require('../models/Notification');
-const StudentSettings = require('../models/StudentSettings');
-const StudentResume = require('../models/StudentResume');
-const User = require('../models/User');
+const prisma = require('../utils/prisma');
 const bcrypt = require('bcryptjs');
 
 // @desc    Get student dashboard data
@@ -12,53 +6,50 @@ const bcrypt = require('bcryptjs');
 // @access  Private
 const getStudentDashboard = async (req, res, next) => {
   try {
-    const studentId = req.user.id;
+    const userId = req.user.id;
+    const profile = await prisma.studentProfile.findUnique({ where: { userId } });
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
-    // 1. Stats
-    const totalApplied = await Application.countDocuments({ student: studentId });
-    const underReview = await Application.countDocuments({ student: studentId, status: { $in: ['Applied', 'Under Review'] } });
-    const shortlisted = await Application.countDocuments({ student: studentId, status: 'Shortlisted' });
-    const selected = await Application.countDocuments({ student: studentId, status: { $in: ['Selected', 'Accepted', 'Placed'] } });
-    const rejected = await Application.countDocuments({ student: studentId, status: 'Rejected' });
-    const totalJobs = await Job.countDocuments({ status: 'open', deadline: { $gte: new Date() } });
+    const [totalApplied, underReview, shortlisted, selected, rejected, totalJobs] = await Promise.all([
+      prisma.application.count({ where: { studentId: profile.id } }),
+      prisma.application.count({ where: { studentId: profile.id, status: { in: ['Applied', 'Under Review'] } } }),
+      prisma.application.count({ where: { studentId: profile.id, status: 'Shortlisted' } }),
+      prisma.application.count({ where: { studentId: profile.id, status: { in: ['Selected', 'Accepted', 'Placed'] } } }),
+      prisma.application.count({ where: { studentId: profile.id, status: 'Rejected' } }),
+      prisma.job.count({ where: { status: 'open', deadline: { gte: new Date() } } })
+    ]);
 
-    // 2. Recent Applications (5)
-    const recentApplications = await Application.find({ student: studentId })
-      .populate('job', 'title companyName status deadline')
-      .sort({ createdAt: -1 })
-      .limit(5);
+    const recentApplications = await prisma.application.findMany({
+      where: { studentId: profile.id },
+      include: { job: { select: { title: true, companyName: true, status: true, deadline: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    });
 
-    // 3. Upcoming Interviews
-    const upcomingInterviews = await Application.find({ 
-      student: studentId, 
-      interviewDate: { $gte: new Date() } 
-    })
-      .populate('job', 'title companyName location')
-      .sort({ interviewDate: 1 });
+    const upcomingInterviews = await prisma.application.findMany({
+      where: { studentId: profile.id, interviewDate: { gte: new Date() } },
+      include: { job: { select: { title: true, companyName: true, location: true } } },
+      orderBy: { interviewDate: 'asc' }
+    });
 
-    // 4. Recent Jobs (5)
-    const recentJobs = await Job.find({ status: 'open', deadline: { $gte: new Date() } })
-      .sort({ createdAt: -1 })
-      .limit(5);
+    const recentJobs = await prisma.job.findMany({
+      where: { status: 'open', deadline: { gte: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    });
 
-    // 5. Recent Notifications (5)
-    const notifications = await Notification.find({ user_id: studentId })
-      .sort({ createdAt: -1 })
-      .limit(5);
+    const notifications = await prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    });
 
     res.json({
-      stats: {
-        totalJobs,
-        applied: totalApplied,
-        underReview,
-        shortlisted,
-        selected,
-        rejected
-      },
-      applications: recentApplications,
-      interviews: upcomingInterviews,
-      jobs: recentJobs,
-      notifications
+      stats: { totalJobs, applied: totalApplied, underReview, shortlisted, selected, rejected },
+      applications: recentApplications.map(a => ({ ...a, _id: a.id, job: { ...a.job, _id: a.jobId } })),
+      interviews: upcomingInterviews.map(i => ({ ...i, _id: i.id, job: { ...i.job, _id: i.jobId } })),
+      jobs: recentJobs.map(j => ({ ...j, _id: j.id })),
+      notifications: notifications.map(n => ({ ...n, _id: n.id }))
     });
   } catch (error) {
     next(error);
@@ -70,51 +61,29 @@ const getStudentDashboard = async (req, res, next) => {
 // @access  Private
 const getStudentResume = async (req, res, next) => {
   try {
-    const profile = await StudentProfile.findOne({ user_id: req.user.id });
-    
-    if (!profile || (!profile.resume_path && !profile.resume)) {
-      return res.status(404).json({ message: 'No resume found' });
-    }
-
-    res.json({ 
-      resume_url: profile.resume_path || profile.resume,
-      success: true 
-    });
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    if (!profile || !profile.resumePath) return res.status(404).json({ message: 'No resume found' });
+    res.json({ resume_url: profile.resumePath, success: true });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Update student profile
-// @route   PUT /api/students/profile
-// @access  Private
 const updateStudentProfile = async (req, res, next) => {
   try {
-    const { full_name, phone } = req.body;
-    let profile = await StudentProfile.findOne({ user_id: req.user.id });
+    const { name, phone, branch, course, cgpa } = req.body;
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { name }
+    });
 
-    if (!profile) {
-      profile = new StudentProfile({
-        user_id: req.user.id,
-        full_name: full_name || req.user.name,
-        email: req.user.email,
-        phone
-      });
-    } else {
-      if (full_name) profile.full_name = full_name;
-      if (phone) profile.phone = phone;
-    }
+    const profile = await prisma.studentProfile.upsert({
+      where: { userId: req.user.id },
+      update: { phone, branch, course, cgpa: parseFloat(cgpa) },
+      create: { userId: req.user.id, phone, branch, course, cgpa: parseFloat(cgpa) }
+    });
 
-    await profile.save();
-
-    // Also update User name if changed
-    if (full_name) {
-      const user = await User.findById(req.user.id);
-      user.name = full_name;
-      await user.save();
-    }
-
-    res.json({ success: true, message: 'Profile updated successfully', profile });
+    res.json({ success: true, message: 'Profile updated successfully', profile: { ...profile, _id: profile.id } });
   } catch (error) {
     next(error);
   }
@@ -126,15 +95,16 @@ const updateStudentProfile = async (req, res, next) => {
 const changePassword = async (req, res, next) => {
   try {
     const { current_password, new_password } = req.body;
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
 
-    const isMatch = await user.matchPassword(current_password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid current password' });
-    }
+    const isMatch = await bcrypt.compare(current_password, user.password);
+    if (!isMatch) return res.status(401).json({ message: 'Invalid current password' });
 
-    user.password = new_password;
-    await user.save();
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { password: hashedPassword }
+    });
 
     res.json({ success: true, message: 'Password updated successfully' });
   } catch (error) {
@@ -147,28 +117,29 @@ const changePassword = async (req, res, next) => {
 // @access  Private
 const getNotificationSettings = async (req, res, next) => {
   try {
-    let settings = await StudentSettings.findOne({ user_id: req.user.id });
-    if (!settings) {
-      settings = await StudentSettings.create({ user_id: req.user.id });
+    const profile = await prisma.studentProfile.findUnique({ 
+        where: { userId: req.user.id },
+        include: { settings: true }
+    });
+    if (!profile.settings) {
+       const settings = await prisma.studentSettings.create({ data: { studentId: profile.id } });
+       return res.json(settings);
     }
-    res.json(settings.notifications);
+    res.json(profile.settings);
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Update notification settings
-// @route   PUT /api/students/notification-settings
-// @access  Private
 const updateNotificationSettings = async (req, res, next) => {
   try {
-    let settings = await StudentSettings.findOne({ user_id: req.user.id });
-    if (!settings) {
-      settings = new StudentSettings({ user_id: req.user.id });
-    }
-    settings.notifications = { ...settings.notifications, ...req.body };
-    await settings.save();
-    res.json({ success: true, message: 'Notification settings updated', notifications: settings.notifications });
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    const settings = await prisma.studentSettings.upsert({
+      where: { studentId: profile.id },
+      update: req.body,
+      create: { studentId: profile.id, ...req.body }
+    });
+    res.json({ success: true, message: 'Settings updated', settings });
   } catch (error) {
     next(error);
   }
@@ -211,35 +182,37 @@ const updatePrivacySettings = async (req, res, next) => {
 // @access  Private
 const uploadStudentResume = async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
     const { makePrimary } = req.body;
-    const resume_url = `/uploads/resumes/${req.file.filename}`;
-    const resume_name = req.file.originalname;
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    const url = `/uploads/resumes/${req.file.filename}`;
+    const name = req.file.originalname;
 
     if (makePrimary === 'true' || makePrimary === true) {
-      await StudentResume.updateMany({ student_id: req.user.id }, { isPrimary: false });
+      await prisma.studentResume.updateMany({
+        where: { studentId: profile.id },
+        data: { isDefault: false }
+      });
     }
 
-    const resume = await StudentResume.create({
-      student_id: req.user.id,
-      resume_url,
-      resume_name,
-      isPrimary: makePrimary === 'true' || makePrimary === true
+    const resume = await prisma.studentResume.create({
+      data: {
+        studentId: profile.id,
+        url,
+        name,
+        isDefault: makePrimary === 'true' || makePrimary === true
+      }
     });
 
-    // Also update StudentProfile resume_path for compatibility if primary
     if (makePrimary === 'true' || makePrimary === true) {
-      await StudentProfile.findOneAndUpdate(
-        { user_id: req.user.id },
-        { resume_path: resume_url },
-        { upsert: true }
-      );
+      await prisma.studentProfile.update({
+        where: { id: profile.id },
+        data: { resumePath: url }
+      });
     }
 
-    res.status(201).json({ success: true, message: 'Resume uploaded successfully', resume });
+    res.status(201).json({ success: true, message: 'Resume uploaded successfully', resume: { ...resume, _id: resume.id } });
   } catch (error) {
     next(error);
   }
@@ -251,35 +224,32 @@ const uploadStudentResume = async (req, res, next) => {
 const createBuiltResume = async (req, res, next) => {
   try {
     const { resume_name, content, makePrimary } = req.body;
-
-    if (!resume_name || !content) {
-      return res.status(400).json({ message: 'Resume name and content are required' });
-    }
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
 
     if (makePrimary) {
-      await StudentResume.updateMany({ student_id: req.user.id }, { isPrimary: false });
+      await prisma.studentResume.updateMany({
+        where: { studentId: profile.id },
+        data: { isDefault: false }
+      });
     }
 
-    // For a built resume, the URL might be a special placeholder or we'll generate it later.
-    // For now, let's just save the data.
-    const resume = await StudentResume.create({
-      student_id: req.user.id,
-      resume_name,
-      resume_url: 'built-resume', // Placeholder
-      isBuilt: true,
-      content,
-      isPrimary: !!makePrimary
+    const resume = await prisma.studentResume.create({
+      data: {
+        studentId: profile.id,
+        name: resume_name,
+        url: 'built-resume',
+        isDefault: !!makePrimary
+      }
     });
 
     if (makePrimary) {
-      await StudentProfile.findOneAndUpdate(
-        { user_id: req.user.id },
-        { resume_path: 'built-resume' },
-        { upsert: true }
-      );
+      await prisma.studentProfile.update({
+        where: { id: profile.id },
+        data: { resumePath: 'built-resume' }
+      });
     }
 
-    res.status(201).json({ success: true, message: 'Resume built successfully', resume });
+    res.status(201).json({ success: true, message: 'Resume built successfully', resume: { ...resume, _id: resume.id } });
   } catch (error) {
     next(error);
   }
@@ -290,21 +260,27 @@ const createBuiltResume = async (req, res, next) => {
 // @access  Private
 const setPrimaryResume = async (req, res, next) => {
   try {
-    const resume = await StudentResume.findOne({ _id: req.params.id, student_id: req.user.id });
-    if (!resume) {
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    const resume = await prisma.studentResume.findUnique({ where: { id: req.params.id } });
+    
+    if (!resume || resume.studentId !== profile.id) {
       return res.status(404).json({ message: 'Resume not found' });
     }
 
-    await StudentResume.updateMany({ student_id: req.user.id }, { isPrimary: false });
-    resume.isPrimary = true;
-    await resume.save();
+    await prisma.studentResume.updateMany({
+      where: { studentId: profile.id },
+      data: { isDefault: false }
+    });
 
-    // Update profile
-    await StudentProfile.findOneAndUpdate(
-      { user_id: req.user.id },
-      { resume_path: resume.resume_url },
-      { upsert: true }
-    );
+    await prisma.studentResume.update({
+      where: { id: req.params.id },
+      data: { isDefault: true }
+    });
+
+    await prisma.studentProfile.update({
+      where: { id: profile.id },
+      data: { resumePath: resume.url }
+    });
 
     res.json({ success: true, message: 'Primary resume updated' });
   } catch (error) {
@@ -317,16 +293,20 @@ const setPrimaryResume = async (req, res, next) => {
 // @access  Private
 const deleteStudentResume = async (req, res, next) => {
   try {
-    const resume = await StudentResume.findOneAndDelete({ _id: req.params.id, student_id: req.user.id });
-    if (!resume) {
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    const resume = await prisma.studentResume.findUnique({ where: { id: req.params.id } });
+    
+    if (!resume || resume.studentId !== profile.id) {
       return res.status(404).json({ message: 'Resume not found' });
     }
 
-    // If it was the primary resume, clear from profile
-    const profile = await StudentProfile.findOne({ user_id: req.user.id });
-    if (profile && profile.resume_path === resume.resume_url) {
-      profile.resume_path = '';
-      await profile.save();
+    await prisma.studentResume.delete({ where: { id: req.params.id } });
+
+    if (profile.resumePath === resume.url) {
+      await prisma.studentProfile.update({
+        where: { id: profile.id },
+        data: { resumePath: '' }
+      });
     }
 
     res.json({ success: true, message: 'Resume deleted successfully' });
@@ -340,8 +320,12 @@ const deleteStudentResume = async (req, res, next) => {
 // @access  Private
 const getStudentResumes = async (req, res, next) => {
   try {
-    const resumes = await StudentResume.find({ student_id: req.user.id }).sort({ upload_date: -1 });
-    res.json(resumes);
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    const resumes = await prisma.studentResume.findMany({
+      where: { studentId: profile.id },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(resumes.map(r => ({ ...r, _id: r.id })));
   } catch (error) {
     next(error);
   }
@@ -352,29 +336,19 @@ const getStudentResumes = async (req, res, next) => {
 // @access  Private
 const deactivateAccount = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
-    user.status = 'inactive';
-    await user.save();
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { status: 'inactive' }
+    });
     res.json({ success: true, message: 'Account deactivated successfully' });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Delete account
-// @route   DELETE /api/students/delete-account
-// @access  Private
 const deleteAccount = async (req, res, next) => {
   try {
-    // Delete all related data
-    await Promise.all([
-      User.findByIdAndDelete(req.user.id),
-      StudentProfile.findOneAndDelete({ user_id: req.user.id }),
-      StudentSettings.findOneAndDelete({ user_id: req.user.id }),
-      StudentResume.deleteMany({ user_id: req.user.id }),
-      Application.deleteMany({ student: req.user.id }),
-      Notification.deleteMany({ user_id: req.user.id })
-    ]);
+    await prisma.user.delete({ where: { id: req.user.id } });
     res.json({ success: true, message: 'Account deleted successfully' });
   } catch (error) {
     next(error);

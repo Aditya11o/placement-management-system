@@ -1,15 +1,4 @@
-const User = require('../models/User');
-const Profile = require('../models/Profile');
-const StudentProfile = require('../models/StudentProfile');
-const RecruiterProfile = require('../models/RecruiterProfile');
-const CompanyProfile = require('../models/CompanyProfile');
-const Application = require('../models/Application');
-const AdminProfile = require('../models/AdminProfile');
-const Job = require('../models/Job');
-const Notification = require('../models/Notification');
-const Settings = require('../models/Settings');
-const { createAuditLog } = require('./auditLogController');
-const { cloudinary, uploadToCloudinary } = require('../utils/cloudinary');
+const prisma = require('../utils/prisma');
 const sendEmail = require('../utils/emailUtils');
 
 // @desc    Get all pending skill verifications
@@ -17,29 +6,29 @@ const sendEmail = require('../utils/emailUtils');
 // @access  Private (Admin)
 const getPendingVerifications = async (req, res, next) => {
   try {
-    const profiles = await Profile.find({
-      'studentDetails.verifiedSkills.status': 'Pending'
-    }).populate('user', 'name email');
-
-    const verifications = [];
-    profiles.forEach(p => {
-      p.studentDetails.verifiedSkills.forEach(v => {
-        if (v.status === 'Pending') {
-          verifications.push({
-            profileId: p._id,
-            userId: p.user._id,
-            userName: p.user.name,
-            userEmail: p.user.email,
-            skill: v.skill,
-            certificateUrl: v.certificateUrl,
-            appliedAt: v.appliedAt,
-            verificationId: v._id
-          });
+    const verifications = await prisma.skillVerification.findMany({
+      where: { status: 'Pending' },
+      include: {
+        student: {
+          include: {
+            user: { select: { name: true, email: true } }
+          }
         }
-      });
+      }
     });
 
-    res.json(verifications);
+    const formatted = verifications.map(v => ({
+      id: v.id,
+      _id: v.id,
+      userId: v.student.userId,
+      userName: v.student.user.name,
+      userEmail: v.student.user.email,
+      skill: v.skill,
+      certificateUrl: v.certificateUrl,
+      appliedAt: v.createdAt
+    }));
+
+    res.json(formatted);
   } catch (error) {
     next(error);
   }
@@ -126,26 +115,26 @@ const verifySkill = async (req, res, next) => {
 // @access  Private (Admin)
 const getStats = async (req, res, next) => {
   try {
-    const totalStudents = await User.countDocuments({ role: 'student' });
-    const totalRecruiters = await User.countDocuments({ role: 'recruiter' });
-    const totalJobs = await Job.countDocuments();
-    const totalApplications = await Application.countDocuments();
-    const placedStudents = await Application.countDocuments({ status: 'Selected' });
-    const totalInterviews = await Application.countDocuments({ 
-      'interviewDate': { $exists: true, $ne: null } 
+    const [totalStudents, totalRecruiters, totalJobs, totalApplications, placedStudents, totalInterviews] = await Promise.all([
+      prisma.user.count({ where: { role: 'student' } }),
+      prisma.user.count({ where: { role: 'recruiter' } }),
+      prisma.job.count(),
+      prisma.application.count(),
+      prisma.application.count({ where: { status: 'Selected' } }),
+      prisma.application.count({ where: { NOT: { interviewDate: null } } })
+    ]);
+
+    const appBreakdown = await prisma.application.groupBy({
+      by: ['status'],
+      _count: { _all: true }
     });
 
-    // Application Status Breakdown
-    const appBreakdown = await Application.aggregate([
-      { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]);
-
-    // Jobs per Company (Top 5)
-    const jobsPerCompany = await Job.aggregate([
-      { $group: { _id: '$companyName', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 }
-    ]);
+    const jobsPerCompany = await prisma.job.groupBy({
+      by: ['companyName'],
+      _count: { _all: true },
+      orderBy: { _count: { companyName: 'desc' } },
+      take: 5
+    });
 
     res.json({
       totalStudents,
@@ -154,8 +143,8 @@ const getStats = async (req, res, next) => {
       totalApplications,
       placedStudents,
       totalInterviews,
-      appBreakdown,
-      jobsPerCompany
+      appBreakdown: appBreakdown.map(b => ({ _id: b.status, count: b._count._all })),
+      jobsPerCompany: jobsPerCompany.map(c => ({ _id: c.companyName, count: c._count._all }))
     });
   } catch (error) {
     next(error);
@@ -164,54 +153,25 @@ const getStats = async (req, res, next) => {
 
 const getUsers = async (req, res, next) => {
   try {
-    const users = await User.find({}).select('-password').sort({ createdAt: -1 }).lean();
-    
-    const usersWithProfiles = await Promise.all(users.map(async (user) => {
-      let profile = null;
-      try {
-        if (user.role === 'student') {
-          // Look in both specialized StudentProfile and legacy Profile
-          profile = await StudentProfile.findOne({ user_id: user._id }).lean();
-          if (!profile) {
-            const legacyProfile = await Profile.findOne({ user: user._id }).lean();
-            if (legacyProfile && legacyProfile.studentDetails) {
-              // Map legacy to new format for frontend consistency
-              profile = {
-                ...legacyProfile.studentDetails,
-                _id: legacyProfile._id
-              };
-            }
-          }
-        } else if (user.role === 'recruiter') {
-          // Recruiters use RecruiterProfile which links to CompanyProfile
-          const recruiterProfile = await RecruiterProfile.findOne({ user: user._id }).populate('company').lean();
-          if (recruiterProfile) {
-            profile = {
-              ...recruiterProfile,
-              companyName: recruiterProfile.company?.company_name,
-              website: recruiterProfile.company?.website,
-              location: recruiterProfile.company?.location,
-              industry: recruiterProfile.company?.industry,
-              companyLogo: recruiterProfile.company?.company_logo
-            };
-          } else {
-            // Check legacy
-            const legacyProfile = await Profile.findOne({ user: user._id }).lean();
-            if (legacyProfile && legacyProfile.recruiterDetails) {
-              profile = {
-                ...legacyProfile.recruiterDetails,
-                _id: legacyProfile._id
-              };
-            }
-          }
-        }
-      } catch (profileErr) {
-        console.error(`Error fetching profile for user ${user._id}:`, profileErr);
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        studentProfile: true,
+        recruiterProfile: true
       }
-      return { ...user, profile };
-    }));
+    });
+    
+    const formatted = users.map(user => {
+      let profile = null;
+      if (user.role === 'student' && user.studentProfile) {
+        profile = { ...user.studentProfile, _id: user.studentProfile.id };
+      } else if (user.role === 'recruiter' && user.recruiterProfile) {
+        profile = { ...user.recruiterProfile, _id: user.recruiterProfile.id };
+      }
+      return { ...user, _id: user.id, profile };
+    });
 
-    res.json(usersWithProfiles);
+    res.json(formatted);
   } catch (error) {
     next(error);
   }
@@ -288,61 +248,38 @@ const approveRecruiter = async (req, res, next) => {
 // @access  Private (Admin)
 const verifyUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id);
-    if (user) {
-      user.isVerified = req.body.isVerified ?? user.isVerified;
-      user.status = req.body.status ?? user.status;
-      user.name = req.body.name || user.name;
-      
-      // Handle Profile update if provided
-      if (user.role === 'student' && (req.body.course || req.body.cgpa)) {
-        let profile = await StudentProfile.findOne({ user_id: user._id });
-        if (!profile) {
-          profile = await Profile.findOne({ user: user._id });
-        }
-        
-        if (profile) {
-          if (profile.studentDetails) {
-            // Legacy format
-            profile.studentDetails.course = req.body.course || profile.studentDetails.course;
-            profile.studentDetails.cgpa = req.body.cgpa || profile.studentDetails.cgpa;
-          } else {
-            // New format
-            profile.course = req.body.course || profile.course;
-            profile.current_cgpa = req.body.cgpa || profile.current_cgpa;
-          }
-          await profile.save();
-        }
-      } else if (user.role === 'recruiter') {
-        let recruiterProfile = await RecruiterProfile.findOne({ user: user._id });
-        if (recruiterProfile) {
-          let company = await CompanyProfile.findById(recruiterProfile.company);
-          if (company) {
-            if (req.body.companyName) company.company_name = req.body.companyName;
-            if (req.body.website !== undefined) company.website = req.body.website;
-            if (req.body.industry !== undefined) company.industry = req.body.industry;
-            if (req.body.location !== undefined) company.location = req.body.location;
-            await company.save();
-          }
-        }
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: {
+        isVerified: req.body.isVerified,
+        status: req.body.status,
+        name: req.body.name
       }
+    });
 
-      await user.save();
-
-      // Audit Log
-      await createAuditLog(
-        req.user.id,
-        'VERIFY_USER',
-        'User',
-        user._id,
-        `Updated user status: ${user.status}, Verified: ${user.isVerified}`,
-        req.ip
-      );
-
-      res.json({ message: 'User updated successfully' });
-    } else {
-      return res.status(404).json({ message: 'User not found' });
+    if (user.role === 'student' && (req.body.course || req.body.cgpa)) {
+      await prisma.studentProfile.update({
+        where: { userId: user.id },
+        data: {
+          course: req.body.course,
+          cgpa: req.body.cgpa
+        }
+      });
+    } else if (user.role === 'recruiter') {
+      const profile = await prisma.recruiterProfile.findUnique({ where: { userId: user.id } });
+      if (profile) {
+        await prisma.recruiterProfile.update({
+          where: { id: profile.id },
+          data: {
+            companyName: req.body.companyName,
+            companyWebsite: req.body.website,
+            location: req.body.location
+          }
+        });
+      }
     }
+
+    res.json({ message: 'User updated successfully' });
   } catch (error) {
     next(error);
   }
@@ -354,26 +291,15 @@ const verifyUser = async (req, res, next) => {
 const bulkUpdateUsers = async (req, res, next) => {
   const { userIds, isVerified, status } = req.body;
   try {
-    const result = await User.updateMany(
-      { _id: { $in: userIds } },
-      { $set: { 
-          ...(isVerified !== undefined && { isVerified }),
-          ...(status !== undefined && { status })
-        } 
+    const result = await prisma.user.updateMany({
+      where: { id: { in: userIds } },
+      data: {
+        isVerified,
+        status
       }
-    );
+    });
 
-    // Audit Log
-    await createAuditLog(
-      req.user.id,
-      'BULK_UPDATE_USERS',
-      'User',
-      null,
-      `Updated ${result.modifiedCount} users to status: ${status}, verified: ${isVerified}`,
-      req.ip
-    );
-
-    res.json({ message: `Successfully updated ${result.modifiedCount} users` });
+    res.json({ message: `Successfully updated ${result.count} users` });
   } catch (error) {
     next(error);
   }
@@ -385,7 +311,10 @@ const bulkUpdateUsers = async (req, res, next) => {
 const bulkSendEmail = async (req, res, next) => {
   const { userIds, subject, message, title } = req.body;
   try {
-    const users = await User.find({ _id: { $in: userIds } }).select('email name');
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { email: true, name: true }
+    });
     
     // Process in batches to prevent SMTP flooding
     const batchSize = 10;
@@ -407,16 +336,6 @@ const bulkSendEmail = async (req, res, next) => {
       ));
     }
 
-    // Audit Log
-    await createAuditLog(
-        req.user.id,
-        'BULK_SEND_EMAIL',
-        'User',
-        null,
-        `Sent bulk email "${subject}" to ${users.length} users`,
-        req.ip
-      );
-
     res.json({ message: `Emails sent to ${users.length} users` });
   } catch (error) {
     next(error);
@@ -430,30 +349,25 @@ const bulkSendEmail = async (req, res, next) => {
 const createStudent = async (req, res, next) => {
   const { name, email, password, course, branch, cgpa } = req.body;
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User with this email already exists' });
-    }
-
-    const user = await User.create({
-      name,
-      email,
-      password: password || 'Password@123',
-      role: 'student',
-      isVerified: true,
-      status: 'active'
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: password || 'Password@123',
+        role: 'student',
+        isVerified: true,
+        status: 'active',
+        studentProfile: {
+          create: {
+            course,
+            branch,
+            cgpa: parseFloat(cgpa) || 0
+          }
+        }
+      }
     });
 
-    // Create Student Profile
-    await StudentProfile.create({
-      user_id: user._id,
-      course,
-      department: branch,
-      current_cgpa: cgpa || 0,
-      skills: []
-    });
-
-    res.status(201).json({ message: 'Student created successfully', user });
+    res.status(201).json({ message: 'Student created successfully', user: { ...user, _id: user.id } });
   } catch (error) {
     next(error);
   }
@@ -581,8 +495,15 @@ const getPlacementReports = async (req, res, next) => {
 const getRecentActivities = async (req, res, next) => {
   try {
     const [users, jobs] = await Promise.all([
-      User.find({ role: { $ne: 'admin' } }).sort({ createdAt: -1 }).limit(5),
-      Job.find().populate('recruiter', 'name').sort({ createdAt: -1 }).limit(5)
+      prisma.user.findMany({
+        where: { role: { not: 'admin' } },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      }),
+      prisma.job.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      })
     ]);
 
     const activities = [
@@ -597,7 +518,7 @@ const getRecentActivities = async (req, res, next) => {
         date: j.createdAt,
         type: 'Job Posted',
         desc: `${j.title}`,
-        user: { name: j.recruiter?.name || 'Recruiter', role: 'Recruiter', initials: j.recruiter?.name?.[0] || 'R' },
+        user: { name: j.companyName, role: 'Recruiter', initials: j.companyName[0] },
         status: j.status === 'open' ? 'Published' : 'Draft'
       }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
@@ -613,15 +534,30 @@ const getRecentActivities = async (req, res, next) => {
 // @access  Private (Admin)
 const getCompanyHistory = async (req, res, next) => {
   try {
-    const jobs = await Job.find({ recruiter: req.params.id }).select('_id');
-    const jobIds = jobs.map(j => j._id);
+    const history = await prisma.application.findMany({
+      where: { job: { recruiterId: req.params.id } },
+      include: {
+        student: { select: { name: true, userId: true } },
+        job: { select: { title: true, salary: true } }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
 
-    const history = await Application.find({ job: { $in: jobIds } })
-      .populate('student', 'name email')
-      .populate('job', 'title salary')
-      .sort({ updatedAt: -1 });
+    const studentIds = history.map(h => h.studentId);
+    const users = await prisma.user.findMany({
+       where: { id: { in: studentIds } },
+       select: { email: true, id: true }
+    });
+    const userMap = new Map(users.map(u => [u.id, u.email]));
 
-    res.json(history);
+    const formatted = history.map(h => ({
+      ...h,
+       _id: h.id,
+       student: { name: h.student.name, email: userMap.get(h.student.userId) },
+       job: { ...h.job, _id: h.jobId }
+    }));
+
+    res.json(formatted);
   } catch (error) {
     next(error);
   }
@@ -633,93 +569,47 @@ const getCompanyHistory = async (req, res, next) => {
 const getAdvancedAnalytics = async (req, res, next) => {
   try {
     // 1. Department Placement Mix
-    const deptPlacement = await StudentProfile.aggregate([
-      { $group: {
-        _id: '$department',
-        total: { $sum: 1 },
-        placed: { $sum: { $cond: [{ $eq: ['$placement_status', 'Placed'] }, 1, 0] } }
-      }}
-    ]);
+    const deptPlacement = await prisma.studentProfile.groupBy({
+      by: ['branch'],
+      _count: { _all: true },
+    });
 
     // 2. Salary Aggregates
-    const salaryTrends = await Job.aggregate([
-      { $addFields: {
-        numSalary: { $toDouble: { $ifNull: [ "$salary", "0" ] } }
-      }},
-      { $group: {
-        _id: null,
-        min: { $min: "$numSalary" },
-        max: { $max: "$numSalary" },
-        avg: { $avg: "$numSalary" }
-      }}
-    ]);
+    const salaryAggr = await prisma.job.aggregate({
+      _min: { salary: true },
+      _max: { salary: true },
+      _avg: { salary: true }
+    });
 
     // 3. Top Hiring Companies
-    const topHiring = await Application.aggregate([
-      { $match: { status: 'Selected' } },
-      { $lookup: {
-        from: 'jobs',
-        localField: 'job',
-        foreignField: '_id',
-        as: 'jobDetails'
-      }},
-      { $unwind: '$jobDetails' },
-      { $group: {
-        _id: '$jobDetails.companyName',
-        count: { $sum: 1 }
-      }},
-      { $sort: { count: -1 } },
-      { $limit: 10 }
-    ]);
-    const currentYear = new Date().getFullYear();
-    const yearlyTrends = await StudentProfile.aggregate([
-      { $match: { passing_year: { $gte: currentYear - 4, $lte: currentYear + 1 } } },
-      { $group: {
-          _id: '$passing_year',
-          total: { $sum: 1 },
-          placed: { $sum: { $cond: [{ $eq: ['$placement_status', 'Placed'] }, 1, 0] } }
-      }},
-      { $sort: { _id: 1 } }
-    ]);
+    const topHiring = await prisma.application.groupBy({
+      by: ['jobId'],
+      _count: { _all: true },
+      where: { status: 'Selected' }
+    });
 
-    // 5. Salary Distribution (Density)
-    const salaryDistribution = await Job.aggregate([
-      {
-        $bucket: {
-          groupBy: '$salary',
-          boundaries: [0, 3, 6, 10, 15, 25, 100],
-          default: '25L+',
-          output: {
-            count: { $sum: 1 },
-            avgSalary: { $avg: '$salary' }
-          }
-        }
-      }
-    ]);
+    // 4. Yearly Trends
+    const yearlyTrends = await prisma.studentProfile.groupBy({
+      by: ['passingYear'],
+      _count: { _all: true }
+    });
 
-    // 6. Course-wise Breakdown
-    const courseStats = await StudentProfile.aggregate([
-      { $group: {
-          _id: '$course',
-          total: { $sum: 1 },
-          placed: { $sum: { $cond: [{ $eq: ['$placement_status', 'Placed'] }, 1, 0] } }
-      }},
-      { $sort: { total: -1 } }
-    ]);
-
-    // 7. Overall Placement Status (Pie Chart)
-    const statusBreakdown = await StudentProfile.aggregate([
-      { $group: { _id: '$placement_status', count: { $sum: 1 } } }
-    ]);
+    // 7. Overall Placement Status
+    const statusBreakdown = await prisma.studentProfile.groupBy({
+      by: ['placementStatus'],
+      _count: { _all: true }
+    });
 
     res.json({
-      deptPlacement,
-      salaryTrends: salaryTrends[0] || { min: 0, max: 0, avg: 0 },
-      topHiring,
-      yearlyTrends,
-      salaryDistribution,
-      courseStats,
-      statusBreakdown
+      deptPlacement: deptPlacement.map(d => ({ _id: d.branch, total: d._count._all })),
+      salaryTrends: { 
+        min: parseFloat(salaryAggr._min.salary) || 0, 
+        max: parseFloat(salaryAggr._max.salary) || 0, 
+        avg: parseFloat(salaryAggr._avg.salary) || 0 
+      },
+      topHiring: topHiring.map(h => ({ _id: h.jobId, count: h._count._all })),
+      yearlyTrends: yearlyTrends.map(y => ({ _id: y.passingYear, total: y._count._all })),
+      statusBreakdown: statusBreakdown.map(s => ({ _id: s.placementStatus, count: s._count._all }))
     });
   } catch (error) {
     next(error);
@@ -731,21 +621,18 @@ const getAdvancedAnalytics = async (req, res, next) => {
 // @access  Private (Admin)
 const getAdminMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
-    let adminProfile = await AdminProfile.findOne({ user: user._id });
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { adminProfile: true }
+    });
     
-    if (!adminProfile) {
-      adminProfile = new AdminProfile({
-        user: user._id,
-        admin_id: 'ADM-' + Math.floor(100000 + Math.random() * 900000),
-        full_name: user.name,
-        email: user.email,
-        phone: 'Not provided',
-        password: user.password || 'default'
+    if (!user.adminProfile) {
+      const profile = await prisma.adminProfile.create({
+        data: { userId: user.id }
       });
-      await adminProfile.save();
+      return res.json({ ...user, _id: user.id, adminProfile: profile });
     }
-    res.json({ ...user.toObject(), phone: adminProfile.phone, admin_id: adminProfile.admin_id });
+    res.json({ ...user, _id: user.id });
   } catch (error) {
     next(error);
   }
@@ -756,39 +643,17 @@ const getAdminMe = async (req, res, next) => {
 // @access  Private (Admin)
 const updateAdminProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: 'Admin not found' });
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        name: req.body.name,
+        profilePhoto: req.body.profilePhoto,
+        email: req.body.email
+      },
+      include: { adminProfile: true }
+    });
 
-    if (req.body.name) user.name = req.body.name;
-    
-    if (req.body.profilePhoto) {
-      if (req.body.profilePhoto.startsWith('data:image')) {
-        const uploadRes = await uploadToCloudinary(req.body.profilePhoto, {
-          folder: 'pms/profiles'
-        }, 'avatar');
-        user.profilePhoto = uploadRes.secure_url;
-      } else {
-        user.profilePhoto = req.body.profilePhoto;
-      }
-    }
-    
-    if (req.body.email && req.body.email !== user.email) {
-      const emailExists = await User.findOne({ email: req.body.email });
-      if (emailExists) return res.status(400).json({ message: 'Email is already in use' });
-      user.email = req.body.email;
-    }
-    
-    const updatedUser = await user.save();
-
-    let adminProfile = await AdminProfile.findOne({ user: user._id });
-    if (adminProfile) {
-      adminProfile.full_name = updatedUser.name;
-      adminProfile.email = updatedUser.email;
-      if (req.body.phone !== undefined) adminProfile.phone = req.body.phone;
-      await adminProfile.save();
-    }
-
-    res.json({ ...updatedUser.toObject(), phone: adminProfile?.phone || req.body.phone });
+    res.json({ ...user, _id: user.id });
   } catch (error) {
     next(error);
   }
@@ -799,9 +664,9 @@ const updateAdminProfile = async (req, res, next) => {
 // @access  Private (Admin)
 const getSystemSettings = async (req, res, next) => {
   try {
-    let settings = await Settings.findOne();
+    let settings = await prisma.systemSettings.findFirst();
     if (!settings) {
-      settings = await Settings.create({});
+      settings = await prisma.systemSettings.create({ data: {} });
     }
     res.json(settings);
   } catch (error) {
@@ -809,58 +674,27 @@ const getSystemSettings = async (req, res, next) => {
   }
 };
 
-// @desc    Update global system settings
-// @route   PATCH /api/admin/settings
-// @access  Private (Admin)
 const updateSystemSettings = async (req, res, next) => {
   try {
-    let settings = await Settings.findOne();
-    if (!settings) settings = new Settings({});
-    
-    const updatableFields = [
-      'studentRegistration', 'recruiterRegistration', 'jobApproval',
-      'emailNotifications', 'maintenanceMode', 'portalName', 'universityName'
-    ];
-    
-    updatableFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        settings[field] = req.body[field];
-      }
+    const settings = await prisma.systemSettings.findFirst();
+    const updated = await prisma.systemSettings.update({
+      where: { id: settings.id },
+      data: req.body
     });
-    
-    settings.updatedBy = req.user.id;
-    await settings.save();
-    
-    await createAuditLog(req.user.id, 'UPDATE_SETTINGS', 'System', null, { changes: req.body });
-    res.json(settings);
+    res.json(updated);
   } catch (error) {
     next(error);
   }
 };
-
-// @desc    Unlock a locked user account (reset login attempts & lockout)
-// @route   PATCH /api/admin/users/:id/unlock
-// @access  Private (Admin)
 const unlockUserAccount = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id).select('+loginAttempts +lockUntil');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    user.loginAttempts = 0;
-    user.lockUntil = undefined;
-    await user.save();
-
-    // Audit Log
-    await createAuditLog(
-      req.user.id,
-      'UNLOCK_USER',
-      'User',
-      user._id,
-      `Admin unlocked account for: ${user.email}`,
-      req.ip
-    );
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: {
+        loginAttempts: 0,
+        lockUntil: null
+      }
+    });
 
     res.json({ message: `Account for ${user.email} has been unlocked successfully` });
   } catch (error) {

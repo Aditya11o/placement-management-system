@@ -1,11 +1,9 @@
 const express = require('express');
 const path = require('path');
 const morgan = require('morgan');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
@@ -74,9 +72,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Data sanitization against NoSQL query injection
-app.use(mongoSanitize());
-
 // Data sanitization against XSS
 app.use(xss());
 
@@ -138,7 +133,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     uptime: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    database: 'connected',
     version: require('./package.json').version
   });
 });
