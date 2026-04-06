@@ -126,6 +126,7 @@ app.use('/api/faqs', require('./routes/faqRoutes'));
 app.use('/api/mock-interviews', require('./routes/mockInterviewRoutes'));
 app.use('/api/reminders', require('./routes/reminderRoutes'));
 app.use('/api/interviews', require('./routes/interviewRoutes'));
+app.use('/api/experiences', require('./routes/experienceRoutes'));
 
 // Health Check Route
 app.get('/api/health', (req, res) => {

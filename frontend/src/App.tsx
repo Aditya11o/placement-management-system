@@ -26,15 +26,16 @@ const Notifications = React.lazy(() => import('./pages/student/Notifications'));
 const CareerResources = React.lazy(() => import('./pages/student/CareerResources'));
 const Settings = React.lazy(() => import('./pages/student/Settings'));
 const StudentProfile = React.lazy(() => import('./pages/student/Profile'));
-const ResumeManager = React.lazy(() => import('./pages/student/ResumeManager'));
 const ResumeBuilder = React.lazy(() => import('./pages/student/ResumeBuilder'));
 
 const MockInterviews = React.lazy(() => import('./pages/student/MockInterviews'));
 const HelpSupport = React.lazy(() => import('./pages/student/HelpSupport'));
 const Announcements = React.lazy(() => import('./pages/student/Announcements'));
 const ResourceCategory = React.lazy(() => import('./pages/student/ResourceCategory'));
-const AlumniDirectory = React.lazy(() => import('./pages/student/AlumniDirectory'));
 const InterviewHistory = React.lazy(() => import('./pages/student/InterviewHistory'));
+const ExperienceForum = React.lazy(() => import('./pages/student/ExperienceForum'));
+const CreateExperience = React.lazy(() => import('./pages/student/CreateExperience'));
+const ExperienceDetail = React.lazy(() => import('./pages/student/ExperienceDetail'));
 const ManageJobs = React.lazy(() => import('./pages/recruiter/ManageJobs'));
 const AdminManageJobs = React.lazy(() => import('./pages/admin/ManageJobs'));
 const Applicants = React.lazy(() => import('./pages/recruiter/Applicants'));
@@ -57,6 +58,7 @@ const AdminProfile = React.lazy(() => import('./pages/admin/Profile'));
 const Chat = React.lazy(() => import('./pages/Chat'));
 const ManageVerifications = React.lazy(() => import('./pages/admin/ManageVerifications'));
 const AuditLogs = React.lazy(() => import('./pages/admin/AuditLogs'));
+const AdminManageExperiences = React.lazy(() => import('./pages/admin/ManageExperiences'));
 import ToastManager from './components/ToastManager';
 const App: React.FC = () => {
   return (
@@ -99,12 +101,15 @@ const App: React.FC = () => {
             <Route path="notifications" element={<Notifications />} />
             <Route path="announcements" element={<Announcements />} />
             <Route path="resources/:category" element={<ResourceCategory />} />
-            <Route path="alumni" element={<AlumniDirectory />} />
+            <Route path="alumni" element={<Navigate to="/student/settings?tab=alumni" replace />} />
             <Route path="support" element={<Support />} />
             <Route path="help-support" element={<HelpSupport />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="resumes" element={<ResumeManager />} />
+            <Route path="resumes" element={<Navigate to="/student/settings?tab=resumes" replace />} />
             <Route path="resume-builder" element={<ResumeBuilder />} />
+            <Route path="experiences" element={<ExperienceForum />} />
+            <Route path="experiences/create" element={<CreateExperience />} />
+            <Route path="experiences/:id" element={<ExperienceDetail />} />
             <Route path="chat" element={<Chat />} />
           </Route>
 
@@ -136,6 +141,7 @@ const App: React.FC = () => {
             <Route path="reports" element={<AdminReports />} />
             <Route path="notifications" element={<AdminManageNotifications />} />
             <Route path="audit" element={<AuditLogs />} />
+            <Route path="experiences" element={<AdminManageExperiences />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="chat" element={<Chat />} />
           </Route>

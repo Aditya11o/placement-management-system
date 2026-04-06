@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react';
- 
+import { useSearchParams } from 'react-router-dom';
 import ProfileSkeleton from '../../components/skeletons/ProfileSkeleton';
 import api from '../../api';
 import { useAuth } from '../../context/AuthContext';
-// @ts-ignore
 import { toast } from 'react-hot-toast';
 
 // Sub-components
 import AccountSettingsCard from '../../components/settings/AccountSettingsCard';
 import PasswordSettingsCard from '../../components/settings/PasswordSettingsCard';
-import ResumeSettingsCard from '../../components/settings/ResumeSettingsCard';
 import NotificationPrivacyCards from '../../components/settings/NotificationPrivacyCards';
 import AccountActionsCard from '../../components/settings/AccountActionsCard';
+import SettingsResumesTab from '../../components/settings/SettingsResumesTab';
+import SettingsAlumniTab from '../../components/settings/SettingsAlumniTab';
 import ConfirmModal from '../../components/ConfirmModal';
-import { LogOut, Trash2, AlertTriangle, Power } from 'lucide-react';
+import { LogOut, AlertTriangle, Power, User, Shield, FileText, Users, Bell } from 'lucide-react';
 
 const Settings: React.FC = () => {
   const { logout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'general';
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -47,7 +50,6 @@ const Settings: React.FC = () => {
     showEmail: true
   });
 
-  const [resumes, setResumes] = useState<any[]>([]);
   const [confirmState, setConfirmState] = useState<{
     isOpen: boolean;
     type: 'danger' | 'warning' | 'info';
@@ -66,11 +68,10 @@ const Settings: React.FC = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const [profRes, notifRes, privRes, resumeRes] = await Promise.all([
+        const [profRes, notifRes, privRes] = await Promise.all([
           api.get('/profile/me'),
           api.get('/students/notification-settings'),
-          api.get('/students/privacy-settings'),
-          api.get('/students/resume')
+          api.get('/students/privacy-settings')
         ]);
 
         setProfile({
@@ -82,7 +83,6 @@ const Settings: React.FC = () => {
 
         setNotifications(notifRes.data);
         setPrivacy(privRes.data);
-        setResumes(resumeRes.data);
       } catch (err) {
         console.error('Error fetching settings:', err);
         toast.error('Failed to load settings');
@@ -154,42 +154,6 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleResumeDelete = (id: string) => {
-    setConfirmState({
-      isOpen: true,
-      type: 'danger',
-      title: 'Delete Resume',
-      message: 'Are you sure you want to permanently remove this resume from your profile?',
-      onConfirm: async () => {
-        try {
-          await api.delete(`/students/resume/${id}`);
-          setResumes(resumes.filter(r => r._id !== id));
-          toast.success('Resume deleted successfully');
-        } catch (err) {
-          toast.error('Failed to delete resume');
-        }
-      },
-      icon: Trash2
-    });
-  };
-
-  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('resume', file);
-
-    const uploadToast = toast.loading('Uploading resume...');
-    try {
-      const { data } = await api.post('/students/upload-resume', formData);
-      setResumes([data.resume, ...resumes]);
-      toast.success('Resume uploaded successfully', { id: uploadToast });
-    } catch (err) {
-      toast.error('Failed to upload resume', { id: uploadToast });
-    }
-  };
-
   const handleDeactivate = () => {
     setConfirmState({
       isOpen: true,
@@ -242,54 +206,112 @@ const Settings: React.FC = () => {
     });
   };
 
+  const tabs = [
+    { id: 'general', name: 'General', icon: User },
+    { id: 'privacy', name: 'Privacy & Alerts', icon: Bell },
+    { id: 'resumes', name: 'My Resumes', icon: FileText },
+    { id: 'alumni', name: 'Alumni Network', icon: Users },
+  ];
+
+  if (loading) return <ProfileSkeleton />;
+
   return (
     <div className="space-y-6 pb-12">
       
       {/* Page Header */}
       <div className="flex flex-col gap-1">
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-1 block">Preferences</span>
-        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Settings</h1>
-        <p className="text-gray-500 font-bold mt-1 tracking-tight">Manage your account preferences, privacy, and notifications.</p>
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-1 block">Account Management</span>
+        <h1 className="text-3xl font-black text-gray-900 tracking-tight">System Settings</h1>
+        <p className="text-gray-500 font-bold mt-1 tracking-tight">Configure your profile, security, career assets, and global network visibility.</p>
       </div>
 
-      <div className="grid grid-cols-12 gap-6 mt-6 relative">
-        {loading && <ProfileSkeleton />}
-        
-        {/* Left Column */}
-        <div className="col-span-12 lg:col-span-8 space-y-6">
-          <AccountSettingsCard
-            profile={profile}
-            saving={saving}
-            onProfileChange={(updates) => setProfile({ ...profile, ...updates })}
-            onSave={handleUpdateProfile}
-          />
-          <PasswordSettingsCard
-            passwords={passwords}
-            saving={saving}
-            onPasswordChange={(updates) => setPasswords({ ...passwords, ...updates })}
-            onSave={handlePasswordUpdate}
-          />
-          <ResumeSettingsCard
-            resumes={resumes}
-            onDelete={handleResumeDelete}
-            onUpload={handleResumeUpload}
-          />
-        </div>
+      {/* Modern Tab Bar */}
+      <div className="flex flex-wrap items-center gap-3 bg-gray-100 p-1.5 rounded-2xl w-fit">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setSearchParams({ tab: tab.id })}
+              className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${
+                isActive 
+                  ? 'bg-white text-blue-600 shadow-xl shadow-black/5 scale-[1.02]' 
+                  : 'text-gray-400 hover:text-gray-700 hover:bg-white/50'
+              }`}
+            >
+              <Icon size={14} className={isActive ? 'text-blue-600' : 'text-gray-400'} />
+              {tab.name}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Right Column */}
-        <div className="col-span-12 lg:col-span-4 space-y-6">
-          <NotificationPrivacyCards
-            notifications={notifications}
-            privacy={privacy}
-            onToggleNotification={handleToggleNotification}
-            onTogglePrivacy={handleTogglePrivacy}
-          />
-          <AccountActionsCard
-            onDeactivate={handleDeactivate}
-            onDelete={handleDeleteAccount}
-            onLogout={handleLogout}
-          />
-        </div>
+      <div className="mt-6">
+        
+        {/* General Settings Tab */}
+        {activeTab === 'general' && (
+          <div className="grid grid-cols-12 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="col-span-12 lg:col-span-8 space-y-6">
+              <AccountSettingsCard
+                profile={profile}
+                saving={saving}
+                onProfileChange={(updates) => setProfile({ ...profile, ...updates })}
+                onSave={handleUpdateProfile}
+              />
+              <PasswordSettingsCard
+                passwords={passwords}
+                saving={saving}
+                onPasswordChange={(updates) => setPasswords({ ...passwords, ...updates })}
+                onSave={handlePasswordUpdate}
+              />
+            </div>
+            <div className="col-span-12 lg:col-span-4 space-y-6">
+               <AccountActionsCard
+                onDeactivate={handleDeactivate}
+                onDelete={handleDeleteAccount}
+                onLogout={handleLogout}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Privacy & Notifications Tab */}
+        {activeTab === 'privacy' && (
+          <div className="grid grid-cols-12 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="col-span-12 lg:col-span-7">
+              <NotificationPrivacyCards
+                notifications={notifications}
+                privacy={privacy}
+                onToggleNotification={handleToggleNotification}
+                onTogglePrivacy={handleTogglePrivacy}
+              />
+            </div>
+            <div className="col-span-12 lg:col-span-5 space-y-6">
+               <div className="p-8 bg-blue-50 rounded-[32px] border border-blue-100/50">
+                  <Shield size={32} className="text-blue-600 mb-4" />
+                  <h3 className="text-lg font-black text-gray-900 tracking-tight mb-2">Privacy Shield</h3>
+                  <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                    We take your data privacy seriously. Your phone number and email are hidden by default unless you choose to share them with verified recruiters or the alumni network.
+                  </p>
+               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Resumes Tab */}
+        {activeTab === 'resumes' && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <SettingsResumesTab />
+          </div>
+        )}
+
+        {/* Alumni Network Tab */}
+        {activeTab === 'alumni' && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <SettingsAlumniTab />
+          </div>
+        )}
 
       </div>
 

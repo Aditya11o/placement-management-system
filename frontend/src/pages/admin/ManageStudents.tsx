@@ -21,6 +21,14 @@ const ManageStudents: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [complianceStats, setComplianceStats] = useState({
+    totalStudents: 0,
+    unverified: 0,
+    missingResume: 0,
+    incompleteProfile: 0,
+    healthScore: 0
+  });
+  const [activeTab, setActiveTab] = useState('All');
   const [formData, setFormData] = useState({ name: '', email: '', password: '', course: 'BCA', branch: 'Computer Science', cgpa: '' });
   const [confirmState, setConfirmState] = useState<{
     isOpen: boolean;
@@ -40,19 +48,35 @@ const ManageStudents: React.FC = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get('/admin/users');
-      const filtered = data.filter((u: any) => u.role === 'student').map((u: any) => ({
-        _id: u._id, name: u.name, email: u.email,
-        course: u.profile?.course || u.profile?.studentDetails?.course || 'N/A',
-        branch: u.profile?.department || u.profile?.studentDetails?.branch || 'N/A',
-        cgpa: u.profile?.current_cgpa || u.profile?.studentDetails?.cgpa || '0.0',
-        skills: u.profile?.skills || u.profile?.studentDetails?.skills || [],
-        regDate: new Date(u.createdAt).toLocaleDateString(),
-        status: u.isVerified ? 'Approved' : 'Pending',
-        isVerified: u.isVerified,
-        avatar: u.profilePhoto || u.profile?.profile_photo || u.profile?.profilePhoto || u.profile?.studentDetails?.profilePhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`,
-        original: u
-      }));
+      const [{ data: userData }, { data: complianceData }] = await Promise.all([
+        api.get('/admin/users'),
+        api.get('/admin/students/compliance')
+      ]);
+      
+      setComplianceStats(complianceData);
+      
+      const filtered = userData.filter((u: any) => u.role === 'student').map((u: any) => {
+        const profile = u.studentProfile || u.profile || u.studentDetails || {};
+        const issues = [];
+        if (!profile.resume) issues.push('Missing Resume');
+        if ((profile.profileCompletion || 0) < 80) issues.push('Incomplete Profile');
+        if (!profile.academicVerified) issues.push('Unverified');
+
+        return {
+          _id: u._id || u.id, name: u.name, email: u.email,
+          course: profile.course || 'N/A',
+          branch: profile.department || profile.branch || 'N/A',
+          cgpa: profile.current_cgpa || profile.cgpa || '0.0',
+          skills: profile.skills || [],
+          regDate: new Date(u.createdAt).toLocaleDateString(),
+          status: u.isVerified ? 'Approved' : 'Pending',
+          isVerified: u.isVerified,
+          academicVerified: profile.academicVerified,
+          issues,
+          avatar: u.profilePhoto || profile.profile_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`,
+          original: u
+        };
+      });
       setStudents(filtered);
     } catch (err: any) { showError('Failed to fetch students', 'Fetch Error'); }
     finally { setLoading(false); }
@@ -112,6 +136,20 @@ const ManageStudents: React.FC = () => {
     }
   };
 
+  const handleBulkAcademicVerify = async (isVerified: boolean) => {
+    try {
+      setSubmitting(true);
+      await api.patch('/admin/students/bulk-academic-verify', { studentIds: selectedIds, isVerified });
+      showSuccess(`Updated academic verification for ${selectedIds.length} students!`, 'Academic Verify');
+      setSelectedIds([]);
+      fetchStudents();
+    } catch (err: any) {
+      showError('Failed to verify students academics', 'Verify Error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const toggleSelectAll = () => {
     if (selectedIds.length === filteredStudents.length) {
       setSelectedIds([]);
@@ -150,11 +188,15 @@ const ManageStudents: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  const filteredStudents = students.filter(s =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.course.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredStudents = students.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.course.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (activeTab === 'Unverified') return matchesSearch && !s.academicVerified;
+    if (activeTab === 'Issues') return matchesSearch && s.issues.length > 0;
+    return matchesSearch;
+  });
 
   return (
     <div className="space-y-6 animate-fade-in relative pb-10">
@@ -167,14 +209,44 @@ const ManageStudents: React.FC = () => {
         <button onClick={() => { setFormData({ name: '', email: '', password: '', course: 'BCA', branch: 'Computer Science', cgpa: '' }); setIsAddModalOpen(true); }} className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#000613] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-black/10 hover:scale-105 transition-all"><UserPlus size={18} />Add Student</button>
       </div>
 
-      {/* Search */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+      {/* Compliance Pulse */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Unverified', count: complianceStats.unverified, color: 'rose', icon: ShieldCheck, tab: 'Unverified' },
+          { label: 'Compliance Issues', count: complianceStats.missingResume + complianceStats.incompleteProfile, color: 'orange', icon: AlertCircle, tab: 'Issues' },
+          { label: 'Missing Resumes', count: complianceStats.missingResume, color: 'amber', icon: Eye, tab: 'All' },
+          { label: 'Health Score', count: `${complianceStats.healthScore}%`, color: 'blue', icon: CheckCircle, tab: 'All' }
+        ].map((stat, i) => (
+          <button 
+            key={i} 
+            onClick={() => setActiveTab(stat.tab)}
+            className={`p-5 rounded-3xl border transition-all text-left group ${activeTab === stat.tab ? 'bg-white border-[#000613] shadow-lg scale-[1.02]' : 'bg-white/50 border-gray-100 hover:border-gray-300'}`}
+          >
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-4 bg-${stat.color}-50 text-${stat.color}-600 group-hover:scale-110 transition-transform`}>
+              <stat.icon size={20} />
+            </div>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</p>
+            <h4 className="text-2xl font-black text-gray-900 tracking-tighter mt-1">{stat.count}</h4>
+          </button>
+        ))}
+      </div>
+
+      {/* Tabs & Search */}
+      <div className="bg-white border border-gray-100 rounded-[2rem] p-4 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm">
+        <div className="flex p-1 bg-gray-50 rounded-2xl w-full md:w-auto">
+          {['All', 'Unverified', 'Issues'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-[#000613] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
         <div className="relative flex-1 w-full max-w-lg group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-[#000613] transition-colors"><Search size={18} /></div>
           <input type="text" placeholder="Search by name, email, or course..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-gray-50 border border-gray-100 rounded-xl py-2.5 pl-11 pr-4 text-sm font-bold text-gray-900 outline-none focus:bg-white focus:border-[#000613] focus:ring-4 focus:ring-[#000613]/5 transition-all" />
-        </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Total Students: {students.length}</span>
         </div>
       </div>
 
@@ -215,8 +287,32 @@ const ManageStudents: React.FC = () => {
                     <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={student.avatar} alt={student.name} className="w-10 h-10 rounded-xl bg-gray-100 group-hover:scale-110 transition-transform shadow-sm" /><div><p className="text-sm font-black text-gray-900 leading-tight uppercase tracking-tight">{student.name}</p><p className="text-[10px] font-bold text-gray-400 mt-0.5">{student.email}</p></div></div></td>
                     <td className="px-6 py-4"><p className="text-[11px] font-black text-gray-900 uppercase tracking-tight">{student.course}</p><p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{student.branch}</p></td>
                     <td className="px-6 py-4 text-sm font-black text-gray-900 text-center italic">{student.cgpa}</td>
-                    <td className="px-6 py-4"><div className="flex flex-wrap gap-1.5">{student.skills.slice(0, 3).map((skill: string) => (<span key={skill} className="px-2 py-0.5 bg-gray-50 border border-gray-100 text-[9px] font-black text-gray-500 rounded uppercase tracking-tighter">{skill}</span>))} {student.skills.length > 3 && <span className="text-[9px] font-black text-gray-300">+{student.skills.length-3}</span>}</div></td>
-                    <td className="px-6 py-4 text-center"><span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest italic ${student.status === 'Approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>{student.status}</span></td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-wrap gap-1.5">{student.skills.slice(0, 3).map((skill: string) => (<span key={skill} className="px-2 py-0.5 bg-gray-50 border border-gray-100 text-[9px] font-black text-gray-500 rounded uppercase tracking-tighter">{skill}</span>))} {student.skills.length > 3 && <span className="text-[9px] font-black text-gray-300">+{student.skills.length-3}</span>}</div>
+                        {student.issues.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {student.issues.map((issue: string) => (
+                              <span key={issue} className="text-[7px] font-black text-rose-500 uppercase tracking-widest border-b border-rose-200">{issue}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest italic ${student.status === 'Approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>{student.status}</span>
+                        {student.academicVerified ? (
+                          <div className="flex items-center gap-1 text-[8px] font-black text-blue-600 uppercase tracking-tighter">
+                            <ShieldCheck size={10} /> Verified
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-[8px] font-black text-rose-500 uppercase tracking-tighter animate-pulse">
+                            <AlertCircle size={10} /> Needs Verification
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
                         {student.status === 'Pending' ? (<><button onClick={() => handleVerify(student._id, true)} title="Approve" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><Check size={16} /></button></>) : (<button onClick={() => handleVerify(student._id, false)} title="Deactivate" className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><XCircle size={16} /></button>)}
@@ -260,23 +356,24 @@ const ManageStudents: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <div className="h-8 w-px bg-white/10 mx-2" />
+            <button 
+              onClick={() => handleBulkAcademicVerify(true)}
+              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+            >
+              <ShieldCheck size={16} /> Academic Verify
+            </button>
             <button 
               onClick={() => handleBulkStatusUpdate(true, 'active')}
               className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
             >
-              <CheckCircle size={16} /> Verify All
-            </button>
-            <button 
-              onClick={() => handleBulkStatusUpdate(false, 'inactive')}
-              className="flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-rose-500/20 border-white/10"
-            >
-              <XCircle size={16} /> Deactivate
+              <CheckCircle size={16} /> Activate
             </button>
             <button 
               onClick={() => setIsEmailModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+              className="flex items-center gap-2 px-6 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-black/20"
             >
-              <Mail size={16} /> Send Bulk Email
+              <Mail size={16} /> Email
             </button>
           </div>
           <button 

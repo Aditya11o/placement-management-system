@@ -115,6 +115,8 @@ model User {
   messagesReceived Message[]    @relation("ReceivedMessages")
   tickets          Ticket[]
   reminders        Reminder[]
+  experiences      Experience[]
+  comments         Comment[]
   
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -157,6 +159,9 @@ model StudentProfile {
   resumePath          String?
   profilePhoto        String?
   profileCompletion   Int             @default(0)
+  
+  academicVerified    Boolean         @default(false)
+  verificationAt      DateTime?
   
   placementStatus     PlacementStatus @default(Unplaced)
   
@@ -256,6 +261,7 @@ model Job {
   
   minCGPA           Float             @default(0)
   branches          String[]
+  requiredSkills    String[]
   
   deadline          DateTime
   status            JobStatus         @default(open)
@@ -286,8 +292,10 @@ model Application {
   jobId           String
   job             Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
   
-  resumeUrl       String
+  resume          String
+  resumeId        String?
   status          ApplicationStatus @default(Applied)
+  statusHistory   Json?
   
   offerLetter     String?
   feedback        String?
@@ -548,4 +556,48 @@ model Reminder {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model Experience {
+  id              String      @id @default(uuid())
+  studentId       String
+  student         User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  companyName     String
+  role            String
+  batch           String      // e.g. 2024
+  
+  experienceType  String      // Interview, Internship, Placement
+  difficulty      String      // Easy, Medium, Hard
+  
+  title           String
+  content         String      @db.Text
+  questions       String[]    // List of interview questions
+  tips            String?     @db.Text
+  
+  isAnonymous     Boolean     @default(false)
+  isVerified      Boolean     @default(false) // Admin verification of the post accuracy
+  
+  upvotes         String[]    // Array of user IDs who upvoted
+  
+  comments        Comment[]
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([companyName, role])
+}
+
+model Comment {
+  id              String      @id @default(uuid())
+  experienceId    String
+  experience      Experience  @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  content         String      @db.Text
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }

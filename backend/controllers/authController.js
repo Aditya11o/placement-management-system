@@ -61,13 +61,15 @@ const registerUser = async (req, res, next) => {
     if (user) {
       // Create specialized profile based on role
       if (role === 'student') {
-        await prisma.studentProfile.create({ data: { userId: user.id, full_name: user.name } });
+        await prisma.studentProfile.create({ data: { userId: user.id } });
       } else if (role === 'recruiter') {
         await prisma.recruiterProfile.create({ data: { userId: user.id } });
       } else if (role === 'admin') {
         await prisma.adminProfile.create({ data: { userId: user.id } });
       } else if (role === 'mentor') {
         await prisma.mentorProfile.create({ data: { userId: user.id } });
+      } else if (role === 'alumni') {
+        await prisma.alumniProfile.create({ data: { userId: user.id } });
       }
 
       // Email notifications

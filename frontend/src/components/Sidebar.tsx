@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, X } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, X, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from './ConfirmModal';
 
@@ -27,8 +27,7 @@ interface SidebarProps {
           { name: 'Interview Schedule', icon: Calendar, path: '/student/interviews' },
 
           { name: 'Career Prep', icon: BookOpen, path: '/student/resources' },
-          { name: 'Alumni Network', icon: Users, path: '/student/alumni' },
-          { name: 'Resumes', icon: FileText, path: '/student/resumes' },
+          { name: 'Knowledge Hub', icon: Sparkles, path: '/student/experiences' },
           { name: 'Mock Interviews', icon: MessageSquare, path: '/student/mock-interviews' },
           { name: 'Notifications', icon: Bell, path: '/student/notifications' },
         ];
@@ -53,6 +52,7 @@ interface SidebarProps {
           { name: 'Applications', icon: FileText, path: '/admin/applications' },
           { name: 'Interviews', icon: Calendar, path: '/admin/interviews' },
           { name: 'Reports', icon: FileText, path: '/admin/reports' },
+          { name: 'Peer Experiences', icon: Sparkles, path: '/admin/experiences' },
           { name: 'Notifications', icon: Bell, path: '/admin/notifications' },
         ];
       default:

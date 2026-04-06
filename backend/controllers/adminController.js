@@ -156,7 +156,12 @@ const getUsers = async (req, res, next) => {
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        studentProfile: true,
+        studentProfile: {
+          select: {
+            id: true, course: true, branch: true, cgpa: true, skills: true,
+            academicVerified: true, profileCompletion: true, resume: true
+          }
+        },
         recruiterProfile: true
       }
     });
@@ -337,6 +342,50 @@ const bulkSendEmail = async (req, res, next) => {
     }
 
     res.json({ message: `Emails sent to ${users.length} users` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Bulk verify student academic records
+// @route   PATCH /api/admin/students/bulk-academic-verify
+// @access  Private (Admin)
+const bulkVerifyAcademics = async (req, res, next) => {
+  const { studentIds, isVerified } = req.body;
+  try {
+    const result = await prisma.studentProfile.updateMany({
+      where: { userId: { in: studentIds } },
+      data: {
+        academicVerified: isVerified,
+        verificationAt: isVerified ? new Date() : null
+      }
+    });
+
+    res.json({ message: `Successfully updated ${result.count} academic verification records` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get student compliance statistics
+// @route   GET /api/admin/students/compliance
+// @access  Private (Admin)
+const getComplianceStats = async (req, res, next) => {
+  try {
+    const [totalStudents, unverified, missingResume, incompleteProfile] = await Promise.all([
+      prisma.studentProfile.count(),
+      prisma.studentProfile.count({ where: { academicVerified: false } }),
+      prisma.studentProfile.count({ where: { resume: '' } }), // Or null
+      prisma.studentProfile.count({ where: { profileCompletion: { lt: 80 } } })
+    ]);
+
+    res.json({
+      totalStudents,
+      unverified,
+      missingResume,
+      incompleteProfile,
+      healthScore: Math.round(((totalStudents - unverified) / totalStudents) * 100) || 0
+    });
   } catch (error) {
     next(error);
   }
@@ -725,5 +774,7 @@ module.exports = {
   unlockUserAccount,
   bulkUpdateUsers,
   bulkSendEmail,
-  bulkVerifySkills
+  bulkVerifySkills,
+  bulkVerifyAcademics,
+  getComplianceStats
 };

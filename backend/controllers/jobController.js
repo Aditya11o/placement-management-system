@@ -1,12 +1,64 @@
 const prisma = require('../utils/prisma');
 const { parsePagination } = require('../utils/pagination');
 
+/**
+ * Intelligent Match Scoring Logic (Non-AI)
+ * Weights: Academic (30), Skills (50), Experience (20)
+ */
+const calculateMatchScore = (student, job) => {
+  if (!student) return { score: 0, breakdown: null };
+
+  let academicScore = 0;
+  let skillScore = 0;
+  let experienceScore = 0;
+
+  // 1. Academic (30 pts)
+  const cgpa = student.cgpa || 0;
+  const minCGPA = job.minCGPA || 0;
+  if (cgpa >= minCGPA) {
+    // Proportional score up to 30
+    academicScore = 15 + ((cgpa / 10) * 15);
+  } else {
+    // Penalty if below minimum but still give scale points
+    academicScore = (cgpa / 10) * 10;
+  }
+
+  // 2. Skills (50 pts)
+  const studentSkills = (student.skills || []).map(s => s.trim().toLowerCase());
+  const requiredSkills = (job.requiredSkills || []).map(s => s.trim().toLowerCase());
+  
+  if (requiredSkills.length > 0) {
+    const matched = requiredSkills.filter(s => studentSkills.includes(s));
+    skillScore = (matched.length / requiredSkills.length) * 50;
+  } else {
+    // If no specific skills required, reward diversified skillsets
+    skillScore = studentSkills.length >= 5 ? 50 : studentSkills.length * 10;
+  }
+
+  // 3. Experience/Projects (20 pts)
+  // Assuming student.projects is an array
+  const projectsCount = Array.isArray(student.projects) ? student.projects.length : 0;
+  experienceScore = Math.min(projectsCount * 5, 20);
+
+  const total = Math.min(Math.round(academicScore + skillScore + experienceScore), 100);
+
+  return {
+    score: total,
+    breakdown: {
+      academic: Math.round(academicScore),
+      skills: Math.round(skillScore),
+      experience: Math.round(experienceScore)
+    },
+    missingSkills: requiredSkills.filter(s => !studentSkills.includes(s))
+  };
+};
+
 // @desc    Create a job
 // @route   POST /api/jobs
 // @access  Private (Recruiter)
 const createJob = async (req, res, next) => {
   try {
-    const { title, description, companyName, location, salary, jobType, eligibility, deadline, screeningQuestions } = req.body;
+    const { title, description, companyName, location, salary, jobType, eligibility, deadline, screeningQuestions, requiredSkills } = req.body;
 
     // Auto-fetch profile for company name if not provided
     const profile = await prisma.recruiterProfile.findUnique({ where: { userId: req.user.id } });
@@ -30,6 +82,7 @@ const createJob = async (req, res, next) => {
         jobType: jobType.replace('-', '_'), // Compatibility with enum Full_time vs Full-time
         minCGPA: eligibility?.minCGPA || 0,
         branches: eligibility?.branches || [],
+        requiredSkills: requiredSkills || [],
         deadline: new Date(deadline),
         screeningQuestions: screeningQuestions || []
       },
@@ -75,7 +128,26 @@ const getJobs = async (req, res, next) => {
       prisma.job.count({ where })
     ]);
 
-    const formattedJobs = jobs.map(job => ({ ...job, _id: job.id, recruiter: job.recruiter.user }));
+    // If student, calculate match scores
+    let studentProfile = null;
+    if (req.user?.role === 'student') {
+      studentProfile = await prisma.studentProfile.findUnique({ 
+        where: { userId: req.user.id }
+      });
+    }
+
+    const formattedJobs = jobs.map(job => {
+      const match = calculateMatchScore(studentProfile, job);
+      return { 
+        ...job, 
+        _id: job.id, 
+        recruiter: job.recruiter.user,
+        matchScore: match.score,
+        matchBreakdown: match.breakdown,
+        missingSkills: match.missingSkills
+      };
+    });
+
     res.json(paginate(formattedJobs, total));
   } catch (error) {
     next(error);
@@ -177,7 +249,17 @@ const getMatchedJobs = async (req, res, next) => {
       prisma.job.count({ where })
     ]);
 
-    const formattedJobs = jobs.map(j => ({ ...j, _id: j.id, recruiter: j.recruiter.user }));
+    const formattedJobs = jobs.map(j => {
+      const match = calculateMatchScore(profile, j);
+      return { 
+        ...j, 
+        _id: j.id, 
+        recruiter: j.recruiter.user,
+        matchScore: match.score,
+        matchBreakdown: match.breakdown,
+        missingSkills: match.missingSkills
+      };
+    });
     res.json(paginate(formattedJobs, total));
   } catch (error) {
     next(error);
@@ -252,7 +334,21 @@ const getJobById = async (req, res, next) => {
       });
     }
 
-    res.json({ ...job, _id: job.id, recruiter: job.recruiter.user });
+    // If student, calculate match
+    let match = { score: 0, breakdown: null };
+    if (req.user?.role === 'student') {
+      const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+      match = calculateMatchScore(profile, job);
+    }
+
+    res.json({ 
+      ...job, 
+      _id: job.id, 
+      recruiter: job.recruiter.user,
+      matchScore: match.score,
+      matchBreakdown: match.breakdown,
+      missingSkills: match.missingSkills
+    });
   } catch (error) {
     next(error);
   }
@@ -316,6 +412,7 @@ const updateJob = async (req, res, next) => {
         deadline: req.body.deadline ? new Date(req.body.deadline) : undefined,
         minCGPA: req.body.eligibility?.minCGPA,
         branches: req.body.eligibility?.branches,
+        requiredSkills: req.body.requiredSkills,
         screeningQuestions: req.body.screeningQuestions
       }
     });

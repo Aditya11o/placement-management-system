@@ -14,6 +14,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMyApplications } from '../../hooks/useApplications';
 import ResponsiveTable from '../../components/ResponsiveTable';
 import EmptyState from '../../components/EmptyState';
+import Timeline from '../../components/Timeline';
+import { X, Sparkles } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -38,6 +40,7 @@ const MyApplications: React.FC = () => {
     type: 'info',
     onConfirm: () => {}
   });
+  const [selectedTimelineApp, setSelectedTimelineApp] = useState<any>(null);
 
   const filteredApps = apps.filter((app: any) => 
     statusFilter === 'Any Status' || app.status === statusFilter
@@ -296,9 +299,12 @@ const MyApplications: React.FC = () => {
                              <Download size={10} /> Offer Letter
                            </a>
                          )}
-                         <button className="px-4 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all">
-                           View Details
-                         </button>
+                          <button 
+                            onClick={() => setSelectedTimelineApp(app)}
+                            className="px-4 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
+                          >
+                            <Calendar size={12} /> View Timeline
+                          </button>
                        </div>
                     </td>
                   </tr>
@@ -318,6 +324,57 @@ const MyApplications: React.FC = () => {
         type={confirmState.type}
         icon={confirmState.icon}
       />
+
+      {/* Journey Timeline Modal */}
+      {selectedTimelineApp && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Modal Header */}
+            <div className="p-8 pb-0 flex justify-between items-start">
+              <div className="flex gap-4">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center font-black text-gray-400 text-lg shadow-sm">
+                   {selectedTimelineApp.job?.companyName?.[0] || 'C'}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkles size={14} className="text-blue-600 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#000613] lora italic">Experience Timeline</span>
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 leading-tight uppercase tracking-tight">{selectedTimelineApp.job?.title}</h3>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{selectedTimelineApp.job?.companyName}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedTimelineApp(null)}
+                className="p-2 hover:bg-gray-50 rounded-xl transition-all"
+              >
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+
+            <div className="p-8 max-h-[60vh] overflow-y-auto">
+              <Timeline history={selectedTimelineApp.statusHistory || [
+                { status: 'Applied', date: selectedTimelineApp.createdAt, comment: 'Application received and logged in system.' }
+              ]} />
+            </div>
+
+            <div className="p-8 pt-0 border-t border-gray-50 bg-gray-50/30">
+               <div className="flex justify-between items-center py-4">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Job Status</span>
+                    <span className="text-xs font-bold text-gray-900 mt-1">{selectedTimelineApp.job?.status || 'Active'}</span>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedTimelineApp(null)}
+                    className="px-8 py-3 bg-blue-950 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-blue-900/10"
+                  >
+                    Close Log
+                  </button>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

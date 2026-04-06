@@ -102,7 +102,7 @@ const PostJob: React.FC = () => {
     try {
       const payload = {
         title: formData.title, role: formData.role, jobType: formData.type,
-        description: formData.description, skills: formData.skills,
+        description: formData.description, requiredSkills: formData.skills,
         eligibility: { minCGPA: formData.minCGPA, course: formData.course, passingYear: formData.passingYear },
         location: formData.location, salary: formData.salary, deadline: formData.deadline,
         openings: parseInt(formData.openings), screeningQuestions: formData.screeningQuestions

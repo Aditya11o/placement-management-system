@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useJobs } from '../../hooks/useJobs';
 import { useMyApplications } from '../../hooks/useApplications';
 import { useResumes } from '../../hooks/useResumes';
+import { useStudentDashboard } from '../../hooks/useDashboard';
 import EmptyState from '../../components/EmptyState';
 
 const JobFeed: React.FC = () => {
@@ -25,8 +26,10 @@ const JobFeed: React.FC = () => {
   const { data: allJobs = [], isLoading: loadingJobs } = useJobs(jobType);
   const { data: myApps = [], isLoading: loadingApps } = useMyApplications();
   const { data: resumes = [], isLoading: loadingResumes } = useResumes();
+  const { data: dashboardData, isLoading: loadingDash } = useStudentDashboard();
   
-  const loading = loadingJobs || loadingApps || loadingResumes;
+  const loading = loadingJobs || loadingApps || loadingResumes || loadingDash;
+  const isVerified = dashboardData?.profile?.academicVerified || false;
 
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -35,7 +38,7 @@ const JobFeed: React.FC = () => {
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
 
   useEffect(() => {
-    if (resumes.length > 0 && !selectedResumeId) {
+    if (resumes && resumes.length > 0 && !selectedResumeId) {
       const primary = resumes.find((r: any) => r.isPrimary);
       setSelectedResumeId(primary ? primary._id : resumes[0]._id);
     }
@@ -95,7 +98,23 @@ const JobFeed: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      
+      {/* Verification Warning Banner */}
+      {!isVerified && !loading && (
+        <div className="bg-rose-50 border border-rose-100 rounded-[2rem] p-6 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative group">
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="w-14 h-14 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600 shadow-inner group-hover:scale-110 transition-transform">
+              <AlertCircle size={28} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-rose-900 uppercase tracking-tighter">Academic Verification <span className="text-rose-500">Required</span></h3>
+              <p className="text-sm text-rose-700/70 font-bold mt-1">Your profile is currently awaiting formal authentication from the Placement Office. Job applications are restricted until verification.</p>
+            </div>
+          </div>
+          <button className="px-8 py-3 bg-rose-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 hover:bg-rose-700 transition-all active:scale-95 whitespace-nowrap">Contact Office</button>
+          <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-rose-200/20 rounded-full blur-3xl"></div>
+        </div>
+      )}
+
       {/* Top Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
@@ -177,7 +196,21 @@ const JobFeed: React.FC = () => {
           </div>
         ) : (
           filteredJobs.map((job: any) => (
-            <div key={job._id} className="bg-white rounded-xl shadow-md border border-gray-200 p-5 flex flex-col hover:shadow-lg transition-all relative group h-full">
+            <div key={job._id} className="bg-white rounded-xl shadow-md border border-gray-200 p-5 flex flex-col hover:shadow-lg transition-all relative group h-full overflow-hidden">
+              {/* Match Score Indicator */}
+              <div className="absolute top-0 right-0 p-4 flex flex-col items-end">
+                <div className={`w-12 h-12 rounded-full border-4 ${
+                  job.matchScore >= 80 ? 'border-emerald-500 text-emerald-600' : 
+                  job.matchScore >= 50 ? 'border-amber-500 text-amber-600' : 'border-rose-500 text-rose-600'
+                } flex items-center justify-center bg-white shadow-sm font-black text-[11px] relative`}>
+                  {job.matchScore}%
+                  <div className={`absolute inset-0 rounded-full border-4 opacity-10 animate-pulse ${
+                    job.matchScore >= 80 ? 'border-emerald-500' : 
+                    job.matchScore >= 50 ? 'border-amber-500' : 'border-rose-500'
+                  }`}></div>
+                </div>
+                <p className="text-[7px] font-black uppercase tracking-[0.2em] mt-1 text-gray-400 italic">Core Match</p>
+              </div>
               
               <div className="flex justify-between items-start mb-4">
                 <div className="flex gap-4">
@@ -249,6 +282,14 @@ const JobFeed: React.FC = () => {
                     <button disabled className="w-full sm:w-auto px-6 py-2 bg-gray-50 text-gray-300 rounded-xl text-[11px] font-black uppercase tracking-widest cursor-not-allowed">
                       Closed
                     </button>
+                  ) : !isVerified ? (
+                    <button 
+                      disabled
+                      title="Academic Verification Required"
+                      className="w-full sm:w-auto px-6 py-2 bg-gray-100 text-gray-400 rounded-xl text-[11px] font-black uppercase tracking-widest cursor-not-allowed border border-gray-200"
+                    >
+                      Locked
+                    </button>
                   ) : (
                     <button 
                       onClick={() => {
@@ -271,6 +312,28 @@ const JobFeed: React.FC = () => {
       {showApplyModal && selectedJob && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
+            {/* Match Insight Banner */}
+            <div className={`px-8 py-4 flex items-center justify-between ${
+              selectedJob.matchScore >= 80 ? 'bg-emerald-50 text-emerald-700' : 
+              selectedJob.matchScore >= 50 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
+            }`}>
+              <div className="flex items-center gap-3">
+                <Sparkles size={18} />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest leading-none">Intelligence Insight</p>
+                  <p className="text-xs font-bold mt-0.5">
+                    {selectedJob.matchScore >= 80 ? 'Excellent profile alignment detected.' : 
+                     selectedJob.matchScore >= 50 ? 'Good match. Consider highlighting missing skills.' : 
+                     'Low alignment. You might want to update your resume keywords.'}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black uppercase tracking-widest leading-none opacity-60">Score</p>
+                <p className="text-xl font-black italic lora">{selectedJob.matchScore}%</p>
+              </div>
+            </div>
+
             <div className="p-8 space-y-6">
               <div className="flex justify-between items-start">
                 <div>
@@ -320,6 +383,18 @@ const JobFeed: React.FC = () => {
                     )}
                   </div>
                 ))}
+
+                {/* Missing Skills Warning */}
+                {selectedJob.missingSkills?.length > 0 && (
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Recommendation: Add these skills to your profile</p>
+                    <div className="flex flex-wrap gap-2">
+                       {selectedJob.missingSkills.map((s: string) => (
+                         <span key={s} className="px-2 py-1 bg-white border border-gray-100 rounded-lg text-[9px] font-bold text-gray-600 uppercase">+{s}</span>
+                       ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Resume Selection Section */}
                 <div className="space-y-4 pt-4 border-t border-gray-100">

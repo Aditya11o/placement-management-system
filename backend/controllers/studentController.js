@@ -7,12 +7,15 @@ const bcrypt = require('bcryptjs');
 const getStudentDashboard = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const profile = await prisma.studentProfile.findUnique({ where: { userId } });
-    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+    // Lazy creation of student profile if it's missing (helps recovery from registration bugs)
+    let profile = await prisma.studentProfile.findUnique({ where: { userId } });
+    if (!profile) {
+      profile = await prisma.studentProfile.create({ data: { userId } });
+    }
 
     const [totalApplied, underReview, shortlisted, selected, rejected, totalJobs] = await Promise.all([
       prisma.application.count({ where: { studentId: profile.id } }),
-      prisma.application.count({ where: { studentId: profile.id, status: { in: ['Applied', 'Under Review'] } } }),
+      prisma.application.count({ where: { studentId: profile.id, status: { in: ['Applied', 'Under_Review'] } } }),
       prisma.application.count({ where: { studentId: profile.id, status: 'Shortlisted' } }),
       prisma.application.count({ where: { studentId: profile.id, status: { in: ['Selected', 'Accepted', 'Placed'] } } }),
       prisma.application.count({ where: { studentId: profile.id, status: 'Rejected' } }),
