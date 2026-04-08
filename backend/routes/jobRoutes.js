@@ -1,5 +1,5 @@
 const express = require('express');
-const { createJob, getJobs, adminGetJobs, updateJobStatus, getMatchedJobs, getRecruiterStats, getRecruiterJobs, updateJob, deleteJob, getJobById, getJobAnalytics } = require('../controllers/jobController');
+const { createJob, getJobs, adminGetJobs, updateJobStatus, getMatchedJobs, getRecruiterStats, getRecruiterJobs, updateJob, deleteJob, getJobById, getJobAnalytics, toggleWatchlist, getWatchlist } = require('../controllers/jobController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { validateCreateJob, validateUpdateJob, validateUpdateJobStatus, validateMongoId } = require('../middleware/validateMiddleware');
 const router = express.Router();
@@ -14,6 +14,8 @@ router.route('/')
 
 // Matched must be before :id
 router.get('/matched', protect, authorize('student'), getMatchedJobs);
+router.get('/watchlist', protect, authorize('student'), getWatchlist);
+router.post('/watchlist/:id', protect, authorize('student'), validateMongoId, toggleWatchlist);
 
 router.route('/:id')
   .get(protect, validateMongoId, getJobById)

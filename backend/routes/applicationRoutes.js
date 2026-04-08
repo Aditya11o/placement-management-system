@@ -9,10 +9,17 @@ const {
   getStudentStats,
   getRecruiterApplicants,
   respondToOffer,
+  uploadOfferLetter,
   bulkUpdateStatus,
   getExportData
 } = require('../controllers/applicationController');
+const { 
+  advanceApplication, 
+  rejectApplication, 
+  getJobPipeline 
+} = require('../controllers/pipelineController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const offerUpload = require('../middleware/offerUploadMiddleware');
 const { 
   validateApplyForJob, 
   validateUpdateApplicationStatus, 
@@ -21,6 +28,7 @@ const {
 } = require('../middleware/validateMiddleware');
 const router = express.Router();
 
+router.get('/check-eligibility/:jobId', protect, checkStudentEligibility);
 router.get('/admin', protect, authorize('admin'), getAllApplications);
 router.get('/stats', protect, authorize('student'), getStudentStats);
 router.get('/recruiter', protect, authorize('recruiter'), getRecruiterApplicants);
@@ -32,5 +40,11 @@ router.patch('/bulk-status', protect, authorize('recruiter'), validateBulkUpdate
 router.get('/export/:jobId', protect, authorize('recruiter'), getExportData);
 router.patch('/:id/status', protect, authorize('recruiter', 'admin'), validateUpdateApplicationStatus, updateApplicationStatus);
 router.patch('/:id/offer', protect, authorize('student'), validateRespondToOffer, respondToOffer);
+router.patch('/:id/offer-letter', protect, authorize('student', 'recruiter'), offerUpload.single('offerLetter'), uploadOfferLetter);
+
+// Pipeline management
+router.get('/job/:jobId/pipeline', protect, authorize('recruiter', 'admin'), getJobPipeline);
+router.patch('/:id/advance', protect, authorize('recruiter', 'admin'), advanceApplication);
+router.patch('/:id/reject-pipeline', protect, authorize('recruiter', 'admin'), rejectApplication);
 
 module.exports = router;

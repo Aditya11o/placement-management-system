@@ -159,9 +159,13 @@ model StudentProfile {
   resumePath          String?
   profilePhoto        String?
   profileCompletion   Int             @default(0)
+  readinessScore      Int             @default(0)
   
   academicVerified    Boolean         @default(false)
   verificationAt      DateTime?
+  
+  activeBacklogs      Int             @default(0)
+  totalBacklogs       Int             @default(0)
   
   placementStatus     PlacementStatus @default(Unplaced)
   
@@ -169,9 +173,22 @@ model StudentProfile {
   resumes             StudentResume[]
   settings            StudentSettings?
   skillVerifications  SkillVerification[]
+  readinessHistory    ReadinessHistory[]
+  watchlist           Watchlist[]
 
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
+}
+
+model ReadinessHistory {
+  id              String          @id @default(uuid())
+  studentId       String
+  student         StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  score           Int
+  date            DateTime        @default(now())
+  
+  @@index([studentId, date])
 }
 
 model RecruiterProfile {
@@ -260,11 +277,20 @@ model Job {
   jobType           JobType
   
   minCGPA           Float             @default(0)
+  min10th           Float             @default(0)
+  min12th           Float             @default(0)
+  maxBacklogs       Int               @default(0)
+  
+  targetCourses     String[]          // e.g. ["B.Tech", "MCA"]
   branches          String[]
+  genderPreference  String            @default("all") // all, male, female
+  
   requiredSkills    String[]
   
   deadline          DateTime
   status            JobStatus         @default(open)
+  
+  selectionProcess  Json?             // List of rounds: ["Applied", "Tech 1", "HR", "Selected"]
   
   applicationsCount Int               @default(0)
   viewsCount        Int               @default(0)
@@ -276,6 +302,7 @@ model Job {
   alumni            AlumniProfile?    @relation("AlumniReferrals", fields: [alumniId], references: [id], onDelete: SetNull)
   
   applications      Application[]
+  watchlist         Watchlist[]
 
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -295,6 +322,11 @@ model Application {
   resume          String
   resumeId        String?
   status          ApplicationStatus @default(Applied)
+  
+  currentStage      String          @default("Applied")
+  currentStageIndex Int             @default(0)
+  isTerminal        Boolean         @default(false)
+  
   statusHistory   Json?
   
   offerLetter     String?
@@ -600,4 +632,16 @@ model Comment {
   
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, jobId])
+  @@index([studentId])
 }

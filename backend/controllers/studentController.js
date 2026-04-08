@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 const bcrypt = require('bcryptjs');
+const { calculateReadinessScore } = require('../utils/readinessScore');
 
 // @desc    Get student dashboard data
 // @route   GET /api/student/dashboard
@@ -13,13 +14,14 @@ const getStudentDashboard = async (req, res, next) => {
       profile = await prisma.studentProfile.create({ data: { userId } });
     }
 
-    const [totalApplied, underReview, shortlisted, selected, rejected, totalJobs] = await Promise.all([
+    const [totalApplied, underReview, shortlisted, selected, rejected, totalJobs, readinessData] = await Promise.all([
       prisma.application.count({ where: { studentId: profile.id } }),
       prisma.application.count({ where: { studentId: profile.id, status: { in: ['Applied', 'Under_Review'] } } }),
       prisma.application.count({ where: { studentId: profile.id, status: 'Shortlisted' } }),
       prisma.application.count({ where: { studentId: profile.id, status: { in: ['Selected', 'Accepted', 'Placed'] } } }),
       prisma.application.count({ where: { studentId: profile.id, status: 'Rejected' } }),
-      prisma.job.count({ where: { status: 'open', deadline: { gte: new Date() } } })
+      prisma.job.count({ where: { status: 'open', deadline: { gte: new Date() } } }),
+      calculateReadinessScore(profile.id)
     ]);
 
     const recentApplications = await prisma.application.findMany({
@@ -49,6 +51,7 @@ const getStudentDashboard = async (req, res, next) => {
 
     res.json({
       stats: { totalJobs, applied: totalApplied, underReview, shortlisted, selected, rejected },
+      readiness: readinessData,
       applications: recentApplications.map(a => ({ ...a, _id: a.id, job: { ...a.job, _id: a.jobId } })),
       interviews: upcomingInterviews.map(i => ({ ...i, _id: i.id, job: { ...i.job, _id: i.jobId } })),
       jobs: recentJobs.map(j => ({ ...j, _id: j.id })),

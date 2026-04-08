@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import Dropdown from '../../components/Dropdown';
 import ListSkeleton from '../../components/skeletons/ListSkeleton';
+import EligibilityCard from '../../components/student/EligibilityCard';
+import SkillGapVisualization from '../../components/student/SkillGapVisualization';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,6 +16,7 @@ import { useJobs } from '../../hooks/useJobs';
 import { useMyApplications } from '../../hooks/useApplications';
 import { useResumes } from '../../hooks/useResumes';
 import { useStudentDashboard } from '../../hooks/useDashboard';
+import { useWatchlist } from '../../hooks/useWatchlist';
 import EmptyState from '../../components/EmptyState';
 
 const JobFeed: React.FC = () => {
@@ -27,12 +30,15 @@ const JobFeed: React.FC = () => {
   const { data: myApps = [], isLoading: loadingApps } = useMyApplications();
   const { data: resumes = [], isLoading: loadingResumes } = useResumes();
   const { data: dashboardData, isLoading: loadingDash } = useStudentDashboard();
+  const { toggleWatchlist } = useWatchlist();
   
   const loading = loadingJobs || loadingApps || loadingResumes || loadingDash;
   const isVerified = dashboardData?.profile?.academicVerified || false;
 
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [isEligible, setIsEligible] = useState(true);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [applying, setApplying] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
@@ -228,8 +234,11 @@ const JobFeed: React.FC = () => {
                     <p className="text-gray-400 text-xs font-bold leading-none">{job.companyName}</p>
                   </div>
                 </div>
-                <button className="p-2 text-gray-200 hover:text-blue-500 rounded-lg transition-all">
-                  <Bookmark size={20} />
+                <button 
+                  onClick={() => toggleWatchlist(job._id)}
+                  className={`p-2 rounded-lg transition-all ${job.isWatched ? 'text-blue-600 bg-blue-50' : 'text-gray-200 hover:text-blue-500'}`}
+                >
+                  <Bookmark size={20} fill={job.isWatched ? 'currentColor' : 'none'} />
                 </button>
               </div>
 
@@ -271,7 +280,12 @@ const JobFeed: React.FC = () => {
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  <button className="w-full sm:w-auto px-5 py-2 border border-gray-200 rounded-xl text-[11px] font-bold text-gray-600 hover:bg-gray-50 transition-all">
+                   <button 
+                    onClick={() => {
+                      setSelectedJob(job);
+                      setShowDetailsModal(true);
+                    }}
+                    className="w-full sm:w-auto px-5 py-2 border border-gray-200 rounded-xl text-[11px] font-bold text-gray-600 hover:bg-gray-50 transition-all">
                     View Details
                   </button>
                   {job.status === 'Applied' ? (
@@ -307,6 +321,113 @@ const JobFeed: React.FC = () => {
           ))
         )}
       </div>
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedJob && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-end p-0 sm:p-4 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-2xl h-full sm:h-auto sm:max-h-[90vh] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-right-8 duration-500">
+            <div className="relative h-48 bg-gradient-to-br from-blue-900 to-black shrink-0 overflow-hidden">
+               <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:20px_20px]"></div>
+               </div>
+               <button 
+                  onClick={() => setShowDetailsModal(false)}
+                  className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white backdrop-blur-md transition-all z-20"
+               >
+                 <X size={20} />
+               </button>
+               <div className="absolute bottom-6 left-8 flex items-center gap-4">
+                  <div className="w-16 h-16 bg-white rounded-2xl p-2 shadow-xl flex items-center justify-center font-black text-xl italic text-blue-900">
+                    {selectedJob.companyName?.[0]}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white tracking-tighter uppercase">{selectedJob.title}</h2>
+                    <p className="text-blue-100/60 text-xs font-black uppercase tracking-widest">{selectedJob.companyName}</p>
+                  </div>
+               </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 space-y-8">
+                    <section className="space-y-3">
+                      <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] italic">Mission Overview</h4>
+                      <p className="text-sm text-gray-600 font-medium leading-relaxed whitespace-pre-wrap">{selectedJob.description}</p>
+                    </section>
+                    
+                    <section className="space-y-4">
+                       <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] italic">Required Arsenal</h4>
+                       <div className="flex flex-wrap gap-2">
+                          {(selectedJob.requiredSkills || []).map((skill: string) => (
+                            <span key={skill} className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black text-gray-700 uppercase tracking-widest">{skill}</span>
+                          ))}
+                       </div>
+                    </section>
+                  </div>
+
+                  <div className="space-y-8">
+                    <section className="space-y-4">
+                      <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] italic">Compliance Check</h4>
+                      <EligibilityCard jobId={selectedJob._id} onEligibilityChange={(e) => setIsEligible(e)} />
+                    </section>
+
+                    <section className="space-y-4">
+                      <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] italic">Fitment Analysis</h4>
+                      <SkillGapVisualization 
+                        matchScore={selectedJob.matchScore || 0}
+                        breakdown={selectedJob.matchBreakdown || { academic: 0, skills: 0, experience: 0 }}
+                        missingSkills={selectedJob.missingSkills || []}
+                        jobSkills={selectedJob.requiredSkills || []}
+                        studentSkills={dashboardData?.profile?.skills || []}
+                      />
+                    </section>
+
+                    <div className="space-y-4 p-6 bg-blue-50/30 rounded-3xl border border-blue-50">
+                       <div className="flex items-center gap-3">
+                          <DollarSign className="text-blue-600" size={18} />
+                          <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Estimate</p>
+                            <p className="text-sm font-black text-gray-900">{selectedJob.salary || 'Competitive'}</p>
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-3">
+                          <MapPin className="text-blue-600" size={18} />
+                          <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none">Theater</p>
+                            <p className="text-sm font-black text-gray-900">{selectedJob.location || 'Remote'}</p>
+                          </div>
+                       </div>
+                    </div>
+                  </div>
+               </div>
+            </div>
+
+            <div className="p-8 border-t border-gray-50 flex gap-4 bg-gray-50/30">
+               <button 
+                  onClick={() => setShowDetailsModal(false)}
+                  className="flex-1 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-900 transition-colors"
+                >
+                  Close
+                </button>
+                <button 
+                  disabled={selectedJob.status === 'Applied' || !isEligible || !isVerified}
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setShowApplyModal(true);
+                  }}
+                  className={`flex-[2] py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95 ${
+                    selectedJob.status === 'Applied' ? 'bg-emerald-50 text-emerald-600 opacity-50' : 
+                    !isEligible ? 'bg-rose-50 text-rose-400 opacity-50 cursor-not-allowed' :
+                    'bg-blue-950 text-white hover:bg-black shadow-blue-900/20'
+                  }`}
+                >
+                  {selectedJob.status === 'Applied' ? 'Already Applied' : !isEligible ? 'Criteria Not Met' : 'Proceed to Application'}
+                  {isEligible && selectedJob.status !== 'Applied' && <ChevronRight size={14} />}
+                </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Application Modal */}
       {showApplyModal && selectedJob && (
@@ -384,17 +505,18 @@ const JobFeed: React.FC = () => {
                   </div>
                 ))}
 
-                {/* Missing Skills Warning */}
-                {selectedJob.missingSkills?.length > 0 && (
-                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Recommendation: Add these skills to your profile</p>
-                    <div className="flex flex-wrap gap-2">
-                       {selectedJob.missingSkills.map((s: string) => (
-                         <span key={s} className="px-2 py-1 bg-white border border-gray-100 rounded-lg text-[9px] font-bold text-gray-600 uppercase">+{s}</span>
-                       ))}
-                    </div>
-                  </div>
-                )}
+                {/* Skill Gap Insights */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Matching Strategy</h4>
+                  <SkillGapVisualization 
+                    matchScore={selectedJob.matchScore || 0}
+                    breakdown={selectedJob.matchBreakdown || { academic: 0, skills: 0, experience: 0 }}
+                    missingSkills={selectedJob.missingSkills || []}
+                    jobSkills={selectedJob.requiredSkills || []}
+                    studentSkills={dashboardData?.profile?.skills || []}
+                  />
+                </div>
+
 
                 {/* Resume Selection Section */}
                 <div className="space-y-4 pt-4 border-t border-gray-100">

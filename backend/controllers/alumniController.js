@@ -184,6 +184,40 @@ const updateMentorshipStatus = async (req, res) => {
   }
 };
 
+// @desc    Get applicants for a specific alumni referral
+// @route   GET /api/alumni/referrals/:id/applicants
+// @access  Private (Alumni/Mentor Only)
+const getReferralApplicants = async (req, res) => {
+  try {
+    const profile = await prisma.alumniProfile.findUnique({ where: { userId: req.user.id } });
+    const job = await prisma.job.findUnique({
+      where: { id: req.params.id },
+      select: { alumniId: true }
+    });
+
+    if (!job || job.alumniId !== profile?.id) {
+      return res.status(403).json({ message: 'Not authorized to view applicants for this referral' });
+    }
+
+    const applications = await prisma.application.findMany({
+      where: { jobId: req.params.id },
+      include: {
+        student: {
+          include: {
+            user: { select: { name: true, profilePhoto: true, email: true } }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(applications.map(a => ({ ...a, _id: a.id })));
+  } catch (err) {
+    console.error('Error fetching referral applicants:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   updateAlumniProfile,
@@ -192,5 +226,6 @@ module.exports = {
   createReferral,
   bookMentorship,
   getMentorshipRequests,
-  updateMentorshipStatus
+  updateMentorshipStatus,
+  getReferralApplicants
 };

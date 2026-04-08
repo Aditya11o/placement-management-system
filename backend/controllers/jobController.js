@@ -58,7 +58,7 @@ const calculateMatchScore = (student, job) => {
 // @access  Private (Recruiter)
 const createJob = async (req, res, next) => {
   try {
-    const { title, description, companyName, location, salary, jobType, eligibility, deadline, screeningQuestions, requiredSkills } = req.body;
+    const { title, description, companyName, location, salary, jobType, eligibility, deadline, screeningQuestions, requiredSkills, selectionProcess } = req.body;
 
     // Auto-fetch profile for company name if not provided
     const profile = await prisma.recruiterProfile.findUnique({ where: { userId: req.user.id } });
@@ -81,10 +81,16 @@ const createJob = async (req, res, next) => {
         salary,
         jobType: jobType.replace('-', '_'), // Compatibility with enum Full_time vs Full-time
         minCGPA: eligibility?.minCGPA || 0,
+        min10th: eligibility?.min10th || 0,
+        min12th: eligibility?.min12th || 0,
+        maxBacklogs: eligibility?.maxBacklogs || 0,
+        targetCourses: eligibility?.targetCourses || [],
         branches: eligibility?.branches || [],
+        genderPreference: eligibility?.genderPreference || 'all',
         requiredSkills: requiredSkills || [],
         deadline: new Date(deadline),
-        screeningQuestions: screeningQuestions || []
+        screeningQuestions: screeningQuestions || [],
+        selectionProcess: selectionProcess || ["Applied", "Technical Round", "HR Round", "Selected"]
       },
     });
 
@@ -117,24 +123,27 @@ const getJobs = async (req, res, next) => {
       where.jobType = jobType.replace('-', '_');
     }
 
-    const [jobs, total] = await Promise.all([
-      prisma.job.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-        include: { recruiter: { include: { user: { select: { name: true, email: true } } } } }
-      }),
-      prisma.job.count({ where })
-    ]);
-
-    // If student, calculate match scores
+    // Fetch student profile first if student for watchlist and match scoring
     let studentProfile = null;
     if (req.user?.role === 'student') {
       studentProfile = await prisma.studentProfile.findUnique({ 
         where: { userId: req.user.id }
       });
     }
+
+    const [jobs, total] = await Promise.all([
+      prisma.job.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: { 
+          recruiter: { include: { user: { select: { name: true, email: true } } } },
+          watchlist: studentProfile ? { where: { studentId: studentProfile.id } } : false
+        }
+      }),
+      prisma.job.count({ where })
+    ]);
 
     const formattedJobs = jobs.map(job => {
       const match = calculateMatchScore(studentProfile, job);
@@ -143,6 +152,7 @@ const getJobs = async (req, res, next) => {
         _id: job.id, 
         recruiter: job.recruiter.user,
         matchScore: match.score,
+        isWatched: job.watchlist?.length > 0,
         matchBreakdown: match.breakdown,
         missingSkills: match.missingSkills
       };
@@ -411,9 +421,15 @@ const updateJob = async (req, res, next) => {
         salary: req.body.salary,
         deadline: req.body.deadline ? new Date(req.body.deadline) : undefined,
         minCGPA: req.body.eligibility?.minCGPA,
+        min10th: req.body.eligibility?.min10th,
+        min12th: req.body.eligibility?.min12th,
+        maxBacklogs: req.body.eligibility?.maxBacklogs,
+        targetCourses: req.body.eligibility?.targetCourses,
         branches: req.body.eligibility?.branches,
+        genderPreference: req.body.eligibility?.genderPreference,
         requiredSkills: req.body.requiredSkills,
-        screeningQuestions: req.body.screeningQuestions
+        screeningQuestions: req.body.screeningQuestions,
+        selectionProcess: req.body.selectionProcess
       }
     });
 
@@ -449,6 +465,80 @@ const deleteJob = async (req, res, next) => {
   }
 };
 
+// @desc    Toggle save/unsave for a job
+// @route   POST /api/jobs/watchlist/:id
+// @access  Private (Student)
+const toggleWatchlist = async (req, res, next) => {
+  try {
+    const student = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    if (!student) return res.status(404).json({ message: 'Student profile not found' });
+
+    const existing = await prisma.watchlist.findUnique({
+      where: {
+        studentId_jobId: {
+          studentId: student.id,
+          jobId: req.params.id
+        }
+      }
+    });
+
+    if (existing) {
+      await prisma.watchlist.delete({ where: { id: existing.id } });
+      res.json({ saved: false });
+    } else {
+      await prisma.watchlist.create({
+        data: {
+          studentId: student.id,
+          jobId: req.params.id
+        }
+      });
+      res.json({ saved: true });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get student watchlist
+// @route   GET /api/jobs/watchlist
+// @access  Private (Student)
+const getWatchlist = async (req, res, next) => {
+  try {
+    const student = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    if (!student) return res.status(404).json({ message: 'Student profile not found' });
+
+    const saved = await prisma.watchlist.findMany({
+      where: { studentId: student.id },
+      include: {
+        job: {
+          include: { 
+            recruiter: { include: { user: { select: { name: true, email: true } } } },
+            watchlist: { where: { studentId: student.id } }
+          }
+        }
+      }
+    });
+
+    const formattedJobs = saved.map(item => {
+      const job = item.job;
+      const match = calculateMatchScore(student, job);
+      return {
+        ...job,
+        _id: job.id,
+        recruiter: job.recruiter.user,
+        matchScore: match.score,
+        isWatched: true,
+        matchBreakdown: match.breakdown,
+        missingSkills: match.missingSkills
+      };
+    });
+
+    res.json(formattedJobs);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = { 
   createJob, 
   getJobs, 
@@ -458,7 +548,8 @@ module.exports = {
   getRecruiterStats, 
   getRecruiterJobs, 
   updateJob,
-  deleteJob, 
   getJobById, 
-  getJobAnalytics 
+  getJobAnalytics,
+  toggleWatchlist,
+  getWatchlist
 };

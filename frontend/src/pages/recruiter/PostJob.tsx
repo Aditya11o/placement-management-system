@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Save, Send, RotateCcw, MapPin, Calendar, 
   Users, X, DollarSign, Loader2, 
-  ArrowRight, ArrowLeft, CheckCircle2
+  ArrowRight, ArrowLeft, CheckCircle2, Plus, BarChart3
 } from 'lucide-react';
 import { useAutosave } from '../../hooks/useAutosave';
 import Dropdown from '../../components/Dropdown';
@@ -26,9 +26,15 @@ const PostJob: React.FC = () => {
   const [fetching, setFetching] = useState(false);
   const [formData, setFormData] = useState({
     title: '', role: '', type: 'Full-time', description: '',
-    skills: ['Python', 'React'], minCGPA: '7.0', course: 'B.Tech / MCA',
+    skills: ['Python', 'React'], 
+    minCGPA: '7.0', 
+    targetCourses: 'B.Tech, MCA',
+    branches: 'CSE, IT, ECE',
+    min10th: '60', min12th: '60', maxBacklogs: '0', genderPreference: 'all',
     passingYear: '2024', location: '', salary: '', deadline: '',
-    openings: '10', screeningQuestions: [] as { question: string, type: 'text' | 'boolean' }[]
+    openings: '10', 
+    screeningQuestions: [] as { question: string, type: 'text' | 'boolean' }[],
+    selectionProcess: ["Applied", "Technical Round", "HR Round", "Selected"]
   });
   const [newSkill, setNewSkill] = useState('');
   const { clearAutosave } = useAutosave('post-job', formData, setFormData);
@@ -37,7 +43,8 @@ const PostJob: React.FC = () => {
     { id: 1, label: 'Overview', description: 'Basic job details' },
     { id: 2, label: 'Requirements', description: 'Skills & eligibility' },
     { id: 3, label: 'Logistics', description: 'Location & timeline' },
-    { id: 4, label: 'Screening', description: 'Custom questions' }
+    { id: 4, label: 'Screening', description: 'Custom questions' },
+    { id: 5, label: 'Process', description: 'Interview Rounds' }
   ];
 
   useEffect(() => {
@@ -48,12 +55,20 @@ const PostJob: React.FC = () => {
         const { data } = await api.get(`/jobs/${editId}`);
         setFormData({
           title: data.title || '', role: data.role || '', type: data.jobType || 'Full-time',
-          description: data.description || '', skills: data.skills || [],
-          minCGPA: data.eligibility?.minCGPA || '7.0', course: data.eligibility?.course || '',
+          description: data.description || '', skills: data.requiredSkills || [],
+          minCGPA: data.minCGPA?.toString() || '7.0', 
+          targetCourses: Array.isArray(data.targetCourses) ? data.targetCourses.join(', ') : '',
+          branches: Array.isArray(data.branches) ? data.branches.join(', ') : '',
+          min10th: data.min10th?.toString() || '60', 
+          min12th: data.min12th?.toString() || '60',
+          maxBacklogs: data.maxBacklogs?.toString() || '0', 
+          genderPreference: data.genderPreference || 'all',
           passingYear: data.eligibility?.passingYear || '', location: data.location || '',
           salary: data.salary || '',
           deadline: data.deadline ? new Date(data.deadline).toISOString().split('T')[0] : '',
-          openings: data.openings?.toString() || '1', screeningQuestions: data.screeningQuestions || []
+          openings: data.openings?.toString() || '1', 
+          screeningQuestions: data.screeningQuestions || [],
+          selectionProcess: data.selectionProcess || ["Applied", "Technical Round", "HR Round", "Selected"]
         });
       } catch { showError('Failed to fetch job details'); navigate('/recruiter/jobs'); }
       finally { setFetching(false); }
@@ -69,7 +84,7 @@ const PostJob: React.FC = () => {
         }
         break;
       case 2:
-        if (formData.skills.length === 0 || !formData.minCGPA || !formData.course) {
+        if (formData.skills.length === 0 || !formData.minCGPA || !formData.targetCourses) {
           showWarning('Please provide skills and eligibility criteria.', 'Validation Error');
           return false;
         }
@@ -103,9 +118,19 @@ const PostJob: React.FC = () => {
       const payload = {
         title: formData.title, role: formData.role, jobType: formData.type,
         description: formData.description, requiredSkills: formData.skills,
-        eligibility: { minCGPA: formData.minCGPA, course: formData.course, passingYear: formData.passingYear },
+        eligibility: { 
+          minCGPA: parseFloat(formData.minCGPA), 
+          targetCourses: formData.targetCourses.split(',').map(s => s.trim()).filter(Boolean), 
+          branches: formData.branches.split(',').map(s => s.trim()).filter(Boolean),
+          min10th: parseFloat(formData.min10th),
+          min12th: parseFloat(formData.min12th),
+          maxBacklogs: parseInt(formData.maxBacklogs),
+          genderPreference: formData.genderPreference,
+          passingYear: formData.passingYear 
+        },
         location: formData.location, salary: formData.salary, deadline: formData.deadline,
-        openings: parseInt(formData.openings), screeningQuestions: formData.screeningQuestions
+        openings: parseInt(formData.openings), screeningQuestions: formData.screeningQuestions,
+        selectionProcess: formData.selectionProcess
       };
       if (editId) { await api.put(`/jobs/${editId}`, payload); showSuccess('Job updated successfully!'); }
       else { await api.post('/jobs', payload); showSuccess('Job posted successfully!'); }
@@ -210,12 +235,34 @@ const PostJob: React.FC = () => {
                         <input type="text" value={formData.minCGPA} onChange={e => f('minCGPA', e.target.value)} className="w-full px-6 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl font-black text-gray-900 focus:outline-none transition-all shadow-inner" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Academic Course</label>
-                        <input type="text" value={formData.course} onChange={e => f('course', e.target.value)} className="w-full px-6 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl font-black text-gray-900 focus:outline-none transition-all shadow-inner" />
+                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Target Courses</label>
+                        <input type="text" placeholder="e.g. B.Tech, MCA" value={formData.targetCourses} onChange={e => f('targetCourses', e.target.value)} className="w-full px-6 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl font-black text-gray-900 focus:outline-none transition-all shadow-inner" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Batch Year</label>
+                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Eligible Branches</label>
+                        <input type="text" placeholder="e.g. CSE, IT" value={formData.branches} onChange={e => f('branches', e.target.value)} className="w-full px-6 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl font-black text-gray-900 focus:outline-none transition-all shadow-inner" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Passout Batch</label>
                         <input type="text" value={formData.passingYear} onChange={e => f('passingYear', e.target.value)} className="w-full px-6 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl font-black text-gray-900 focus:outline-none transition-all shadow-inner" />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Min 10th %</label>
+                        <input type="text" value={formData.min10th} onChange={e => f('min10th', e.target.value)} className="w-full px-6 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl font-black text-gray-900 focus:outline-none transition-all shadow-inner" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Min 12th %</label>
+                        <input type="text" value={formData.min12th} onChange={e => f('min12th', e.target.value)} className="w-full px-6 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-100 rounded-2xl font-black text-gray-900 focus:outline-none transition-all shadow-inner" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Max Backlogs</label>
+                        <input type="text" value={formData.maxBacklogs} onChange={e => f('maxBacklogs', e.target.value)} className="w-full px-6 py-4 bg-gray-50 border-transparent focus:bg-white focus:border-rose-100 rounded-2xl font-black text-gray-900 focus:outline-none transition-all shadow-inner" />
+                      </div>
+                      <div className="space-y-2">
+                        <Dropdown label="Gender Pref." value={formData.genderPreference} onChange={val => f('genderPreference', val)} options={['all', 'male', 'female']} />
                       </div>
                     </div>
                   </div>
@@ -274,6 +321,66 @@ const PostJob: React.FC = () => {
                 </div>
               )}
 
+              {currentStep === 5 && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <div className="bg-emerald-50/50 border border-emerald-100 rounded-3xl p-6 flex items-start gap-4 mb-4">
+                    <div className="p-2 bg-emerald-100 rounded-xl text-emerald-600">
+                      <BarChart3 size={24} />
+                    </div>
+                    <div>
+                      <h4 className="text-[14px] font-black text-gray-900 tracking-tight uppercase tracking-widest italic">Recruitment Pipeline</h4>
+                      <p className="text-[11px] font-bold text-gray-400 mt-1 uppercase italic leading-tight">Define the milestones for this hiring journey. The first round is always "Applied" and the last is "Selected".</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {formData.selectionProcess.map((round, index) => (
+                      <div key={index} className="flex items-center gap-4 group">
+                        <div className="w-10 h-10 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center font-black text-gray-400 text-xs">
+                          {index + 1}
+                        </div>
+                        <input 
+                          type="text" 
+                          value={round}
+                          onChange={(e) => {
+                            const newProcess = [...formData.selectionProcess];
+                            newProcess[index] = e.target.value;
+                            setFormData({ ...formData, selectionProcess: newProcess });
+                          }}
+                          disabled={index === 0 || index === formData.selectionProcess.length - 1}
+                          className={`flex-1 px-6 py-4 rounded-2xl font-bold text-[13px] border-transparent focus:outline-none transition-all shadow-inner ${
+                            index === 0 || index === formData.selectionProcess.length - 1 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                            : 'bg-gray-50 text-gray-900 focus:bg-white focus:border-blue-100'
+                          }`}
+                        />
+                        {index !== 0 && index !== formData.selectionProcess.length - 1 && (
+                          <button 
+                            onClick={() => {
+                              const newProcess = formData.selectionProcess.filter((_, i) => i !== index);
+                              setFormData({ ...formData, selectionProcess: newProcess });
+                            }}
+                            className="p-3 text-gray-300 hover:text-rose-500 transition-colors"
+                          >
+                            <X size={18} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button 
+                      onClick={() => {
+                        const newProcess = [...formData.selectionProcess];
+                        newProcess.splice(newProcess.length - 1, 0, "New Round");
+                        setFormData({ ...formData, selectionProcess: newProcess });
+                      }}
+                      className="w-full py-4 border-2 border-dashed border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:border-blue-100 hover:text-blue-500 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Plus size={16} /> Add Pipeline Round
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* Step Controls */}
@@ -282,7 +389,15 @@ const PostJob: React.FC = () => {
                 <button 
                   onClick={() => { 
                     if (confirm('Are you sure you want to reset the entire form?')) {
-                      setFormData({ title: '', role: '', type: 'Full-time', description: '', skills: [], minCGPA: '', course: '', passingYear: '', location: '', salary: '', deadline: '', openings: '', screeningQuestions: [] }); 
+                      setFormData({ 
+                        title: '', role: '', type: 'Full-time', description: '', skills: [], 
+                        minCGPA: '', targetCourses: '', branches: '', 
+                        min10th: '60', min12th: '60', maxBacklogs: '0', 
+                        genderPreference: 'all', passingYear: '', 
+                        location: '', salary: '', deadline: '', openings: '', 
+                        screeningQuestions: [], 
+                        selectionProcess: ["Applied", "Technical Round", "HR Round", "Selected"] 
+                      }); 
                       clearAutosave(); 
                       setCurrentStep(1);
                     }

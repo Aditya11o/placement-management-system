@@ -40,8 +40,8 @@ const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({ student, onCh
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Passing Year</label>
             <input 
               type="number" 
-              value={student.passing_year || student.passing_year || ''} 
-              onChange={(e) => onChange('passing_year', e.target.value)}
+              value={student.passingYear || ''} 
+              onChange={(e) => onChange('passingYear', parseInt(e.target.value))}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all bg-gray-50/30" 
             />
           </div>
@@ -50,8 +50,8 @@ const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({ student, onCh
             <input 
               type="number" 
               step="0.01"
-              value={student.current_cgpa || ''} 
-              onChange={(e) => onChange('current_cgpa', e.target.value)}
+              value={student.cgpa || ''} 
+              onChange={(e) => onChange('cgpa', parseFloat(e.target.value))}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-black text-blue-600 transition-all bg-gray-50/30 outline-none focus:ring-2 focus:ring-blue-500/20" 
             />
           </div>
@@ -59,8 +59,8 @@ const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({ student, onCh
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">10th %</label>
             <input 
               type="number" 
-              value={student.tenth_percentage || ''} 
-              onChange={(e) => onChange('tenth_percentage', e.target.value)}
+              value={student.tenthPercentage || ''} 
+              onChange={(e) => onChange('tenthPercentage', parseFloat(e.target.value))}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium transition-all bg-gray-50/30 outline-none focus:ring-2 focus:ring-blue-500/20" 
             />
           </div>
@@ -68,8 +68,26 @@ const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({ student, onCh
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">12th %</label>
             <input 
               type="number" 
-              value={student.twelfth_percentage || ''} 
-              onChange={(e) => onChange('twelfth_percentage', e.target.value)}
+              value={student.twelfthPercentage || ''} 
+              onChange={(e) => onChange('twelfthPercentage', parseFloat(e.target.value))}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium transition-all bg-gray-50/30 outline-none focus:ring-2 focus:ring-blue-500/20" 
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Active Backlogs</label>
+            <input 
+              type="number" 
+              value={student.activeBacklogs || 0} 
+              onChange={(e) => onChange('activeBacklogs', parseInt(e.target.value))}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-black text-rose-600 transition-all bg-gray-50/30 outline-none focus:ring-2 focus:ring-rose-500/20" 
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Total Backlogs</label>
+            <input 
+              type="number" 
+              value={student.totalBacklogs || 0} 
+              onChange={(e) => onChange('totalBacklogs', parseInt(e.target.value))}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium transition-all bg-gray-50/30 outline-none focus:ring-2 focus:ring-blue-500/20" 
             />
           </div>

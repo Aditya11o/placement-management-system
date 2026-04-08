@@ -3,7 +3,7 @@ import {
   Briefcase, 
   RotateCcw,
   CheckCircle, Clock, Calendar, 
-  Trophy, XCircle, Download, FileText
+  Trophy, XCircle, Download, FileText, Upload
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ListSkeleton from '../../components/skeletons/ListSkeleton';
@@ -19,6 +19,7 @@ import { X, Sparkles } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import ConfirmModal from '../../components/ConfirmModal';
+import OfferSelectionModal from '../../components/student/OfferSelectionModal';
 
 const MyApplications: React.FC = () => {
   const { showSuccess, showError } = useNotification();
@@ -41,6 +42,17 @@ const MyApplications: React.FC = () => {
     onConfirm: () => {}
   });
   const [selectedTimelineApp, setSelectedTimelineApp] = useState<any>(null);
+  const [offerModalState, setOfferModalState] = useState<{
+    isOpen: boolean;
+    appId: string;
+    company: string;
+    role: string;
+  }>({
+    isOpen: false,
+    appId: '',
+    company: '',
+    role: ''
+  });
 
   const filteredApps = apps.filter((app: any) => 
     statusFilter === 'Any Status' || app.status === statusFilter
@@ -134,13 +146,52 @@ const MyApplications: React.FC = () => {
     { label: 'Rejected', value: apps.filter((a: any) => a.status === 'Rejected').length.toString().padStart(2, '0'), icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
   ];
 
+  const PipelineStepper = ({ rounds, currentIndex, isTerminal }: { rounds: string[], currentIndex: number, isTerminal: boolean }) => {
+    return (
+      <div className="flex items-center justify-between mb-10 px-2">
+        {rounds.map((round, idx) => {
+          const isCompleted = idx < currentIndex;
+          const isCurrent = idx === currentIndex && !isTerminal;
+          const isRejected = isTerminal && idx === currentIndex;
+
+          return (
+            <div key={idx} className="flex flex-col items-center relative flex-1">
+              {/* Connector Line */}
+              {idx < rounds.length - 1 && (
+                <div className={`absolute left-1/2 right-[-50%] top-4 h-[2px] ${idx < currentIndex ? 'bg-blue-600' : 'bg-gray-100'} z-0`}></div>
+              )}
+              
+              {/* Step Circle */}
+              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center relative z-10 transition-all duration-500 ${
+                isCompleted ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' :
+                isCurrent ? 'bg-white border-blue-600 text-blue-600 scale-125 shadow-xl shadow-blue-100 animate-pulse' :
+                isRejected ? 'bg-rose-50 border-rose-500 text-rose-500' :
+                'bg-white border-gray-100 text-gray-300'
+              }`}>
+                {isCompleted ? <CheckCircle size={14} /> : <span className="text-[10px] font-black">{idx + 1}</span>}
+              </div>
+
+              {/* Step Label */}
+              <span className={`text-[9px] font-black uppercase tracking-widest mt-3 whitespace-nowrap ${
+                isCurrent ? 'text-blue-600 font-black' : isRejected ? 'text-rose-500' : 'text-gray-400'
+              }`}>
+                {round}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const getStatusBadge = (status: string) => {
     const s = status?.toLowerCase();
     switch (s) {
       case 'applied': return <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded tracking-tighter border border-blue-100 italic">● Applied</span>;
       case 'shortlisted': return <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-black uppercase rounded tracking-tighter border border-purple-100 italic">● Shortlisted</span>;
       case 'selected': return <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase rounded tracking-tighter border border-emerald-100 italic font-black">● OFFERED</span>;
-      case 'accepted': return <span className="px-2 py-0.5 bg-emerald-600 text-white text-[10px] font-black uppercase rounded tracking-tighter border border-emerald-700 italic">● Accepted</span>;
+      case 'accepted': return <span className="px-2 py-0.5 bg-cyan-50 text-cyan-600 text-[10px] font-black uppercase rounded tracking-tighter border border-cyan-100 italic">● Accepted</span>;
+      case 'placed': return <span className="px-2 py-0.5 bg-emerald-600 text-white text-[10px] font-black uppercase rounded tracking-tighter border border-emerald-700 italic font-black shadow-sm">● PLACED</span>;
       case 'declined': return <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black uppercase rounded tracking-tighter border border-rose-700 italic">● Declined</span>;
       case 'rejected': return <span className="px-2 py-0.5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded tracking-tighter border border-rose-100 italic">● Rejected</span>;
       default: return <span className="px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] font-black uppercase rounded tracking-tighter border border-gray-100">● {status}</span>;
@@ -261,7 +312,12 @@ const MyApplications: React.FC = () => {
                       {new Date(app.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-5 text-center">
-                      {getStatusBadge(app.status)}
+                      <div className="flex flex-col items-center">
+                        {getStatusBadge(app.status)}
+                        {app.currentStage && app.status !== 'Rejected' && app.status !== 'Selected' && app.status !== 'Accepted' && (
+                          <span className="text-[9px] font-bold text-gray-400 uppercase mt-1 italic tracking-widest">{app.currentStage}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
@@ -289,6 +345,25 @@ const MyApplications: React.FC = () => {
                              </button>
                            </>
                          )}
+                         {app.status === 'Accepted' && !app.offerLetter && (
+                            <button
+                              onClick={() => setOfferModalState({
+                                isOpen: true,
+                                appId: app._id,
+                                company: app.job?.companyName,
+                                role: app.job?.title
+                              })}
+                              className="px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-sm flex items-center gap-2"
+                            >
+                              <Upload size={10} /> Upload Offer
+                            </button>
+                          )}
+                          {app.status === 'Accepted' && app.offerLetter && (
+                             <div className="flex flex-col items-end mr-2">
+                               <span className="text-[9px] font-black text-orange-500 uppercase tracking-widest leading-none italic animate-pulse">Verification Pending</span>
+                               <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">Awaiting TPO Approval</span>
+                             </div>
+                          )}
                          {app.offerLetter && (
                            <a
                              href={app.offerLetter}
@@ -353,6 +428,14 @@ const MyApplications: React.FC = () => {
             </div>
 
             <div className="p-8 max-h-[60vh] overflow-y-auto">
+              {selectedTimelineApp.job?.selectionProcess && (
+                <PipelineStepper 
+                  rounds={selectedTimelineApp.job.selectionProcess}
+                  currentIndex={selectedTimelineApp.currentStageIndex || 0}
+                  isTerminal={selectedTimelineApp.isTerminal || false}
+                />
+              )}
+              
               <Timeline history={selectedTimelineApp.statusHistory || [
                 { status: 'Applied', date: selectedTimelineApp.createdAt, comment: 'Application received and logged in system.' }
               ]} />
@@ -375,6 +458,13 @@ const MyApplications: React.FC = () => {
           </div>
         </div>
       )}
+      <OfferSelectionModal
+        isOpen={offerModalState.isOpen}
+        onClose={() => setOfferModalState(p => ({ ...p, isOpen: false }))}
+        applicationId={offerModalState.appId}
+        companyName={offerModalState.company}
+        role={offerModalState.role}
+      />
     </div>
   );
 };

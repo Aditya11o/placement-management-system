@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, X, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, X, Sparkles, Bookmark } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from './ConfirmModal';
 
@@ -23,6 +23,7 @@ interface SidebarProps {
           { name: 'Dashboard', icon: LayoutDashboard, path: '/student/dashboard' },
           { name: 'My Profile', icon: Users, path: '/student/profile' },
           { name: 'Jobs', icon: Briefcase, path: '/student/jobs' },
+          { name: 'Watchlist', icon: Bookmark, path: '/student/watchlist' },
           { name: 'My Applications', icon: FileText, path: '/student/applications' },
           { name: 'Interview Schedule', icon: Calendar, path: '/student/interviews' },
 

@@ -9,6 +9,7 @@ import NotificationModal from './components/NotificationModal';
 import { AuthProvider } from './context/AuthContext';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
+import CommandPalette from './components/CommandPalette';
 const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
@@ -21,6 +22,7 @@ const Support = React.lazy(() => import('./pages/student/Support'));
 const AlumniPortal = React.lazy(() => import('./pages/alumni/AlumniPortal'));
 const JobFeed = React.lazy(() => import('./pages/student/JobFeed'));
 const MyApplications = React.lazy(() => import('./pages/student/MyApplications'));
+const Watchlist = React.lazy(() => import('./pages/student/Watchlist'));
 const InterviewSchedule = React.lazy(() => import('./pages/student/InterviewSchedule'));
 const Notifications = React.lazy(() => import('./pages/student/Notifications'));
 const CareerResources = React.lazy(() => import('./pages/student/CareerResources'));
@@ -38,6 +40,7 @@ const CreateExperience = React.lazy(() => import('./pages/student/CreateExperien
 const ExperienceDetail = React.lazy(() => import('./pages/student/ExperienceDetail'));
 const ManageJobs = React.lazy(() => import('./pages/recruiter/ManageJobs'));
 const AdminManageJobs = React.lazy(() => import('./pages/admin/ManageJobs'));
+const InterviewPipeline = React.lazy(() => import('./pages/recruiter/InterviewPipeline'));
 const Applicants = React.lazy(() => import('./pages/recruiter/Applicants'));
 const RecruiterProfile = React.lazy(() => import('./pages/recruiter/Profile'));
 const PostJob = React.lazy(() => import('./pages/recruiter/PostJob'));
@@ -69,7 +72,8 @@ const App: React.FC = () => {
             <BrowserRouter>
               <GlobalLoader />
               <NotificationModal />
-          <ToastManager />
+              <ToastManager />
+              <CommandPalette />
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
             <Routes>
           {/* Default Redirect */}
@@ -92,6 +96,7 @@ const App: React.FC = () => {
             <Route path="dashboard" element={<Dashboard role="student" />} />
             <Route path="profile" element={<StudentProfile />} />
             <Route path="jobs" element={<JobFeed />} />
+            <Route path="watchlist" element={<Watchlist />} />
             <Route path="applications" element={<MyApplications />} />
             <Route path="interviews" element={<InterviewSchedule />} />
             <Route path="interview-history" element={<InterviewHistory />} />
@@ -118,6 +123,7 @@ const App: React.FC = () => {
         <Route path="profile" element={<RecruiterProfile />} />
         <Route path="post-job" element={<PostJob />} />
         <Route path="jobs" element={<ManageJobs />} />
+        <Route path="pipeline" element={<InterviewPipeline />} />
         <Route path="applicants" element={<Applicants />} />
         <Route path="compare" element={<CompareCandidates />} />
         <Route path="shortlisted" element={<Shortlisted />} />

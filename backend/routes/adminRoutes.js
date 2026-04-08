@@ -8,7 +8,7 @@ const {
   createStudent, createRecruiter, runVerificationBatch,
   getSystemSettings, updateSystemSettings,
   unlockUserAccount, bulkUpdateUsers, bulkSendEmail, bulkVerifySkills,
-  bulkVerifyAcademics, getComplianceStats
+  bulkVerifyAcademics, getComplianceStats, verifyOfferLetter
 } = require('../controllers/adminController');
 const { archiveYear, getArchives } = require('../controllers/archiveController');
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -42,6 +42,8 @@ router.post('/users/bulk-email', bulkSendEmail);
 router.patch('/verifications/bulk', bulkVerifySkills);
 router.get('/students/compliance', getComplianceStats);
 router.patch('/students/bulk-academic-verify', bulkVerifyAcademics);
+
+router.patch('/applications/:id/verify-offer', verifyOfferLetter);
 
 // Archive Routes
 router.post('/archive', protect, authorize('admin'), archiveYear);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Search, CheckCircle2, XCircle, 
-  Filter, BarChart3, X
+  Filter, BarChart3, X, LayoutGrid
 } from 'lucide-react';
 
 import Dropdown from '../../components/Dropdown';
@@ -184,6 +184,13 @@ const Applicants: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-4">
+          <button 
+            disabled={!selectedJob}
+            onClick={() => navigate(`/recruiter/pipeline?jobId=${selectedJob}`)}
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-blue-600/20 flex items-center gap-2 active:scale-95 disabled:opacity-50"
+          >
+            <LayoutGrid size={16} /> Pipeline View
+          </button>
           <button 
             disabled={!selectedJob}
             onClick={() => navigate(`/recruiter/compare?jobId=${selectedJob}`)}

@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 const sendEmail = require('../utils/emailUtils');
+const { createAuditLog } = require('./auditLogController');
 
 // @desc    Get all pending skill verifications
 // @route   GET /api/admin/verifications
@@ -527,12 +528,81 @@ const getInterviews = async (req, res, next) => {
 // @access  Private (Admin)
 const getPlacementReports = async (req, res, next) => {
   try {
-    const placements = await Application.find({ status: 'Selected' })
-      .populate('student', 'name email')
-      .populate('job', 'title companyName salary')
-      .sort({ updatedAt: -1 });
+    const placements = await prisma.application.findMany({
+      where: { status: { in: ['Selected', 'Accepted'] } },
+      include: {
+        student: { 
+          include: { 
+            user: { select: { name: true, email: true } } 
+          } 
+        },
+        job: { select: { title: true, companyName: true, salary: true } }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
 
-    res.json(placements);
+    const formatted = placements.map(p => ({
+      ...p,
+      _id: p.id,
+      student: { ...p.student.user, _id: p.studentId, profile: p.student },
+      job: { ...p.job, _id: p.jobId }
+    }));
+
+    res.json(formatted);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify offer letter and mark as Placed
+// @route   PATCH /api/admin/applications/:id/verify-offer
+// @access  Private (Admin)
+const verifyOfferLetter = async (req, res, next) => {
+  const { status, remarks } = req.body; // 'Verified' or 'Rejected'
+  try {
+    const application = await prisma.application.findUnique({
+      where: { id: req.params.id },
+      include: { job: true, student: { select: { userId: true } } }
+    });
+
+    if (!application) return res.status(404).json({ message: 'Application not found' });
+
+    const updatedApp = await prisma.application.update({
+      where: { id: req.params.id },
+      data: {
+        status: status === 'Verified' ? 'Placed' : 'Selected',
+        feedback: remarks,
+        statusHistory: {
+          push: { 
+            status: status === 'Verified' ? 'Placed' : 'Offer_Rejected', 
+            date: new Date().toISOString(), 
+            comment: `Offer letter ${status.toLowerCase()} by Admin. ${remarks || ''}` 
+          }
+        }
+      }
+    });
+
+    if (status === 'Verified') {
+      // Update student profile to Placed
+      await prisma.studentProfile.update({
+        where: { userId: application.studentId },
+        data: { 
+          placementStatus: application.job.jobType === 'Internship' ? 'Interned' : 'Placed'
+        }
+      });
+
+      // Update Audit Log
+      await createAuditLog(
+        req.user.id,
+        'VERIFY_OFFER',
+        'Application',
+        application.id,
+        `Offer verified for student ${application.studentId} at ${application.job.companyName}`,
+        req.ip
+      );
+    }
+
+    res.json({ message: `Offer letter ${status.toLowerCase()} successfully`, application: updatedApp });
   } catch (error) {
     next(error);
   }
@@ -776,5 +846,6 @@ module.exports = {
   bulkSendEmail,
   bulkVerifySkills,
   bulkVerifyAcademics,
-  getComplianceStats
+  getComplianceStats,
+  verifyOfferLetter
 };

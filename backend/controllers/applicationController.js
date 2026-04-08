@@ -1,6 +1,9 @@
 const prisma = require('../utils/prisma');
 const sendEmail = require('../utils/emailUtils');
 const { parsePagination } = require('../utils/pagination');
+const { uploadToCloudinary } = require('../utils/cloudinary');
+const { createAuditLog } = require('./auditLogController');
+const { checkEligibility } = require('../services/eligibilityService');
 
 // @desc    Apply for a job
 // @route   POST /api/applications/:jobId
@@ -28,10 +31,19 @@ const applyForJob = async (req, res, next) => {
     });
 
     if (existing) return res.status(400).json({ message: 'You have already applied for this job' });
-
-    // Eligibility check
-    if (profile.cgpa < job.minCGPA) {
-       return res.status(400).json({ message: `Insufficient CGPA. Minimum required is ${job.minCGPA}` });
+    
+    // Eligibility Rules Engine
+    const settings = await prisma.systemSettings.findFirst() || {};
+    const appCount = await prisma.application.count({ where: { studentId: req.user.id } });
+    
+    const eligibility = checkEligibility(profile, job, appCount, settings);
+    
+    if (!eligibility.isEligible) {
+      return res.status(400).json({ 
+        message: 'You do not meet the eligibility requirements for this position.',
+        reasons: eligibility.reasons,
+        criteria: eligibility.criteria
+      });
     }
 
     const { resumeId } = req.body || {};
@@ -70,6 +82,27 @@ const applyForJob = async (req, res, next) => {
     }
 
     res.status(201).json({ ...application, _id: application.id });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Check eligibility for a job
+// @route   GET /api/applications/check-eligibility/:jobId
+// @access  Private (Student)
+const checkStudentEligibility = async (req, res, next) => {
+  try {
+    const job = await prisma.job.findUnique({ where: { id: req.params.jobId } });
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    if (!profile) return res.status(400).json({ message: 'Profile not found' });
+
+    const settings = await prisma.systemSettings.findFirst() || {};
+    const appCount = await prisma.application.count({ where: { studentId: req.user.id } });
+
+    const result = checkEligibility(profile, job, appCount, settings);
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -362,59 +395,123 @@ const getStudentStats = async (req, res, next) => {
   }
 };
 
-const getRecruiterApplicants = async (req, res, next) => {
-  try {
-    const { skip, limit, paginate } = parsePagination(req.query);
-    const recruiterProfile = await prisma.recruiterProfile.findUnique({ where: { userId: req.user.id } });
-    const where = { job: { recruiterId: recruiterProfile.id } };
-    
-    const [applicants, total] = await Promise.all([
-      prisma.application.findMany({
-        where,
-        include: {
-          student: { select: { name: true, email: true } },
-          job: { select: { title: true } }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit
-      }),
-      prisma.application.count({ where })
-    ]);
-
-    const formatted = applicants.map(a => ({ ...a, _id: a.id, student: { ...a.student, _id: a.studentId }, job: { ...a.job, _id: a.jobId } }));
-    res.json(paginate(formatted, total));
-  } catch (error) {
-    next(error);
-  }
-};
-
 // @desc    Respond to offer (Accept/Decline)
 // @route   PATCH /api/applications/:id/offer
 // @access  Private (Student)
 const respondToOffer = async (req, res, next) => {
   const { response } = req.body; // 'Accepted' or 'Declined'
   try {
-    const application = await Application.findById(req.params.id);
+    const application = await prisma.application.findUnique({
+      where: { id: req.params.id },
+      include: { job: true }
+    });
+
     if (!application) return res.status(404).json({ message: 'Application not found' });
 
-    if (application.student.toString() !== req.user.id) {
+    if (application.studentId !== req.user.id) {
       return res.status(401).json({ message: 'Not authorized' });
     }
 
-    application.status = response;
-    await application.save();
+    const updatedApp = await prisma.application.update({
+      where: { id: req.params.id },
+      data: { 
+        status: response,
+        statusHistory: {
+          push: { status: response, date: new Date().toISOString(), comment: `Student ${response.toLowerCase()} the offer.` }
+        }
+      }
+    });
 
-    // If accepted, update student status to 'Placed'
+    // If accepted, update student status to 'Interned' or 'Placed' based on job type
     if (response === 'Accepted') {
-      const profile = await Profile.findOne({ user: req.user.id });
-      if (profile) {
-        profile.studentDetails.placementStatus = 'Placed';
-        await profile.save();
+      const isInternship = application.job.jobType === 'Internship';
+      await prisma.studentProfile.update({
+        where: { userId: req.user.id },
+        data: { placementStatus: isInternship ? 'Interned' : 'Placed' }
+      });
+    }
+
+    res.json({ ...updatedApp, _id: updatedApp.id });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Upload offer letter
+// @route   PATCH /api/applications/:id/offer-letter
+// @access  Private (Student/Recruiter)
+const uploadOfferLetter = async (req, res, next) => {
+  try {
+    const application = await prisma.application.findUnique({
+      where: { id: req.params.id },
+      include: { 
+        job: true,
+        student: { select: { email: true, name: true, id: true } }
+      }
+    });
+
+    if (!application) return res.status(404).json({ message: 'Application not found' });
+
+    // Authorization check
+    if (req.user.role === 'student' && application.studentId !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized to upload offer for this application' });
+    }
+    
+    if (req.user.role === 'recruiter') {
+      const recruiterProfile = await prisma.recruiterProfile.findUnique({ where: { userId: req.user.id } });
+      if (application.job.recruiterId !== recruiterProfile.id) {
+        return res.status(403).json({ message: 'Not authorized to upload offer for this job' });
       }
     }
 
-    res.json(application);
+    if (!req.file) return res.status(400).json({ message: 'Please upload a file' });
+
+    // Upload to Cloudinary
+    const result = await uploadToCloudinary(req.file.buffer, {
+      folder: 'offer-letters',
+      public_id: `offer_${application.id}_${Date.now()}`,
+      resource_type: 'auto'
+    });
+
+    const updatedApp = await prisma.application.update({
+      where: { id: req.params.id },
+      data: {
+        offerLetter: result.secure_url,
+        status: 'Selected', // Ensure status is Selected if offer is uploaded
+        statusHistory: {
+          push: { 
+            status: 'Selected', 
+            date: new Date().toISOString(), 
+            comment: `Offer letter uploaded by ${req.user.role}. Verification pending by TPO.` 
+          }
+        }
+      }
+    });
+
+    // Notify student if recruiter uploaded
+    if (req.user.role === 'recruiter') {
+      await prisma.notification.create({
+        data: {
+          userId: application.studentId,
+          title: 'Offer Letter Received',
+          message: `Congratulations! ${application.job.companyName} has uploaded your offer letter for ${application.job.title}.`,
+          type: 'SUCCESS',
+          link: '/student/applications'
+        }
+      });
+    }
+
+    // Create Audit Log
+    await createAuditLog(
+      req.user.id,
+      'OFFER_LETTER_UPLOAD',
+      'Application',
+      application.id,
+      `Offer letter uploaded for application ${application.id}`,
+      req.ip
+    );
+
+    res.json({ ...updatedApp, _id: updatedApp.id });
   } catch (error) {
     next(error);
   }
@@ -426,38 +523,39 @@ const respondToOffer = async (req, res, next) => {
 const bulkUpdateStatus = async (req, res, next) => {
   const { ids, status } = req.body;
   try {
+    const recruiterProfile = await prisma.recruiterProfile.findUnique({ where: { userId: req.user.id } });
+    
     // Verify ownership: all applications must belong to the recruiter's own jobs
-    if (req.user.role === 'recruiter') {
-      const recruiterJobs = await Job.find({ recruiter: req.user.id }).select('_id');
-      const recruiterJobIds = recruiterJobs.map(j => j._id.toString());
+    const applications = await prisma.application.findMany({
+      where: { id: { in: ids } },
+      include: { job: true }
+    });
 
-      const applications = await Application.find({ _id: { $in: ids } }).select('job');
-      const unauthorized = applications.filter(app => !recruiterJobIds.includes(app.job.toString()));
+    const unauthorized = applications.filter(app => app.job.recruiterId !== recruiterProfile.id);
 
-      if (unauthorized.length > 0) {
-        return res.status(403).json({ message: 'Not authorized to update applications for jobs you do not own' });
-      }
+    if (unauthorized.length > 0 && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to update some of these applications' });
     }
 
-    const result = await Application.updateMany(
-      { _id: { $in: ids } },
-      { $set: { status } }
-    );
+    const result = await prisma.application.updateMany({
+      where: { id: { in: ids } },
+      data: { status }
+    });
 
-    // Fetch updated applications to send notifications
-    const applications = await Application.find({ _id: { $in: ids } }).populate('student', 'name email').populate('job', 'title');
-    
-    // Create notifications for all students
-    const notifications = applications.map(app => ({
-      user_id: app.student._id,
-      title: 'Bulk Status Update',
-      message: `Your application status for ${app.job.title} has been updated to ${status}.`,
-      type: 'interview',
-      link: `/student/applications`,
-    }));
-    await Notification.insertMany(notifications);
+    // Notify students
+    for (const app of applications) {
+      await prisma.notification.create({
+        data: {
+          userId: app.studentId,
+          title: 'Application Status Updated',
+          message: `Your application status for ${app.job.title} has been updated to ${status}.`,
+          type: 'INTERVIEW',
+          link: `/student/applications`,
+        }
+      });
+    }
 
-    res.json({ message: `${result.modifiedCount} applications updated`, result });
+    res.json({ message: `${result.count} applications updated`, count: result.count });
   } catch (error) {
     next(error);
   }
@@ -468,25 +566,39 @@ const bulkUpdateStatus = async (req, res, next) => {
 // @access  Private (Recruiter)
 const getExportData = async (req, res, next) => {
   try {
-    const applications = await Application.find({ job: req.params.jobId, status: { $in: ['shortlisted', 'accepted', 'Selected'] } })
-      .populate('student', 'name email')
-      .populate('job', 'title');
+    const recruiterProfile = await prisma.recruiterProfile.findUnique({ where: { userId: req.user.id } });
+    const job = await prisma.job.findUnique({ where: { id: req.params.jobId } });
 
-    // Batch: fetch all profiles in one query
-    const studentIds = applications.map(a => a.student._id);
-    const profiles = await Profile.find({ user: { $in: studentIds } });
-    const profileMap = new Map(profiles.map(p => [p.user.toString(), p]));
+    if (req.user.role !== 'admin' && job.recruiterId !== recruiterProfile.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    const applications = await prisma.application.findMany({
+      where: { 
+        jobId: req.params.jobId, 
+        status: { in: ['Selected', 'Accepted', 'Shortlisted'] } 
+      },
+      include: {
+        student: { select: { name: true, email: true } }
+      }
+    });
+
+    const studentIds = applications.map(a => a.studentId);
+    const profiles = await prisma.studentProfile.findMany({
+      where: { userId: { in: studentIds } }
+    });
+    const profileMap = new Map(profiles.map(p => [p.userId, p]));
 
     const exportData = applications.map(app => {
-      const profile = profileMap.get(app.student._id.toString());
+      const profile = profileMap.get(app.studentId);
       return {
         StudentName: app.student.name,
         Email: app.student.email,
-        Course: profile?.studentDetails?.course,
-        Branch: profile?.studentDetails?.branch,
-        CGPA: profile?.studentDetails?.cgpa,
+        Course: profile?.course || 'N/A',
+        Branch: profile?.branch || 'N/A',
+        CGPA: profile?.cgpa || 0,
         Status: app.status,
-        AppliedDate: app.applied_date
+        AppliedDate: app.createdAt
       };
     });
 
@@ -498,6 +610,7 @@ const getExportData = async (req, res, next) => {
 
 module.exports = { 
   applyForJob, 
+  checkStudentEligibility,
   getMyApplications, 
   getJobApplicants, 
   getAllApplications,
@@ -506,6 +619,7 @@ module.exports = {
   getStudentStats,
   getRecruiterApplicants,
   respondToOffer,
+  uploadOfferLetter,
   bulkUpdateStatus,
   getExportData
 };

@@ -2,7 +2,6 @@ import React from 'react';
 import { 
   Briefcase, 
   CheckCircle, 
-  Clock, 
   XCircle, 
   TrendingUp
 } from 'lucide-react';
@@ -10,7 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useStudentDashboard } from '../../hooks/useDashboard';
 import DashboardSkeleton from '../../components/skeletons/DashboardSkeleton';
 
-import ProfileProgress from '../../components/student/ProfileProgress';
+import ReadinessGauge from '../../components/student/ReadinessGauge';
 import StatCard from '../../components/student/StatCard';
 import JobTable from '../../components/student/JobTable';
 import InterviewPanel from '../../components/student/InterviewPanel';
@@ -26,6 +25,16 @@ const StudentDashboard: React.FC = () => {
   const stats = data?.stats || {
     totalJobs: 0, applied: 0, underReview: 0, 
     shortlisted: 0, selected: 0, rejected: 0
+  };
+  const readiness = data?.readiness || {
+    score: 0,
+    breakdown: {
+      profile: { score: 0, max: 25 },
+      academic: { score: 0, max: 20 },
+      skills: { score: 0, max: 20 },
+      activity: { score: 0, max: 15 },
+      placement: { score: 0, max: 20 }
+    }
   };
   const jobs = data?.jobs || [];
   const interviews = data?.interviews || [];
@@ -58,9 +67,9 @@ const StudentDashboard: React.FC = () => {
       {/* 1. Header Section */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 leading-tight">Academic Overview</h2>
+          <h2 className="text-3xl font-bold text-gray-900 leading-tight tracking-tight">Placement Dashboard</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Welcome back, {user?.name?.split(' ')[0] || 'Student'}. Your placement journey is progressing well.
+            Welcome back, <span className="font-semibold text-blue-600">{user?.name?.split(' ')[0] || 'Student'}</span>. Your placement readiness is being tracked.
           </p>
         </div>
       </header>
@@ -72,22 +81,20 @@ const StudentDashboard: React.FC = () => {
           <AnnouncementsBoard initialAnnouncements={notifications} />
         </section>
         
-        {/* Row 1: Profile (4) + Stats (8) */}
-        <section className="md:col-span-4 h-full">
-          <ProfileProgress />
+        {/* Row 1: Readiness Score (8) + Stats (4) */}
+        <section className="md:col-span-8">
+          <ReadinessGauge score={readiness.score} breakdown={readiness.breakdown} />
         </section>
 
-        <section className="md:col-span-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 h-full">
+        <section className="md:col-span-4 h-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
              <StatCard label="Total Jobs" value={stats.totalJobs.toString()} icon={Briefcase} color="bg-blue-50 text-blue-600" />
              <StatCard label="Applied" value={stats.applied.toString()} icon={TrendingUp} color="bg-cyan-50 text-cyan-600" />
-             <StatCard label="Under Review" value={stats.underReview.toString()} icon={Clock} color="bg-orange-50 text-orange-600" />
-             <StatCard label="Shortlisted" value={stats.shortlisted.toString()} icon={CheckCircle} color="bg-purple-50 text-purple-600" />
              <StatCard label="Selected" value={stats.selected.toString()} icon={CheckCircle} color="bg-emerald-50 text-emerald-600" />
-             <StatCard label="Rejected" value={stats.rejected.toString()} icon={XCircle} color="bg-rose-50 text-rose-600" />
+             <StatCard label="Shortlisted" value={stats.shortlisted.toString()} icon={CheckCircle} color="bg-purple-50 text-purple-600" />
           </div>
         </section>
-
+ 
         {/* Row 2: Job Table (8) + Upcoming Interviews (4) */}
         <section className="md:col-span-8">
           <JobTable initialJobs={jobs} />

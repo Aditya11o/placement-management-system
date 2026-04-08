@@ -8,7 +8,8 @@ const {
   createReferral,
   bookMentorship,
   getMentorshipRequests,
-  updateMentorshipStatus
+  updateMentorshipStatus,
+  getReferralApplicants
 } = require('../controllers/alumniController');
 
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -21,6 +22,8 @@ router.put('/profile', protect, authorize('alumni', 'mentor'), updateAlumniProfi
 router.route('/referrals')
   .get(protect, authorize('alumni', 'mentor'), getReferrals)
   .post(protect, authorize('alumni', 'mentor'), createReferral);
+
+router.get('/referrals/:id/applicants', protect, authorize('alumni', 'mentor'), getReferralApplicants);
 
 // Directory Access (Students)
 router.get('/directory', protect, getDirectory);

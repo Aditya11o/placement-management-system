@@ -1,0 +1,36 @@
+<div style="font-family: 'Inter', system-ui, sans-serif; color: #1e293b; max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+    <div style="padding: 40px; background: #0f172a; text-align: center; border-bottom: 4px solid #4f46e5;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; font-style: italic;">Placement Cell Weekly Report</h1>
+        <p style="color: #94a3b8; margin-top: 8px; font-size: 14px; font-weight: 500;">Operational Analytics & Oversight</p>
+    </div>
+
+    <div style="padding: 40px;">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 40px; gap: 20px;">
+            <div style="flex: 1; text-align: center; padding: 25px; background: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0;">
+                <p style="margin: 0; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">New Job Opportunities</p>
+                <h2 style="margin: 8px 0 0; font-size: 32px; font-weight: 900; color: #4f46e5;"><%= stats.newJobs %></h2>
+            </div>
+            <div style="flex: 1; text-align: center; padding: 25px; background: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0;">
+                <p style="margin: 0; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">New Applications</p>
+                <h2 style="margin: 8px 0 0; font-size: 32px; font-weight: 900; color: #0ea5e9;"><%= stats.newApplications %></h2>
+            </div>
+            <div style="flex: 1; text-align: center; padding: 25px; background: #fff1f2; border-radius: 16px; border: 1px solid #fecdd3;">
+                <p style="margin: 0; font-size: 11px; font-weight: 800; color: #be123c; text-transform: uppercase; letter-spacing: 0.1em;">Pending Reviews</p>
+                <h2 style="margin: 8px 0 0; font-size: 32px; font-weight: 900; color: #e11d48;"><%= stats.pendingVerifications %></h2>
+            </div>
+        </div>
+
+        <div style="padding: 24px; background: #fdfaf5; border-radius: 16px; border: 1px solid #f9731633;">
+            <p style="margin: 0; font-size: 14px; font-weight: 600; color: #9a3412;">Governance Required</p>
+            <p style="margin: 8px 0 0; font-size: 13px; color: #7c2d12; line-height: 1.6;">There are currently <strong><%= stats.pendingVerifications %> assertion requests</strong> awaiting your administrative review. Maintaining verification velocity ensures students remain eligible for new opportunities.</p>
+        </div>
+
+        <div style="margin-top: 40px; text-align: center;">
+            <a href="<%= actionUrl %>" style="display: inline-block; padding: 14px 28px; background: #0f172a; color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 14px;">Open Governance Dashboard</a>
+        </div>
+    </div>
+
+    <div style="padding: 24px 40px; border-top: 1px solid #f1f5f9; text-align: center;">
+        <p style="font-size: 11px; color: #94a3b8; font-weight: 500;">AUTOMATED SYSTEM REPORT — PLATFORM GOVERNANCE UNIT</p>
+    </div>
+</div>
