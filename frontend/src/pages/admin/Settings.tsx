@@ -4,17 +4,25 @@ import SystemSettingsTab from './tabs/SystemSettingsTab';
 import DatabaseTab from './tabs/DatabaseTab';
 import SupportTab from './tabs/SupportTab';
 import ArchiveTab from './tabs/ArchiveTab';
+import AppearanceSettings from '../../components/settings/AppearanceSettings';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminSettings: React.FC = () => {
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState('Account');
 
-  const tabs = [
-    'Account', 
-    'System Settings', 
-    'Database', 
-    'Support Inbox', 
-    'Data Archiving'
+  const adminLevel = (profile as any)?.level || 'SUPER_ADMIN';
+
+  const allTabs = [
+    { name: 'Account', roles: ['SUPER_ADMIN', 'DEPT_ADMIN', 'PLACEMENT_OFFICER'] },
+    { name: 'Appearance', roles: ['SUPER_ADMIN', 'DEPT_ADMIN', 'PLACEMENT_OFFICER'] },
+    { name: 'System Settings', roles: ['SUPER_ADMIN'] },
+    { name: 'Database', roles: ['SUPER_ADMIN'] },
+    { name: 'Support Inbox', roles: ['SUPER_ADMIN', 'DEPT_ADMIN', 'PLACEMENT_OFFICER'] },
+    { name: 'Data Archiving', roles: ['SUPER_ADMIN'] }
   ];
+
+  const allowedTabs = allTabs.filter(tab => tab.roles.includes(adminLevel)).map(t => t.name);
 
   return (
     <div className="space-y-6 animate-fade-in pb-12">
@@ -28,7 +36,7 @@ const AdminSettings: React.FC = () => {
 
       {/* Tabs Navigation */}
       <div className="flex items-center gap-8 border-b border-gray-100 pb-px overflow-x-auto custom-scrollbar no-scrollbar">
-        {tabs.map((tab) => (
+        {allowedTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -47,10 +55,11 @@ const AdminSettings: React.FC = () => {
       {/* Tab Content Rendering */}
       <div className="mt-8">
         {activeTab === 'Account' && <AccountTab />}
-        {activeTab === 'System Settings' && <SystemSettingsTab />}
-        {activeTab === 'Database' && <DatabaseTab />}
+        {activeTab === 'Appearance' && <AppearanceSettings />}
+        {activeTab === 'System Settings' && allowedTabs.includes('System Settings') && <SystemSettingsTab />}
+        {activeTab === 'Database' && allowedTabs.includes('Database') && <DatabaseTab />}
         {activeTab === 'Support Inbox' && <SupportTab />}
-        {activeTab === 'Data Archiving' && <ArchiveTab />}
+        {activeTab === 'Data Archiving' && allowedTabs.includes('Data Archiving') && <ArchiveTab />}
       </div>
 
       {/* Institutional Footer */}

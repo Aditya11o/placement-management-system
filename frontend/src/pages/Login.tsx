@@ -1,7 +1,8 @@
 import React, { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import loginBg from '../assets/login_bg.png';
 import { useNotification } from '../context/NotificationContext';
 
@@ -16,6 +17,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
   const { login, verifyOTP } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -100,6 +102,16 @@ const Login: React.FC = () => {
       {/* Right Section: Centered Form */}
       <div className="w-full md:w-1/2 relative flex items-center justify-center p-8 bg-surface-container-lowest overflow-y-auto min-h-screen">
         <div className="w-full max-w-md space-y-8 animate-fade-in">
+          <div className="absolute top-8 right-8 z-50">
+            <button 
+              onClick={toggleTheme}
+              className="p-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white hover:bg-white/20 transition-all shadow-xl group"
+              title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              {theme === 'light' ? <Moon size={20} className="group-hover:rotate-12 transition-transform" /> : <Sun size={20} className="group-hover:rotate-90 transition-transform" />}
+            </button>
+          </div>
+
           <div className="text-center md:text-left">
              <span className="text-[10px] uppercase tracking-[0.2em] font-black text-blue-600/60 block mb-2">Authentication</span>
              <h2 className="text-2xl lg:text-3xl font-display font-bold text-primary tracking-tight mb-2">Login to your account</h2>

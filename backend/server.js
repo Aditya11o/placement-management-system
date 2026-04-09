@@ -14,9 +14,6 @@ if (!process.env.JWT_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
 // Connect to database
 connectDB();
 
-// Initialize Cron Jobs
-initCron();
-
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -28,6 +25,9 @@ const io = new Server(server, {
 
 // Make io accessible to our routers/controllers
 app.set('io', io);
+
+// Initialize Cron Jobs after io is ready
+initCron(io);
 
 // Socket.io authentication middleware
 io.use((socket, next) => {

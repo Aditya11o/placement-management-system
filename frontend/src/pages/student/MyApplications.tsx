@@ -118,18 +118,34 @@ const MyApplications: React.FC = () => {
 
   const handleOfferResponse = (id: string, response: 'Accepted' | 'Declined') => {
     const isAccept = response === 'Accepted';
+    
+    // Find other competing offers
+    const otherSelectedApps = apps.filter((a: any) => 
+      a.status === 'Selected' && a._id !== id
+    );
+
+    const hasConflict = isAccept && otherSelectedApps.length > 0;
+    const conflictCompanies = otherSelectedApps.map((a: any) => a.job?.companyName).join(', ');
+
     setConfirmState({
       isOpen: true,
-      type: isAccept ? 'info' : 'danger',
+      type: isAccept ? (hasConflict ? 'warning' : 'info') : 'danger',
       title: `${response} Job Offer?`,
-      message: `Are you sure you want to ${response.toLowerCase()} this job offer? This action is formal and will be communicated to the recruiter immediately.`,
-      icon: isAccept ? CheckCircle : XCircle,
+      message: hasConflict 
+        ? `Wait! Accepting this offer from ${apps.find((a: any) => a._id === id)?.job?.companyName} will automatically DECLINE your existing offers from: ${conflictCompanies}. This is per the "One Student One Job" policy. Are you absolutely sure?`
+        : `Are you sure you want to ${response.toLowerCase()} this job offer? This action is formal and will be communicated to the recruiter immediately.`,
+      icon: isAccept ? (hasConflict ? Sparkles : CheckCircle) : XCircle,
       onConfirm: async () => {
         try {
-          await api.patch(`/applications/${id}/offer`, { response });
+          const res = await api.patch(`/applications/${id}/offer`, { response });
           queryClient.invalidateQueries({ queryKey: ['applications'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-          showSuccess(`Offer ${response.toLowerCase()}ed successfully!`, 'Offer Response');
+          
+          if (res.data.releasedCount > 0) {
+            showSuccess(`Offer accepted! ${res.data.releasedCount} other offer(s) were automatically released.`, 'Policy Resolution');
+          } else {
+            showSuccess(`Offer ${response.toLowerCase()}ed successfully!`, 'Offer Response');
+          }
         } catch (err: any) {
           showError(err.response?.data?.message || `Failed to ${response.toLowerCase()} offer`, 'Response Error');
         }
@@ -137,14 +153,12 @@ const MyApplications: React.FC = () => {
     });
   };
 
-  const stats = [
-    { label: 'Total', value: apps.length.toString().padStart(2, '0'), icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Total', value: apps.filter((a: any) => a.status !== 'Draft').length.toString().padStart(2, '0'), icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Reviewing', value: apps.filter((a: any) => a.status === 'Applied').length.toString().padStart(2, '0'), icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { label: 'Drafts', value: apps.filter((a: any) => a.status === 'Draft').length.toString().padStart(2, '0'), icon: FileText, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Shortlisted', value: apps.filter((a: any) => a.status === 'Shortlisted').length.toString().padStart(2, '0'), icon: Trophy, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Interview', value: apps.filter((a: any) => a.interviewDate).length.toString().padStart(2, '0'), icon: Calendar, color: 'text-cyan-600', bg: 'bg-cyan-50' },
     { label: 'Selected', value: apps.filter((a: any) => a.status === 'Selected' || a.status === 'Accepted').length.toString().padStart(2, '0'), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Rejected', value: apps.filter((a: any) => a.status === 'Rejected').length.toString().padStart(2, '0'), icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
-  ];
 
   const PipelineStepper = ({ rounds, currentIndex, isTerminal }: { rounds: string[], currentIndex: number, isTerminal: boolean }) => {
     return (
@@ -187,6 +201,7 @@ const MyApplications: React.FC = () => {
   const getStatusBadge = (status: string) => {
     const s = status?.toLowerCase();
     switch (s) {
+      case 'draft': return <span className="px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-black uppercase rounded tracking-tighter border border-amber-100 italic">● Draft</span>;
       case 'applied': return <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded tracking-tighter border border-blue-100 italic">● Applied</span>;
       case 'shortlisted': return <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-black uppercase rounded tracking-tighter border border-purple-100 italic">● Shortlisted</span>;
       case 'selected': return <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase rounded tracking-tighter border border-emerald-100 italic font-black">● OFFERED</span>;
@@ -251,7 +266,7 @@ const MyApplications: React.FC = () => {
                 setStatusFilter(status);
               }}
               options={[
-                'Any Status', 'Applied', 'Reviewing', 
+                'Any Status', 'Draft', 'Applied', 'Reviewing', 
                 'Shortlisted', 'Interview', 'Selected', 'Rejected'
               ]}
               italic
@@ -374,12 +389,21 @@ const MyApplications: React.FC = () => {
                              <Download size={10} /> Offer Letter
                            </a>
                          )}
-                          <button 
-                            onClick={() => setSelectedTimelineApp(app)}
-                            className="px-4 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
-                          >
-                            <Calendar size={12} /> View Timeline
-                          </button>
+                          {app.status === 'Draft' ? (
+                            <button 
+                              onClick={() => navigate('/student/jobs')}
+                              className="px-4 py-1.5 bg-amber-600 text-white border border-amber-700 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-sm flex items-center gap-2"
+                            >
+                              <Briefcase size={12} /> Resume Application
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => setSelectedTimelineApp(app)}
+                              className="px-4 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
+                            >
+                              <Calendar size={12} /> View Timeline
+                            </button>
+                          )}
                        </div>
                     </td>
                   </tr>

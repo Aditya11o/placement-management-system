@@ -101,13 +101,27 @@ const verifySkill = async (req, res, next) => {
 // @access  Private (Admin)
 const getStats = async (req, res, next) => {
   try {
+    const whereClause = req.adminLevel === 'DEPT_ADMIN' ? {
+      studentProfile: { branch: req.adminScope }
+    } : {};
+    
     const [totalStudents, totalRecruiters, totalJobs, totalApplications, placedStudents, totalInterviews] = await Promise.all([
-      prisma.user.count({ where: { role: 'student' } }),
+      prisma.user.count({ where: { role: 'student', ...whereClause } }),
       prisma.user.count({ where: { role: 'recruiter' } }),
       prisma.job.count(),
-      prisma.application.count(),
-      prisma.application.count({ where: { status: 'Selected' } }),
-      prisma.application.count({ where: { NOT: { interviewDate: null } } })
+      prisma.application.count({
+        where: req.adminLevel === 'DEPT_ADMIN' ? { student: { branch: req.adminScope } } : {}
+      }),
+      prisma.application.count({ 
+        where: req.adminLevel === 'DEPT_ADMIN' 
+          ? { status: 'Selected', student: { branch: req.adminScope } } 
+          : { status: 'Selected' } 
+      }),
+      prisma.application.count({ 
+        where: req.adminLevel === 'DEPT_ADMIN'
+          ? { NOT: { interviewDate: null }, student: { branch: req.adminScope } }
+          : { NOT: { interviewDate: null } }
+      })
     ]);
 
     const appBreakdown = await prisma.application.groupBy({
@@ -141,8 +155,14 @@ const getUsers = async (req, res, next) => {
   try {
     const { skip, limit, paginate } = parsePagination(req.query);
 
+    const filter = req.adminLevel === 'DEPT_ADMIN' ? {
+       role: 'student',
+       studentProfile: { branch: req.adminScope }
+    } : {};
+
     const [users, total] = await Promise.all([
       prisma.user.findMany({
+        where: filter,
         skip,
         take: limit > 0 ? limit : undefined,
         orderBy: { createdAt: 'desc' },
@@ -156,7 +176,7 @@ const getUsers = async (req, res, next) => {
           recruiterProfile: true
         }
       }),
-      prisma.user.count()
+      prisma.user.count({ where: filter })
     ]);
 
     const formatted = users.map(user => {
@@ -561,6 +581,11 @@ const verifyOfferLetter = async (req, res, next) => {
 
     if (!application) return res.status(404).json({ message: 'Application not found' });
 
+    // Authorization Check
+    if (req.adminLevel === 'DEPT_ADMIN' && application.student.branch !== req.adminScope) {
+      return res.status(403).json({ message: 'Not authorized to verify students outside your department scope' });
+    }
+
     const updatedApp = await prisma.application.update({
       where: { id: req.params.id },
       data: {
@@ -681,7 +706,7 @@ const getCompanyHistory = async (req, res, next) => {
 // @access  Private (Admin)
 const getAdvancedAnalytics = async (req, res, next) => {
   try {
-    // 1. Department Placement Mix
+    // 1. Department Placement Mix (By Branch)
     const deptPlacement = await prisma.studentProfile.groupBy({
       by: ['branch'],
       _count: { _all: true },
@@ -701,9 +726,21 @@ const getAdvancedAnalytics = async (req, res, next) => {
       where: { status: 'Selected' }
     });
 
-    // 4. Yearly Trends
+    // 4. Yearly Trends (Overall intake vs placed)
     const yearlyTrends = await prisma.studentProfile.groupBy({
       by: ['passingYear'],
+      _count: { _all: true }
+    });
+
+    // 5. COHORT ANALYTICS: Success per (Branch x Year)
+    const cohortResults = await prisma.studentProfile.groupBy({
+      by: ['branch', 'passingYear', 'placementStatus'],
+      _count: { _all: true }
+    });
+
+    // 6. Branch Comparison - Selection Rates
+    const branchComparison = await prisma.studentProfile.groupBy({
+      by: ['branch', 'placementStatus'],
       _count: { _all: true }
     });
 
@@ -713,6 +750,14 @@ const getAdvancedAnalytics = async (req, res, next) => {
       _count: { _all: true }
     });
 
+    // Format Yearly Trends to include "placed" counts
+    const formattedYearly = await Promise.all(yearlyTrends.map(async (y) => {
+      const placed = await prisma.studentProfile.count({
+        where: { passingYear: y.passingYear, placementStatus: { in: ['Placed', 'Interned'] } }
+      });
+      return { _id: y.passingYear, total: y._count._all, placed };
+    }));
+
     res.json({
       deptPlacement: deptPlacement.map(d => ({ _id: d.branch, total: d._count._all })),
       salaryTrends: { 
@@ -721,8 +766,10 @@ const getAdvancedAnalytics = async (req, res, next) => {
         avg: parseFloat(salaryAggr._avg.salary) || 0 
       },
       topHiring: topHiring.map(h => ({ _id: h.jobId, count: h._count._all })),
-      yearlyTrends: yearlyTrends.map(y => ({ _id: y.passingYear, total: y._count._all })),
-      statusBreakdown: statusBreakdown.map(s => ({ _id: s.placementStatus, count: s._count._all }))
+      yearlyTrends: formattedYearly.sort((a, b) => (a._id || 0) - (b._id || 0)),
+      statusBreakdown: statusBreakdown.map(s => ({ _id: s.placementStatus, count: s._count._all })),
+      cohortAnalytics: cohortResults,
+      branchComparison: branchComparison
     });
   } catch (error) {
     next(error);
@@ -816,30 +863,14 @@ const unlockUserAccount = async (req, res, next) => {
 };
 
 module.exports = { 
-  getAdminMe,
-  updateAdminProfile,
-  getPendingVerifications, 
-  verifySkill, 
-  getStats, 
-  getUsers, 
-  verifyUser, 
-  getInterviews, 
-  getPlacementReports, 
-  getRecentActivities,
-  getCompanyHistory,
-  getAdvancedAnalytics,
-  getPendingRecruiters,
-  approveRecruiter,
-  createStudent,
-  createRecruiter,
-  runVerificationBatch,
-  getSystemSettings,
-  updateSystemSettings,
-  unlockUserAccount,
-  bulkUpdateUsers,
-  bulkSendEmail,
-  bulkVerifySkills,
-  bulkVerifyAcademics,
-  getComplianceStats,
-  verifyOfferLetter
+  getAdminMe, updateAdminProfile,
+  getStats, getUsers, verifyUser, 
+  getInterviews, getPlacementReports, getRecentActivities,
+  getPendingVerifications, verifySkill, getCompanyHistory, getAdvancedAnalytics,
+  getPendingRecruiters, approveRecruiter,
+  createStudent, createRecruiter, runVerificationBatch,
+  getSystemSettings, updateSystemSettings,
+  unlockUserAccount, bulkUpdateUsers, bulkSendEmail, bulkVerifySkills,
+  bulkVerifyAcademics, getComplianceStats, verifyOfferLetter,
+  getAdminTeam, inviteAdmin, updateAdminLevel
 };

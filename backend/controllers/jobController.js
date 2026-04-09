@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 const { parsePagination } = require('../utils/pagination');
+const { createAuditLog } = require('./auditLogController');
 
 /**
  * Intelligent Match Scoring Logic (Non-AI)
@@ -99,6 +100,15 @@ const createJob = async (req, res, next) => {
     if (io) {
       io.emit('new_job', { title, companyName: finalCompanyName });
     }
+
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'Job Posted',
+      type: 'JOB',
+      targetId: job.id,
+      targetType: 'Job',
+      details: { title, company: finalCompanyName }
+    });
 
     res.status(201).json({ ...job, _id: job.id });
   } catch (error) {
@@ -215,6 +225,14 @@ const updateJobStatus = async (req, res, next) => {
       const updatedJob = await prisma.job.update({
         where: { id: req.params.id },
         data: { status: req.body.status }
+      });
+      await createAuditLog({
+        userId: req.user.id,
+        action: `Job Status Updated to ${req.body.status}`,
+        type: 'JOB',
+        targetId: job.id,
+        targetType: 'Job',
+        details: { title: job.title, newStatus: req.body.status }
       });
       res.json({ ...updatedJob, _id: updatedJob.id });
     } else {
@@ -459,6 +477,15 @@ const deleteJob = async (req, res, next) => {
 
     await prisma.job.delete({ where: { id: req.params.id } });
 
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'Job Deleted',
+      type: 'JOB',
+      targetId: req.params.id,
+      targetType: 'Job',
+      details: { title: job.title, company: job.companyName }
+    });
+
     res.json({ message: 'Job and associated applications removed' });
   } catch (error) {
     next(error);
@@ -491,6 +518,13 @@ const toggleWatchlist = async (req, res, next) => {
           studentId: student.id,
           jobId: req.params.id
         }
+      });
+      await createAuditLog({
+        userId: req.user.id,
+        action: 'Job Saved to Watchlist',
+        type: 'JOB',
+        targetId: req.params.id,
+        targetType: 'Job'
       });
       res.json({ saved: true });
     }
@@ -539,6 +573,122 @@ const getWatchlist = async (req, res, next) => {
   }
 };
 
+const getRecruiterROI = async (req, res, next) => {
+  try {
+    const profile = await prisma.recruiterProfile.findUnique({
+      where: { userId: req.user.id },
+      include: {
+        jobs: {
+          include: {
+            applications: {
+              include: {
+                student: {
+                  select: { branch: true, course: true, cgpa: true, skills: true, projects: true }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!profile) return res.status(404).json({ message: 'Recruiter profile not found' });
+
+    let totalViews = 0;
+    let totalApplications = 0;
+    let shortlisted = 0;
+    let selected = 0;
+    let accepted = 0;
+    let placed = 0;
+    let totalMatchScore = 0;
+    let applicationsWithScore = 0;
+
+    const timeToFillSamples = [];
+    const branchSuccess = {};
+    const jobPerformance = [];
+
+    profile.jobs.forEach(job => {
+      totalViews += job.viewsCount;
+      const jobApps = job.applications;
+      totalApplications += jobApps.length;
+
+      let jobSelected = 0;
+      let firstSelectionDate = null;
+
+      jobApps.forEach(app => {
+        if (['Shortlisted', 'Scheduled', 'Selected', 'Accepted', 'Placed'].includes(app.status)) shortlisted++;
+        if (['Selected', 'Accepted', 'Placed'].includes(app.status)) {
+          selected++;
+          jobSelected++;
+          
+          // For branch distribution, we only care about successful outcomes
+          const branch = app.student.branch || 'Unknown';
+          branchSuccess[branch] = (branchSuccess[branch] || 0) + 1;
+
+          if (!firstSelectionDate || app.createdAt < firstSelectionDate) {
+            firstSelectionDate = app.createdAt;
+          }
+        }
+        if (app.status === 'Accepted') accepted++;
+        if (app.status === 'Placed') placed++;
+
+        // Calculate match score for ROI quality metric
+        const match = calculateMatchScore(app.student, job);
+        totalMatchScore += match.score;
+        applicationsWithScore++;
+      });
+
+      if (firstSelectionDate) {
+        const days = Math.ceil((new Date(firstSelectionDate) - new Date(job.createdAt)) / (1000 * 60 * 60 * 24));
+        timeToFillSamples.push(days);
+      }
+
+      jobPerformance.push({
+        id: job.id,
+        title: job.title,
+        applications: jobApps.length,
+        selected: jobSelected,
+        conversionRate: jobApps.length > 0 ? ((jobSelected / jobApps.length) * 100).toFixed(1) : 0,
+        timeToFill: firstSelectionDate ? Math.ceil((new Date(firstSelectionDate) - new Date(job.createdAt)) / (1000 * 60 * 60 * 24)) : null
+      });
+    });
+
+    const avgTimeToFill = timeToFillSamples.length > 0 
+      ? (timeToFillSamples.reduce((a, b) => a + b, 0) / timeToFillSamples.length).toFixed(1)
+      : null;
+
+    const avgMatchScore = applicationsWithScore > 0
+      ? (totalMatchScore / applicationsWithScore).toFixed(1)
+      : 0;
+
+    res.json({
+      kpis: {
+        totalViews,
+        totalApplications,
+        shortlisted,
+        selected,
+        accepted,
+        placed,
+        avgTimeToFill,
+        avgMatchScore,
+        offerAcceptanceRate: selected > 0 ? ((accepted / selected) * 100).toFixed(1) : 0,
+      },
+      funnel: [
+        { name: 'Views', value: totalViews },
+        { name: 'Applications', value: totalApplications },
+        { name: 'Shortlisted', value: shortlisted },
+        { name: 'Selected', value: selected },
+        { name: 'Accepted', value: accepted },
+        { name: 'Placed', value: placed },
+      ],
+      branchDistribution: Object.entries(branchSuccess).map(([name, value]) => ({ name, value })),
+      jobPerformance: jobPerformance.sort((a, b) => b.selected - a.selected).slice(0, 5)
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = { 
   createJob, 
   getJobs, 
@@ -551,6 +701,7 @@ module.exports = {
   deleteJob,
   getJobById, 
   getJobAnalytics,
+  getRecruiterROI,
   toggleWatchlist,
   getWatchlist
 };

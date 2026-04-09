@@ -12,6 +12,7 @@ import { AuthProvider } from './context/AuthContext';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import CommandPalette from './components/CommandPalette';
+import { ThemeProvider } from './context/ThemeContext';
 const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
@@ -31,6 +32,8 @@ const CareerResources = React.lazy(() => import('./pages/student/CareerResources
 const Settings = React.lazy(() => import('./pages/student/Settings'));
 const StudentProfile = React.lazy(() => import('./pages/student/Profile'));
 const ResumeBuilder = React.lazy(() => import('./pages/student/ResumeBuilder'));
+const ExploreCompanies = React.lazy(() => import('./pages/student/ExploreCompanies'));
+const InterviewToolkit = React.lazy(() => import('./pages/student/InterviewToolkit'));
 
 const MockInterviews = React.lazy(() => import('./pages/student/MockInterviews'));
 const HelpSupport = React.lazy(() => import('./pages/student/HelpSupport'));
@@ -52,6 +55,7 @@ const RecruiterInterviews = React.lazy(() => import('./pages/recruiter/Interview
 const RecruiterNotifications = React.lazy(() => import('./pages/recruiter/Notifications'));
 const RecruiterSettings = React.lazy(() => import('./pages/recruiter/Settings'));
 const RecruiterHelpSupport = React.lazy(() => import('./pages/recruiter/HelpSupport'));
+const ROIDashboard = React.lazy(() => import('./pages/recruiter/ROIDashboard'));
 const ManageStudents = React.lazy(() => import('./pages/admin/ManageStudents'));
 const ManageRecruiters = React.lazy(() => import('./pages/admin/ManageRecruiters'));
 const AdminManageApplications = React.lazy(() => import('./pages/admin/ManageApplications'));
@@ -65,119 +69,148 @@ const ManageVerifications = React.lazy(() => import('./pages/admin/ManageVerific
 const AuditLogs = React.lazy(() => import('./pages/admin/AuditLogs'));
 const AdminManageExperiences = React.lazy(() => import('./pages/admin/ManageExperiences'));
 const AdminManageDrives = React.lazy(() => import('./pages/admin/ManageDrives'));
+const SystemHealth = React.lazy(() => import('./pages/admin/SystemHealth'));
+const AdminTeam = React.lazy(() => import('./pages/admin/AdminTeam'));
 const StudentDriveDetail = React.lazy(() => import('./pages/student/DriveDetail'));
+const Calendar = React.lazy(() => import('./pages/Calendar'));
 import ToastManager from './components/ToastManager';
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
 const App: React.FC = () => {
+  const [isShortcutsOpen, setIsShortcutsOpen] = React.useState(false);
+
+  useKeyboardShortcuts({
+    onOpenHelp: () => setIsShortcutsOpen(true),
+    onCloseAll: () => setIsShortcutsOpen(false)
+  });
+
   return (
     <ErrorBoundary>
       <LoadingProvider>
-        <NotificationProvider>
-          <AuthProvider>
-            <TourProvider>
-              <BrowserRouter>
-                <GlobalLoader />
-                <NotificationModal />
-                <ToastManager />
-                <CommandPalette />
-                <OnboardingTour />
-          <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
-            <Routes>
-          {/* Default Redirect */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-
-          {/* Public Auth Routes */}
-          <Route element={<AuthLayout />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/chat" element={<Navigate to="/" replace />} />
-          </Route>
-
-          {/* Protected Dashboard Routes - Student */}
-          <Route path="/student" element={<DashboardLayout role="student" />}>
-            <Route path="dashboard" element={<Dashboard role="student" />} />
-            <Route path="profile" element={<StudentProfile />} />
-            <Route path="drives/:id" element={<StudentDriveDetail />} />
-            <Route path="jobs" element={<JobFeed />} />
-            <Route path="watchlist" element={<Watchlist />} />
-            <Route path="applications" element={<MyApplications />} />
-            <Route path="interviews" element={<InterviewSchedule />} />
-            <Route path="interview-history" element={<InterviewHistory />} />
-            <Route path="resources" element={<CareerResources />} />
-
-            <Route path="mock-interviews" element={<MockInterviews />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="announcements" element={<Announcements />} />
-            <Route path="resources/:category" element={<ResourceCategory />} />
-            <Route path="alumni" element={<Navigate to="/student/settings?tab=alumni" replace />} />
-            <Route path="support" element={<Support />} />
-            <Route path="help-support" element={<HelpSupport />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="resumes" element={<Navigate to="/student/settings?tab=resumes" replace />} />
-            <Route path="resume-builder" element={<ResumeBuilder />} />
-            <Route path="experiences" element={<ExperienceForum />} />
-            <Route path="experiences/create" element={<CreateExperience />} />
-            <Route path="experiences/:id" element={<ExperienceDetail />} />
-            <Route path="chat" element={<Chat />} />
-          </Route>
-
-      <Route path="/recruiter" element={<DashboardLayout role="recruiter" />}>
-        <Route path="dashboard" element={<Dashboard role="recruiter" />} />
-        <Route path="profile" element={<RecruiterProfile />} />
-        <Route path="post-job" element={<PostJob />} />
-        <Route path="jobs" element={<ManageJobs />} />
-        <Route path="pipeline" element={<InterviewPipeline />} />
-        <Route path="applicants" element={<Applicants />} />
-        <Route path="compare" element={<CompareCandidates />} />
-        <Route path="shortlisted" element={<Shortlisted />} />
-        <Route path="interviews" element={<RecruiterInterviews />} />
-        <Route path="notifications" element={<RecruiterNotifications />} />
-        <Route path="settings" element={<RecruiterSettings />} />
-        <Route path="help-support" element={<RecruiterHelpSupport />} />
-        <Route path="chat" element={<Chat />} />
-      </Route>
-
-          {/* Protected Dashboard Routes - Admin */}
-          <Route path="/admin" element={<DashboardLayout role="admin" />}>
-            <Route path="dashboard" element={<Dashboard role="admin" />} />
-            <Route path="profile" element={<AdminProfile />} />
-            <Route path="students" element={<ManageStudents />} />
-            <Route path="verifications" element={<ManageVerifications />} />
-            <Route path="recruiters" element={<ManageRecruiters />} />
-            <Route path="drives" element={<AdminManageDrives />} />
-            <Route path="jobs" element={<AdminManageJobs />} />
-            <Route path="applications" element={<AdminManageApplications />} />
-            <Route path="interviews" element={<AdminManageInterviews />} />
-            <Route path="reports" element={<AdminReports />} />
-            <Route path="notifications" element={<AdminManageNotifications />} />
-            <Route path="audit" element={<AuditLogs />} />
-            <Route path="experiences" element={<AdminManageExperiences />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route path="chat" element={<Chat />} />
-          </Route>
-
-      {/* Protected Dashboard Routes - Alumni & Mentor */}
-      <Route path="/alumni" element={<DashboardLayout role="alumni" />}>
-        <Route path="dashboard" element={<AlumniPortal />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="chat" element={<Chat />} />
-      </Route>
-
-      <Route path="/mentor" element={<DashboardLayout role="mentor" />}>
-        <Route path="dashboard" element={<AlumniPortal />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="chat" element={<Chat />} />
-      </Route>
-            </Routes>
-          </Suspense>
-              </BrowserRouter>
-            </TourProvider>
-          </AuthProvider>
-        </NotificationProvider>
+        <ThemeProvider>
+          <NotificationProvider>
+            <AuthProvider>
+              <TourProvider>
+                <BrowserRouter>
+                  <GlobalLoader />
+                  <NotificationModal />
+                  <ToastManager />
+                  <CommandPalette />
+                  <OnboardingTour />
+                  <KeyboardShortcutsModal 
+                    isOpen={isShortcutsOpen} 
+                    onClose={() => setIsShortcutsOpen(false)} 
+                  />
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
+              <Routes>
+            {/* Default Redirect */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+  
+            {/* Public Auth Routes */}
+            <Route element={<AuthLayout />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/help" element={<Help />} />
+              <Route path="/chat" element={<Navigate to="/" replace />} />
+            </Route>
+  
+            {/* Protected Dashboard Routes - Student */}
+            <Route path="/student" element={<DashboardLayout role="student" />}>
+              <Route path="dashboard" element={<Dashboard role="student" />} />
+              <Route path="profile" element={<StudentProfile />} />
+              <Route path="drives/:id" element={<StudentDriveDetail />} />
+              <Route path="jobs" element={<JobFeed />} />
+              <Route path="watchlist" element={<Watchlist />} />
+              <Route path="applications" element={<MyApplications />} />
+              <Route path="interviews" element={<InterviewSchedule />} />
+              <Route path="interview-history" element={<InterviewHistory />} />
+              <Route path="resources" element={<CareerResources />} />
+              <Route path="prep-toolkit" element={<InterviewToolkit />} />
+              <Route path="companies" element={<ExploreCompanies />} />
+  
+              <Route path="mock-interviews" element={<MockInterviews />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="announcements" element={<Announcements />} />
+              <Route path="resources/:category" element={<ResourceCategory />} />
+              <Route path="alumni" element={<Navigate to="/student/settings?tab=alumni" replace />} />
+              <Route path="support" element={<Support />} />
+              <Route path="help-support" element={<HelpSupport />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="resumes" element={<Navigate to="/student/settings?tab=resumes" replace />} />
+              <Route path="resume-builder" element={<ResumeBuilder />} />
+              <Route path="experiences" element={<ExperienceForum />} />
+              <Route path="experiences/create" element={<CreateExperience />} />
+              <Route path="experiences/:id" element={<ExperienceDetail />} />
+              <Route path="chat" element={<Chat />} />
+              <Route path="calendar" element={<Calendar />} />
+            </Route>
+  
+        <Route path="/recruiter" element={<DashboardLayout role="recruiter" />}>
+          <Route path="dashboard" element={<Dashboard role="recruiter" />} />
+          <Route path="profile" element={<RecruiterProfile />} />
+          <Route path="post-job" element={<PostJob />} />
+          <Route path="jobs" element={<ManageJobs />} />
+          <Route path="pipeline" element={<InterviewPipeline />} />
+          <Route path="applicants" element={<Applicants />} />
+          <Route path="compare" element={<CompareCandidates />} />
+          <Route path="shortlisted" element={<Shortlisted />} />
+          <Route path="interviews" element={<RecruiterInterviews />} />
+          <Route path="notifications" element={<RecruiterNotifications />} />
+          <Route path="settings" element={<RecruiterSettings />} />
+          <Route path="roi" element={<ROIDashboard />} />
+          <Route path="help-support" element={<RecruiterHelpSupport />} />
+          <Route path="chat" element={<Chat />} />
+          <Route path="calendar" element={<Calendar />} />
+        </Route>
+  
+            {/* Protected Dashboard Routes - Admin */}
+            <Route path="/admin" element={<DashboardLayout role="admin" />}>
+              <Route path="dashboard" element={<Dashboard role="admin" />} />
+              <Route path="profile" element={<AdminProfile />} />
+              <Route path="students" element={<ManageStudents />} />
+              <Route path="verifications" element={<ManageVerifications />} />
+              <Route path="recruiters" element={<ManageRecruiters />} />
+              <Route path="drives" element={<AdminManageDrives />} />
+              <Route path="jobs" element={<AdminManageJobs />} />
+              <Route path="applications" element={<AdminManageApplications />} />
+              <Route path="interviews" element={<AdminManageInterviews />} />
+              <Route path="reports" element={<AdminReports />} />
+              <Route path="notifications" element={<AdminManageNotifications />} />
+              <Route path="audit" element={<AuditLogs />} />
+              <Route path="experiences" element={<AdminManageExperiences />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="health" element={<SystemHealth />} />
+              <Route path="team" element={<AdminTeam />} />
+              <Route path="calendar" element={<Calendar />} />
+              <Route path="chat" element={<Chat />} />
+            </Route>
+  
+        {/* Protected Dashboard Routes - Alumni & Mentor */}
+        <Route path="/alumni" element={<DashboardLayout role="alumni" />}>
+          <Route path="dashboard" element={<AlumniPortal />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="chat" element={<Chat />} />
+          <Route path="calendar" element={<Calendar />} />
+        </Route>
+  
+        <Route path="/mentor" element={<DashboardLayout role="mentor" />}>
+          <Route path="dashboard" element={<AlumniPortal />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="chat" element={<Chat />} />
+          <Route path="calendar" element={<Calendar />} />
+        </Route>
+              </Routes>
+            </Suspense>
+                </BrowserRouter>
+              </TourProvider>
+            </AuthProvider>
+          </NotificationProvider>
+        </ThemeProvider>
       </LoadingProvider>
     </ErrorBoundary>
   );

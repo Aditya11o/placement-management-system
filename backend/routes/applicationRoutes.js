@@ -1,6 +1,5 @@
 const express = require('express');
-const { 
-  applyForJob, 
+  saveApplicationDraft,
   checkStudentEligibility,
   getMyApplications, 
   getJobApplicants, 
@@ -35,6 +34,7 @@ router.get('/stats', protect, authorize('student'), getStudentStats);
 router.get('/recruiter', protect, authorize('recruiter'), getRecruiterApplicants);
 router.get('/interviews', protect, getScheduledInterviews);
 router.post('/:jobId', protect, authorize('student'), validateApplyForJob, applyForJob);
+router.post('/:jobId/draft', protect, authorize('student'), saveApplicationDraft);
 router.get('/my', protect, authorize('student'), getMyApplications);
 router.get('/job/:jobId', protect, authorize('recruiter', 'admin'), getJobApplicants);
 router.patch('/bulk-status', protect, authorize('recruiter'), validateBulkUpdateStatus, bulkUpdateStatus);

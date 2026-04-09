@@ -13,7 +13,7 @@ import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useJobs } from '../../hooks/useJobs';
-import { useMyApplications } from '../../hooks/useApplications';
+import { useMyApplications, useSaveDraft, useCheckEligibility } from '../../hooks/useApplications';
 import { useResumes } from '../../hooks/useResumes';
 import { useStudentDashboard } from '../../hooks/useDashboard';
 import { useWatchlist } from '../../hooks/useWatchlist';
@@ -40,8 +40,28 @@ const JobFeed: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [isEligible, setIsEligible] = useState(true);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [applying, setApplying] = useState(false);
+  const { mutate: saveDraft, isPending: savingDraft } = useSaveDraft();
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
+
+  // Handle Draft Pre-filling
+  useEffect(() => {
+    if (selectedJob && myApps) {
+      const draft = myApps.find((app: any) => 
+        (app.job?._id === selectedJob._id || app.job === selectedJob._id) && 
+        app.status === 'Draft'
+      );
+      if (draft) {
+        const initialAnswers: Record<string, string> = {};
+        draft.answers?.forEach((a: any) => {
+          initialAnswers[a.questionId] = a.answer;
+        });
+        setAnswers(initialAnswers);
+        if (draft.resumeId) setSelectedResumeId(draft.resumeId);
+      } else {
+        setAnswers({});
+      }
+    }
+  }, [selectedJob, myApps]);
 
   useEffect(() => {
     if (resumes && resumes.length > 0 && !selectedResumeId) {
@@ -92,6 +112,28 @@ const JobFeed: React.FC = () => {
     } finally {
       setApplying(false);
     }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!selectedJob) return;
+    const formattedAnswers = selectedJob.screeningQuestions?.map((q: any) => ({
+      questionId: q._id,
+      question: q.question,
+      answer: answers[q._id] || ''
+    })) || [];
+
+    saveDraft({
+      jobId: selectedJob._id,
+      data: {
+        answers: formattedAnswers,
+        resumeId: selectedResumeId || undefined
+      }
+    }, {
+      onSuccess: () => {
+        setShowApplyModal(false);
+        setSelectedJob(null);
+      }
+    });
   };
 
   const filteredJobs = jobs.filter((job: any) => {
@@ -274,8 +316,13 @@ const JobFeed: React.FC = () => {
                   <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
                     {job.status === 'Applied' ? 'Status' : 'Apply Before'}
                   </span>
-                  <span className={`text-xs font-black ${job.status === 'Applied' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    {job.status === 'Applied' ? 'Successfully Applied' : new Date(job.deadline).toLocaleDateString()}
+                  <span className={`text-xs font-black ${
+                    job.status === 'Applied' ? 'text-emerald-500' : 
+                    job.status === 'Draft' ? 'text-amber-500' : 'text-rose-500'
+                  }`}>
+                    {job.status === 'Applied' ? 'Successfully Applied' : 
+                     job.status === 'Draft' ? 'Draft Saved' :
+                     new Date(job.deadline).toLocaleDateString()}
                   </span>
                 </div>
                 
@@ -312,7 +359,7 @@ const JobFeed: React.FC = () => {
                       }}
                       className="w-full sm:w-auto px-6 py-2 bg-blue-950 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-black shadow-md shadow-blue-900/10 active:scale-95 transition-all text-center"
                     >
-                      Apply Now
+                      {job.status === 'Draft' ? 'Resume Application' : 'Apply Now'}
                     </button>
                   )}
                 </div>
@@ -557,17 +604,18 @@ const JobFeed: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button 
-                  onClick={() => setShowApplyModal(false)}
-                  className="flex-1 py-4 text-[11px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-900 transition-colors"
+                  disabled={applying || savingDraft}
+                  onClick={handleSaveDraft}
+                  className="flex-1 py-4 border-2 border-amber-200 text-amber-600 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-amber-50 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                 >
-                  Cancel
+                  {savingDraft ? <Loader2 size={16} className="animate-spin" /> : 'Save Progress'}
                 </button>
                 <button 
-                  disabled={applying || selectedJob.screeningQuestions.some((q: any) => !answers[q._id]) || !selectedResumeId}
+                  disabled={applying || savingDraft || selectedJob.screeningQuestions.some((q: any) => !answers[q._id]) || !selectedResumeId}
                   onClick={handleApply}
-                  className="flex-[2] py-4 bg-blue-950 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-black shadow-xl shadow-blue-900/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-[1.5] py-4 bg-blue-950 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-black shadow-xl shadow-blue-900/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {applying ? (
                     <Loader2 size={16} className="animate-spin" />

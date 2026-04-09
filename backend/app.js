@@ -108,30 +108,16 @@ app.use('/api/auth/login', loginLimiter);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/profile', require('./routes/profileRoutes'));
-app.use('/api/admin', require('./routes/adminRoutes'));
-app.use('/api/admin/data', require('./routes/importExportRoutes'));
-app.use('/api/jobs', require('./routes/jobRoutes'));
-app.use('/api/applications', require('./routes/applicationRoutes'));
-app.use('/api/audit', require('./routes/auditLogRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/settings', require('./routes/settingsRoutes'));
-app.use('/api/messages', require('./routes/messageRoutes'));
-app.use('/api/upload', require('./routes/uploadRoutes'));
-app.use('/api/students', require('./routes/studentRoutes'));
-app.use('/api/alumni', require('./routes/alumniRoutes'));
-app.use('/api/resources', require('./routes/resourceRoutes'));
-app.use('/api/tickets', require('./routes/ticketRoutes'));
-app.use('/api/faqs', require('./routes/faqRoutes'));
-app.use('/api/mock-interviews', require('./routes/mockInterviewRoutes'));
-app.use('/api/reminders', require('./routes/reminderRoutes'));
-app.use('/api/interviews', require('./routes/interviewRoutes'));
-app.use('/api/experiences', require('./routes/experienceRoutes'));
-app.use('/api/drives', require('./routes/driveRoutes'));
+const v1Router = require('./routes/v1');
 
-// Health Check Route
-app.get('/api/health', (req, res) => {
+// Versioned API
+app.use('/api/v1', v1Router);
+
+// Backward Compatibility Alias
+app.use('/api', v1Router);
+
+// Health Check Route (Root level)
+app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     uptime: Math.floor(process.uptime()),

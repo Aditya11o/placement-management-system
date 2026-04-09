@@ -19,6 +19,10 @@ const Reports: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [selectedYear, setSelectedYear] = useState('All');
+  const [selectedBranch, setSelectedBranch] = useState('All');
+  const [selectedStatus, setSelectedStatus] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -63,6 +67,34 @@ const Reports: React.FC = () => {
     };
     fetchReports();
   }, []);
+
+  // Filter Logic
+  const filteredRecords = data?.placementRecords?.filter((r: any) => {
+    const matchesYear = selectedYear === 'All' || r.student?.profile?.passingYear?.toString() === selectedYear;
+    const matchesBranch = selectedBranch === 'All' || r.student?.profile?.branch === selectedBranch;
+    const matchesStatus = selectedStatus === 'All' || r.status === selectedStatus;
+    const matchesSearch = searchTerm === '' || 
+      r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      r.company.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesYear && matchesBranch && matchesStatus && matchesSearch;
+  }) || [];
+
+  // Branch Performance Aggregation
+  const branchPerformance = analytics?.branchComparison?.reduce((acc: any, curr: any) => {
+    const branch = curr.branch;
+    if (!acc[branch]) acc[branch] = { name: branch, placed: 0, total: 0 };
+    acc[branch].total += curr._count._all;
+    if (['Placed', 'Interned', 'Selected'].includes(curr.placementStatus)) {
+      acc[branch].placed += curr._count._all;
+    }
+    return acc;
+  }, {});
+
+  const branchPerformanceData = Object.values(branchPerformance || {}).map((b: any) => ({
+    name: b.name,
+    rate: Math.round((b.placed / b.total) * 100),
+    total: b.total
+  })).sort((a: any, b: any) => b.rate - a.rate);
 
   const handleFullExportCSV = async () => {
     try {
@@ -194,6 +226,8 @@ const Reports: React.FC = () => {
             <input 
               type="text" 
               placeholder="Search metrics..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:bg-white focus:border-[#000613] outline-none transition-all w-64 shadow-sm"
             />
           </div>
@@ -220,15 +254,15 @@ const Reports: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4">
           <div className="space-y-1">
             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block ml-1">Academic Year</label>
-            <Dropdown value="2024" onChange={() => {}} options={['2024', '2023', '2022', '2021']} />
+            <Dropdown value={selectedYear} onChange={setSelectedYear} options={['All', '2025', '2024', '2023', '2022']} />
           </div>
           <div className="space-y-1">
             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block ml-1">Branch/Dept</label>
-            <Dropdown value="All" onChange={() => {}} options={['All', 'CSE', 'ECE', 'ME', 'CE', 'IT']} />
+            <Dropdown value={selectedBranch} onChange={setSelectedBranch} options={['All', 'CSE', 'ECE', 'ME', 'CE', 'IT']} />
           </div>
           <div className="space-y-1">
             <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block ml-1">Application Status</label>
-            <Dropdown value="Placed" onChange={() => {}} options={['All', 'Placed', 'Pending', 'Interviewing']} />
+            <Dropdown value={selectedStatus} onChange={setSelectedStatus} options={['All', 'Placed', 'Interned', 'Selected', 'Rejected', 'Interviewing']} />
           </div>
         </div>
         
@@ -391,6 +425,80 @@ const Reports: React.FC = () => {
         </div>
       </div>
 
+      {/* Cohort Comparative Performance Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-1.5 h-6 bg-blue-600 rounded-full" />
+              <div>
+                <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest italic font-serif">Cohort Success Matrix</h3>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Branch-wise Selection Rate Benchmarking</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-blue-600 rounded-full" />
+                <span className="text-[10px] font-black text-gray-400 uppercase">Selection %</span>
+              </div>
+              <div className="w-px h-3 bg-gray-200 mx-2" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-gray-200 rounded-full" />
+                <span className="text-[10px] font-black text-gray-400 uppercase">Intake</span>
+              </div>
+            </div>
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={branchPerformanceData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f8fafc" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 900, fill: '#64748b'}} width={60} />
+                <Tooltip 
+                  cursor={{fill: '#f8fafc'}}
+                  contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px'}}
+                />
+                <Bar dataKey="rate" fill="#2563eb" radius={[0, 8, 8, 0]} barSize={20}>
+                  <Cell fill="#000613" />
+                </Bar>
+                <Bar dataKey="total" fill="#f1f5f9" radius={[0, 8, 8, 0]} barSize={10} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-[#f8fafc] border border-gray-100 rounded-[2.5rem] p-8 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-blue-600 mb-6 font-black scale-110">
+              %
+            </div>
+            <h3 className="text-lg font-black text-gray-900 tracking-tight leading-tight mb-4">
+              Strategic <span className="text-blue-600">Benchmarking</span> Logic
+            </h3>
+            <p className="text-[11px] font-bold text-gray-500 leading-relaxed uppercase tracking-wider">
+              The cohort success matrix visualizes the efficiency of each department in converting student intake into verified career placements.
+            </p>
+          </div>
+          
+          <div className="mt-8 space-y-4">
+            <div className="p-4 bg-white rounded-2xl border border-gray-100">
+               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Global Success Avg</p>
+               <div className="flex items-end gap-2">
+                 <p className="text-2xl font-black text-gray-900">{data?.stats?.placementRate}</p>
+                 <TrendingUp size={16} className="text-emerald-500 mb-1" />
+               </div>
+            </div>
+            <div className="p-4 bg-white rounded-2xl border border-gray-100">
+               <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Top Cohort (Branch)</p>
+               <div className="flex items-center gap-2">
+                 <p className="text-lg font-black text-gray-900 uppercase tracking-tighter">{branchPerformanceData[0]?.name || 'N/A'}</p>
+                 <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">{branchPerformanceData[0]?.rate || 0}%</span>
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Detailed Placement Record Table */}
       <div className="bg-white border border-gray-100 rounded-[2.5rem] shadow-sm overflow-hidden mt-8">
         <div className="px-10 py-8 border-b border-gray-50 flex justify-between items-center">
@@ -407,12 +515,12 @@ const Reports: React.FC = () => {
                 <th className="pl-10 pr-4 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student Asset</th>
                 <th className="px-4 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Strategic Partner</th>
                 <th className="px-4 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Offer Package</th>
-                <th className="px-4 py-6 text-[10px) font-black text-gray-400 uppercase tracking-widest">Engagement Date</th>
+                <th className="px-4 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Engagement Date</th>
                 <th className="pr-10 pl-4 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Verification</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {data?.placementRecords?.map((record: any, idx: number) => (
+              {filteredRecords.map((record: any, idx: number) => (
                 <tr key={idx} className="hover:bg-gray-50/40 transition-all duration-300 group">
                   <td className="pl-10 pr-4 py-6">
                     <div className="flex items-center gap-3">
@@ -447,7 +555,7 @@ const Reports: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {data.placementRecords.length === 0 && (
+              {filteredRecords.length === 0 && (
                 <tr>
                   <td colSpan={5} className="py-20 text-center">
                     <FileText size={48} className="mx-auto text-gray-200 mb-4" />

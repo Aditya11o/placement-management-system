@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { User as UserIcon, Lock, Bell, Building2, ChevronRight } from 'lucide-react';
+import { User as UserIcon, Lock, Bell, Building2, ChevronRight, Monitor } from 'lucide-react';
+import AppearanceSettings from '../../components/settings/AppearanceSettings';
 
 import AccountSettingsCard from '../../components/recruiter/settings/AccountSettingsCard';
 import CompanySettingsCard from '../../components/recruiter/settings/CompanySettingsCard';
@@ -12,6 +13,7 @@ const Settings: React.FC = () => {
 
   const menuItems = [
     { id: 'Account Settings', icon: <UserIcon size={18} /> },
+    { id: 'Display', icon: <Monitor size={18} /> },
     { id: 'Security', icon: <Lock size={18} /> },
     { id: 'Notifications', icon: <Bell size={18} /> },
     { id: 'Company Details', icon: <Building2 size={18} /> },
@@ -56,6 +58,10 @@ const Settings: React.FC = () => {
         <div className="col-span-12 lg:col-span-9 space-y-6">
           <div className={activeMenu !== 'Account Settings' ? 'hidden' : 'block'}>
             <AccountSettingsCard />
+          </div>
+
+          <div className={activeMenu !== 'Display' ? 'hidden' : 'block'}>
+            <AppearanceSettings />
           </div>
           
           <div className={`space-y-6 ${activeMenu !== 'Security' ? 'hidden' : 'block'}`}>

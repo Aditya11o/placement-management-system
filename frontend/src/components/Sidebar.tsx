@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, X, Sparkles, Bookmark } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, X, Sparkles, Bookmark, Building2, TrendingUp, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from './ConfirmModal';
 
@@ -12,21 +12,22 @@ interface SidebarProps {
 }
 
  const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose }) => {
-  const { logout } = useAuth();
+  const { logout, profile } = useAuth();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const getLinks = () => {
-    // ... existing links logic
     switch (role as any) {
       case 'student':
         return [
           { name: 'Dashboard', icon: LayoutDashboard, path: '/student/dashboard' },
           { name: 'My Profile', icon: Users, path: '/student/profile' },
           { name: 'Jobs', icon: Briefcase, path: '/student/jobs' },
+          { name: 'Explore Companies', icon: Building2, path: '/student/companies' },
           { name: 'Watchlist', icon: Bookmark, path: '/student/watchlist' },
           { name: 'My Applications', icon: FileText, path: '/student/applications' },
           { name: 'Interview Schedule', icon: Calendar, path: '/student/interviews' },
-
+          { name: 'Academic Calendar', icon: Calendar, path: '/student/calendar' },
+          { name: 'Prep Toolkit', icon: Sparkles, path: '/student/prep-toolkit' },
           { name: 'Career Prep', icon: BookOpen, path: '/student/resources' },
           { name: 'Knowledge Hub', icon: Sparkles, path: '/student/experiences' },
           { name: 'Mock Interviews', icon: MessageSquare, path: '/student/mock-interviews' },
@@ -41,10 +42,12 @@ interface SidebarProps {
           { name: 'Applicants', icon: FileText, path: '/recruiter/applicants' },
           { name: 'Shortlisted Candidates', icon: Users, path: '/recruiter/shortlisted' },
           { name: 'Interview Schedule', icon: Calendar, path: '/recruiter/interviews' },
+          { name: 'Academic Calendar', icon: Calendar, path: '/recruiter/calendar' },
+          { name: 'ROI Analytics', icon: TrendingUp, path: '/recruiter/roi' },
           { name: 'Notifications', icon: Bell, path: '/recruiter/notifications' },
         ];
       case 'admin':
-        return [
+        const adminLinks = [
           { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
           { name: 'Manage Students', icon: Users, path: '/admin/students' },
           { name: 'Skill Verification', icon: Shield, path: '/admin/verifications' },
@@ -53,13 +56,26 @@ interface SidebarProps {
           { name: 'Manage Jobs', icon: FileText, path: '/admin/jobs' },
           { name: 'Applications', icon: FileText, path: '/admin/applications' },
           { name: 'Interviews', icon: Calendar, path: '/admin/interviews' },
+          { name: 'Academic Calendar', icon: Calendar, path: '/admin/calendar' },
           { name: 'Reports', icon: FileText, path: '/admin/reports' },
-          { name: 'Peer Experiences', icon: Sparkles, path: '/admin/experiences' },
-          { name: 'Notifications', icon: Bell, path: '/admin/notifications' },
         ];
+
+        // Super Admin Only Links
+        const adminLevel = (profile as any)?.level || 'SUPER_ADMIN';
+        if (adminLevel === 'SUPER_ADMIN') {
+          adminLinks.push({ name: 'Admin Team', icon: Shield, path: '/admin/team' });
+          adminLinks.push({ name: 'System Health', icon: Activity, path: '/admin/health' });
+        }
+
+        adminLinks.push(
+          { name: 'Peer Experiences', icon: Sparkles, path: '/admin/experiences' },
+          { name: 'Notifications', icon: Bell, path: '/admin/notifications' }
+        );
+        return adminLinks;
       default:
         return [
           { name: 'Dashboard', icon: LayoutDashboard, path: `/${role}/dashboard` },
+          { name: 'Calendar', icon: Calendar, path: `/${role}/calendar` },
           { name: 'Post Referral', icon: Briefcase, path: `/${role}/post-job` },
           { name: 'My Profile', icon: Users, path: `/${role}/profile` },
         ];

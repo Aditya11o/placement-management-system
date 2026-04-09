@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Bell, Search, Sun, Moon, User, Settings, LogOut, ChevronDown, Menu, HelpCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import Avatar from './Avatar';
@@ -112,13 +113,26 @@ const Navbar: React.FC<NavbarProps> = ({ role, onToggleSidebar, onHelpOpen }) =>
           </Link>
           <button 
             onClick={toggleTheme}
-            className="p-2 md:p-2.5 text-on-surface-variant hover:bg-surface-container rounded-xl transition-all"
+            className="p-2 md:p-2.5 text-on-surface-variant hover:bg-surface-container rounded-xl transition-all relative group overflow-hidden"
+            aria-label="Toggle Theme"
           >
-            {theme === 'light' ? (
-              <Moon className="w-[18px] h-[18px] md:w-5 md:h-5" />
-            ) : (
-              <Sun className="w-[18px] h-[18px] md:w-5 md:h-5" />
-            )}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={theme}
+                initial={{ y: 20, opacity: 0, rotate: -45 }}
+                animate={{ y: 0, opacity: 1, rotate: 0 }}
+                exit={{ y: -20, opacity: 0, rotate: 45 }}
+                transition={{ duration: 0.2, ease: "circOut" }}
+                className="flex items-center justify-center"
+              >
+                {theme === 'light' ? (
+                  <Moon className="w-[18px] h-[18px] md:w-5 md:h-5 text-indigo-600" />
+                ) : (
+                  <Sun className="w-[18px] h-[18px] md:w-5 md:h-5 text-yellow-500" />
+                )}
+              </motion.div>
+            </AnimatePresence>
+            <div className="absolute inset-0 bg-surface-tint/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           </button>
 
           {/* Notifications Dropdown */}

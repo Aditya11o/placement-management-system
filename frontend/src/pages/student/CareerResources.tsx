@@ -109,18 +109,24 @@ const CareerPrepHub: React.FC = () => {
         {/* Left Column: 2 & 3 */}
         <div className="lg:col-span-2 space-y-8">
           
-          <div className="bg-white rounded-[3rem] p-8 md:p-12 shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-gray-50 flex flex-col md:flex-row gap-12 relative overflow-hidden group min-h-[400px] items-center justify-center text-center">
+          <div className="bg-white rounded-[3rem] p-8 md:p-12 shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-gray-50 flex flex-col md:flex-row gap-12 relative overflow-hidden group min-h-[400px] items-center text-center md:text-left">
             <div className="space-y-6 max-w-xl">
               <h2 className="text-3xl font-black text-[#000613] italic uppercase leading-none mb-4 underline decoration-blue-600/20 underline-offset-8">Career <span className="text-blue-600">Excellence</span></h2>
               <p className="text-gray-400 text-sm font-medium leading-relaxed">
                 Elevate your professional identity with our curated collection of interview modules, technical preparation guides, and industry masterclasses. Your placement journey starts with mastering the fundamentals.
               </p>
-              <div className="flex justify-center pt-4">
+              <div className="flex flex-wrap gap-4 justify-center md:justify-start pt-4">
+                 <button 
+                  onClick={() => navigate('/student/prep-toolkit')}
+                  className="bg-blue-600 text-white px-10 py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-[#000613] hover:-translate-y-1 active:scale-95 transition-all flex items-center gap-2"
+                >
+                  <Sparkles size={16} /> Launch Prep Toolkit
+                 </button>
                  <button 
                   onClick={() => navigate('/student/settings')}
-                  className="bg-[#000613] text-white px-10 py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-black/20 hover:bg-blue-600 hover:-translate-y-1 active:scale-95 transition-all"
+                  className="bg-transparent text-[#000613] border-2 border-[#000613] px-10 py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-gray-50 hover:-translate-y-1 active:scale-95 transition-all"
                 >
-                  Manage Your Profile & Resume
+                  Manage Resume
                  </button>
               </div>
             </div>

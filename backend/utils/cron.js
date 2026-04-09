@@ -1,7 +1,12 @@
 const cron = require('node-cron');
-const prisma = require('../utils/prisma');
+const prisma = require('./prisma');
 const { sendEmail } = require('./emailUtils');
 const { runWeeklyReadinessCheck } = require('./readinessCron');
+const { 
+  purgeExpiredOTPs, 
+  runFullMaintenance 
+} = require('./maintenanceCron');
+const { processScheduledBroadcasts } = require('./broadcastCron');
 
 const checkJobDeadlines = async () => {
   try {
@@ -110,7 +115,13 @@ const checkWatchlistReminders = async () => {
 
 const { sendStudentDigest, sendAdminDigest } = require('./digestCron');
 
-const initCron = () => {
+const initCron = (io) => {
+  // Broadcast check: every minute
+  cron.schedule('* * * * *', () => {
+    console.log('Running scheduled broadcast check...');
+    processScheduledBroadcasts(io);
+  });
+
   cron.schedule('0 0 * * *', () => {
     console.log('Running daily job deadline check...');
     checkJobDeadlines();
@@ -138,6 +149,20 @@ const initCron = () => {
   cron.schedule('0 18 * * 0', () => {
     console.log('Running weekly admin digest...');
     sendAdminDigest();
+  });
+
+  // MAINTENANCE TASKS
+  
+  // Daily OTP Cleanup: Every day at 01:00
+  cron.schedule('0 1 * * *', () => {
+    console.log('Running daily OTP cleanup...');
+    purgeExpiredOTPs();
+  });
+
+  // Full Maintenance Cycle: Every Sunday at 03:00
+  cron.schedule('0 3 * * 0', () => {
+    console.log('Running weekly system maintenance cycle...');
+    runFullMaintenance();
   });
   
   // Also run once on startup for debugging/initial check

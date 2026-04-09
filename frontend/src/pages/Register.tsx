@@ -1,7 +1,8 @@
 import React, { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Lock, ArrowRight, ShieldCheck, GraduationCap, Briefcase, CheckCircle } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, ShieldCheck, GraduationCap, Briefcase, CheckCircle, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import loginBg from '../assets/login_bg.png';
 import { useNotification } from '../context/NotificationContext';
 
@@ -16,6 +17,7 @@ const Register: React.FC = () => {
   const [agree, setAgree] = useState<boolean>(false);
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -83,6 +85,17 @@ const Register: React.FC = () => {
       {/* Right Section: Form Centered Vertically */}
       <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-8 bg-surface-container-lowest">
         <div className="w-full max-w-md space-y-6 animate-fade-in py-4">
+          <div className="absolute top-8 right-8 z-50">
+            <button 
+              onClick={toggleTheme}
+              type="button"
+              className="p-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white hover:bg-white/20 transition-all shadow-xl group"
+              title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              {theme === 'light' ? <Moon size={20} className="group-hover:rotate-12 transition-transform" /> : <Sun size={20} className="group-hover:rotate-90 transition-transform" />}
+            </button>
+          </div>
+
           <div className="text-center md:text-left">
               <span className="text-[10px] uppercase tracking-[0.2em] font-black text-surface-tint block mb-1.5 opacity-60">Registration</span>
               <h2 className="text-2xl lg:text-[1.75rem] font-display font-bold text-on-surface tracking-tight mb-1">Create Your Account</h2>

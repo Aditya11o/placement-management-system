@@ -7,7 +7,7 @@ function getCookie(name: string): string | null {
 }
 
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
   withCredentials: true,
 });
 
@@ -64,7 +64,7 @@ api.interceptors.response.use(
 
       try {
         await axios.post(
-          `${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}/api/auth/refresh`,
+          `${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}/api/v1/auth/refresh`,
           {},
           { withCredentials: true }
         );

@@ -67,10 +67,10 @@
   body {
     @apply font-body bg-surface text-on-surface;
     -webkit-font-smoothing: antialiased;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-bold text-primary;
+    @apply font-display font-bold text-primary transition-colors duration-300;
   }
   button, a, select, [role="button"], .clickable, .icon-button {
     cursor: pointer;
@@ -246,7 +246,33 @@
   }
 }
 
-@layer utilities {
+270: /* Global Utility Overrides for Dark Mode */
+271: .dark .bg-white {
+272:   @apply bg-surface-container-lowest text-on-surface;
+273: }
+274: 
+275: .dark .bg-gray-50, 
+276: .dark .bg-gray-100 {
+277:   @apply bg-surface-container-low text-on-surface-variant;
+278: }
+279: 
+280: .dark .border-gray-100,
+281: .dark .border-gray-200,
+282: .dark .border-outline-variant {
+283:   @apply border-outline-variant/30;
+284: }
+285: 
+286: .dark .text-gray-900,
+287: .dark .text-gray-800 {
+288:   @apply text-on-surface;
+289: }
+290: 
+291: .dark .text-gray-500,
+292: .dark .text-gray-400 {
+293:   @apply text-on-surface-variant;
+294: }
+295: 
+296: @layer utilities {
   .display-lg {
     @apply text-[3.5rem] leading-[1.1] tracking-[-0.02em];
   }

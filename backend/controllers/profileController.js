@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 const { cloudinary, uploadToCloudinary } = require('../utils/cloudinary');
+const { createAuditLog } = require('./auditLogController');
 
 
 
@@ -141,6 +142,11 @@ const updateProfile = async (req, res, next) => {
         create: { ...cleanUpdateData, userId: req.user.id }
       });
     }
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'Profile Updated',
+      type: 'PROFILE'
+    });
 
     res.json({
       success: true,
@@ -221,6 +227,12 @@ const uploadResume = async (req, res, next) => {
       where: { userId: req.user.id },
       update: { resumePath: resumeUrl },
       create: { userId: req.user.id, resumePath: resumeUrl }
+    });
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'Resume Uploaded',
+      type: 'PROFILE',
+      details: { resumeUrl: resumeUrl }
     });
 
     res.status(201).json({ 

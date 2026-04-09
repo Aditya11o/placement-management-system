@@ -12,8 +12,9 @@ import NotificationPrivacyCards from '../../components/settings/NotificationPriv
 import AccountActionsCard from '../../components/settings/AccountActionsCard';
 import SettingsResumesTab from '../../components/settings/SettingsResumesTab';
 import SettingsAlumniTab from '../../components/settings/SettingsAlumniTab';
+import AppearanceSettings from '../../components/settings/AppearanceSettings';
 import ConfirmModal from '../../components/ConfirmModal';
-import { LogOut, AlertTriangle, Power, User, Shield, FileText, Users, Bell } from 'lucide-react';
+import { LogOut, AlertTriangle, Power, User, Shield, FileText, Users, Bell, Monitor } from 'lucide-react';
 
 const Settings: React.FC = () => {
   const { logout } = useAuth();
@@ -208,6 +209,7 @@ const Settings: React.FC = () => {
 
   const tabs = [
     { id: 'general', name: 'General', icon: User },
+    { id: 'appearance', name: 'Appearance', icon: Monitor },
     { id: 'privacy', name: 'Privacy & Alerts', icon: Bell },
     { id: 'resumes', name: 'My Resumes', icon: FileText },
     { id: 'alumni', name: 'Alumni Network', icon: Users },
@@ -273,6 +275,13 @@ const Settings: React.FC = () => {
                 onLogout={handleLogout}
               />
             </div>
+          </div>
+        )}
+
+        {/* Appearance Tab */}
+        {activeTab === 'appearance' && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <AppearanceSettings />
           </div>
         )}
 

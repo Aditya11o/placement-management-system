@@ -56,13 +56,41 @@ const protect = async (req, res, next) => {
 };
 
 // Admin middleware
-const admin = (req, res, next) => {
+const admin = async (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
-    next();
+    try {
+      const adminProfile = await prisma.adminProfile.findUnique({
+        where: { userId: req.user.id }
+      });
+      
+      if (adminProfile) {
+        req.adminLevel = adminProfile.level;
+        req.adminScope = adminProfile.scope;
+      } else {
+        // Default to SUPER_ADMIN if profile missing (for legacy or first admin)
+        req.adminLevel = 'SUPER_ADMIN';
+      }
+      next();
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching admin profile' });
+    }
   } else {
     res.status(403);
     res.json({ message: 'Not authorized as an admin' });
   }
+};
+
+// Admin level authorization
+const authorizeLevel = (...levels) => {
+  return (req, res, next) => {
+    if (!req.adminLevel || !levels.includes(req.adminLevel)) {
+      res.status(403);
+      return res.json({ 
+        message: `Admin level ${req.adminLevel} is not authorized to access this route` 
+      });
+    }
+    next();
+  };
 };
 
 // Recruiter middleware
@@ -95,4 +123,4 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, authorize, admin, recruiter, student };
+module.exports = { protect, authorize, admin, recruiter, student, authorizeLevel };

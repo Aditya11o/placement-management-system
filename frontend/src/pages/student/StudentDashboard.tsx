@@ -17,6 +17,7 @@ import Pipeline from '../../components/student/Pipeline';
 import CareerResources from '../../components/student/CareerResources';
 import AnnouncementsBoard from '../../components/AnnouncementsBoard';
 import StudentDrivesWidget from '../../components/student/StudentDrivesWidget';
+import ActivityTimeline from '../../components/student/ActivityTimeline';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -111,6 +112,7 @@ const StudentDashboard: React.FC = () => {
         </section>
 
         <section className="md:col-span-4 h-full space-y-6">
+           <ActivityTimeline />
            <StudentDrivesWidget />
            <CareerResources />
         </section>

@@ -1,11 +1,12 @@
 const express = require('express');
-const { createJob, getJobs, adminGetJobs, updateJobStatus, getMatchedJobs, getRecruiterStats, getRecruiterJobs, updateJob, deleteJob, getJobById, getJobAnalytics, toggleWatchlist, getWatchlist } = require('../controllers/jobController');
+const { createJob, getJobs, adminGetJobs, updateJobStatus, getMatchedJobs, getRecruiterStats, getRecruiterJobs, updateJob, deleteJob, getJobById, getJobAnalytics, getRecruiterROI, toggleWatchlist, getWatchlist } = require('../controllers/jobController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { validateCreateJob, validateUpdateJob, validateUpdateJobStatus, validateMongoId } = require('../middleware/validateMiddleware');
 const router = express.Router();
 
 router.get('/admin', protect, authorize('admin', 'recruiter'), adminGetJobs);
 router.get('/stats', protect, authorize('recruiter'), getRecruiterStats);
+router.get('/roi', protect, authorize('recruiter'), getRecruiterROI);
 router.get('/my', protect, authorize('recruiter'), getRecruiterJobs);
 
 router.route('/')

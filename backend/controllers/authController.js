@@ -6,6 +6,7 @@ const generateRefreshToken = require('../utils/generateRefreshToken');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/emailUtils');
 const { validateEmailDomain } = require('../utils/domainValidator');
+const { createAuditLog } = require('./auditLogController');
 
 // Helper to set tokens as cookies
 const setTokenCookies = (res, user) => {
@@ -90,6 +91,13 @@ const registerUser = async (req, res, next) => {
 
       const { token, refreshToken } = setTokenCookies(res, user);
 
+      await createAuditLog({
+        userId: user.id,
+        action: 'User Registered',
+        type: 'AUTH',
+        details: { role: user.role }
+      });
+
       res.status(201).json({
         _id: user.id, // Mapping id to _id for frontend compatibility
         id: user.id,
@@ -169,6 +177,13 @@ const authUser = async (req, res, next) => {
       }
 
       const { token, refreshToken } = setTokenCookies(res, user);
+
+      await createAuditLog({
+        userId: user.id,
+        action: 'User Logged In',
+        type: 'AUTH',
+        ipAddress: req.ip
+      });
 
       res.json({
         _id: user.id, // Mapping id to _id for frontend compatibility
@@ -266,6 +281,12 @@ const refreshAccessToken = async (req, res, next) => {
 // @route   POST /api/auth/logout
 // @access  Private
 const logoutUser = async (req, res) => {
+  await createAuditLog({
+    userId: req.user.id,
+    action: 'User Logged Out',
+    type: 'AUTH'
+  });
+
   res.clearCookie('token');
   res.clearCookie('refreshToken');
   res.status(200).json({ message: 'Logged out successfully' });
@@ -380,6 +401,12 @@ const updatePassword = async (req, res, next) => {
     await prisma.user.update({
       where: { id: user.id },
       data: { password: hashedPassword }
+    });
+
+    await createAuditLog({
+      userId: user.id,
+      action: 'Password Updated',
+      type: 'AUTH'
     });
 
     res.json({ message: 'Password updated successfully' });
