@@ -1,9 +1,7 @@
 const request = require('supertest');
 const app = require('../app');
-const User = require('../models/User');
-const Job = require('../models/Job');
-const Profile = require('../models/Profile');
-const { connect, close, clear } = require('./setup');
+const prisma = require('../utils/prisma');
+const { connect, close, clear } = require('./prisma-test-setup');
 const jwt = require('jsonwebtoken');
 
 beforeAll(async () => await connect());
@@ -15,25 +13,58 @@ const generateTestToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { exp
 describe('Jobs API Integration', () => {
   let recruiterToken, studentToken, adminToken;
   let recruiterId, studentId, adminId;
+  let recruiterProfileId;
 
   beforeEach(async () => {
-    const recruiter = await User.create({ name: 'HR Recruiter', email: 'hr@google-corp.com', password: 'Testing@1234', role: 'recruiter', status: 'active' });
-    const student = await User.create({ name: 'TNU Student', email: 'stud@tnu.in', password: 'Testing@1234', role: 'student', status: 'active' });
-    const admin = await User.create({ name: 'TNU Admin', email: 'admin@tnu.in', password: 'Testing@1234', role: 'admin', status: 'active' });
+    // 1. Create Users
+    const recruiter = await prisma.user.create({
+      data: {
+        name: 'HR Recruiter',
+        email: 'hr@google-corp.com',
+        password: 'hashedpassword',
+        role: 'recruiter',
+        status: 'active',
+        recruiterProfile: { create: { companyName: 'Google', location: 'Remote' } }
+      },
+      include: { recruiterProfile: true }
+    });
 
-    recruiterId = recruiter._id;
-    studentId = student._id;
-    adminId = admin._id;
+    const student = await prisma.user.create({
+      data: {
+        name: 'TNU Student',
+        email: 'stud@tnu.in',
+        password: 'hashedpassword',
+        role: 'student',
+        status: 'active',
+        studentProfile: { 
+          create: { 
+            cgpa: 8.5, 
+            branch: 'Computer Science',
+            academicVerified: true 
+          } 
+        }
+      },
+      include: { studentProfile: true }
+    });
+
+    const admin = await prisma.user.create({
+      data: {
+        name: 'TNU Admin',
+        email: 'admin@tnu.in',
+        password: 'hashedpassword',
+        role: 'admin',
+        status: 'active'
+      }
+    });
+
+    recruiterId = recruiter.id;
+    studentId = student.id;
+    adminId = admin.id;
+    recruiterProfileId = recruiter.recruiterProfile.id;
 
     recruiterToken = generateTestToken(recruiterId);
     studentToken = generateTestToken(studentId);
     adminToken = generateTestToken(adminId);
-
-    // Setup student profile for eligibility tests
-    await Profile.create({ 
-      user: studentId, 
-      studentDetails: { cgpa: 8.5, branch: 'Computer Science' } 
-    });
   });
 
   describe('POST /api/jobs', () => {
@@ -43,7 +74,7 @@ describe('Jobs API Integration', () => {
         .set('Authorization', `Bearer ${recruiterToken}`)
         .send({
           title: 'Software Engineer',
-          description: 'Looking for a highly skilled software engineer to join our team and build scalable applications.',
+          description: 'Looking for a highly skilled software engineer to join our team.',
           companyName: 'Google',
           location: 'Remote',
           salary: '1200000',
@@ -52,9 +83,11 @@ describe('Jobs API Integration', () => {
           deadline: new Date(Date.now() + 86400000).toISOString()
         });
       
-      if (res.statusCode !== 201) console.log('APPLY JOB ERROR:', res.body);
       expect(res.statusCode).toBe(201);
       expect(res.body.title).toBe('Software Engineer');
+      
+      // Check randomization logic in controller if needed, but usually we just check res.body
+      expect(res.body).toHaveProperty('jobId'); 
     });
 
     it('should deny student from creating a job', async () => {
@@ -70,43 +103,57 @@ describe('Jobs API Integration', () => {
   describe('GET /api/jobs/matched', () => {
     beforeEach(async () => {
       // Job 1: Eligible
-      await Job.create({
-        recruiter: recruiterId, 
-        title: 'Eligible Job', 
-        status: 'open',
-        description: 'A great opportunity for computer science students with high CGPA.',
-        companyName: 'Tech Corp',
-        location: 'Kolkata',
-        salary: '600000',
-        jobType: 'Full-time',
-        eligibility: { minCGPA: 8.0, branches: ['Computer Science'] },
-        deadline: new Date(Date.now() + 86400000)
+      await prisma.job.create({
+        data: {
+          jobId: 'JOB-ELG1',
+          recruiterId: recruiterProfileId,
+          title: 'Eligible Job',
+          description: 'A great opportunity.',
+          companyName: 'Tech Corp',
+          location: 'Kolkata',
+          salary: '600000',
+          jobType: 'Full_time',
+          minCGPA: 8.0,
+          branches: ['Computer Science'],
+          deadline: new Date(Date.now() + 86400000),
+          status: 'open'
+        }
       });
+
       // Job 2: Ineligible (CGPA)
-      await Job.create({
-        recruiter: recruiterId, 
-        title: 'Hard Job', 
-        status: 'open',
-        description: 'Demanding role requiring exceptional academic performance.',
-        companyName: 'High Bar Inc',
-        location: 'Bangalore',
-        salary: '1500000',
-        jobType: 'Full-time',
-        eligibility: { minCGPA: 9.0, branches: ['Computer Science'] },
-        deadline: new Date(Date.now() + 86400000)
+      await prisma.job.create({
+        data: {
+          jobId: 'JOB-INELG1',
+          recruiterId: recruiterProfileId,
+          title: 'Hard Job',
+          description: 'High bar.',
+          companyName: 'High Bar Inc',
+          location: 'Bangalore',
+          salary: '1500000',
+          jobType: 'Full_time',
+          minCGPA: 9.0,
+          branches: ['Computer Science'],
+          deadline: new Date(Date.now() + 86400000),
+          status: 'open'
+        }
       });
+
       // Job 3: Ineligible (Branch)
-      await Job.create({
-        recruiter: recruiterId, 
-        title: 'Mech Job', 
-        status: 'open',
-        description: 'Core mechanical engineering role for eligible branches.',
-        companyName: 'Heavy Indus',
-        location: 'Pune',
-        salary: '500000',
-        jobType: 'Full-time',
-        eligibility: { minCGPA: 7.0, branches: ['Mechanical Engineering'] },
-        deadline: new Date(Date.now() + 86400000)
+      await prisma.job.create({
+        data: {
+          jobId: 'JOB-INELG2',
+          recruiterId: recruiterProfileId,
+          title: 'Mech Job',
+          description: 'Mechanical role.',
+          companyName: 'Heavy Indus',
+          location: 'Pune',
+          salary: '500000',
+          jobType: 'Full_time',
+          minCGPA: 7.0,
+          branches: ['Mechanical Engineering'],
+          deadline: new Date(Date.now() + 86400000),
+          status: 'open'
+        }
       });
     });
 
@@ -116,27 +163,31 @@ describe('Jobs API Integration', () => {
         .set('Authorization', `Bearer ${studentToken}`);
       
       expect(res.statusCode).toBe(200);
-      expect(res.body.length).toBe(1);
-      expect(res.body[0].title).toBe('Eligible Job');
+      // Prisma pagination returns { data, total, page, limit }
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.data[0].title).toBe('Eligible Job');
     });
   });
 
   describe('PATCH /api/jobs/:id/status', () => {
     it('should allow admin to close a job', async () => {
-      const job = await Job.create({
-        recruiter: recruiterId, 
-        title: 'Open Job', 
-        status: 'open',
-        description: 'General opening that will be closed by admin shortly.',
-        companyName: 'Temp Co',
-        location: 'Noida',
-        salary: '400000',
-        jobType: 'Internship',
-        deadline: new Date(Date.now() + 86400000)
+      const job = await prisma.job.create({
+        data: {
+          jobId: 'JOB-TEMP',
+          recruiterId: recruiterProfileId,
+          title: 'Open Job',
+          description: 'Temp job.',
+          companyName: 'Temp Co',
+          location: 'Noida',
+          salary: '400000',
+          jobType: 'Internship',
+          deadline: new Date(Date.now() + 86400000),
+          status: 'open'
+        }
       });
 
       const res = await request(app)
-        .patch(`/api/jobs/${job._id}/status`)
+        .patch(`/api/jobs/${job.id}/status`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: 'closed' });
       

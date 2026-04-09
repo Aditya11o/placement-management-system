@@ -93,10 +93,12 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Announcements */}
-      <AnnouncementsBoard />
+      <div id="pms-tour-welcome">
+        <AnnouncementsBoard />
+      </div>
       
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4" id="pms-tour-admin-stats">
         {stats.map((stat) => (
           <div key={stat.label} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
             <div className="flex justify-between items-start mb-4">
@@ -124,7 +126,7 @@ const AdminDashboard: React.FC = () => {
       {/* Charts Row */}
       <div className="grid grid-cols-12 gap-6">
         {/* Jobs Posted per Company */}
-        <div className="col-span-12 lg:col-span-6 bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+        <div className="col-span-12 lg:col-span-6 bg-white border border-gray-100 rounded-2xl p-6 shadow-sm" id="pms-tour-admin-charts">
           <div className="flex justify-between items-center mb-8">
             <h3 className="text-base font-black text-gray-900 tracking-tight">Jobs Posted per Company</h3>
             <button className="text-gray-400 hover:text-gray-900 transition-colors"><MoreVertical size={20} /></button>

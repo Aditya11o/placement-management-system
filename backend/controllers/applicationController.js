@@ -24,7 +24,7 @@ const applyForJob = async (req, res, next) => {
     const existing = await prisma.application.findUnique({
       where: {
         studentId_jobId: {
-          studentId: req.user.id,
+          studentId: profile.id,
           jobId: req.params.jobId
         }
       }
@@ -32,9 +32,8 @@ const applyForJob = async (req, res, next) => {
 
     if (existing) return res.status(400).json({ message: 'You have already applied for this job' });
     
-    // Eligibility Rules Engine
     const settings = await prisma.systemSettings.findFirst() || {};
-    const appCount = await prisma.application.count({ where: { studentId: req.user.id } });
+    const appCount = await prisma.application.count({ where: { studentId: profile.id } });
     
     const eligibility = checkEligibility(profile, job, appCount, settings);
     
@@ -58,7 +57,7 @@ const applyForJob = async (req, res, next) => {
 
     const application = await prisma.application.create({
       data: {
-        studentId: req.user.id,
+        studentId: profile.id,
         jobId: req.params.jobId,
         resume: finalResumeUrl,
         resumeId: resumeId || null,
@@ -99,7 +98,7 @@ const checkStudentEligibility = async (req, res, next) => {
     if (!profile) return res.status(400).json({ message: 'Profile not found' });
 
     const settings = await prisma.systemSettings.findFirst() || {};
-    const appCount = await prisma.application.count({ where: { studentId: req.user.id } });
+    const appCount = await prisma.application.count({ where: { studentId: profile.id } });
 
     const result = checkEligibility(profile, job, appCount, settings);
     res.json(result);
@@ -116,7 +115,10 @@ const getMyApplications = async (req, res, next) => {
     const { status } = req.query;
     const { skip, limit, paginate } = parsePagination(req.query);
     
-    const where = { studentId: req.user.id };
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+    const where = { studentId: profile.id };
     if (status && status !== 'Any Status') {
       where.status = status;
     }
@@ -267,7 +269,7 @@ const updateApplicationStatus = async (req, res, next) => {
         statusHistory: updatedHistory
       },
       include: {
-        student: { select: { id: true, name: true, email: true } },
+        student: { select: { id: true, userId: true, user: { select: { name: true, email: true } } } },
         job: { select: { title: true, companyName: true } }
       }
     });
@@ -287,11 +289,11 @@ const updateApplicationStatus = async (req, res, next) => {
       };
 
       await sendEmail({
-        email: application.student.email,
+        email: application.student.user.email,
         subject: `Application Update: ${application.job?.title || 'Placement Portal'}`,
         template: 'status-update',
         context: {
-          name: application.student.name,
+          name: application.student.user.name,
           jobTitle: application.job?.title || 'Job Application',
           companyName: application.job?.companyName || 'Placement Cell',
           status: status,
@@ -306,18 +308,17 @@ const updateApplicationStatus = async (req, res, next) => {
     // Create notification
     await prisma.notification.create({
       data: {
-        userId: application.student.id,
+        userId: application.student.userId,
         title: 'Application Status Updated',
         message: `Your application status for ${application.job?.title || 'a job'} has been updated to ${status}.`,
         type: 'INTERVIEW',
-        link: `/student/applications`,
       }
     });
 
     // Emit socket event
     const io = req.app.get('io');
     if (io) {
-      io.to(application.student.id).emit('notification', {
+      io.to(application.student.userId).emit('notification', {
         message: `Your application status for ${application.job.title || 'a job'} has been updated to ${status}.`,
         type: 'application',
       });
@@ -408,17 +409,21 @@ const respondToOffer = async (req, res, next) => {
 
     if (!application) return res.status(404).json({ message: 'Application not found' });
 
-    if (application.studentId !== req.user.id) {
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    if (!profile || application.studentId !== profile.id) {
       return res.status(401).json({ message: 'Not authorized' });
     }
+
+    const newHistoryEntry = { status: response, date: new Date().toISOString(), comment: `Student ${response.toLowerCase()} the offer.` };
+    const updatedHistory = Array.isArray(application.statusHistory) 
+      ? [...application.statusHistory, newHistoryEntry] 
+      : [newHistoryEntry];
 
     const updatedApp = await prisma.application.update({
       where: { id: req.params.id },
       data: { 
         status: response,
-        statusHistory: {
-          push: { status: response, date: new Date().toISOString(), comment: `Student ${response.toLowerCase()} the offer.` }
-        }
+        statusHistory: updatedHistory
       }
     });
 
@@ -473,18 +478,22 @@ const uploadOfferLetter = async (req, res, next) => {
       resource_type: 'auto'
     });
 
+    const newHistoryEntry = { 
+      status: 'Selected', 
+      date: new Date().toISOString(), 
+      comment: `Offer letter uploaded by ${req.user.role}. Verification pending by TPO.` 
+    };
+    
+    const updatedHistory = Array.isArray(application.statusHistory) 
+      ? [...application.statusHistory, newHistoryEntry] 
+      : [newHistoryEntry];
+
     const updatedApp = await prisma.application.update({
       where: { id: req.params.id },
       data: {
         offerLetter: result.secure_url,
         status: 'Selected', // Ensure status is Selected if offer is uploaded
-        statusHistory: {
-          push: { 
-            status: 'Selected', 
-            date: new Date().toISOString(), 
-            comment: `Offer letter uploaded by ${req.user.role}. Verification pending by TPO.` 
-          }
-        }
+        statusHistory: updatedHistory
       }
     });
 
@@ -528,7 +537,10 @@ const bulkUpdateStatus = async (req, res, next) => {
     // Verify ownership: all applications must belong to the recruiter's own jobs
     const applications = await prisma.application.findMany({
       where: { id: { in: ids } },
-      include: { job: true }
+      include: { 
+        job: true,
+        student: { select: { userId: true } }
+      }
     });
 
     const unauthorized = applications.filter(app => app.job.recruiterId !== recruiterProfile.id);
@@ -546,14 +558,15 @@ const bulkUpdateStatus = async (req, res, next) => {
     for (const app of applications) {
       await prisma.notification.create({
         data: {
-          userId: app.studentId,
-          title: 'Application Status Updated',
-          message: `Your application status for ${app.job.title} has been updated to ${status}.`,
-          type: 'INTERVIEW',
-          link: `/student/applications`,
+          userId: app.student.userId,
+          title: 'Bulk Application Update',
+          message: `Your application status for ${app.job?.title || 'a job'} has been updated to ${status}.`,
+          type: 'INTERVIEW'
         }
       });
     }
+    
+    // Add student to include in findMany above to make this work
 
     res.json({ message: `${result.count} applications updated`, count: result.count });
   } catch (error) {
@@ -603,6 +616,51 @@ const getExportData = async (req, res, next) => {
     });
 
     res.json(exportData);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get all applicants for a recruiter's jobs
+// @route   GET /api/applications/recruiter
+// @access  Private (Recruiter)
+const getRecruiterApplicants = async (req, res, next) => {
+  try {
+    const recruiterProfile = await prisma.recruiterProfile.findUnique({ where: { userId: req.user.id } });
+    if (!recruiterProfile) return res.status(404).json({ message: 'Recruiter profile not found' });
+
+    const { skip, limit, paginate } = parsePagination(req.query);
+    const where = { job: { recruiterId: recruiterProfile.id } };
+
+    const [applications, total] = await Promise.all([
+      prisma.application.findMany({
+        where,
+        include: {
+          student: { select: { name: true, email: true, profilePhoto: true } },
+          job: { select: { title: true, companyName: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.application.count({ where })
+    ]);
+
+    const studentIds = applications.map(a => a.studentId);
+    const profiles = await prisma.studentProfile.findMany({
+      where: { userId: { in: studentIds } }
+    });
+    const profileMap = new Map(profiles.map(p => [p.userId, p]));
+
+    const enriched = applications.map(app => ({
+      ...app,
+      _id: app.id,
+      student: { ...app.student, _id: app.studentId },
+      job: { ...app.job, _id: app.jobId },
+      studentProfile: profileMap.get(app.studentId) || null
+    }));
+
+    res.json(paginate(enriched, total));
   } catch (error) {
     next(error);
   }

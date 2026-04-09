@@ -43,6 +43,12 @@ enum JobStatus {
   archived
 }
 
+enum DriveStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
 enum ApplicationStatus {
   Applied
   Shortlisted
@@ -300,6 +306,9 @@ model Job {
   isAlumniPost      Boolean           @default(false)
   alumniId          String?
   alumni            AlumniProfile?    @relation("AlumniReferrals", fields: [alumniId], references: [id], onDelete: SetNull)
+  
+  placementDriveId  String?
+  placementDrive    PlacementDrive?   @relation(fields: [placementDriveId], references: [id], onDelete: SetNull)
   
   applications      Application[]
   watchlist         Watchlist[]
@@ -644,4 +653,18 @@ model Watchlist {
 
   @@unique([studentId, jobId])
   @@index([studentId])
+}
+
+model PlacementDrive {
+  id          String      @id @default(uuid())
+  name        String
+  description String?     @db.Text
+  startDate   DateTime
+  endDate     DateTime
+  status      DriveStatus @default(UPCOMING)
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  jobs        Job[]
 }

@@ -1,7 +1,8 @@
 const request = require('supertest');
 const app = require('../app');
-const User = require('../models/User');
-const { connect, close, clear } = require('./setup');
+const prisma = require('../utils/prisma');
+const bcrypt = require('bcryptjs');
+const { connect, close, clear } = require('./prisma-test-setup');
 
 // Mock email utility
 jest.mock('../utils/emailUtils', () => jest.fn().mockResolvedValue(true));
@@ -41,6 +42,11 @@ describe('Auth API Integration', () => {
         email: testStudent.email,
         template: 'welcome'
       }));
+      
+      // Verify database
+      const user = await prisma.user.findUnique({ where: { email: testStudent.email } });
+      expect(user).toBeDefined();
+      expect(user.role).toBe('student');
     });
 
     it('should fail student registration with public email', async () => {
@@ -81,13 +87,18 @@ describe('Auth API Integration', () => {
     });
 
     it('should trigger 2FA for admin accounts', async () => {
-      // Create admin manually (bypass registration logic if needed or use pre-existing)
-      await User.create({
-        name: 'System Admin',
-        email: 'admin@tnu.in',
-        password: 'Testing@1234',
-        role: 'admin',
-        status: 'active'
+      // Create admin manually
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('Testing@1234', salt);
+      
+      await prisma.user.create({
+        data: {
+          name: 'System Admin',
+          email: 'admin@tnu.in',
+          password: hashedPassword,
+          role: 'admin',
+          status: 'active'
+        }
       });
 
       const res = await request(app)
@@ -121,14 +132,19 @@ describe('Auth API Integration', () => {
 
   describe('POST /api/auth/verify-otp', () => {
     it('should verify OTP and login successfully', async () => {
-      const user = await User.create({
-        name: 'OTP Admin',
-        email: 'otp-admin@tnu.in',
-        password: 'Testing@1234',
-        role: 'admin',
-        status: 'active',
-        otp: '123456',
-        otpExpires: Date.now() + 10000
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('Testing@1234', salt);
+      
+      const user = await prisma.user.create({
+        data: {
+          name: 'OTP Admin',
+          email: 'otp-admin@tnu.in',
+          password: hashedPassword,
+          role: 'admin',
+          status: 'active',
+          otp: '123456',
+          otpExpires: new Date(Date.now() + 10000)
+        }
       });
 
       const res = await request(app)
@@ -138,8 +154,8 @@ describe('Auth API Integration', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body).toHaveProperty('token');
       
-      const updatedUser = await User.findById(user._id);
-      expect(updatedUser.otp).toBeUndefined();
+      const updatedUser = await prisma.user.findUnique({ where: { id: user.id } });
+      expect(updatedUser.otp).toBeNull();
     });
   });
 
@@ -159,20 +175,20 @@ describe('Auth API Integration', () => {
   });
 
   describe('Password Reset Flow', () => {
-    it('should send reset link and allow password change', async () => {
+    it('should send reset link', async () => {
       await request(app).post('/api/auth/register').send(testStudent);
       
-      // 1. Forgot password
-      await request(app)
+      const res = await request(app)
         .post('/api/auth/forgot-password')
         .send({ email: testStudent.email });
       
-      const user = await User.findOne({ email: testStudent.email }).select('+reset_token');
-      expect(user.reset_token).toBeDefined();
+      expect(res.statusCode).toBe(200);
+      expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({
+        template: 'password-reset'
+      }));
 
-      // In real scenario, we'd get the token from email. 
-      // Since it's hashed in DB, we'd need to know the raw token.
-      // But for integration test, we can check that it works if we have the token.
+      const user = await prisma.user.findUnique({ where: { email: testStudent.email } });
+      expect(user.reset_token).toBeDefined();
     });
   });
 });

@@ -16,6 +16,7 @@ import InterviewPanel from '../../components/student/InterviewPanel';
 import Pipeline from '../../components/student/Pipeline';
 import CareerResources from '../../components/student/CareerResources';
 import AnnouncementsBoard from '../../components/AnnouncementsBoard';
+import StudentDrivesWidget from '../../components/student/StudentDrivesWidget';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -66,7 +67,7 @@ const StudentDashboard: React.FC = () => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
       {/* 1. Header Section */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
+        <div id="pms-tour-welcome">
           <h2 className="text-3xl font-bold text-gray-900 leading-tight tracking-tight">Placement Dashboard</h2>
           <p className="text-sm text-gray-500 mt-1">
             Welcome back, <span className="font-semibold text-blue-600">{user?.name?.split(' ')[0] || 'Student'}</span>. Your placement readiness is being tracked.
@@ -77,16 +78,16 @@ const StudentDashboard: React.FC = () => {
       {/* 2. Main Dashboard Grid (12-col) */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Row 0: Announcements (Full Width) */}
-        <section className="md:col-span-12">
+        <section className="md:col-span-12" id="pms-tour-announcements">
           <AnnouncementsBoard initialAnnouncements={notifications} />
         </section>
         
         {/* Row 1: Readiness Score (8) + Stats (4) */}
-        <section className="md:col-span-8">
+        <section className="md:col-span-8" id="pms-tour-readiness">
           <ReadinessGauge score={readiness.score} breakdown={readiness.breakdown} />
         </section>
 
-        <section className="md:col-span-4 h-full">
+        <section className="md:col-span-4 h-full" id="pms-tour-stats">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
              <StatCard label="Total Jobs" value={stats.totalJobs.toString()} icon={Briefcase} color="bg-blue-50 text-blue-600" />
              <StatCard label="Applied" value={stats.applied.toString()} icon={TrendingUp} color="bg-cyan-50 text-cyan-600" />
@@ -109,7 +110,8 @@ const StudentDashboard: React.FC = () => {
            <Pipeline stats={stats} />
         </section>
 
-        <section className="md:col-span-4 h-full">
+        <section className="md:col-span-4 h-full space-y-6">
+           <StudentDrivesWidget />
            <CareerResources />
         </section>
 

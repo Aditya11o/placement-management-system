@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, Check, Edit2, XCircle, UserPlus, CheckCircle, Mail, X, AlertCircle, ShieldCheck, ArrowRight, Power } from 'lucide-react';
+import { Search, Eye, Check, Edit2, XCircle, UserPlus, CheckCircle, Mail, X, AlertCircle, ShieldCheck, ArrowRight, Power, FileSpreadsheet, Upload, Download, FileText } from 'lucide-react';
 import ListSkeleton from '../../components/skeletons/ListSkeleton';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
@@ -19,6 +19,8 @@ const ManageStudents: React.FC = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [complianceStats, setComplianceStats] = useState({
@@ -182,6 +184,45 @@ const ManageStudents: React.FC = () => {
     finally { setLoading(false); }
   };
 
+  const handleExportStudents = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/admin/data/export/students', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'students_export.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showSuccess('Student data exported successfully', 'Export Complete');
+    } catch (err: any) {
+      showError('Failed to export student data', 'Export Error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImportStudents = async () => {
+    if (!importFile) return;
+    try {
+      setSubmitting(true);
+      const formData = new FormData();
+      formData.append('file', importFile);
+      const { data } = await api.post('/api/admin/data/import/students', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      showSuccess(data.message, 'Import Complete');
+      setIsImportModalOpen(false);
+      setImportFile(null);
+      fetchStudents();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to import CSV', 'Import Error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const openEditModal = (student: any) => {
     setSelectedStudent(student);
     setFormData({ name: student.name, email: student.email, password: '', course: student.course, branch: student.branch, cgpa: student.cgpa });
@@ -205,9 +246,21 @@ const ManageStudents: React.FC = () => {
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight uppercase tracking-tighter">Student <span className="text-blue-600">Inventory</span></h1>
           <p className="text-sm text-gray-400 font-bold mt-1">Strategic oversight and lifecycle management for student profiles.</p>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <button 
+            onClick={handleExportStudents}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-[#000613] border border-gray-100 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-sm hover:bg-gray-50 transition-all"
+          >
+            <Download size={18} /> Export CSV
+          </button>
+          <button 
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all"
+          >
+            <Upload size={18} /> Bulk Import
+          </button>
+          <button onClick={() => { setFormData({ name: '', email: '', password: '', course: 'BCA', branch: 'Computer Science', cgpa: '' }); setIsAddModalOpen(true); }} className="flex items-center justify-center gap-2 px-6 py-3 bg-[#000613] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-black/10 hover:scale-105 transition-all"><UserPlus size={18} />Add Student</button>
         </div>
-        <button onClick={() => { setFormData({ name: '', email: '', password: '', course: 'BCA', branch: 'Computer Science', cgpa: '' }); setIsAddModalOpen(true); }} className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#000613] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-black/10 hover:scale-105 transition-all"><UserPlus size={18} />Add Student</button>
-      </div>
 
       {/* Compliance Pulse */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -400,7 +453,94 @@ const ManageStudents: React.FC = () => {
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Import Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-300">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2 uppercase tracking-tighter">Bulk <span className="text-blue-600">Import</span></h3>
+                  <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest italic">Protocol CSV-24 Alpha</p>
+                </div>
+                <button onClick={() => { setIsImportModalOpen(false); setImportFile(null); }} className="p-2 hover:bg-gray-100 rounded-xl transition-colors"><X size={20} /></button>
+              </div>
+
+              <div className="space-y-6">
+                <div 
+                  className={`border-2 border-dashed rounded-[2rem] p-10 text-center transition-all ${importFile ? 'border-emerald-200 bg-emerald-50/50' : 'border-gray-100 bg-gray-50/50 hover:border-blue-200 hover:bg-blue-50/50'}`}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.name.endsWith('.csv')) setImportFile(file);
+                  }}
+                >
+                  <label className="cursor-pointer">
+                    <input 
+                      type="file" 
+                      accept=".csv" 
+                      className="hidden" 
+                      onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                    />
+                    <div className="flex flex-col items-center gap-4">
+                      {importFile ? (
+                        <>
+                          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shadow-inner"><FileSpreadsheet size={32} /></div>
+                          <div>
+                            <p className="text-sm font-black text-gray-900">{importFile.name}</p>
+                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-1">Ready for ingestion</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-gray-100"><Upload size={32} /></div>
+                          <div>
+                            <p className="text-sm font-black text-gray-900">Select Strategy File</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Drag & drop .csv here or click</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </label>
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><FileText size={12} /> Format Requirements</h4>
+                  <ul className="text-[10px] font-bold text-gray-600 space-y-1.5 list-disc pl-4 italic">
+                    <li>Required headers: <span className="text-blue-600">name, email</span></li>
+                    <li>Optional: <span className="text-gray-400 italic font-medium">course, branch, passingYear, cgpa</span></li>
+                    <li>Existing emails will be skipped by default.</li>
+                  </ul>
+                </div>
+
+                <button 
+                  onClick={handleImportStudents}
+                  disabled={!importFile || submitting}
+                  className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-[#000613] text-white rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-black/20 hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  {submitting ? 'Executing Bulk Operation...' : 'Initiate Import Protocol'}
+                </button>
+              </div>
+            </div>
+            <div className="px-8 py-4 bg-gray-50 border-t border-gray-100 flex justify-center">
+               <a href="#" onClick={(e) => {
+                 e.preventDefault();
+                 const content = "name,email,course,branch,passingYear,cgpa\nJohn Doe,john@example.com,B.Tech,CSE,2025,8.5";
+                 const blob = new Blob([content], { type: 'text/csv' });
+                 const url = window.URL.createObjectURL(blob);
+                 const link = document.createElement('a');
+                 link.href = url;
+                 link.setAttribute('download', 'student_import_template.csv');
+                 link.click();
+               }} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline decoration-2 underline-offset-4 decoration-blue-200 flex items-center gap-2">
+                 <Download size={14} /> Download Template Strategy
+               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       <StudentFormModal isOpen={isAddModalOpen || isEditModalOpen} isEdit={isEditModalOpen} formData={formData} submitting={submitting} onFormChange={(u) => setFormData(p => ({...p, ...u}))} onSubmit={isAddModalOpen ? handleCreateStudent : handleUpdateStudent} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} />
       <StudentViewModal isOpen={isViewModalOpen} student={selectedStudent} onClose={() => setIsViewModalOpen(false)} onEdit={openEditModal} />
       <BulkEmailModal isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)} onSubmit={handleBulkEmail} selectedCount={selectedIds.length} submitting={submitting} />

@@ -145,7 +145,7 @@ const authUser = async (req, res, next) => {
           where: { id: user.id },
           data: { 
             otp, 
-            otpExpires: new DateTime(Date.now() + 10 * 60 * 1000) 
+            otpExpires: new Date(Date.now() + 10 * 60 * 1000) 
           }
         });
 
@@ -209,7 +209,7 @@ const verifyOTP = async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user || user.otp !== otp || (user.otpExpires && user.otpExpires < new DateTime(Date.now()))) {
+    if (!user || user.otp !== otp || (user.otpExpires && user.otpExpires < new Date(Date.now()))) {
       return res.status(401).json({ message: 'Invalid or expired OTP' });
     }
 

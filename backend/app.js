@@ -110,8 +110,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/profile', require('./routes/profileRoutes'));
-app.use('/api/jobs', require('./routes/jobRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/admin/data', require('./routes/importExportRoutes'));
+app.use('/api/jobs', require('./routes/jobRoutes'));
 app.use('/api/applications', require('./routes/applicationRoutes'));
 app.use('/api/audit', require('./routes/auditLogRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
@@ -127,6 +128,7 @@ app.use('/api/mock-interviews', require('./routes/mockInterviewRoutes'));
 app.use('/api/reminders', require('./routes/reminderRoutes'));
 app.use('/api/interviews', require('./routes/interviewRoutes'));
 app.use('/api/experiences', require('./routes/experienceRoutes'));
+app.use('/api/drives', require('./routes/driveRoutes'));
 
 // Health Check Route
 app.get('/api/health', (req, res) => {
@@ -138,8 +140,6 @@ app.get('/api/health', (req, res) => {
     version: require('./package.json').version
   });
 });
-
-// Basic Route Placeholder: Not used in production
 
 // Global Error Handler
 app.use((err, req, res, next) => {

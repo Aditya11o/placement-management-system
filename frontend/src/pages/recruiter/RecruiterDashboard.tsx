@@ -94,7 +94,7 @@ const RecruiterDashboard: React.FC = () => {
       
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
+        <div id="pms-tour-welcome">
           <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight">Dashboard Overview</h1>
           <p className="text-gray-500 font-bold mt-1 tracking-tight">Welcome back. Here is what is happening with your placements today.</p>
         </div>
@@ -125,7 +125,7 @@ const RecruiterDashboard: React.FC = () => {
       <div className="grid grid-cols-12 gap-8">
         
         {/* Recent Applicants - Left column */}
-        <div className="col-span-12 lg:col-span-8">
+        <div className="col-span-12 lg:col-span-8" id="pms-tour-applicants">
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
               <h2 className="text-lg font-black text-gray-900 tracking-tight">Recent Applicants</h2>
@@ -256,8 +256,7 @@ const RecruiterDashboard: React.FC = () => {
 
       </div>
 
-      {/* Job Analytics Section */}
-      <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm" id="pms-tour-funnel">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
           <div>
             <h2 className="text-2xl font-black text-gray-900 tracking-tight">Recruitment Funnel</h2>

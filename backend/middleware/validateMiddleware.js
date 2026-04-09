@@ -70,7 +70,7 @@ const validateCreateJob = [
 ];
 
 const validateUpdateJob = [
-  param('id').isMongoId().withMessage('Invalid job ID'),
+  param('id').isUUID().withMessage('Invalid job ID'),
   check('title')
     .optional()
     .trim()
@@ -93,7 +93,7 @@ const validateUpdateJob = [
 ];
 
 const validateUpdateJobStatus = [
-  param('id').isMongoId().withMessage('Invalid job ID'),
+  param('id').isUUID().withMessage('Invalid job ID'),
   check('status')
     .notEmpty().withMessage('Status is required')
     .isIn(['open', 'closed', 'paused', 'draft']).withMessage('Invalid job status'),
@@ -105,15 +105,15 @@ const validateUpdateJobStatus = [
 // ========================================
 
 const validateApplyForJob = [
-  param('jobId').isMongoId().withMessage('Invalid job ID'),
+  param('jobId').isUUID().withMessage('Invalid job ID'),
   handleValidationErrors,
 ];
 
 const validateUpdateApplicationStatus = [
-  param('id').isMongoId().withMessage('Invalid application ID'),
+  param('id').isUUID().withMessage('Invalid application ID'),
   check('status')
     .notEmpty().withMessage('Status is required')
-    .isIn(['Applied', 'Under Review', 'Shortlisted', 'Interview Scheduled', 'Selected', 'Rejected', 'Withdrawn', 'On Hold'])
+    .isIn(['Applied', 'Shortlisted', 'Rejected', 'Selected', 'Under_Review', 'Scheduled', 'Placed', 'Accepted', 'Declined'])
     .withMessage('Invalid application status'),
   check('interviewDate')
     .optional()
@@ -129,16 +129,16 @@ const validateBulkUpdateStatus = [
   check('applicationIds')
     .isArray({ min: 1 }).withMessage('At least one application ID is required'),
   check('applicationIds.*')
-    .isMongoId().withMessage('Each application ID must be a valid ID'),
+    .isUUID().withMessage('Each application ID must be a valid ID'),
   check('status')
     .notEmpty().withMessage('Status is required')
-    .isIn(['Applied', 'Under Review', 'Shortlisted', 'Interview Scheduled', 'Selected', 'Rejected', 'Withdrawn', 'On Hold'])
+    .isIn(['Applied', 'Shortlisted', 'Rejected', 'Selected', 'Under_Review', 'Scheduled', 'Placed', 'Accepted', 'Declined'])
     .withMessage('Invalid application status'),
   handleValidationErrors,
 ];
 
 const validateRespondToOffer = [
-  param('id').isMongoId().withMessage('Invalid application ID'),
+  param('id').isUUID().withMessage('Invalid application ID'),
   check('response')
     .notEmpty().withMessage('Response is required')
     .isIn(['Accepted', 'Rejected']).withMessage('Response must be "Accepted" or "Rejected"'),

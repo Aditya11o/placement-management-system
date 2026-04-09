@@ -1,0 +1,158 @@
+.pms-tour-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.pms-tour-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.spotlight-cutout {
+  transition: all 0.3s ease-out;
+}
+
+.pms-tour-tooltip {
+  pointer-events: auto;
+  width: 320px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  z-index: 10000;
+}
+
+.pms-tour-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.pms-tour-badge {
+  background: #eff6ff;
+  color: #2563eb;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pms-tour-close {
+  color: #94a3b8;
+  transition: color 0.2s;
+}
+
+.pms-tour-close:hover {
+  color: #475569;
+}
+
+.pms-tour-content h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.pms-tour-content p {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.pms-tour-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pms-tour-btn-primary {
+  background: #2563eb;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.pms-tour-btn-primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.pms-tour-btn-secondary {
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pms-tour-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pms-tour-btn-ghost {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 12px;
+}
+
+.pms-tour-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transform: rotate(45deg);
+}
+
+.arrow-bottom {
+  top: -6px;
+  left: calc(50% - 6px);
+  border-bottom: none;
+  border-right: none;
+}
+
+.arrow-top {
+  bottom: -6px;
+  left: calc(50% - 6px);
+  border-top: none;
+  border-left: none;
+}
+
+.arrow-left {
+  right: -6px;
+  top: calc(50% - 6px);
+  border-bottom: none;
+  border-left: none;
+}
+
+.arrow-right {
+  left: -6px;
+  top: calc(50% - 6px);
+  border-top: none;
+  border-right: none;
+}

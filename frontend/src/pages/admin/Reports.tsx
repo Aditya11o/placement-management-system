@@ -64,6 +64,24 @@ const Reports: React.FC = () => {
     fetchReports();
   }, []);
 
+  const handleFullExportCSV = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/admin/data/export/placements', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Placement_Analytics_Detailed_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error('Export failed', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const exportCSV = () => {
     if (!data?.placementRecords) return;
     const headers = ['Student Name', 'Email', 'Company', 'Role', 'Package (LPA)', 'Date', 'Status'];
@@ -227,11 +245,11 @@ const Reports: React.FC = () => {
            >
              <File size={16} className="group-hover:scale-110 transition-transform" /> PDF
            </button>
-           <button 
-             onClick={exportCSV}
+            <button 
+             onClick={handleFullExportCSV}
              className="flex items-center gap-2 px-5 py-3 bg-[#000613] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-black/20"
            >
-             <Download size={16} /> full report
+             <Download size={16} /> full report (CSV)
            </button>
         </div>
       </div>

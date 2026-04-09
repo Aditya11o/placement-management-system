@@ -1,6 +1,7 @@
 const express = require('express');
 const { 
   applyForJob, 
+  checkStudentEligibility,
   getMyApplications, 
   getJobApplicants, 
   getAllApplications,

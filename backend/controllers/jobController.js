@@ -548,6 +548,7 @@ module.exports = {
   getRecruiterStats, 
   getRecruiterJobs, 
   updateJob,
+  deleteJob,
   getJobById, 
   getJobAnalytics,
   toggleWatchlist,

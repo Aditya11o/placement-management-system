@@ -4,8 +4,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { NotificationProvider } from './context/NotificationContext';
 import { LoadingProvider } from './context/LoadingContext';
+import { TourProvider } from './context/TourContext';
 import GlobalLoader from './components/GlobalLoader';
 import NotificationModal from './components/NotificationModal';
+import OnboardingTour from './components/OnboardingTour';
 import { AuthProvider } from './context/AuthContext';
 import AuthLayout from './layouts/AuthLayout';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -62,6 +64,8 @@ const Chat = React.lazy(() => import('./pages/Chat'));
 const ManageVerifications = React.lazy(() => import('./pages/admin/ManageVerifications'));
 const AuditLogs = React.lazy(() => import('./pages/admin/AuditLogs'));
 const AdminManageExperiences = React.lazy(() => import('./pages/admin/ManageExperiences'));
+const AdminManageDrives = React.lazy(() => import('./pages/admin/ManageDrives'));
+const StudentDriveDetail = React.lazy(() => import('./pages/student/DriveDetail'));
 import ToastManager from './components/ToastManager';
 const App: React.FC = () => {
   return (
@@ -69,11 +73,13 @@ const App: React.FC = () => {
       <LoadingProvider>
         <NotificationProvider>
           <AuthProvider>
-            <BrowserRouter>
-              <GlobalLoader />
-              <NotificationModal />
-              <ToastManager />
-              <CommandPalette />
+            <TourProvider>
+              <BrowserRouter>
+                <GlobalLoader />
+                <NotificationModal />
+                <ToastManager />
+                <CommandPalette />
+                <OnboardingTour />
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>}>
             <Routes>
           {/* Default Redirect */}
@@ -95,6 +101,7 @@ const App: React.FC = () => {
           <Route path="/student" element={<DashboardLayout role="student" />}>
             <Route path="dashboard" element={<Dashboard role="student" />} />
             <Route path="profile" element={<StudentProfile />} />
+            <Route path="drives/:id" element={<StudentDriveDetail />} />
             <Route path="jobs" element={<JobFeed />} />
             <Route path="watchlist" element={<Watchlist />} />
             <Route path="applications" element={<MyApplications />} />
@@ -141,6 +148,7 @@ const App: React.FC = () => {
             <Route path="students" element={<ManageStudents />} />
             <Route path="verifications" element={<ManageVerifications />} />
             <Route path="recruiters" element={<ManageRecruiters />} />
+            <Route path="drives" element={<AdminManageDrives />} />
             <Route path="jobs" element={<AdminManageJobs />} />
             <Route path="applications" element={<AdminManageApplications />} />
             <Route path="interviews" element={<AdminManageInterviews />} />
@@ -167,10 +175,11 @@ const App: React.FC = () => {
             </Routes>
           </Suspense>
               </BrowserRouter>
-            </AuthProvider>
-          </NotificationProvider>
-        </LoadingProvider>
-      </ErrorBoundary>
+            </TourProvider>
+          </AuthProvider>
+        </NotificationProvider>
+      </LoadingProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -49,6 +49,7 @@ interface SidebarProps {
           { name: 'Manage Students', icon: Users, path: '/admin/students' },
           { name: 'Skill Verification', icon: Shield, path: '/admin/verifications' },
           { name: 'Manage Recruiters', icon: Briefcase, path: '/admin/recruiters' },
+          { name: 'Placement Drives', icon: Calendar, path: '/admin/drives' },
           { name: 'Manage Jobs', icon: FileText, path: '/admin/jobs' },
           { name: 'Applications', icon: FileText, path: '/admin/applications' },
           { name: 'Interviews', icon: Calendar, path: '/admin/interviews' },
@@ -167,6 +168,16 @@ interface SidebarProps {
           <LogOut size={18} aria-hidden="true" />
           <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>Logout</span>
         </button>
+
+        {!isCollapsed && (
+          <div id="pms-tour-cmd" className="mt-4 px-5 py-3 bg-surface-container-high rounded-xl border border-outline-variant/50">
+            <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1">Quick Search</p>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-on-surface-variant/70">Press Ctrl + K</span>
+              <Sparkles size={12} className="text-secondary" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Logout Confirmation Modal */}
