@@ -44,13 +44,13 @@ const InterviewPanel: React.FC<InterviewPanelProps> = ({ initialInterviews = [] 
   return (
     <div 
       onClick={() => navigate('/student/interviews')}
-      className="bg-surface-container-low p-5 rounded-xl shadow-ambient border border-outline-variant h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+      className="bg-surface-container-lowest p-8 rounded-[2.5rem] shadow-sm border border-outline-variant/30 h-full hover:shadow-xl transition-all duration-300 cursor-pointer group"
     >
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-on-surface">
-          Upcoming Interviews {interviews.length > 0 && `(${interviews.length})`}
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-[13px] font-black text-on-surface uppercase tracking-tight italic">
+          Upcoming <span className="text-surface-tint">Interviews</span> {interviews.length > 0 && <span className="text-xs opacity-40 ml-1">({interviews.length})</span>}
         </h3>
-        <ChevronRight size={20} className="text-on-surface-variant group-hover:text-surface-tint group-hover:translate-x-1 transition-all" />
+        <ChevronRight size={18} className="text-on-surface-variant group-hover:text-surface-tint group-hover:translate-x-1 transition-all" />
       </div>
       <div className="space-y-4">
         {interviews.map((interview: any, i: number) => (

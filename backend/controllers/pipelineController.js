@@ -7,13 +7,13 @@ const sendEmail = require('../utils/emailUtils');
 const advanceApplication = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { feedback, scheduledDate, location } = req.body;
+    const { feedback, scheduledDate, location, evaluationData } = req.body;
 
     const application = await prisma.application.findUnique({
       where: { id },
       include: { 
         job: true,
-        student: { select: { name: true, email: true, id: true } }
+        student: { select: { name: true, email: true, id: true, userId: true } }
       }
     });
 
@@ -21,7 +21,9 @@ const advanceApplication = async (req, res, next) => {
     if (application.isTerminal) return res.status(400).json({ message: 'Application is already in a terminal state' });
 
     const rounds = application.job.selectionProcess || ["Applied", "Technical Round", "HR Round", "Selected"];
-    const nextIndex = application.currentStageIndex + 1;
+    const currentIndex = application.currentStageIndex;
+    const currentStageName = rounds[currentIndex] || 'Current Round';
+    const nextIndex = currentIndex + 1;
 
     if (nextIndex >= rounds.length) {
       return res.status(400).json({ message: 'Already at the final round' });
@@ -35,30 +37,45 @@ const advanceApplication = async (req, res, next) => {
     if (isFinal && nextStage.toLowerCase().includes('select')) {
       status = 'Selected';
     } else if (nextIndex > 0) {
-      status = 'Scheduled'; // Assumes subsequent rounds usually involve scheduling
+      status = 'Scheduled'; 
     }
 
-    const updatedApp = await prisma.application.update({
-      where: { id },
-      data: {
-        currentStage: nextStage,
-        currentStageIndex: nextIndex,
-        status: status,
-        isTerminal: status === 'Selected' || status === 'Rejected',
-        statusHistory: {
-          push: {
-            status: nextStage,
-            date: new Date().toISOString(),
-            comment: feedback || `Advanced to ${nextStage}`
+    const updatedApp = await prisma.$transaction(async (tx) => {
+      // 1. Log the round being completed which triggered this advancement
+      await tx.interview.create({
+        data: {
+          applicationId: id,
+          type: currentStageName,
+          status: 'completed',
+          feedback: feedback || `Advanced from ${currentStageName}`,
+          date: new Date(),
+        }
+      });
+
+      // 2. Update the application to the next stage
+      return await tx.application.update({
+        where: { id },
+        data: {
+          currentStage: nextStage,
+          currentStageIndex: nextIndex,
+          status: status,
+          evaluation: evaluationData || application.evaluation || {},
+          isTerminal: status === 'Selected' || status === 'Rejected',
+          statusHistory: {
+            push: {
+              status: nextStage,
+              date: new Date().toISOString(),
+              comment: feedback || `Advanced to ${nextStage}`
+            }
           }
         }
-      }
+      });
     });
 
     // Notify Student
     await prisma.notification.create({
       data: {
-        userId: application.student.id,
+        userId: application.student.userId,
         title: 'Promotion to Next Round!',
         message: `Congratulations! You have been moved to the ${nextStage} for ${application.job.title} at ${application.job.companyName}.`,
         type: 'SUCCESS',
@@ -82,6 +99,7 @@ const advanceApplication = async (req, res, next) => {
         }
       });
     } catch (e) { console.error('Email failed'); }
+
 
     res.json({ ...updatedApp, _id: updatedApp.id });
   } catch (error) {
@@ -142,6 +160,7 @@ const getJobPipeline = async (req, res, next) => {
     const applications = await prisma.application.findMany({
       where: { jobId },
       include: {
+        interviews: { orderBy: { createdAt: 'desc' }, take: 3 },
         student: {
           select: {
             id: true,

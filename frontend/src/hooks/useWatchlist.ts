@@ -24,14 +24,14 @@ export const useWatchlist = () => {
   const { data: watchlist = [], isLoading } = useQuery({
     queryKey: ['watchlist'],
     queryFn: async () => {
-      const { data } = await api.get('/jobs/watchlist');
+      const { data } = await api.get('/students/watchlist');
       return data;
     }
   });
 
   const toggleMutation = useMutation({
     mutationFn: async (jobId: string) => {
-      const { data } = await api.post(`/jobs/watchlist/${jobId}`);
+      const { data } = await api.post(`/students/watchlist/${jobId}`);
       return data;
     },
     onSuccess: (data) => {

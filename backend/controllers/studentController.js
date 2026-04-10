@@ -1,6 +1,7 @@
 const prisma = require('../utils/prisma');
 const bcrypt = require('bcryptjs');
 const { calculateReadinessScore } = require('../utils/readinessScore');
+const { analyzeSkillGap } = require('../utils/skillGapAnalysis');
 
 // @desc    Get student dashboard data
 // @route   GET /api/student/dashboard
@@ -127,11 +128,20 @@ const getNotificationSettings = async (req, res, next) => {
         where: { userId: req.user.id },
         include: { settings: true }
     });
+    
     if (!profile.settings) {
        const settings = await prisma.studentSettings.create({ data: { studentId: profile.id } });
-       return res.json(settings);
+       profile.settings = settings;
     }
-    res.json(profile.settings);
+    
+    // Map backend Prisma fields to frontend keys
+    res.json({
+      jobs: profile.settings.jobAlerts,
+      apps: profile.settings.appAlerts,
+      interviews: profile.settings.interviewAlerts,
+      email: profile.settings.emailNotifications,
+      sms: profile.settings.smsNotifications
+    });
   } catch (error) {
     next(error);
   }
@@ -140,11 +150,22 @@ const getNotificationSettings = async (req, res, next) => {
 const updateNotificationSettings = async (req, res, next) => {
   try {
     const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    
+    // Map frontend keys back to backend Prisma fields
+    const updateData = {
+      jobAlerts: req.body.jobs,
+      appAlerts: req.body.apps,
+      interviewAlerts: req.body.interviews,
+      emailNotifications: req.body.email,
+      smsNotifications: req.body.sms
+    };
+
     const settings = await prisma.studentSettings.upsert({
       where: { studentId: profile.id },
-      update: req.body,
-      create: { studentId: profile.id, ...req.body }
+      update: updateData,
+      create: { studentId: profile.id, ...updateData }
     });
+    
     res.json({ success: true, message: 'Settings updated', settings });
   } catch (error) {
     next(error);
@@ -156,11 +177,21 @@ const updateNotificationSettings = async (req, res, next) => {
 // @access  Private
 const getPrivacySettings = async (req, res, next) => {
   try {
-    let settings = await StudentSettings.findOne({ user_id: req.user.id });
-    if (!settings) {
-      settings = await StudentSettings.create({ user_id: req.user.id });
+    const profile = await prisma.studentProfile.findUnique({ 
+        where: { userId: req.user.id },
+        include: { settings: true }
+    });
+    
+    if (!profile.settings) {
+      const settings = await prisma.studentSettings.create({ data: { studentId: profile.id } });
+      profile.settings = settings;
     }
-    res.json(settings.privacy);
+    
+    res.json({
+      visible: profile.settings.profileVisible,
+      showPhone: profile.settings.showPhone,
+      showEmail: profile.settings.showEmail
+    });
   } catch (error) {
     next(error);
   }
@@ -171,13 +202,30 @@ const getPrivacySettings = async (req, res, next) => {
 // @access  Private
 const updatePrivacySettings = async (req, res, next) => {
   try {
-    let settings = await StudentSettings.findOne({ user_id: req.user.id });
-    if (!settings) {
-      settings = new StudentSettings({ user_id: req.user.id });
-    }
-    settings.privacy = { ...settings.privacy, ...req.body };
-    await settings.save();
-    res.json({ success: true, message: 'Privacy settings updated', privacy: settings.privacy });
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    
+    // Map frontend keys back to backend Prisma fields
+    const updateData = {
+      profileVisible: req.body.visible,
+      showPhone: req.body.showPhone,
+      showEmail: req.body.showEmail
+    };
+
+    const settings = await prisma.studentSettings.upsert({
+      where: { studentId: profile.id },
+      update: updateData,
+      create: { studentId: profile.id, ...updateData }
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Privacy settings updated', 
+      privacy: {
+        visible: settings.profileVisible,
+        showPhone: settings.showPhone,
+        showEmail: settings.showEmail
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -361,6 +409,89 @@ const deleteAccount = async (req, res, next) => {
   }
 };
 
+// @desc    Get skill gap visualization data
+// @route   GET /api/v1/student/skill-gap
+// @access  Private
+const getSkillGapData = async (req, res, next) => {
+  try {
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+    
+    const data = await analyzeSkillGap(profile.id);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Toggle job in watchlist
+// @route   POST /api/student/watchlist/:jobId
+// @access  Private
+const toggleWatchlist = async (req, res, next) => {
+  try {
+    const { jobId } = req.params;
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    
+    const existing = await prisma.watchlist.findUnique({
+      where: {
+        studentId_jobId: {
+          studentId: profile.id,
+          jobId
+        }
+      }
+    });
+
+    if (existing) {
+      await prisma.watchlist.delete({
+        where: { id: existing.id }
+      });
+      return res.json({ success: true, message: 'Removed from watchlist', isWatchlisted: false });
+    } else {
+      await prisma.watchlist.create({
+        data: {
+          studentId: profile.id,
+          jobId
+        }
+      });
+      return res.json({ success: true, message: 'Added to watchlist', isWatchlisted: true });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get student watchlist
+// @route   GET /api/student/watchlist
+// @access  Private
+const getWatchlist = async (req, res, next) => {
+  try {
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    const watchlist = await prisma.watchlist.findMany({
+      where: { studentId: profile.id },
+      include: {
+        job: {
+          select: {
+            id: true,
+            jobId: true,
+            title: true,
+            companyName: true,
+            location: true,
+            salary: true,
+            deadline: true,
+            jobType: true,
+            status: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(watchlist.map(w => ({ ...w.job, _id: w.job.id, addedAt: w.createdAt })));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = { 
   getStudentResume, 
   getStudentDashboard,
@@ -376,5 +507,8 @@ module.exports = {
   deleteStudentResume,
   getStudentResumes,
   deactivateAccount,
-  deleteAccount
+  deleteAccount,
+  getSkillGapData,
+  toggleWatchlist,
+  getWatchlist
 };

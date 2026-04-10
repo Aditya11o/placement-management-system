@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, XCircle, CheckCircle2, 
-  User, List, Search, Loader2, Info
+  User, List, Search, Loader2, Info, Star
 } from 'lucide-react';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
+
+import EvaluationModal from '../../components/recruiter/EvaluationModal';
 
 const InterviewPipeline: React.FC = () => {
   const { showSuccess, showError } = useNotification();
@@ -15,6 +17,15 @@ const InterviewPipeline: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [pipelineData, setPipelineData] = useState<{ rounds: string[], pipeline: any[] }>({ rounds: [], pipeline: [] });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Modal States
+  const [evalModal, setEvalModal] = useState({
+    isOpen: false,
+    appId: '',
+    candidateName: '',
+    currentStage: ''
+  });
 
   const fetchPipeline = async () => {
     if (!jobId) return;
@@ -34,15 +45,26 @@ const InterviewPipeline: React.FC = () => {
     fetchPipeline();
   }, [jobId]);
 
-  const handleAdvance = async (appId: string, currentStage: string) => {
+  const handleAdvanceClick = (appId: string, candidateName: string, currentStage: string) => {
+    setEvalModal({
+      isOpen: true,
+      appId,
+      candidateName,
+      currentStage
+    });
+  };
+
+  const handleConfirmAdvance = async (data: { feedback: string, evaluationData: any }) => {
     try {
-      await api.patch(`/applications/${appId}/advance`, {
-        feedback: `Promoted from ${currentStage}`
-      });
-      showSuccess('Applicant advanced to next round');
+      setIsSubmitting(true);
+      await api.patch(`/applications/${evalModal.appId}/advance`, data);
+      showSuccess('Applicant advanced to next round with evaluation');
+      setEvalModal(p => ({ ...p, isOpen: false }));
       fetchPipeline();
     } catch (err: any) {
       showError(err.response?.data?.message || 'Failed to advance applicant');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -58,6 +80,7 @@ const InterviewPipeline: React.FC = () => {
       showError(err.response?.data?.message || 'Failed to reject applicant');
     }
   };
+
 
   if (loading) {
     return (
@@ -136,7 +159,26 @@ const InterviewPipeline: React.FC = () => {
                     {(app.student?.profile?.skills || []).slice(0, 3).map((s: string) => (
                       <span key={s} className="px-2 py-0.5 bg-gray-50 text-gray-400 rounded-md text-[9px] font-black uppercase">{s}</span>
                     ))}
+                    {app.evaluation?.averageScore && (
+                      <span className="ml-auto px-2 py-0.5 bg-amber-50 text-amber-600 rounded-md text-[9px] font-black uppercase flex items-center gap-1">
+                        <Star size={10} fill="currentColor" /> {app.evaluation.averageScore}
+                      </span>
+                    )}
                   </div>
+
+                  {/* Historical Snippets */}
+                  {app.interviews && app.interviews.length > 0 && (
+                    <div className="mb-4 bg-gray-50/50 rounded-xl p-3 border border-gray-100 flex flex-col gap-2">
+                       {app.interviews.map((int: any) => (
+                         <div key={int.id} className="flex gap-2">
+                            <div className="mt-1 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            <p className="text-[10px] font-bold text-gray-500 italic line-clamp-2 leading-tight">
+                              "<span className="text-gray-900">{int.feedback}</span>"
+                            </p>
+                         </div>
+                       ))}
+                    </div>
+                  )}
 
                   {/* Actions */}
                   {column.stage !== 'Selected' && column.stage !== 'Rejected' && (
@@ -149,7 +191,7 @@ const InterviewPipeline: React.FC = () => {
                         <XCircle size={18} />
                       </button>
                       <button 
-                        onClick={() => handleAdvance(app._id, column.stage)}
+                        onClick={() => handleAdvanceClick(app._id, app.student?.name, column.stage)}
                         className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
                       >
                         Advance <ArrowRight size={14} />
@@ -189,6 +231,15 @@ const InterviewPipeline: React.FC = () => {
           </div>
         ))}
       </div>
+
+      <EvaluationModal 
+        isOpen={evalModal.isOpen}
+        onClose={() => setEvalModal(p => ({ ...p, isOpen: false }))}
+        onConfirm={handleConfirmAdvance}
+        candidateName={evalModal.candidateName}
+        currentStage={evalModal.currentStage}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
 };

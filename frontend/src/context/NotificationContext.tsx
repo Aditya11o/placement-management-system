@@ -1,65 +1,55 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode } from 'react';
 
-type NotificationType = 'error' | 'success' | 'warning';
+export type NotificationType = 'error' | 'success' | 'warning';
+
+export interface ToastItem {
+  id: string;
+  message: string;
+  type: NotificationType;
+  title: string;
+}
 
 interface NotificationContextType {
   showError: (message: string, title?: string) => void;
   showSuccess: (message: string, title?: string) => void;
   showWarning: (message: string, title?: string) => void;
-  hideNotification: () => void;
-  notification: {
-    isOpen: boolean;
-    message: string;
-    type: NotificationType;
-    title: string;
-  };
+  removeToast: (id: string) => void;
+  toasts: ToastItem[];
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [notification, setNotification] = useState<{
-    isOpen: boolean;
-    message: string;
-    type: NotificationType;
-    title: string;
-  }>({
-    isOpen: false,
-    message: '',
-    type: 'error',
-    title: '',
-  });
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
 
-  const showError = (message: string, title: string = 'Error Occurred') => {
-    setNotification({ isOpen: true, message, type: 'error', title });
+  const addToast = (message: string, type: NotificationType, title: string) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, message, type, title }]);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      removeToast(id);
+    }, 5000);
+  };
+
+  const showError = (message: string, title: string = 'Error') => {
+    addToast(message, 'error', title);
   };
 
   const showSuccess = (message: string, title: string = 'Success') => {
-    setNotification({ isOpen: true, message, type: 'success', title });
+    addToast(message, 'success', title);
   };
 
   const showWarning = (message: string, title: string = 'Warning') => {
-    setNotification({ isOpen: true, message, type: 'warning', title });
+    addToast(message, 'warning', title);
   };
 
-  const hideNotification = () => {
-    setNotification(prev => ({ ...prev, isOpen: false }));
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
-
-  // Prevent scrolling when notification is open
-  useEffect(() => {
-    if (notification.isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [notification.isOpen]);
 
   return (
-    <NotificationContext.Provider value={{ showError, showSuccess, showWarning, hideNotification, notification }}>
+    <NotificationContext.Provider value={{ showError, showSuccess, showWarning, removeToast, toasts }}>
       {children}
     </NotificationContext.Provider>
   );

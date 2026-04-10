@@ -1,4 +1,5 @@
 const express = require('express');
+const { 
   saveApplicationDraft,
   checkStudentEligibility,
   getMyApplications, 
@@ -11,7 +12,8 @@ const express = require('express');
   respondToOffer,
   uploadOfferLetter,
   bulkUpdateStatus,
-  getExportData
+  getExportData,
+  applyForJob
 } = require('../controllers/applicationController');
 const { 
   advanceApplication, 

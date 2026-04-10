@@ -12,6 +12,8 @@ import { useNotification } from '../../context/NotificationContext';
 import MentorshipManager from '../../components/alumni/MentorshipManager';
 import AlumniProfileEditor from '../../components/profile/AlumniProfileEditor';
 import ReferralApplicantsModal from '../../components/alumni/ReferralApplicantsModal';
+import AvailabilityManager from '../../components/alumni/AvailabilityManager';
+import { Calendar } from 'lucide-react';
 
 const AlumniPortal: React.FC = () => {
     const { user } = useAuth();
@@ -36,6 +38,8 @@ const AlumniPortal: React.FC = () => {
       deadline: '',
       description: ''
     });
+
+    const [mentorshipSubTab, setMentorshipSubTab] = useState<'requests' | 'availability'>('requests');
 
     useEffect(() => {
         const fetchDashboard = async () => {
@@ -204,8 +208,33 @@ const AlumniPortal: React.FC = () => {
             )}
 
             {activeTab === 'mentorship' && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <MentorshipManager />
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex bg-gray-100 p-1.5 rounded-2xl w-fit">
+                         <button
+                            onClick={() => setMentorshipSubTab('requests')}
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                mentorshipSubTab === 'requests' 
+                                    ? 'bg-white text-blue-600 shadow-sm' 
+                                    : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                        >
+                            <GraduationCap size={14} />
+                            Session Requests
+                        </button>
+                        <button
+                            onClick={() => setMentorshipSubTab('availability')}
+                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                mentorshipSubTab === 'availability' 
+                                    ? 'bg-white text-blue-600 shadow-sm' 
+                                    : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                        >
+                            <Calendar size={14} />
+                            My Availability
+                        </button>
+                    </div>
+
+                    {mentorshipSubTab === 'requests' ? <MentorshipManager /> : <AvailabilityManager />}
                 </div>
             )}
 

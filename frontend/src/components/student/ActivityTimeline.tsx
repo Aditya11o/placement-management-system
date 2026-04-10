@@ -26,11 +26,11 @@ const ActivityTimeline: React.FC = () => {
 
   const getIconBg = (type: string) => {
     switch (type) {
-      case 'AUTH': return 'bg-blue-100 text-blue-600';
-      case 'APPLICATION': return 'bg-purple-100 text-purple-600';
-      case 'PROFILE': return 'bg-amber-100 text-amber-600';
-      case 'JOB': return 'bg-emerald-100 text-emerald-600';
-      default: return 'bg-gray-100 text-gray-600';
+      case 'AUTH': return 'bg-blue-500/10 text-blue-600';
+      case 'APPLICATION': return 'bg-purple-500/10 text-purple-600';
+      case 'PROFILE': return 'bg-amber-500/10 text-amber-600';
+      case 'JOB': return 'bg-emerald-500/10 text-emerald-600';
+      default: return 'bg-surface-container-high text-on-surface-variant/40';
     }
   };
 
@@ -57,10 +57,10 @@ const ActivityTimeline: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-full">
-      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-        <History className="w-5 h-5 text-blue-600" />
-        Recent Activity
+    <div className="bg-surface-container-lowest rounded-[2.5rem] p-8 border border-outline-variant/30 h-full">
+      <h3 className="text-[13px] font-black text-on-surface uppercase tracking-tight mb-8 flex items-center gap-2 italic">
+        <History className="w-4 h-4 text-surface-tint" />
+        Activity <span className="text-surface-tint">Feed</span>
       </h3>
 
       {error ? (
@@ -86,11 +86,11 @@ const ActivityTimeline: React.FC = () => {
                   {getIcon(log.type)}
                 </div>
                 <div className="flex-1 pt-1">
-                  <p className="text-sm font-semibold text-gray-900 leading-none">
+                  <p className="text-sm font-black text-on-surface leading-none italic uppercase tracking-tight">
                     {log.action}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
+                  <p className="text-[10px] text-on-surface-variant/40 mt-1.5 flex items-center gap-1 font-bold uppercase">
+                    <Clock className="w-2.5 h-2.5" />
                     {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                   </p>
                   {log.details && (
@@ -107,8 +107,8 @@ const ActivityTimeline: React.FC = () => {
         </div>
       )}
       
-      <button className="w-full mt-6 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-dashed border-blue-200">
-        View Full History
+      <button className="w-full mt-8 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-surface-tint hover:bg-surface-tint/5 rounded-2xl transition-all border border-dashed border-outline-variant/50">
+        Trace Full History
       </button>
     </div>
   );

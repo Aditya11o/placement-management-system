@@ -153,12 +153,14 @@ const MyApplications: React.FC = () => {
     });
   };
 
+  const stats = [
     { label: 'Total', value: apps.filter((a: any) => a.status !== 'Draft').length.toString().padStart(2, '0'), icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Reviewing', value: apps.filter((a: any) => a.status === 'Applied').length.toString().padStart(2, '0'), icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
     { label: 'Drafts', value: apps.filter((a: any) => a.status === 'Draft').length.toString().padStart(2, '0'), icon: FileText, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Shortlisted', value: apps.filter((a: any) => a.status === 'Shortlisted').length.toString().padStart(2, '0'), icon: Trophy, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Selected', value: apps.filter((a: any) => a.status === 'Selected' || a.status === 'Accepted').length.toString().padStart(2, '0'), icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Rejected', value: apps.filter((a: any) => a.status === 'Rejected').length.toString().padStart(2, '0'), icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
+  ];
 
   const PipelineStepper = ({ rounds, currentIndex, isTerminal }: { rounds: string[], currentIndex: number, isTerminal: boolean }) => {
     return (
@@ -451,7 +453,7 @@ const MyApplications: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-8 max-h-[60vh] overflow-y-auto">
+            <div className="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
               {selectedTimelineApp.job?.selectionProcess && (
                 <PipelineStepper 
                   rounds={selectedTimelineApp.job.selectionProcess}
@@ -459,7 +461,34 @@ const MyApplications: React.FC = () => {
                   isTerminal={selectedTimelineApp.isTerminal || false}
                 />
               )}
+
+              {/* Round-Specific Insights */}
+              {selectedTimelineApp.interviews && selectedTimelineApp.interviews.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-4 w-1 bg-blue-600 rounded-full"></div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-[#000613]">Round-Specific Insights</h4>
+                  </div>
+                  <div className="space-y-3">
+                    {selectedTimelineApp.interviews.map((int: any) => (
+                      <div key={int.id} className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-tight">{int.type}</span>
+                          <span className="text-[9px] font-bold text-gray-400">{new Date(int.date).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-xs font-bold text-gray-900 leading-snug">
+                          {int.feedback}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
+              <div className="flex items-center gap-2 mb-4">
+                <div className="h-4 w-1 bg-gray-200 rounded-full"></div>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Full Status Audit</h4>
+              </div>
               <Timeline history={selectedTimelineApp.statusHistory || [
                 { status: 'Applied', date: selectedTimelineApp.createdAt, comment: 'Application received and logged in system.' }
               ]} />

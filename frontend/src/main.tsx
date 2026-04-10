@@ -3,9 +3,14 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-import { ThemeProvider } from './context/ThemeContext';
-import ErrorBoundary from './components/ErrorBoundary';
+import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
+import { LoadingProvider } from './context/LoadingContext';
+import { TourProvider } from './context/TourContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,9 +26,19 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <App />
-        </ThemeProvider>
+        <BrowserRouter>
+          <LoadingProvider>
+            <ThemeProvider>
+              <NotificationProvider>
+                <AuthProvider>
+                  <TourProvider>
+                    <App />
+                  </TourProvider>
+                </AuthProvider>
+              </NotificationProvider>
+            </ThemeProvider>
+          </LoadingProvider>
+        </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>,

@@ -246,6 +246,7 @@ const ManageStudents: React.FC = () => {
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight uppercase tracking-tighter">Student <span className="text-blue-600">Inventory</span></h1>
           <p className="text-sm text-gray-400 font-bold mt-1">Strategic oversight and lifecycle management for student profiles.</p>
+        </div>
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <button 
             onClick={handleExportStudents}
@@ -261,6 +262,7 @@ const ManageStudents: React.FC = () => {
           </button>
           <button onClick={() => { setFormData({ name: '', email: '', password: '', course: 'BCA', branch: 'Computer Science', cgpa: '' }); setIsAddModalOpen(true); }} className="flex items-center justify-center gap-2 px-6 py-3 bg-[#000613] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-black/10 hover:scale-105 transition-all"><UserPlus size={18} />Add Student</button>
         </div>
+      </div>
 
       {/* Compliance Pulse */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

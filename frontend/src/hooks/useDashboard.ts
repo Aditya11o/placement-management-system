@@ -11,3 +11,13 @@ export const useStudentDashboard = () => {
     staleTime: 60 * 1000, // 1 minute
   });
 };
+export const useSkillGap = () => {
+  return useQuery({
+    queryKey: ['dashboard', 'skill-gap'],
+    queryFn: async () => {
+      const { data } = await api.get('/students/skill-gap');
+      return data;
+    },
+    staleTime: 60 * 1000,
+  });
+};

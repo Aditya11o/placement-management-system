@@ -22,6 +22,7 @@ interface SidebarProps {
           { name: 'Dashboard', icon: LayoutDashboard, path: '/student/dashboard' },
           { name: 'My Profile', icon: Users, path: '/student/profile' },
           { name: 'Jobs', icon: Briefcase, path: '/student/jobs' },
+          { name: 'Placement Drives', icon: Activity, path: '/student/drives' },
           { name: 'Explore Companies', icon: Building2, path: '/student/companies' },
           { name: 'Watchlist', icon: Bookmark, path: '/student/watchlist' },
           { name: 'My Applications', icon: FileText, path: '/student/applications' },

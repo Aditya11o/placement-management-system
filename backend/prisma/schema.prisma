@@ -92,24 +92,24 @@ enum StudentStatus {
 // -----------------------------------------------------------------------------
 
 model User {
-  id               String       @id @default(uuid())
-  name             String
-  email            String       @unique
-  password         String
-  role             Role         @default(student)
-  profilePhoto     String?      @default("")
-  isVerified       Boolean      @default(false)
-  status           UserStatus   @default(active)
-  
+  id           String     @id @default(uuid())
+  name         String
+  email        String     @unique
+  password     String
+  role         Role       @default(student)
+  profilePhoto String?    @default("")
+  isVerified   Boolean    @default(false)
+  status       UserStatus @default(active)
+
   // Auth related
-  otp              String?
-  otpExpires       DateTime?
-  loginAttempts    Int          @default(0)
-  lockUntil        BigInt?
+  otp                String?
+  otpExpires         DateTime?
+  loginAttempts      Int       @default(0)
+  lockUntil          BigInt?
   reset_token_expiry DateTime?
-  
+
   // Invitation related
-  inviteToken      String?      @unique
+  inviteToken        String?   @unique
   inviteTokenExpires DateTime?
 
   // Profile relations
@@ -118,424 +118,438 @@ model User {
   adminProfile     AdminProfile?
   mentorProfile    MentorProfile?
   alumniProfile    AlumniProfile?
-  
+
   // Activity relations
-  notifications    Notification[]
-  auditLogs        AuditLog[]
-  resourcesAdded   Resource[]
-  closedArchives   Archive[]    @relation("ClosedArchives")
-  
-  studentMockInterviews MockInterview[] @relation("StudentMockInterviews")
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+  resourcesAdded Resource[]
+  closedArchives Archive[]      @relation("ClosedArchives")
+
+  studentMockInterviews MockInterview[]     @relation("StudentMockInterviews")
   studentMentorships    MentorshipBooking[] @relation("StudentMentorship")
-  messagesSent     Message[]    @relation("SentMessages")
-  messagesReceived Message[]    @relation("ReceivedMessages")
-  tickets          Ticket[]
-  reminders        Reminder[]
-  experiences      Experience[]
-  comments         Comment[]
-  academicEvents   AcademicEvent[]
-  
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  messagesSent          Message[]           @relation("SentMessages")
+  messagesReceived      Message[]           @relation("ReceivedMessages")
+  tickets               Ticket[]
+  reminders             Reminder[]
+  experiences           Experience[]
+  comments              Comment[]
+  academicEvents        AcademicEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([role, status])
 }
 
 model StudentProfile {
-  id                  String          @id @default(uuid())
-  userId              String          @unique
-  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  rollNo              String?
-  course              String?
-  branch              String?
-  cgpa                Float?
-  
-  phone               String?
-  dob                 DateTime?
-  gender              String?
-  address             String?
-  city                String?
-  state               String?
-  
-  department          String?
-  passingYear         Int?
-  
-  tenthPercentage     Float?
-  twelfthPercentage   Float?
-  
-  linkedin            String?
-  github              String?
-  portfolio           String?
-  
-  skills              String[]
-  
-  // Using Json for simplicity of complex nested arrays from Mongo
-  projects            Json?           // Array of {title, description, technologies, link, startDate, endDate}
-  
-  resumePath          String?
-  profilePhoto        String?
-  profileCompletion   Int             @default(0)
-  readinessScore      Int             @default(0)
-  
-  academicVerified    Boolean         @default(false)
-  verificationAt      DateTime?
-  
-  activeBacklogs      Int             @default(0)
-  totalBacklogs       Int             @default(0)
-  
-  placementStatus     PlacementStatus @default(Unplaced)
-  
-  applications        Application[]
-  resumes             StudentResume[]
-  settings            StudentSettings?
-  skillVerifications  SkillVerification[]
-  readinessHistory    ReadinessHistory[]
-  watchlist           Watchlist[]
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  rollNo String?
+  course String?
+  branch String?
+  cgpa   Float?
+
+  phone   String?
+  dob     DateTime?
+  gender  String?
+  address String?
+  city    String?
+  state   String?
+
+  department  String?
+  passingYear Int?
+
+  tenthPercentage   Float?
+  twelfthPercentage Float?
+
+  linkedin  String?
+  github    String?
+  portfolio String?
+
+  skills String[]
+
+  // Using Json for simplicity of complex nested arrays from Mongo
+  projects Json? // Array of {title, description, technologies, link, startDate, endDate}
+
+  resumePath        String?
+  profilePhoto      String?
+  profileCompletion Int     @default(0)
+  readinessScore    Int     @default(0)
+
+  academicVerified Boolean   @default(false)
+  verificationAt   DateTime?
+
+  activeBacklogs Int @default(0)
+  totalBacklogs  Int @default(0)
+
+  placementStatus PlacementStatus @default(Unplaced)
+
+  applications       Application[]
+  resumes            StudentResume[]
+  settings           StudentSettings?
+  skillVerifications SkillVerification[]
+  readinessHistory   ReadinessHistory[]
+  watchlist          Watchlist[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ReadinessHistory {
-  id              String          @id @default(uuid())
-  studentId       String
-  student         StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
-  score           Int
-  date            DateTime        @default(now())
-  
+  id        String         @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  score Int
+  date  DateTime @default(now())
+
   @@index([studentId, date])
 }
 
 model RecruiterProfile {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  companyName     String?
-  companyWebsite  String?
-  companyLogo     String?
-  position        String?
-  location        String?
-  phone           String?
-  
-  linkedIn        String?
-  twitter         String?
-  
-  jobs            Job[]
-  settings        RecruiterSettings?
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  companyName    String?
+  companyWebsite String?
+  companyLogo    String?
+  position       String?
+  location       String?
+  phone          String?
+
+  linkedIn String?
+  twitter  String?
+
+  jobs     Job[]
+  settings RecruiterSettings?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model AlumniProfile {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  graduationYear  Int?
-  company         String?
-  designation     String?
-  expertise       String[]
-  isAvailableForMentorship Boolean @default(true)
-  
-  linkedin        String?
-  github          String?
-  
-  referrals       Job[]    @relation("AlumniReferrals")
-  bookings        MentorshipBooking[] @relation("AlumniMentorship")
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  graduationYear           Int?
+  company                  String?
+  designation              String?
+  expertise                String[]
+  isAvailableForMentorship Boolean  @default(true)
+
+  linkedin String?
+  github   String?
+
+  referrals Job[]               @relation("AlumniReferrals")
+  bookings  MentorshipBooking[] @relation("AlumniMentorship")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model AdminProfile {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  employeeId      String?
-  department      String?
-  
-  level           AdminLevel   @default(SUPER_ADMIN)
-  scope           String?      // Department name for DEPT_ADMIN
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  employeeId String?
+  department String?
+
+  level AdminLevel @default(SUPER_ADMIN)
+  scope String? // Department name for DEPT_ADMIN
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model MentorProfile {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  expertise       String[]
-  isActive        Boolean  @default(true)
-  bio             String?
-  
-  mockInterviews  MockInterview[]
-  availability    MentorAvailability[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expertise String[]
+  isActive  Boolean  @default(true)
+  bio       String?
+
+  mockInterviews MockInterview[]
+  availability   MentorAvailability[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Job {
-  id                String            @id @default(uuid())
-  jobId             String            @unique
-  
-  recruiterId       String
-  recruiter         RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
-  
-  title             String
-  description       String
-  companyName       String
-  location          String
-  salary            String
-  jobType           JobType
-  
-  minCGPA           Float             @default(0)
-  min10th           Float             @default(0)
-  min12th           Float             @default(0)
-  maxBacklogs       Int               @default(0)
-  
-  targetCourses     String[]          // e.g. ["B.Tech", "MCA"]
-  branches          String[]
-  genderPreference  String            @default("all") // all, male, female
-  
-  requiredSkills    String[]
-  
-  deadline          DateTime
-  status            JobStatus         @default(open)
-  
-  selectionProcess  Json?             // List of rounds: ["Applied", "Tech 1", "HR", "Selected"]
-  
-  applicationsCount Int               @default(0)
-  viewsCount        Int               @default(0)
-  
-  screeningQuestions Json?
-  
-  isAlumniPost      Boolean           @default(false)
-  alumniId          String?
-  alumni            AlumniProfile?    @relation("AlumniReferrals", fields: [alumniId], references: [id], onDelete: SetNull)
-  
-  placementDriveId  String?
-  placementDrive    PlacementDrive?   @relation(fields: [placementDriveId], references: [id], onDelete: SetNull)
-  
-  applications      Application[]
-  watchlist         Watchlist[]
+  id    String @id @default(uuid())
+  jobId String @unique
 
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  recruiterId String
+  recruiter   RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  companyName String
+  location    String
+  salary      String
+  jobType     JobType
+
+  minCGPA     Float @default(0)
+  min10th     Float @default(0)
+  min12th     Float @default(0)
+  maxBacklogs Int   @default(0)
+
+  targetCourses    String[] // e.g. ["B.Tech", "MCA"]
+  branches         String[]
+  genderPreference String   @default("all") // all, male, female
+
+  requiredSkills String[]
+
+  deadline DateTime
+  status   JobStatus @default(open)
+
+  selectionProcess Json? // List of rounds: ["Applied", "Tech 1", "HR", "Selected"]
+
+  applicationsCount Int @default(0)
+  viewsCount        Int @default(0)
+
+  screeningQuestions Json?
+
+  isAlumniPost Boolean        @default(false)
+  alumniId     String?
+  alumni       AlumniProfile? @relation("AlumniReferrals", fields: [alumniId], references: [id], onDelete: SetNull)
+
+  placementDriveId String?
+  placementDrive   PlacementDrive? @relation(fields: [placementDriveId], references: [id], onDelete: SetNull)
+
+  applications Application[]
+  watchlist    Watchlist[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, deadline])
 }
 
 model Application {
-  id              String            @id @default(uuid())
-  
-  studentId       String
-  student         StudentProfile    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
-  jobId           String
-  job             Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  
-  resume          String?
-  resumeId        String?
-  status          ApplicationStatus @default(Applied)
-  
-  currentStage      String          @default("Applied")
-  currentStageIndex Int             @default(0)
-  isTerminal        Boolean         @default(false)
-  
-  statusHistory   Json?
-  
-  offerLetter     String?
-  feedback        String?
-  interviewDate   DateTime?
-  interviewLink   String?
-  
-  evaluation      Json?
-  answers         Json?
-  
-  interviews      Interview[]
+  id String @id @default(uuid())
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  jobId String
+  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  resume   String?
+  resumeId String?
+  status   ApplicationStatus @default(Applied)
+
+  currentStage      String  @default("Applied")
+  currentStageIndex Int     @default(0)
+  isTerminal        Boolean @default(false)
+
+  statusHistory Json?
+
+  offerLetter   String?
+  feedback      String?
+  interviewDate DateTime?
+  interviewLink String?
+
+  evaluation Json?
+  answers    Json?
+
+  interviews Interview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([studentId, jobId])
 }
 
 model Interview {
-  id              String      @id @default(uuid())
-  applicationId   String
-  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  
-  date            DateTime
-  link            String?
-  type            String?
-  status          String?     @default("scheduled")
-  feedback        String?
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id            String      @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  date     DateTime
+  link     String?
+  type     String?
+  status   String?  @default("scheduled")
+  feedback String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Notification {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  title       String
-  message     String
-  type        String   @default("info")
-  isRead      Boolean  @default(false)
-  
-  isBroadcast Boolean  @default(false)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title   String
+  message String
+  type    String  @default("info")
+  isRead  Boolean @default(false)
+
+  isBroadcast Boolean    @default(false)
   broadcastId String?
   broadcast   Broadcast? @relation(fields: [broadcastId], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
+  createdAt   DateTime   @default(now())
 }
 
 model Broadcast {
-  id           String         @id @default(cuid())
-  title        String
-  message      String
-  type         String         @default("info")
-  targetRole   String         @default("student") // "all", "student", "recruiter"
-  scheduledAt  DateTime?
-  isSent       Boolean        @default(false)
+  id            String         @id @default(cuid())
+  title         String
+  message       String
+  type          String         @default("info")
+  targetRole    String         @default("student") // "all", "student", "recruiter"
+  scheduledAt   DateTime?
+  isSent        Boolean        @default(false)
   notifications Notification[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Message {
-  id          String   @id @default(uuid())
-  senderId    String
-  sender      User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  
+  id       String @id @default(uuid())
+  senderId String
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
   recipientId String
-  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
-  
-  content     String
-  isRead      Boolean  @default(false)
-  
-  createdAt   DateTime @default(now())
+  recipient   User   @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  content String
+  isRead  Boolean @default(false)
+
+  createdAt DateTime @default(now())
 }
 
 model StudentResume {
-  id              String          @id @default(uuid())
-  studentId       String
-  student         StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
-  name            String
-  url             String
-  isDefault       Boolean         @default(false)
-  
-  createdAt       DateTime        @default(now())
+  id        String         @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  name      String
+  url       String
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
 }
 
 model StudentSettings {
-  id              String          @id @default(uuid())
-  studentId       String          @unique
-  student         StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
-  emailNotifications Boolean      @default(true)
-  smsNotifications   Boolean      @default(false)
-  
-  createdAt       DateTime        @default(now())
+  id        String         @id @default(uuid())
+  studentId String         @unique
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Notifications
+  emailNotifications Boolean @default(true)
+  smsNotifications   Boolean @default(false)
+  jobAlerts          Boolean @default(true)
+  appAlerts          Boolean @default(true)
+  interviewAlerts    Boolean @default(true)
+
+  // Privacy
+  profileVisible Boolean @default(true)
+  showPhone      Boolean @default(false)
+  showEmail      Boolean @default(true)
+
+  createdAt DateTime @default(now())
 }
 
 model RecruiterSettings {
-  id              String            @id @default(uuid())
-  recruiterId     String            @unique
-  recruiter       RecruiterProfile  @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
-  
-  emailSummary      Boolean  @default(true)
-  interviewAlerts   Boolean  @default(true)
-  applicationAlerts Boolean  @default(true)
-  
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id          String           @id @default(uuid())
+  recruiterId String           @unique
+  recruiter   RecruiterProfile @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+
+  emailSummary      Boolean @default(true)
+  interviewAlerts   Boolean @default(true)
+  applicationAlerts Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model MentorAvailability {
-  id              String   @id @default(uuid())
-  mentorId        String
-  mentor          MentorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade)
-  
-  date            DateTime
-  timeSlot        String
-  isBooked        Boolean  @default(false)
-  
-  createdAt       DateTime @default(now())
+  id       String        @id @default(uuid())
+  mentorId String
+  mentor   MentorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+
+  date     DateTime
+  timeSlot String
+  isBooked Boolean  @default(false)
+
+  createdAt DateTime @default(now())
 }
 
 model MentorshipBooking {
-  id            String   @id @default(uuid())
-  studentId     String
-  student       User     @relation("StudentMentorship", fields: [studentId], references: [id])
-  
-  alumniId      String
-  alumni        AlumniProfile @relation("AlumniMentorship", fields: [alumniId], references: [id])
-  
+  id        String @id @default(uuid())
+  studentId String
+  student   User   @relation("StudentMentorship", fields: [studentId], references: [id])
+
+  alumniId String
+  alumni   AlumniProfile @relation("AlumniMentorship", fields: [alumniId], references: [id])
+
+  availabilityId String?
+
   requestedDate DateTime
   query         String?
   status        String   @default("pending")
   meetingLink   String?
-  feedback      String?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+
+  feedback        String? // From Alumni to Student
+  studentFeedback String? // From Student to Alumni
+  rating          Int? // Rating from Student (1-5)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model MockInterview {
-  id              String   @id @default(uuid())
-  studentId       String
-  student         User     @relation("StudentMockInterviews", fields: [studentId], references: [id])
-  
-  mentorId        String
-  mentor          MentorProfile @relation(fields: [mentorId], references: [id])
-  
-  type            String
-  date            DateTime
-  time            String
-  status          String   @default("scheduled")
-  
-  performance     Json?
-  feedback        String?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id        String @id @default(uuid())
+  studentId String
+  student   User   @relation("StudentMockInterviews", fields: [studentId], references: [id])
+
+  mentorId String
+  mentor   MentorProfile @relation(fields: [mentorId], references: [id])
+
+  type   String
+  date   DateTime
+  time   String
+  status String   @default("scheduled")
+
+  performance Json?
+  feedback    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model AuditLog {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  action      String
-  type        String   @default("GENERAL") // e.g., 'AUTH', 'APPLICATION', 'PROFILE', 'JOB'
-  targetId    String?
-  targetType  String?
-  details     String?  // Can store JSON string
-  ipAddress   String?
-  
-  createdAt   DateTime @default(now())
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  action     String
+  type       String  @default("GENERAL") // e.g., 'AUTH', 'APPLICATION', 'PROFILE', 'JOB'
+  targetId   String?
+  targetType String?
+  details    String? // Can store JSON string
+  ipAddress  String?
+
+  createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
 }
 
 model FAQ {
-  id          String   @id @default(uuid())
-  question    String
-  answer      String
-  category    String?
-  
-  createdAt   DateTime @default(now())
+  id       String  @id @default(uuid())
+  question String
+  answer   String
+  category String?
+
+  createdAt DateTime @default(now())
 }
 
 model Archive {
@@ -546,142 +560,142 @@ model Archive {
   placedStudents    Int      @default(0)
   averageSalary     Float    @default(0)
   topCompanies      String[]
-  
-  closedById        String
-  closedBy          User     @relation("ClosedArchives", fields: [closedById], references: [id])
-  
-  archivedData      Json?
-  
-  createdAt         DateTime @default(now())
+
+  closedById String
+  closedBy   User   @relation("ClosedArchives", fields: [closedById], references: [id])
+
+  archivedData Json?
+
+  createdAt DateTime @default(now())
 }
 
 model Resource {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
   description String?
   url         String
   category    String?
-  
-  type        String?
-  content     String?
-  instructor  String?
-  duration    String?
-  thumbnail   String?
-  tags        String[]
-  
-  addedById   String?
-  addedBy     User?    @relation(fields: [addedById], references: [id], onDelete: SetNull)
-  
-  createdAt   DateTime @default(now())
+
+  type       String?
+  content    String?
+  instructor String?
+  duration   String?
+  thumbnail  String?
+  tags       String[]
+
+  addedById String?
+  addedBy   User?   @relation(fields: [addedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
 }
 
 model SystemSettings {
-  id                      String   @id @default(uuid())
-  registrationEnabled     Boolean  @default(true)
-  jobPostingEnabled       Boolean  @default(true)
-  maintenanceMode         Boolean  @default(false)
-  maxApplicationsPerStudent Int      @default(10)
-  
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                        String  @id @default(uuid())
+  registrationEnabled       Boolean @default(true)
+  jobPostingEnabled         Boolean @default(true)
+  maintenanceMode           Boolean @default(false)
+  maxApplicationsPerStudent Int     @default(10)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SkillVerification {
-  id              String                  @id @default(uuid())
-  studentId       String
-  student         StudentProfile          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
-  skill           String
-  certificateUrl  String
-  status          SkillVerificationStatus @default(Pending)
-  
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  id        String         @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  skill          String
+  certificateUrl String
+  status         SkillVerificationStatus @default(Pending)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Ticket {
-  id              String   @id @default(uuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  subject         String
-  message         String
-  issueType       String?
-  screenshotPath  String?
-  status          String   @default("open")
-  response        String?
-  resolvedAt      DateTime?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subject        String
+  message        String
+  issueType      String?
+  screenshotPath String?
+  status         String    @default("open")
+  response       String?
+  resolvedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Reminder {
-  id              String   @id @default(uuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  title           String
-  description     String?
-  dueDate         DateTime
-  isCompleted     Boolean  @default(false)
-  priority        String   @default("Medium")
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  dueDate     DateTime
+  isCompleted Boolean  @default(false)
+  priority    String   @default("Medium")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Experience {
-  id              String      @id @default(uuid())
-  studentId       String
-  student         User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
-  companyName     String
-  role            String
-  batch           String      // e.g. 2024
-  
-  experienceType  String      // Interview, Internship, Placement
-  difficulty      String      // Easy, Medium, Hard
-  
-  title           String
-  content         String      @db.Text
-  questions       String[]    // List of interview questions
-  tips            String?     @db.Text
-  
-  isAnonymous     Boolean     @default(false)
-  isVerified      Boolean     @default(false) // Admin verification of the post accuracy
-  
-  upvotes         String[]    // Array of user IDs who upvoted
-  
-  comments        Comment[]
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id        String @id @default(uuid())
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  companyName String
+  role        String
+  batch       String // e.g. 2024
+
+  experienceType String // Interview, Internship, Placement
+  difficulty     String // Easy, Medium, Hard
+
+  title     String
+  content   String   @db.Text
+  questions String[] // List of interview questions
+  tips      String?  @db.Text
+
+  isAnonymous Boolean @default(false)
+  isVerified  Boolean @default(false) // Admin verification of the post accuracy
+
+  upvotes String[] // Array of user IDs who upvoted
+
+  comments Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyName, role])
 }
 
 model Comment {
-  id              String      @id @default(uuid())
-  experienceId    String
-  experience      Experience  @relation(fields: [experienceId], references: [id], onDelete: Cascade)
-  
-  userId          String
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  content         String      @db.Text
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id           String     @id @default(uuid())
+  experienceId String
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  content String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Watchlist {
-  id        String   @id @default(uuid())
+  id        String         @id @default(uuid())
   studentId String
   student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
   jobId     String
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  job       Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
 
   @@unique([studentId, jobId])
   @@index([studentId])
@@ -694,11 +708,11 @@ model PlacementDrive {
   startDate   DateTime
   endDate     DateTime
   status      DriveStatus @default(UPCOMING)
-  
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
-  jobs        Job[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs Job[]
 }
 
 enum EventCategory {
@@ -724,12 +738,12 @@ model AcademicEvent {
   category    EventCategory @default(OTHER)
   priority    EventPriority @default(MEDIUM)
   isGlobal    Boolean       @default(true)
-  
+
   createdById String?
-  createdBy   User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([startDate, category])
 }

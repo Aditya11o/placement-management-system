@@ -9,7 +9,11 @@ const {
   bookMentorship,
   getMentorshipRequests,
   updateMentorshipStatus,
-  getReferralApplicants
+  getReferralApplicants,
+  addAvailabilitySlot,
+  deleteAvailabilitySlot,
+  getMentorAvailability,
+  submitStudentFeedback
 } = require('../controllers/alumniController');
 
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -32,5 +36,15 @@ router.get('/directory', protect, getDirectory);
 router.post('/mentorship/request', protect, authorize('student'), bookMentorship);
 router.get('/mentorship/requests', protect, getMentorshipRequests); // works for both
 router.put('/mentorship/:id', protect, authorize('alumni', 'mentor'), updateMentorshipStatus);
+
+// Availability & Slot Booking
+router.route('/mentorship/availability')
+  .post(protect, authorize('alumni', 'mentor'), addAvailabilitySlot);
+
+router.delete('/mentorship/availability/:id', protect, authorize('alumni', 'mentor'), deleteAvailabilitySlot);
+router.get('/mentorship/availability/:mentorId', protect, getMentorAvailability);
+
+// Feedback
+router.post('/mentorship/feedback/:id', protect, authorize('student'), submitStudentFeedback);
 
 module.exports = router;

@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const bcrypt = require('bcryptjs');
 const sendEmail = require('../utils/emailUtils');
 const { createAuditLog } = require('./auditLogController');
 const { parsePagination } = require('../utils/pagination');
@@ -860,6 +861,73 @@ const unlockUserAccount = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+// @desc    Get all admin team members
+// @route   GET /api/admin/team
+// @access  Private (Super Admin)
+const getAdminTeam = async (req, res, next) => {
+    try {
+        const team = await prisma.user.findMany({
+            where: { role: 'admin' },
+            include: { adminProfile: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(team.map(u => ({ ...u, _id: u.id })));
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Invite/Create a new admin
+// @route   POST /api/admin/invite
+// @access  Private (Super Admin)
+const inviteAdmin = async (req, res, next) => {
+    const { name, email, level, scope, employeeId } = req.body;
+    try {
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) return res.status(400).json({ message: 'User already exists' });
+
+        const user = await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: await bcrypt.hash('Admin@123', 10), // Default password
+                role: 'admin',
+                isVerified: true,
+                status: 'active',
+                adminProfile: {
+                    create: {
+                        level: level || 'PLACEMENT_OFFICER',
+                        scope: scope || '',
+                        employeeId: employeeId || ''
+                    }
+                }
+            },
+            include: { adminProfile: true }
+        });
+
+        res.status(201).json({ message: 'Admin invited successfully', user: { ...user, _id: user.id } });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update admin level/scope
+// @route   PATCH /api/admin/team/:id
+// @access  Private (Super Admin)
+const updateAdminLevel = async (req, res, next) => {
+    const { level, scope } = req.body;
+    try {
+        const profile = await prisma.adminProfile.upsert({
+            where: { userId: req.params.id },
+            update: { level, scope },
+            create: { userId: req.params.id, level, scope }
+        });
+        res.json({ message: 'Admin permissions updated', profile });
+    } catch (error) {
+        next(error);
+    }
 };
 
 module.exports = { 

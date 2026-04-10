@@ -60,12 +60,27 @@ const AddProjectModal: React.FC<AddProjectModalProps> = ({ isOpen, onClose, onSu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Transform technologies string into an array and map field names for the backend
+    const techArray = formData.technologies
+      ? formData.technologies.split(',').map(t => t.trim()).filter(t => t !== '')
+      : [];
+
+    const submissionData = {
+      title: formData.title,
+      description: formData.description,
+      technologies: techArray,
+      link: formData.link,
+      startDate: formData.start_date,
+      endDate: formData.end_date
+    };
+
     try {
       if (project?._id) {
-        await api.put(`/profile/projects/${project._id}`, formData);
+        await api.put(`/profile/projects/${project._id}`, submissionData);
         showSuccess('Project updated successfully!', 'Update Success');
       } else {
-        await api.post('/profile/projects', formData);
+        await api.post('/profile/projects', submissionData);
         showSuccess('Project added successfully!', 'Addition Success');
       }
       onSuccess();

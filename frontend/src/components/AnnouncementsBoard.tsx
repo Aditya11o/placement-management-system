@@ -30,7 +30,7 @@ const AnnouncementsBoard: React.FC<AnnouncementsBoardProps> = ({ initialAnnounce
       try {
         const { data } = await api.get('/notifications/announcements');
         // Filter for broadcast types if necessary, or just show last 5
-        setAnnouncements(data.slice(0, 5));
+        setAnnouncements(Array.isArray(data) ? data.slice(0, 5) : []);
       } catch (err) {
         console.error('Error fetching announcements:', err);
       } finally {

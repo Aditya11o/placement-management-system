@@ -50,11 +50,11 @@ const StudentDrivesWidget: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm animate-pulse h-64">
-        <div className="h-6 bg-gray-200 rounded w-1/3 mb-6"></div>
+      <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm animate-pulse h-64">
+        <div className="h-6 bg-surface-container-high rounded w-1/3 mb-6"></div>
         <div className="space-y-4">
-          <div className="h-16 bg-gray-100 rounded-xl"></div>
-          <div className="h-16 bg-gray-100 rounded-xl"></div>
+          <div className="h-16 bg-surface-container rounded-xl"></div>
+          <div className="h-16 bg-surface-container rounded-xl"></div>
         </div>
       </div>
     );
@@ -65,12 +65,12 @@ const StudentDrivesWidget: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-bl-full -z-10 opacity-70"></div>
+    <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-surface-tint/5 to-primary/5 rounded-bl-full -z-10 opacity-70"></div>
       
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-blue-600" />
+        <h3 className="text-[13px] font-black text-on-surface tracking-tight flex items-center gap-2 uppercase italic">
+          <Calendar className="w-4 h-4 text-surface-tint" />
           Campus Placement Drives
         </h3>
       </div>
@@ -95,13 +95,13 @@ const StudentDrivesWidget: React.FC = () => {
                     {drive.status}
                   </span>
                   {drive.status === 'UPCOMING' && (
-                    <span className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                    <span className="text-xs font-semibold text-on-surface-variant/50 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {getTimeLeft(drive.startDate)}
                     </span>
                   )}
                 </div>
-                <h4 className="font-bold text-gray-900 text-sm truncate">{drive.name}</h4>
+                <h4 className="font-bold text-on-surface text-sm truncate">{drive.name}</h4>
                 <p className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-1">
                   <Briefcase className="w-3 h-3" />
                   {drive._count?.jobs || 0} Opportunities

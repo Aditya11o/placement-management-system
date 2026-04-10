@@ -13,7 +13,7 @@ import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useJobs } from '../../hooks/useJobs';
-import { useMyApplications, useSaveDraft, useCheckEligibility } from '../../hooks/useApplications';
+import { useMyApplications, useSaveDraft } from '../../hooks/useApplications';
 import { useResumes } from '../../hooks/useResumes';
 import { useStudentDashboard } from '../../hooks/useDashboard';
 import { useWatchlist } from '../../hooks/useWatchlist';
@@ -30,7 +30,9 @@ const JobFeed: React.FC = () => {
   const { data: myApps = [], isLoading: loadingApps } = useMyApplications();
   const { data: resumes = [], isLoading: loadingResumes } = useResumes();
   const { data: dashboardData, isLoading: loadingDash } = useStudentDashboard();
-  const { toggleWatchlist } = useWatchlist();
+  const { watchlist, toggleWatchlist } = useWatchlist();
+  const [watchlistOnly, setWatchlistOnly] = useState(false);
+  const [applying, setApplying] = useState(false);
   
   const loading = loadingJobs || loadingApps || loadingResumes || loadingDash;
   const isVerified = dashboardData?.profile?.academicVerified || false;
@@ -72,8 +74,10 @@ const JobFeed: React.FC = () => {
 
   const jobs = allJobs.map((job: any) => {
     const application = myApps.find((app: any) => app.job?._id === job._id || app.job === job._id);
+    const isWatched = watchlist?.some((w: any) => w.jobId === job._id || w._id === job._id);
     return {
       ...job,
+      isWatched,
       status: application ? 'Applied' : job.status || 'Open'
     };
   });
@@ -140,8 +144,8 @@ const JobFeed: React.FC = () => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          job.companyName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLocation = locationFilter === 'All Locations' || job.location === locationFilter;
-    const matchesType = true; // Handled by server
-    return matchesSearch && matchesLocation && matchesType;
+    const matchesWatchlist = !watchlistOnly || job.isWatched;
+    return matchesSearch && matchesLocation && matchesWatchlist;
   });
 
   return (
@@ -220,6 +224,14 @@ const JobFeed: React.FC = () => {
                 { label: 'PPO', value: 'PPO' }
               ]}
             />
+          </div>
+
+          <div className="flex items-center gap-3 self-end mb-1 px-4 py-2 rounded-xl bg-gray-50 border border-gray-100 hover:border-blue-200 transition-all cursor-pointer group" onClick={() => setWatchlistOnly(!watchlistOnly)}>
+            <Bookmark size={16} className={watchlistOnly ? 'text-blue-600 fill-blue-600' : 'text-gray-400 group-hover:text-blue-400'} />
+            <span className={`text-[10px] font-black uppercase tracking-widest ${watchlistOnly ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-400'}`}>Watchlist Only</span>
+            <div className={`w-8 h-4 rounded-full relative transition-colors ${watchlistOnly ? 'bg-blue-600' : 'bg-gray-200'}`}>
+              <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${watchlistOnly ? 'left-4.5' : 'left-0.5'}`} />
+            </div>
           </div>
         </div>
       </div>

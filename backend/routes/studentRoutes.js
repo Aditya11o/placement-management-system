@@ -14,7 +14,10 @@ const {
   deleteStudentResume,
   getStudentResumes,
   deactivateAccount,
-  deleteAccount
+  deleteAccount,
+  getSkillGapData,
+  toggleWatchlist,
+  getWatchlist
 } = require('../controllers/studentController');
 const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/resumeUploadMiddleware');
@@ -34,7 +37,10 @@ router.patch('/resume/:id/primary', protect, setPrimaryResume);
 router.delete('/resume/:id', protect, deleteStudentResume);
 
 router.get('/dashboard', protect, getStudentDashboard);
-router.put('/profile', protect, validateUpdateStudentProfile, updateStudentProfile);
+router.get('/skill-gap', protect, getSkillGapData);
+router.get('/watchlist', protect, getWatchlist);
+router.post('/watchlist/:jobId', protect, toggleWatchlist);
+router.delete('/watchlist/:jobId', protect, toggleWatchlist);
 router.put('/change-password', protect, validateChangePassword, changePassword);
 
 router.get('/notification-settings', protect, getNotificationSettings);

@@ -6,10 +6,11 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useStudentDashboard } from '../../hooks/useDashboard';
+import { useStudentDashboard, useSkillGap } from '../../hooks/useDashboard';
 import DashboardSkeleton from '../../components/skeletons/DashboardSkeleton';
 
 import ReadinessGauge from '../../components/student/ReadinessGauge';
+import SkillGapRadar, { StrategicActionPlan } from '../../components/student/SkillGapRadar';
 import StatCard from '../../components/student/StatCard';
 import JobTable from '../../components/student/JobTable';
 import InterviewPanel from '../../components/student/InterviewPanel';
@@ -23,6 +24,7 @@ const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   
   const { data, isLoading: loading, error } = useStudentDashboard();
+  const { data: skillGapData } = useSkillGap();
 
   const stats = data?.stats || {
     totalJobs: 0, applied: 0, underReview: 0, 
@@ -65,58 +67,77 @@ const StudentDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="max-w-[1600px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-12">
       {/* 1. Header Section */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
         <div id="pms-tour-welcome">
-          <h2 className="text-3xl font-bold text-gray-900 leading-tight tracking-tight">Placement Dashboard</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Welcome back, <span className="font-semibold text-blue-600">{user?.name?.split(' ')[0] || 'Student'}</span>. Your placement readiness is being tracked.
+          <h2 className="text-2xl font-black text-on-surface leading-tight tracking-tight italic uppercase">Placement Dashboard</h2>
+          <p className="text-[11px] font-bold text-on-surface-variant/60 uppercase tracking-widest mt-1">
+            Welcome back, <span className="text-primary font-black italic">{user?.name?.split(' ')[0] || 'Student'}</span>. Your profile is synchronized with active drives.
           </p>
         </div>
       </header>
 
-      {/* 2. Main Dashboard Grid (12-col) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Row 0: Announcements (Full Width) */}
-        <section className="md:col-span-12" id="pms-tour-announcements">
-          <AnnouncementsBoard initialAnnouncements={notifications} />
-        </section>
-        
-        {/* Row 1: Readiness Score (8) + Stats (4) */}
-        <section className="md:col-span-8" id="pms-tour-readiness">
-          <ReadinessGauge score={readiness.score} breakdown={readiness.breakdown} />
-        </section>
+      {/* 2. Top Stats Bar: Full Width for maximum visibility */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6" id="pms-tour-stats">
+         <StatCard label="Total Jobs" value={stats.totalJobs.toString()} icon={Briefcase} color="text-blue-600" />
+         <StatCard label="Applied" value={stats.applied.toString()} icon={TrendingUp} color="text-cyan-600" />
+         <StatCard label="Shortlisted" value={stats.shortlisted.toString()} icon={CheckCircle} color="text-purple-600" />
+         <StatCard label="Selected" value={stats.selected.toString()} icon={CheckCircle} color="text-emerald-600" />
+      </section>
 
-        <section className="md:col-span-4 h-full" id="pms-tour-stats">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
-             <StatCard label="Total Jobs" value={stats.totalJobs.toString()} icon={Briefcase} color="bg-blue-50 text-blue-600" />
-             <StatCard label="Applied" value={stats.applied.toString()} icon={TrendingUp} color="bg-cyan-50 text-cyan-600" />
-             <StatCard label="Selected" value={stats.selected.toString()} icon={CheckCircle} color="bg-emerald-50 text-emerald-600" />
-             <StatCard label="Shortlisted" value={stats.shortlisted.toString()} icon={CheckCircle} color="bg-purple-50 text-purple-600" />
+      {/* 3. Analytics Hero: Full Width side-by-side to prevent overlap */}
+      <section className="space-y-4" id="pms-tour-analytics">
+        <div className="flex flex-col min-[1400px]:flex-row gap-6 lg:gap-8 items-stretch">
+          <div className="flex-1 min-w-0 relative">
+            <ReadinessGauge 
+              score={readiness.score} 
+              previousScore={readiness.previousScore} 
+              breakdown={readiness.breakdown} 
+            />
           </div>
-        </section>
- 
-        {/* Row 2: Job Table (8) + Upcoming Interviews (4) */}
-        <section className="md:col-span-8">
-          <JobTable initialJobs={jobs} />
-        </section>
+          <div className="flex-1 min-w-0 relative">
+            <SkillGapRadar />
+          </div>
+        </div>
 
-        <section className="md:col-span-4 h-full">
-          <InterviewPanel initialInterviews={interviews} />
-        </section>
+        {/* Strategic Action Plan: Integrated but full width */}
+        <div id="pms-tour-action-plan">
+           <StrategicActionPlan data={skillGapData || []} />
+        </div>
+      </section>
 
-        {/* Row 3: Pipeline (8) + Career Resources (4) */}
-        <section className="md:col-span-8">
-           <Pipeline stats={stats} />
-        </section>
+      {/* 4. Operational Split: 8 (Main Data) / 4 (Sidebar) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Main Content Area: Span 8 */}
+        <main className="lg:col-span-8 space-y-8">
+          <div id="pms-tour-jobs">
+            <JobTable initialJobs={jobs} />
+          </div>
 
-        <section className="md:col-span-4 h-full space-y-6">
-           <ActivityTimeline />
-           <StudentDrivesWidget />
-           <CareerResources />
-        </section>
+          <div id="pms-tour-pipeline">
+             <Pipeline stats={stats} />
+          </div>
+        </main>
 
+        {/* Right Sidebar: Span 4 (STAY STICKY RELATIVE TO CONTENT) */}
+        <aside className="lg:col-span-4 self-start h-full">
+           <div className="sticky top-24 space-y-6">
+              <div id="pms-tour-announcements">
+                 <AnnouncementsBoard initialAnnouncements={notifications} />
+              </div>
+              
+              <InterviewPanel initialInterviews={interviews} />
+              
+              <ActivityTimeline />
+
+              <div className="pt-6 border-t border-outline-variant/20 space-y-4">
+                <StudentDrivesWidget />
+                <CareerResources />
+              </div>
+           </div>
+        </aside>
       </div>
     </div>
   );

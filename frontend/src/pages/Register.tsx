@@ -89,7 +89,7 @@ const Register: React.FC = () => {
             <button 
               onClick={toggleTheme}
               type="button"
-              className="p-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white hover:bg-white/20 transition-all shadow-xl group"
+              className="p-3 bg-surface-container/80 backdrop-blur-md border border-outline-variant/30 rounded-2xl text-on-surface hover:bg-surface-container-high transition-all shadow-xl group"
               title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
             >
               {theme === 'light' ? <Moon size={20} className="group-hover:rotate-12 transition-transform" /> : <Sun size={20} className="group-hover:rotate-90 transition-transform" />}

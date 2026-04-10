@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 
+
 // @desc    Get detailed scorecard for a specific company
 // @route   GET /api/companies/:name/scorecard
 // @access  Private
@@ -103,8 +104,7 @@ const getCompanyList = async (req, res, next) => {
     const companies = await prisma.job.groupBy({
       by: ['companyName'],
       _count: {
-        id: true,
-        applications: true
+        id: true
       },
       orderBy: {
         companyName: 'asc'

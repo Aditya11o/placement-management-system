@@ -26,8 +26,8 @@ const Navbar: React.FC<NavbarProps> = ({ role, onToggleSidebar, onHelpOpen }) =>
     if (!user) return;
     try {
       const { data } = await api.get('/notifications');
-      setNotifications(data);
-      setUnreadCount(data.filter((n: any) => !n.is_read).length);
+      setNotifications(Array.isArray(data) ? data : []);
+      setUnreadCount(Array.isArray(data) ? data.filter((n: any) => !n.is_read).length : 0);
     } catch (err) {
       console.error(err);
     }

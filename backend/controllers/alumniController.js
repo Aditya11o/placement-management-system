@@ -121,12 +121,39 @@ const createReferral = async (req, res) => {
 // @access  Private (Student)
 const bookMentorship = async (req, res) => {
   try {
-    const { alumniId, requestedDate, query } = req.body;
+    const { alumniId, requestedDate, query, availabilityId } = req.body;
     
     const existing = await prisma.mentorshipBooking.findFirst({
       where: { studentId: req.user.id, alumniId, status: 'pending' }
     });
     if (existing) return res.status(400).json({ message: 'Pending request exists.' });
+
+    // If a specific slot is chosen, verify and lock it
+    if (availabilityId) {
+      const slot = await prisma.mentorAvailability.findUnique({ where: { id: availabilityId } });
+      if (!slot || slot.isBooked) {
+        return res.status(400).json({ message: 'Selected slot is no longer available.' });
+      }
+      
+      // Transaction to create booking and mark slot as booked
+      const [booking] = await prisma.$transaction([
+        prisma.mentorshipBooking.create({
+          data: { 
+            studentId: req.user.id, 
+            alumniId, 
+            availabilityId,
+            requestedDate: new Date(requestedDate || slot.date), 
+            query, 
+            status: 'pending' 
+          }
+        }),
+        prisma.mentorAvailability.update({
+          where: { id: availabilityId },
+          data: { isBooked: true }
+        })
+      ]);
+      return res.status(201).json({ ...booking, _id: booking.id });
+    }
 
     const booking = await prisma.mentorshipBooking.create({
       data: { studentId: req.user.id, alumniId, requestedDate: new Date(requestedDate), query, status: 'pending' }
@@ -134,6 +161,7 @@ const bookMentorship = async (req, res) => {
 
     res.status(201).json({ ...booking, _id: booking.id });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -218,6 +246,84 @@ const getReferralApplicants = async (req, res) => {
   }
 };
 
+// @desc    Add availability slot
+// @route   POST /api/alumni/mentorship/availability
+// @access  Private (Alumni/Mentor)
+const addAvailabilitySlot = async (req, res) => {
+  try {
+    const { date, timeSlot } = req.body;
+    const profile = await prisma.mentorProfile.findUnique({ where: { userId: req.user.id } });
+    if (!profile) return res.status(404).json({ message: 'Mentor profile not found' });
+
+    const slot = await prisma.mentorAvailability.create({
+      data: { mentorId: profile.id, date: new Date(date), timeSlot }
+    });
+    res.status(201).json({ ...slot, _id: slot.id });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Delete availability slot
+// @route   DELETE /api/alumni/mentorship/availability/:id
+// @access  Private (Alumni/Mentor)
+const deleteAvailabilitySlot = async (req, res) => {
+  try {
+    const slot = await prisma.mentorAvailability.findUnique({ where: { id: req.params.id } });
+    if (!slot) return res.status(404).json({ message: 'Slot not found' });
+    
+    // Safety check: don't delete booked slots unless handled
+    if (slot.isBooked) return res.status(400).json({ message: 'Cannot delete a booked slot' });
+
+    await prisma.mentorAvailability.delete({ where: { id: req.params.id } });
+    res.json({ message: 'Slot removed' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Get availability for a mentor
+// @route   GET /api/alumni/mentorship/availability/:mentorId
+// @access  Private
+const getMentorAvailability = async (req, res) => {
+  try {
+    const slots = await prisma.mentorAvailability.findMany({
+      where: { mentorId: req.params.mentorId, isBooked: false, date: { gte: new Date() } },
+      orderBy: { date: 'asc' }
+    });
+    res.json(slots.map(s => ({ ...s, _id: s.id })));
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// @desc    Submit feedback for completed session
+// @route   POST /api/alumni/mentorship/feedback/:id
+// @access  Private (Student)
+const submitStudentFeedback = async (req, res) => {
+  try {
+    const { studentFeedback, rating } = req.body;
+    const booking = await prisma.mentorshipBooking.findUnique({ where: { id: req.params.id } });
+    
+    if (!booking || booking.studentId !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+    
+    if (booking.status !== 'completed') {
+      return res.status(400).json({ message: 'Can only provide feedback on completed sessions' });
+    }
+
+    const updated = await prisma.mentorshipBooking.update({
+      where: { id: req.params.id },
+      data: { studentFeedback, rating: parseInt(rating) }
+    });
+
+    res.json({ ...updated, _id: updated.id });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   updateAlumniProfile,
@@ -227,5 +333,9 @@ module.exports = {
   bookMentorship,
   getMentorshipRequests,
   updateMentorshipStatus,
-  getReferralApplicants
+  getReferralApplicants,
+  addAvailabilitySlot,
+  deleteAvailabilitySlot,
+  getMentorAvailability,
+  submitStudentFeedback
 };

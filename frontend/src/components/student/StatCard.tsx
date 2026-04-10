@@ -11,7 +11,7 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, color, badge }) => {
   return (
-    <div className="bg-surface-container-lowest p-5 rounded-xl shadow-ambient border border-outline-variant hover:shadow-lg transition-all duration-300 relative group overflow-hidden">
+    <div className="bg-surface-container-lowest p-4 rounded-2xl shadow-sm border border-outline-variant/30 hover:shadow-xl transition-all duration-300 relative group overflow-hidden">
       <div className="flex justify-between items-start mb-4">
         <div className={`p-2 rounded-lg ${color} bg-opacity-10 transition-transform group-hover:scale-110`}>
           <Icon size={20} />
@@ -21,8 +21,8 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, color, ba
         )}
       </div>
       <div>
-        <p className="text-sm font-medium text-on-surface-variant uppercase tracking-tight">{label}</p>
-        <p className="text-2xl font-bold text-on-surface mt-0.5">{value}</p>
+        <p className="text-[10px] font-black text-on-surface-variant/80 uppercase tracking-widest leading-none">{label}</p>
+        <p className="text-2xl font-black text-on-surface italic mt-1">{value}</p>
       </div>
     </div>
   );

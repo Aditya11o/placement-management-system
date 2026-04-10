@@ -14,8 +14,17 @@ import {
   Brain,
   Workflow,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  Trash2,
+  FileText,
+  Star as StarIcon,
+  ShieldCheck,
+  Zap,
+  Loader2
 } from 'lucide-react';
+import api from '../../api';
+import toast from 'react-hot-toast';
 
 interface ChecklistItem {
   id: string;
@@ -29,299 +38,362 @@ const INITIAL_CHECKLIST: ChecklistItem[] = [
   { id: 'resume', category: 'Fundamentals', text: 'ATS-Friendly Resume', completed: false, description: 'Ensure your resume uses a clean layout and includes keywords from top job descriptions.' },
   { id: 'linkedin', category: 'Fundamentals', text: 'LinkedIn Profile Optimization', completed: false, description: 'Update your headline, about section, and ensure your experience matches your resume.' },
   { id: 'elevator', category: 'Fundamentals', text: '60-Second Elevator Pitch', completed: false, description: "Prepare a concise summary of who you are, what you've done, and what you're looking for." },
-  { id: 'star', category: 'Behavioral', text: '5 STAR Stories Ready', completed: false, description: "Draft 5 stories (Leadership, Failure, Conflict, Achievement, Technical) using the STAR method." },
+  { id: 'star-draft', category: 'Behavioral', text: 'Draft STAR Stories', completed: false, description: "Complete at least 3 stories using the SITUATION-TASK-ACTION-RESULT blueprint." },
   { id: 'values', category: 'Behavioral', text: 'Company Core Values Research', completed: false, description: "Map your experiences to the values of the companies you're targeting." },
-  { id: 'dsa', category: 'Technical', text: 'DSA Blind 75 / Top 100', completed: false, description: "Review top coding patterns: Arrays, Strings, Trees, Graphs, DP." },
-  { id: 'projects', category: 'Technical', text: 'Deep Project Knowledge', completed: false, description: "Be ready to explain every technical decision made in your top 2 projects." },
-  { id: 'mock', category: 'Final Checks', text: '1 Recorded Mock Interview', completed: false, description: "Record yourself answering questions to analyze your body language and tone." },
-  { id: 'questions', category: 'Final Checks', text: '3 Questions for the Interviewer', completed: false, description: "Prepare thoughtful questions about team culture, technical stack, or company growth." },
+  { id: 'dsa', category: 'Technical', text: 'DSA Top 100 Review', completed: false, description: "Review top coding patterns: Arrays, Strings, Trees, Graphs, DP." },
+  { id: 'sys-design', category: 'Technical', text: 'System Design Patterns', completed: false, description: "Understand Load Balancing, Caching, Databases (SQL vs NoSQL), and Scalability." },
+  { id: 'mock', category: 'Final Checks', text: 'Booked Mock Interview', completed: false, description: "Schedule a session with an alumni/mentor through the Mentorship portal." },
+  { id: 'questions', category: 'Final Checks', text: 'Questions for the Interviewer', completed: false, description: "Prepare thoughtful questions about team culture and technical challenges." },
 ];
 
-const STAR_TEMPLATE = [
-  { id: 's', label: 'Situation', placeholder: 'Set the scene: What was the goal? Who was involved?' },
-  { id: 't', label: 'Task', placeholder: 'What was your specific responsibility in that situation?' },
-  { id: 'a', label: 'Action', placeholder: 'What did YOU do? What tools/skills did you use? (Most important part)' },
-  { id: 'r', label: 'Result', placeholder: 'What was the outcome? Use numbers if possible (e.g., speed up by 20%)' },
+const STAR_STEPS = [
+  { id: 's', label: 'Situation', placeholder: 'Set the scene...' },
+  { id: 't', label: 'Task', placeholder: 'What was your goal?' },
+  { id: 'a', label: 'Action', placeholder: 'What did YOU do?' },
+  { id: 'r', label: 'Result', placeholder: 'What was the outcome?' },
 ];
 
 const HR_QUESTIONS = [
   { 
     q: "Tell me about yourself.", 
-    a: "Focus on the 'Past-Present-Future' model. 20% past (education/early interest), 60% present (current skills/major projects), 20% future (why this role/company specifically). Avoid listing personal hobbies unless they tie to tech." 
+    a: "Focus on the 'Past-Present-Future' model. 20% past, 60% present (skills/projects), 20% future (why this role)." 
   },
   { 
     q: "What is your greatest weakness?", 
-    a: "Pick a genuine professional weakness (e.g., perfectionism, public speaking, overly technical focus). Explain how you RECOGNIZE it and what specific steps you are taking to OVERCOME it." 
+    a: "Analyze a genuine professional growth area and explain common steps you take to manage it." 
   },
   { 
-    q: "Why should we hire you?", 
-    a: "Align your unique value proposition with the company's biggest pain point. Show you've done research on their recent challenges and explain how your skills address them directly." 
-  },
-  { 
-    q: "Describe a conflict with a teammate.", 
-    a: "Focus on professional resolution, not personal blame. Show empathy, active listening, and how you reached a compromise that moved the project forward." 
+    q: "Why this company?", 
+    a: "Show you've researched their recent product launches or engineering blogs." 
   }
 ];
 
-const CHEAT_SHEETS = [
-  { title: "React Lifecycle & Hooks", tag: "Frontend", icon: Brain },
-  { title: "System Design Basics", tag: "Fullstack", icon: Workflow },
-  { title: "SQL Joins & Indexing", tag: "Database", icon: Target },
-  { title: "OOP Principles", tag: "CS Core", icon: Terminal },
-];
-
 const InterviewToolkit: React.FC = () => {
+  // --- STATE ---
   const [checklist, setChecklist] = useState<ChecklistItem[]>(() => {
     const saved = localStorage.getItem('interview_checklist');
     return saved ? JSON.parse(saved) : INITIAL_CHECKLIST;
   });
 
-  const [starStories, setStarStories] = useState<{ [key: string]: string }>(() => {
-    const saved = localStorage.getItem('star_stories');
-    return saved ? JSON.parse(saved) : {};
+  const [starStories, setStarStories] = useState<any[]>(() => {
+    const saved = localStorage.getItem('star_stories_v2');
+    return saved ? JSON.parse(saved) : [{ id: 1, title: 'Leadership Story', s: '', t: '', a: '', r: '' }];
   });
+  const [activeStoryIdx, setActiveStoryIdx] = useState(0);
 
+  const [mockFeedback, setMockFeedback] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
 
+  // --- EFFECTS ---
   useEffect(() => {
     localStorage.setItem('interview_checklist', JSON.stringify(checklist));
   }, [checklist]);
 
   useEffect(() => {
-    localStorage.setItem('star_stories', JSON.stringify(starStories));
+    localStorage.setItem('star_stories_v2', JSON.stringify(starStories));
   }, [starStories]);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [feedbackRes, resourceRes] = await Promise.all([
+          api.get('/mock-interviews/history'),
+          api.get('/resources?category=Interview')
+        ]);
+        setMockFeedback(feedbackRes.data.slice(0, 3)); // Latest 3
+        setResources(resourceRes.data);
+      } catch (err) {
+        console.error('Failed to fetch toolkit data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // --- HANDLERS ---
   const toggleCheck = (id: string) => {
     setChecklist(prev => prev.map(item => 
       item.id === id ? { ...item, completed: !item.completed } : item
     ));
   };
 
-  const handleStarChange = (field: string, value: string) => {
-    setStarStories(prev => ({ ...prev, [field]: value }));
+  const updateStory = (field: string, val: string) => {
+    setStarStories(prev => {
+      const newStories = [...prev];
+      newStories[activeStoryIdx] = { ...newStories[activeStoryIdx], [field]: val };
+      return newStories;
+    });
+  };
+
+  const addNewStory = () => {
+    if (starStories.length >= 5) {
+      toast.error('Maximum 5 stories allowed');
+      return;
+    }
+    const nextId = Math.max(0, ...starStories.map(s => s.id)) + 1;
+    setStarStories([...starStories, { id: nextId, title: `New Story ${nextId}`, s: '', t: '', a: '', r: '' }]);
+    setActiveStoryIdx(starStories.length);
+  };
+
+  const deleteStory = (idx: number) => {
+    if (starStories.length === 1) return;
+    const newStories = starStories.filter((_, i) => i !== idx);
+    setStarStories(newStories);
+    setActiveStoryIdx(0);
   };
 
   const progress = Math.round((checklist.filter(i => i.completed).length / checklist.length) * 100);
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-950 p-8 md:p-12 text-white shadow-2xl">
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="space-y-4 text-center md:text-left">
-            <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold tracking-widest uppercase">
-              <Sparkles size={14} className="mr-2 text-yellow-400" />
-              Interview Mission Control
-            </div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
-              Premium Prep <br /> <span className="text-blue-400">Toolkit 2.0</span>
-            </h1>
-            <p className="text-blue-100/70 max-w-md text-lg font-medium">
-              Transform your anxiety into action. Your end-to-end cockpit for interview readiness.
-            </p>
+      {/* 1. Hero / HUD */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-950 via-[#0d1b2a] to-blue-950 p-8 md:p-12 text-white shadow-2xl">
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-12">
+          <div className="space-y-6 text-center md:text-left flex-1">
+             <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white text-[10px] font-black tracking-widest uppercase">
+                <Sparkles size={14} className="mr-2 text-blue-400 animate-pulse" />
+                Prep Cockpit Alpha
+             </div>
+             <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.9]">
+               MISSION <br /> <span className="text-blue-500 italic">READINESS</span>
+             </h1>
+             <p className="text-blue-100/60 max-w-sm text-sm font-bold uppercase tracking-wide leading-relaxed">
+               Consolidated intelligence for your high-stakes interviews.
+             </p>
           </div>
-          
-          <div className="flex flex-col items-center gap-4 bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 w-full md:w-auto min-w-[280px]">
-            <div className="relative w-32 h-32">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="58"
-                  fill="transparent"
-                  stroke="rgba(255,255,255,0.1)"
-                  strokeWidth="8"
-                />
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="58"
-                  fill="transparent"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  strokeDasharray={364}
-                  strokeDashoffset={364 - (364 * progress) / 100}
-                  className="text-blue-400 transition-all duration-1000 ease-out"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-black">{progress}%</span>
-                <span className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">Ready</span>
-              </div>
-            </div>
-            <p className="font-bold text-sm text-center">Complete your checklist <br /> to reach 100%</p>
+
+          <div className="flex gap-8 items-center bg-white/5 backdrop-blur-3xl rounded-[3rem] p-10 border border-white/10 shadow-inner">
+             <div className="text-center space-y-2">
+                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Checklist</p>
+                <p className="text-4xl font-black">{progress}%</p>
+             </div>
+             <div className="w-[2px] h-12 bg-white/10" />
+             <div className="text-center space-y-2 text-emerald-400">
+                <p className="text-[10px] font-black uppercase tracking-widest">Mock Feedback</p>
+                <p className="text-4xl font-black">{mockFeedback.length > 0 ? 'ACTIVE' : 'NONE'}</p>
+             </div>
           </div>
         </div>
 
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-blue-500/20 blur-[100px] rounded-full" />
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-indigo-500/20 blur-[100px] rounded-full" />
+        {/* HUD Elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 blur-[120px] rounded-full -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full -ml-10 -mb-10" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Readiness Checklist */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-[var(--surface-container-low)] rounded-[2.5rem] border border-[var(--outline-variant)] shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-[var(--outline-variant)]/50 bg-gradient-to-r from-transparent to-[var(--surface-container-high)]/30">
-              <h2 className="text-2xl font-black flex items-center gap-3">
-                <CheckCircle2 className="text-primary" />
-                Readiness Tracker
-              </h2>
-            </div>
-            <div className="p-4 md:p-8 space-y-2">
-              {['Fundamentals', 'Behavioral', 'Technical', 'Final Checks'].map((cat) => (
-                <div key={cat} className="space-y-2 mb-6 last:mb-0">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--on-surface-variant)]/60 px-4 mb-3">{cat}</h3>
-                  <div className="space-y-2">
-                    {checklist.filter(item => item.category === cat).map((item) => (
-                      <div 
-                        key={item.id}
-                        onClick={() => toggleCheck(item.id)}
-                        className={`group flex items-start gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${
-                          item.completed 
-                            ? 'bg-green-500/5 border-green-500/20 opacity-75' 
-                            : 'bg-[var(--surface-container)] border-[var(--outline-variant)]/50 hover:border-primary/30 hover:shadow-md'
-                        }`}
-                      >
-                        <div className={`mt-1 transition-colors ${item.completed ? 'text-green-500' : 'text-[var(--on-surface-variant)] group-hover:text-primary'}`}>
-                          {item.completed ? <CheckCircle2 size={24} /> : <Circle size={24} />}
-                        </div>
-                        <div className="space-y-1">
-                          <p className={`font-bold text-sm transition-all ${item.completed ? 'line-through text-[var(--on-surface-variant)]' : 'text-[var(--on-surface)]'}`}>
-                            {item.text}
-                          </p>
-                          <p className="text-xs text-[var(--on-surface-variant)] leading-relaxed">
-                            {item.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* LEFT COLUMN: Preparation Feed & Mock Feedback (8 cols) */}
+        <div className="lg:col-span-8 space-y-8">
+          
+          {/* MOCK FEEDBACK INSIGHTS */}
+          <div className="bg-white border border-gray-100 rounded-[3rem] shadow-sm overflow-hidden">
+             <div className="p-8 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
+                <h2 className="text-2xl font-black flex items-center gap-3 italic uppercase tracking-tighter">
+                   <ShieldCheck className="text-emerald-500" /> 
+                   Target <span className="text-blue-600">Feedback</span>
+                </h2>
+                <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-wider">
+                   Latest Sessions
                 </div>
-              ))}
-            </div>
+             </div>
+             <div className="p-8">
+                {loading ? (
+                  <div className="flex items-center justify-center h-32"><Loader2 className="animate-spin text-blue-600" /></div>
+                ) : mockFeedback.length > 0 ? (
+                  <div className="space-y-4">
+                     {mockFeedback.map((m, i) => (
+                       <div key={i} className="p-5 rounded-3xl bg-gray-50 border border-gray-100 group hover:border-blue-200 transition-all">
+                          <div className="flex justify-between items-start mb-3">
+                             <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-blue-600 font-black">
+                                   {m.performance?.overallScore || 'N/A'}
+                                </div>
+                                <div>
+                                   <p className="text-xs font-black uppercase tracking-tight">{m.type}</p>
+                                   <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(m.date).toLocaleDateString()}</p>
+                                </div>
+                             </div>
+                             <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <FileText size={16} />
+                             </div>
+                          </div>
+                          <p className="text-sm font-medium text-gray-600 leading-relaxed italic">
+                             "{m.feedback || 'No written feedback provided yet.'}"
+                          </p>
+                       </div>
+                     ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 space-y-3 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100">
+                     <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm text-gray-300">
+                        <MessageSquare size={32} />
+                     </div>
+                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest">No mock interview insights yet</p>
+                     <p className="text-[10px] text-gray-400 max-w-[200px] mx-auto uppercase">Complete a mock interview to see analysis here.</p>
+                  </div>
+                )}
+             </div>
           </div>
 
-          {/* HR Questions Bank */}
-          <div className="bg-[var(--surface-container-low)] rounded-[2.5rem] border border-[var(--outline-variant)] shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-[var(--outline-variant)]/50">
-              <h2 className="text-2xl font-black flex items-center gap-3">
-                <MessageSquare className="text-secondary" />
-                Power Question Bank
-              </h2>
-            </div>
-            <div className="p-8 space-y-4">
-              {HR_QUESTIONS.map((q, idx) => (
-                <div 
-                  key={idx}
-                  className="rounded-2xl border border-[var(--outline-variant)]/50 overflow-hidden bg-[var(--surface-container)]"
-                >
-                  <button 
-                    onClick={() => setExpandedQuestion(expandedQuestion === idx ? null : idx)}
-                    className="w-full flex items-center justify-between p-6 text-left hover:bg-[var(--surface-container-high)] transition-colors"
-                  >
-                    <span className="font-bold text-sm">{q.q}</span>
-                    <div className="p-1 rounded-lg bg-[var(--surface-container-highest)]">
-                      {expandedQuestion === idx ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </div>
-                  </button>
-                  {expandedQuestion === idx && (
-                    <div className="p-6 border-t border-[var(--outline-variant)]/30 bg-[var(--surface-container-low)] animate-in slide-in-from-top-2 duration-300">
-                      <div className="flex gap-4">
-                        <div className="p-3 bg-blue-500/10 rounded-xl h-fit">
-                          <Lightbulb className="text-blue-600" size={20} />
-                        </div>
-                        <div className="space-y-3">
-                          <p className="p-1 px-2.5 rounded-md bg-blue-500/10 text-blue-700 text-[10px] font-black uppercase tracking-wider w-fit">Expert Strategry</p>
-                          <p className="text-sm leading-relaxed text-[var(--on-surface-variant)] font-medium italic">
-                            "{q.a}"
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+          <div className="bg-white border border-gray-100 rounded-[3rem] shadow-sm">
+             <div className="p-8 border-b border-gray-50 flex items-center justify-between">
+                <h2 className="text-2xl font-black flex items-center gap-3 italic uppercase tracking-tighter">
+                   <CheckCircle2 className="text-blue-500" /> 
+                   Execution <span className="text-blue-600">Log</span>
+                </h2>
+                <div className="flex gap-2">
+                   {['All', 'Essential', 'Technical'].map(f => (
+                     <button key={f} className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${f === 'All' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
+                        {f}
+                     </button>
+                   ))}
                 </div>
-              ))}
-            </div>
+             </div>
+             <div className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   {checklist.map((item) => (
+                     <div 
+                       key={item.id} 
+                       onClick={() => toggleCheck(item.id)}
+                       className={`p-5 rounded-3xl border transition-all cursor-pointer group flex gap-4 ${item.completed ? 'bg-emerald-50/50 border-emerald-100 opacity-60' : 'bg-white border-gray-100 hover:border-blue-400 hover:shadow-xl hover:shadow-blue-500/5'}`}
+                     >
+                        <div className={`mt-1 h-6 w-12 rounded-full flex items-center justify-center transition-colors ${item.completed ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-300 group-hover:bg-blue-100 group-hover:text-blue-600'}`}>
+                           {item.completed ? <CheckCircle2 size={14} /> : <Circle size={14} />}
+                        </div>
+                        <div className="space-y-1">
+                           <p className={`text-sm font-black uppercase tracking-tight ${item.completed ? 'line-through text-gray-400' : 'text-gray-900 group-hover:text-blue-600'}`}>{item.text}</p>
+                           <p className="text-[10px] font-bold text-gray-400 leading-normal uppercase">{item.description}</p>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+             </div>
           </div>
         </div>
 
-        {/* STAR Blueprint & Cheat Sheets */}
-        <div className="space-y-8">
-          {/* STAR Method Guide */}
-          <div className="bg-white rounded-[2.5rem] border border-gray-200 shadow-xl shadow-blue-900/5 rotate-1">
-            <div className="p-8 bg-blue-600 rounded-t-[2.5rem] text-white space-y-2">
-              <h3 className="text-xl font-black flex items-center gap-2">
-                <Target size={24} />
-                STAR Blueprint
-              </h3>
-              <p className="text-xs text-blue-100 font-medium">Draft your stories for precision delivery.</p>
-            </div>
-            <div className="p-8 space-y-6">
-              {STAR_TEMPLATE.map((step) => (
-                <div key={step.id} className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">{step.label}</label>
-                  <textarea
-                    placeholder={step.placeholder}
-                    value={starStories[step.id] || ''}
-                    onChange={(e) => handleStarChange(step.id, e.target.value)}
-                    className="w-full h-24 p-4 rounded-2xl bg-gray-50 border border-gray-100 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium resize-none placeholder:text-gray-400 custom-scrollbar outline-none"
-                  />
+        {/* RIGHT COLUMN: Tools & Cabinet (4 cols) */}
+        <div className="lg:col-span-4 space-y-8">
+          
+          {/* STAR DRAFTING */}
+          <div className="bg-[#001d3d] text-white rounded-[3rem] shadow-2xl overflow-hidden group">
+             <div className="p-8 bg-blue-600 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black flex items-center gap-2 italic uppercase tracking-tighter">
+                    <Target size={24} /> STAR <span className="text-blue-100/60">Canvas</span>
+                  </h3>
+                  <p className="text-[9px] font-black text-blue-200 uppercase tracking-[0.2em] mt-1">Multi-Story Drafting</p>
                 </div>
-              ))}
-              <button 
-                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-black transition-all shadow-lg active:scale-95"
-                onClick={() => {
-                  const text = `STAR STORY\n\n${STAR_TEMPLATE.map(s => `${s.label.toUpperCase()}:\n${starStories[s.id] || '(Empty)'}`).join('\n\n')}`;
-                  const blob = new Blob([text], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'star-story-draft.txt';
-                  a.click();
-                }}
-              >
-                <Download size={18} />
-                Save Draft (.txt)
-              </button>
-            </div>
+                <button 
+                  onClick={addNewStory}
+                  className="p-2 bg-white/20 rounded-xl hover:bg-white/30 transition-all text-white"
+                >
+                  <Plus size={20} />
+                </button>
+             </div>
+             <div className="p-4 bg-blue-900/40 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar">
+                {starStories.map((s, idx) => (
+                  <button 
+                    key={s.id}
+                    onClick={() => setActiveStoryIdx(idx)}
+                    className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase whitespace-nowrap transition-all border ${idx === activeStoryIdx ? 'bg-blue-500 border-transparent shadow-lg scale-105' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
+                  >
+                    {s.title}
+                  </button>
+                ))}
+             </div>
+             <div className="p-8 space-y-6">
+                <input 
+                  type="text" 
+                  value={starStories[activeStoryIdx].title}
+                  onChange={(e) => updateStory('title', e.target.value)}
+                  className="bg-white/5 border-b border-white/10 w-full py-2 px-1 text-sm font-black uppercase tracking-widest focus:outline-none focus:border-blue-400 transition-colors placeholder:text-white/20"
+                  placeholder="Story Identifier..."
+                />
+
+                <div className="space-y-5">
+                   {STAR_STEPS.map((step) => (
+                     <div key={step.id} className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-blue-400/80 ml-1">{step.label}</label>
+                        <textarea
+                          placeholder={step.placeholder}
+                          value={starStories[activeStoryIdx][step.id]}
+                          onChange={(e) => updateStory(step.id, e.target.value)}
+                          className="w-full h-24 p-5 rounded-3xl bg-white/5 border border-white/10 focus:border-blue-500 focus:bg-white/10 transition-all text-sm font-medium resize-none placeholder:text-white/10 custom-scrollbar outline-none text-white shadow-inner"
+                        />
+                     </div>
+                   ))}
+                </div>
+
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => {
+                        const story = starStories[activeStoryIdx];
+                        const text = `STAR STORY: ${story.title}\n\n${STAR_STEPS.map(s => `${s.label.toUpperCase()}:\n${story[s.id] || '(Empty)'}`).join('\n\n')}`;
+                        const blob = new Blob([text], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${story.title.toLowerCase().replace(/\s+/g, '-')}.txt`;
+                        a.click();
+                    }}
+                    className="flex-1 py-4 bg-blue-600 rounded-3xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-500 transition-all shadow-xl flex items-center justify-center gap-2"
+                  >
+                    <Download size={16} /> Export
+                  </button>
+                  <button 
+                    onClick={() => deleteStory(activeStoryIdx)}
+                    className="p-4 bg-red-500/10 text-red-400 rounded-3xl hover:bg-red-500 hover:text-white transition-all"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+             </div>
           </div>
 
-          {/* Quick Cheat Sheets */}
-          <div className="bg-[var(--surface-container-low)] rounded-[2.5rem] border border-[var(--outline-variant)] shadow-sm p-8 space-y-6">
-            <h3 className="text-xl font-black flex items-center gap-2">
-              <BookOpen className="text-primary" />
-              Quick Cabinet
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-              {CHEAT_SHEETS.map((sheet, i) => {
-                const Icon = sheet.icon;
-                return (
-                  <div key={i} className="group p-4 rounded-2xl bg-[var(--surface-container)] border border-[var(--outline-variant)]/50 hover:border-primary/30 transition-all cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-on-primary transition-all">
-                        <Icon size={20} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-primary/70">{sheet.tag}</p>
-                        <p className="text-sm font-bold text-[var(--on-surface)]">{sheet.title}</p>
-                      </div>
-                      <ExternalLink size={14} className="text-[var(--on-surface-variant)] opacity-0 group-hover:opacity-100 transition-opacity" />
+          {/* QUICK CABINET / RESOURCES */}
+          <div className="bg-white border border-gray-100 rounded-[3rem] p-8 shadow-sm space-y-8">
+             <div className="flex items-center justify-between">
+                <h3 className="text-xl font-black flex items-center gap-2 italic uppercase tracking-tighter">
+                   <BookOpen className="text-blue-500" /> Quick <span className="text-blue-600">Cabinet</span>
+                </h3>
+             </div>
+             
+             <div className="space-y-3">
+                {loading ? (
+                   <div className="flex items-center justify-center py-8"><Loader2 className="animate-spin text-blue-600" /></div>
+                ) : resources.length > 0 ? (
+                  resources.map((res, i) => (
+                    <div key={i} className="group p-5 rounded-3xl bg-gray-50 border border-gray-100 hover:border-blue-300 hover:bg-white transition-all cursor-pointer">
+                       <div className="flex items-center gap-4">
+                          <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                             <Terminal size={18} />
+                          </div>
+                          <div className="flex-1 overflow-hidden">
+                             <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-0.5">{res.tags?.[0] || 'Technical'}</p>
+                             <p className="text-xs font-black text-gray-900 truncate uppercase">{res.title}</p>
+                          </div>
+                          <ExternalLink size={14} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-3">
-              <div className="flex items-center gap-2 text-amber-700">
-                <AlertCircle size={18} />
-                <span className="font-bold text-xs">Pro Tip</span>
-              </div>
-              <p className="text-xs text-amber-900/80 font-medium leading-relaxed">
-                Consistency is key. Spend 15 minutes each morning reviewing one technical concept and one STAR story.
-              </p>
-            </div>
+                  ))
+                ) : (
+                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest text-center py-4">No specific cheat sheets found.</p>
+                )}
+             </div>
+
+             <div className="p-6 rounded-[2rem] bg-amber-500/5 border border-amber-200/50 space-y-3">
+                <div className="flex items-center gap-2 text-amber-600">
+                   <Zap size={18} fill="currentColor" />
+                   <span className="font-black text-[10px] uppercase tracking-widest">Master Strategy</span>
+                </div>
+                <p className="text-[10px] text-amber-900 font-bold leading-relaxed uppercase">
+                   Connect your projects to company values. Always ask "Why did you build this?" and be ready to explain trade-offs.
+                </p>
+             </div>
           </div>
         </div>
       </div>

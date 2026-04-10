@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../../api';
 import { Calendar, Briefcase, ChevronLeft, MapPin, Building, GraduationCap, Clock, ExternalLink } from 'lucide-react';
+import CountdownTimer from '../../components/CountdownTimer';
 
 interface Job {
   id: string;
@@ -53,13 +54,6 @@ const DriveDetail: React.FC = () => {
     }
   };
 
-  const getTimeLeft = (dateString: string) => {
-    const total = Date.parse(dateString) - Date.parse(new Date().toString());
-    const days = Math.floor( total/(1000*60*60*24) );
-    if (days < 0) return 'Ended';
-    if (days === 0) return 'Ends Today';
-    return `${days} days left`;
-  };
 
   if (isLoading) {
     return (
@@ -157,9 +151,8 @@ const DriveDetail: React.FC = () => {
                 className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group flex flex-col h-full relative"
               >
                 {/* Time Left Badge */}
-                <div className="absolute -top-3 right-6 bg-gray-900 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1 z-10">
-                  <Clock className="w-3 h-3" />
-                  {getTimeLeft(job.deadline)}
+                <div className="absolute -top-3 right-6 z-10">
+                  <CountdownTimer targetDate={job.deadline} showLabels={false} className="scale-90 origin-right" />
                 </div>
 
                 <div className="mb-4">

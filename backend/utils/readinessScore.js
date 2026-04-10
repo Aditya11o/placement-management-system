@@ -13,16 +13,18 @@ const calculateReadinessScore = async (studentProfileId) => {
       applications: true,
       user: {
         include: {
-          sentMessages: true, // Activity proxy? No, let's use experiences and mock interviews
-          mentorshipBookings: { where: { status: 'completed' } }
+          studentMentorships: { where: { status: 'completed' } }
         }
       }
     }
   });
 
-  if (!profile) return { score: 0, breakdown: {} };
+  if (!profile) return { score: 0, previousScore: 0, breakdown: {} };
 
   const userId = profile.userId;
+
+  // Check if history exists to ensure valid growth tracking
+  const historyCount = await prisma.readinessHistory.count({ where: { studentId: studentProfileId } });
 
   // 1. Profile Completion (Max 25)
   let profileScore = 0;
@@ -48,7 +50,6 @@ const calculateReadinessScore = async (studentProfileId) => {
   const skillScore = Math.min(verifiedSkillsCount * 5, 20);
 
   // 4. Activity Score (Max 15)
-  // Need to count experiences and mock interviews
   const [mockInterviewCount, experienceCount] = await Promise.all([
     prisma.mockInterview.count({ where: { studentId: userId, status: 'completed' } }),
     prisma.experience.count({ where: { studentId: userId } })
@@ -57,7 +58,7 @@ const calculateReadinessScore = async (studentProfileId) => {
   let activityScore = 0;
   activityScore += Math.min(mockInterviewCount * 2, 6);
   activityScore += Math.min(experienceCount * 3, 6);
-  if (profile.user.mentorshipBookings.length > 0) activityScore += 3;
+  if (profile.user.studentMentorships.length > 0) activityScore += 3;
 
   // 5. Application History (Max 20)
   let applicationScore = 0;
@@ -69,14 +70,34 @@ const calculateReadinessScore = async (studentProfileId) => {
 
   const totalScore = Math.min(profileScore + academicScore + skillScore + activityScore + applicationScore, 100);
 
-  // Update cached score in profile
-  await prisma.studentProfile.update({
-    where: { id: studentProfileId },
-    data: { readinessScore: totalScore }
+  // Update cached score in profile and log history
+  // Log if score changed OR if no history exists yet
+  if (totalScore !== profile.readinessScore || historyCount === 0) {
+    await prisma.$transaction([
+      prisma.studentProfile.update({
+        where: { id: studentProfileId },
+        data: { readinessScore: totalScore }
+      }),
+      prisma.readinessHistory.create({
+        data: {
+          studentId: studentProfileId,
+          score: totalScore
+        }
+      })
+    ]);
+  }
+
+  const history = await prisma.readinessHistory.findMany({
+    where: { studentId: studentProfileId },
+    orderBy: { date: 'desc' },
+    take: 2
   });
+
+  const previousScore = history.length > 1 ? history[1].score : (history.length > 0 ? history[0].score : totalScore);
 
   return {
     score: totalScore,
+    previousScore,
     breakdown: {
       profile: { score: profileScore, max: 25 },
       academic: { score: academicScore, max: 20 },

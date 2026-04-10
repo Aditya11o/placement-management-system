@@ -232,7 +232,10 @@ const getMyApplications = async (req, res, next) => {
     const [applications, total] = await Promise.all([
       prisma.application.findMany({
         where,
-        include: { job: { select: { title: true, companyName: true, status: true, deadline: true, screeningQuestions: true } } },
+        include: { 
+          job: { select: { title: true, companyName: true, status: true, deadline: true, screeningQuestions: true, selectionProcess: true } },
+          interviews: { orderBy: { createdAt: 'desc' } }
+        },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit
@@ -891,7 +894,7 @@ const getRecruiterApplicants = async (req, res, next) => {
     next(error);
   }
 };
-
+module.exports = {
   saveApplicationDraft,
   checkStudentEligibility,
   getMyApplications, 
@@ -904,7 +907,6 @@ const getRecruiterApplicants = async (req, res, next) => {
   respondToOffer,
   uploadOfferLetter,
   bulkUpdateStatus,
-  getExportData
-};
-  getExportData
+  getExportData,
+  applyForJob
 };
