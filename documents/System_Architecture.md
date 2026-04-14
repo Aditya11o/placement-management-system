@@ -64,28 +64,27 @@ erDiagram
 This diagram illustrates the macro-level interaction between the external entities and the Placement Management System.
 
 ```mermaid
-graph TD
+graph LR
+    %% Main System
+    PMS{{"Placement Management System"}}
+    
     %% Entities
     Student([Student])
     Recruiter([Recruiter])
     Admin([Administrator])
     Alumni([Alumni / Mentor])
     
-    %% Main System
-    PMS{{"Placement Management
-    System (PMS)"}}
-    
     %% Flows
-    Student -->|Profile Data, Applications, Queries| PMS
-    PMS -->|Job Alerts, Interview Schedules, Results| Student
+    Student -->|Profiles & Apps| PMS
+    PMS -->|Alerts & Results| Student
     
-    Recruiter -->|Job Postings, Screening Rules, Offers| PMS
-    PMS -->|Resumes, Applicant Analytics| Recruiter
+    Recruiter -->|Jobs & Offers| PMS
+    PMS -->|Resumes & Analytics| Recruiter
     
-    Admin -->|System Policies, Verifications| PMS
-    PMS -->|Audit Logs, Global Placement Stats| Admin
+    Admin -->|Policies & Verifications| PMS
+    PMS -->|Audit & Stats| Admin
     
-    Alumni -->|Mentorship Slots, Referrals| PMS
+    Alumni -->|Mentorship Availability| PMS
     PMS -->|Meeting Bookings| Alumni
 ```
 
@@ -160,13 +159,17 @@ graph LR
     end
 
     %% Flow
-    UI <-->|REST API (JSON)| API
-    SktC <-->|WebSockets| SktS
+    UI -->|REST API JSON| API
+    API -->|Data Response| UI
+    
+    SktC -->|WebSockets| SktS
+    SktS -->|WebSockets| SktC
     
     API --> Auth
     API --> ORM
     
-    ORM <--> DB
+    ORM -->|Query| DB
+    DB -->|Results| ORM
     API --> |Media Upload| Cloudinary
     API --> |Send Alerts| Email
 ```
