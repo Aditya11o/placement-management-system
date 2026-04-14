@@ -14,8 +14,7 @@ Many colleges still rely on fragmented systems, such as physical files and unorg
 
 * **Inefficient Data Handling:** Difficulty in manually verifying student eligibility and academic records.  
 * **Communication Gaps:** Students often miss critical deadlines or job updates due to the lack of real-time, persistent notifications.  
-* **Resume Inconsistency:** Recruiters struggle with non-standardized resumes, making manual screening tedious and often resulting in the oversight of qualified candidates.  
-* **Guidance Void:** A disconnect between students and the professional world, with limited avenues for direct mentorship from alumni and industry experts.
+* **Resume Inconsistency:** Recruiters struggle with non-standardized resumes, making manual screening tedious and often resulting in the oversight of qualified candidates.
 
 ## **4\. Objectives of the Project**
 
@@ -23,29 +22,24 @@ The primary objectives of the PMS are:
 
 * To automate the student registration and profile management process.  
 * To provide an **Integrated Resume Builder** for standardized, recruiter-ready profile generation.  
-* To facilitate **Mentorship & Alumni Engagement** through dedicated communication portals.  
-* To implement a **Real-Time Notification System** for instant updates on application status.  
 * To offer an administrative command center for university-wide oversight and branding control.  
 * To ensure enterprise-grade security and data integrity using modern authentication (JWT/RBAC).
 
 ## **5\. Scope of the Project**
 
-The scope encompasses a full-stack responsive web application built with a focus on premium user experience (UX). It includes modules for **Students, Administrators, Recruiters, Alumni, and Mentors**. Key features include:
+The scope encompasses a full-stack responsive web application built with a focus on premium user experience (UX). It includes modules for **Students, Administrators, and Recruiters**. Key features include:
 
 * **Smart Job Feed:** Dynamic filtering based on eligibility and professional preferences.  
 * **One-Click Applications:** Streamlined tracking from initial submission to final candidate selection.  
-* **AI-Ready Architecture:** Integrated Resume Builder and planned AI-driven job matching.  
-* **Administrative Audit Logs:** Security tracking, system-wide management, and database oversight.  
-* **Collaborative Tools:** Real-time chat and global announcement broadcasts for seamless communication.
+* **Integrated Resume Builder:** For streamlined creation of professional resumes.
 
 ## **6\. Methodology**
 
-The project utilizes a modern, robust, and scalable technology stack (MERN) with a focus on professional aesthetics:
+The project utilizes a modern, robust, and scalable technology stack (PERN) with a focus on professional aesthetics:
 
 * **Frontend:** React.js and TypeScript for a type-safe, dynamic User Interface, adhering to the **"Academic Authority"** design system for a premium look and feel.  
 * **Backend:** Node.js and Express.js for enterprise-grade server-side logic and robust API management.  
-* **Database:** MongoDB (NoSQL) for flexible and efficient document storage using the Mongoose ODM.  
-* **Real-time Engine:** Socket.io for persistent live notifications and instant messaging across all portals.  
+* **Database:** PostgreSQL (Relational) for structured and efficient data storage using the Prisma ORM.  
 * **Security & Infrastructure:** Implementation of advanced security middleware (Helmet, Rate-limiting, XSS-clean) and Cloudinary for secure asset hosting.
 
 ## **7\. Expected Outcome**

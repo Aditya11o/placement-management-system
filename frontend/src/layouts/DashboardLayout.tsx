@@ -3,7 +3,8 @@ import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import HelpSupportPanel from '../components/HelpSupportPanel';
-import type { User } from '../types';
+import { useAuth } from '../context/AuthContext';
+
 
 interface DashboardLayoutProps {
   role: 'student' | 'recruiter' | 'admin' | 'alumni' | 'mentor';
@@ -13,9 +14,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ role }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isHelpOpen, setHelpOpen] = useState(false);
-  const userInfo: User | null = JSON.parse(localStorage.getItem('userInfo') || 'null');
+  const { user } = useAuth();
 
-  if (!userInfo || userInfo.role !== role) {
+  if (!user || user.role !== role) {
     return <Navigate to="/login" replace />;
   }
 

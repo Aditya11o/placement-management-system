@@ -91,6 +91,7 @@ const getCompanyScorecard = async (req, res, next) => {
       recentReviews: experiences.slice(0, 3)
     });
   } catch (error) {
+    console.error('Error in getCompanyScorecard:', error);
     next(error);
   }
 };
@@ -100,7 +101,7 @@ const getCompanyScorecard = async (req, res, next) => {
 // @access  Private
 const getCompanyList = async (req, res, next) => {
   try {
-    // Group all jobs by company name to get the unique list
+    // 1. Group all jobs by company name to get the unique list and counts
     const companies = await prisma.job.groupBy({
       by: ['companyName'],
       _count: {
@@ -111,22 +112,43 @@ const getCompanyList = async (req, res, next) => {
       }
     });
 
-    // Enrich with logo from RecruiterProfile if available
-    const enriched = await Promise.all(companies.map(async (c) => {
-      const recruiter = await prisma.recruiterProfile.findFirst({
-        where: { companyName: { equals: c.companyName, mode: 'insensitive' } },
-        select: { companyLogo: true }
-      });
+    if (companies.length === 0) {
+      return res.json([]);
+    }
 
+    // 2. Fetch all relevant recruiter profiles in ONE query (Optimized)
+    const companyNames = companies.map(c => c.companyName);
+    const recruiterProfiles = await prisma.recruiterProfile.findMany({
+      where: {
+        companyName: { in: companyNames, mode: 'insensitive' }
+      },
+      select: {
+        companyName: true,
+        companyLogo: true
+      }
+    });
+
+    // Create a map for quick lookup
+    const logoMap = {};
+    recruiterProfiles.forEach(rp => {
+      if (rp.companyName) {
+        logoMap[rp.companyName.toLowerCase()] = rp.companyLogo;
+      }
+    });
+
+    // 3. Enrich the data with logos
+    const enriched = companies.map(c => {
+      const nameKey = c.companyName.toLowerCase();
       return {
         name: c.companyName,
         jobCount: c._count.id,
-        logo: recruiter?.companyLogo || `https://api.dicebear.com/7.x/initials/svg?seed=${c.companyName}`
+        logo: logoMap[nameKey] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.companyName)}`
       };
-    }));
+    });
 
     res.json(enriched);
   } catch (error) {
+    console.error('Error in getCompanyList:', error);
     next(error);
   }
 };

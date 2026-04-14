@@ -8,12 +8,11 @@ The Placement Management System (PMS) is currently in a highly advanced stage of
 ---
 
 ## 2. Technical Achievement Highlights
-- **Full-Stack Architecture:** Successfully implemented a React (Vite/TS) frontend and an Express/Node.js backend with MongoDB.
-- **Security First:** Integration of `helmet`, `cors`, `express-rate-limit`, `mongo-sanitize`, and `xss-clean` for enterprise-grade security.
-- **Real-Time Engine:** Live notifications and messaging using `Socket.io`.
-- **Role-Based Access Control (RBAC):** Distinct dashboards and permissions for Students, Recruiters, Admins, Alumni, and Mentors.
+- **Full-Stack Architecture:** Successfully implemented a React (Vite/TS) frontend and an Express/Node.js backend with PostgreSQL.
+- **Security First:** Integration of `helmet`, `cors`, `express-rate-limit`, and `xss-clean` for enterprise-grade security.
+- **Role-Based Access Control (RBAC):** Distinct dashboards and permissions for Students, Recruiters, and Admins.
 - **Documentation Sync:** All project artifacts (SRS, Scope, Proposal) are now 100% aligned with the codebase.
-- **Advanced Data Modeling:** 20+ comprehensive Mongoose models covering the entire placement lifecycle.
+- **Advanced Data Modeling:** Comprehensive Prisma schema mapping the entire placement lifecycle.
 
 ---
 
@@ -25,7 +24,6 @@ The Placement Management System (PMS) is currently in a highly advanced stage of
     - Job Feed with dynamic filtering.
     - Application Tracking.
     - Interview Schedule & History.
-    - Real-time Notifications & Chat.
     - **Resume Builder (v1):** Integrated standardized profile generation.
     - Career Resources & Support.
 - **Pending:**
@@ -47,19 +45,9 @@ The Placement Management System (PMS) is currently in a highly advanced stage of
     - Management of Students, Recruiters, and Jobs.
     - Application & Interview Monitoring.
     - Verification Workflow for new users.
-    - **Audit Logs:** Security tracking of system actions.
-    - **System Backups:** Administrative data preservation.
     - Support Inbox & Help Desk.
 
-### Alumni & Mentor Modules (**75% Complete**)
-- **Implemented:**
-    - Role-based login and portal access.
-    - Chat integration for mentorship.
-    - Documentation and scope finalized.
-- **Pending:**
-    - Detailed Mentor-Student matching algorithms.
 
----
 
 ## 4. Design & UX
 The project strictly adheres to the **"The Academic Authority"** design system:
@@ -71,6 +59,5 @@ The project strictly adheres to the **"The Academic Authority"** design system:
 
 ## 5. Next Steps & Roadmap
 1. **Finalize "Coming Soon" Features:** Implement the Interview Guide and Package Statistics modules.
-2. **AI Integration:** Enhance resume parsing and job matching using the Gemini AI API (as mentioned in SRS).
-3. **Advanced Analytics:** Detailed placement trend visualizations for Admin.
-4. **Final Bug Scrub:** Polish micro-interactions and transitions.
+2. **Advanced Analytics:** Detailed placement trend visualizations for Admin.
+3. **Final Bug Scrub:** Polish micro-interactions and transitions.

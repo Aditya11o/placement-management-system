@@ -2,10 +2,8 @@
 
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socketdotio&logoColor=white)](https://socket.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)](https://www.prisma.io/)
 
 > **"The Digital Curator"** — A premium, automated placement ecosystem bridging the gap between talent and opportunity with an editorial-grade user experience.
 
@@ -17,7 +15,7 @@ The **Placement Management System (PMS)** is a comprehensive automation platform
 
 ### Key Pillars:
 - 🖋️ **Editorial Precision:** Designed with "The Academic Authority" system for a focused, high-end experience.
-- ⚡ **Real-Time Synergy:** Live application tracking and instant messaging via WebSockets.
+- ⚡ **Synchronized Workflow:** Integrated tracking from application to interview.
 - 🛡️ **Enterprise Security:** Built with heavy-duty sanitization and role-based access control.
 
 ---
@@ -35,13 +33,12 @@ The **Placement Management System (PMS)** is a comprehensive automation platform
 - **Company command center:** Manage job postings and track applicant engagement.
 - **Candidate Comparison:** Data-driven tables for comparing student performance.
 - **Shortlisting Engine:** One-click shortlisting for interviews.
-- **Direct Messaging:** Secure chat line with potential candidates.
+- **Shortlisting Engine:** One-click shortlisting for interviews.
 
 ### 🛡️ For Administrators
 - **Institutional Oversight:** Complete control over student and recruiter verifications.
 - **Placement Analytics:** Real-time reports on placement rates and package statistics.
-- **Audit Ecosystem:** Detailed logs of all system-wide activities.
-- **Broadcast System:** Global announcements to the entire student body.
+- **System Controls:** Manage placement drives and application flow rules.
 
 ---
 
@@ -57,10 +54,9 @@ The **Placement Management System (PMS)** is a comprehensive automation platform
 ### Backend
 - **Runtime:** Node.js
 - **Framework:** Express.js (v5)
-- **Database:** MongoDB (Mongoose ODM)
-- **Real-Time:** Socket.io
-- **Security:** Helmet, BcryptJS, JWT, Express-Mongo-Sanitize, XSS-Clean
-- **Utilities:** Node-Cron (Automated tasks), Nodemailer (Emails), Multer & Cloudinary (File handling)
+- **Database:** PostgreSQL (Prisma ORM)
+- **Security:** Helmet, BcryptJS, JWT, Express-Rate-Limit, XSS-Clean
+- **Utilities:** Cloudinary (File handling)
 
 ---
 
@@ -85,7 +81,7 @@ npm install
 Create a `.env` file in the `backend` directory:
 ```env
 PORT=5000
-MONGO_URI=your_mongodb_uri
+DATABASE_URL="postgresql://user:password@localhost:5432/pms"
 JWT_SECRET=your_secret_key
 CLOUDINARY_CLOUD_NAME=your_name
 CLOUDINARY_API_KEY=your_key

@@ -10,7 +10,7 @@ The purpose of this document is to provide a detailed description of the Softwar
 
 #### **1.2 Scope**
 
-The PMS is a web-based automation platform designed to bridge the gap between students, recruiters, university administrators, and industry mentors. The system covers the entire recruitment lifecycle, including profile management, job posting, application tracking, real-time notifications, and mentorship engagement. It aims to eliminate manual paperwork and provide a transparent, efficient, and data-driven recruitment process.
+The PMS is a web-based automation platform designed to bridge the gap between students, recruiters, and university administrators. The system covers the core recruitment lifecycle, including profile management, job posting, and application tracking. It aims to eliminate manual paperwork and provide a transparent, efficient, and data-driven recruitment process.
 
 #### **1.3 Definitions, Acronyms, and Abbreviations**
 
@@ -20,7 +20,7 @@ The PMS is a web-based automation platform designed to bridge the gap between st
 * **JWT:** JSON Web Token (used for secure authentication)  
 * **Admin:** University Placement Officer or System Administrator  
 * **Recruiter:** Corporate HR or Hiring Manager  
-* **MERN:** MongoDB, Express, React, Node.js  
+* **PERN:** PostgreSQL, Express, React, Node.js  
 
 #### **1.4 Overview**
 
@@ -30,29 +30,26 @@ This SRS follows a structured format, starting with a high-level product descrip
 
 #### **2.1 Product Perspective**
 
-The PMS is an independent, self-contained web platform. It interacts with cloud services (Cloudinary) for file hosting and utilizes a centralized MongoDB database for data persistence. The architecture is a decoupled MERN stack with a focus on real-time interactivity.
+The PMS is an independent, self-contained web platform. It interacts with cloud services (Cloudinary) for file hosting and utilizes a centralized PostgreSQL database for data persistence. The architecture is a decoupled PERN stack.
 
 #### **2.2 Product Functions**
 
 * User registration and authentication with specific role-based access.  
 * **Integrated Resume Builder** for standardized profile generation.  
 * Job lifecycle management (Posting -> Screening -> Shortlisting -> Selection).  
-* **Alumni & Mentor portals** for career guidance and networking.  
-* Automated administrative oversight with audit logs and system backups.  
-* Real-time communication via live chat and persistent notifications.
+* Automated administrative oversight and control.
 
 #### **2.3 User Classes and Characteristics**
 
 * **Students:** Primary users searching for jobs and building professional profiles.  
-* **Administrators:** Power users responsible for system configuration, user verification, and auditing.  
-* **Recruiters:** Corporate users managing job postings and applicant screening.  
-* **Alumni & Mentors:** Industry professionals providing guidance and mentorship via the platform.
+* **Administrators:** Power users responsible for system configuration and user verification.  
+* **Recruiters:** Corporate users managing job postings and applicant screening.
 
 #### **2.4 Operating Environment**
 
 * **Client side:** Modern web browsers (Chrome, Firefox, Safari, Edge).  
 * **Server side:** Node.js runtime environment.  
-* **Database:** MongoDB Atlas / Local MongoDB.  
+* **Database:** PostgreSQL.  
 * **Hosting:** AWS, Vercel, or Docker-based environments.
 
 #### **2.5 Assumptions and Constraints**
@@ -75,11 +72,9 @@ The PMS is an independent, self-contained web platform. It interacts with cloud 
 #### **3.2 Admin Module**
 
 * **Command Center:** Global oversight of all platform activities.  
-* **User Management:** Verification and management of Students, Recruiters, and Mentors.  
+* **User Management:** Verification and management of Students and Recruiters.  
 * **Job & Application Auditing:** Centralized monitoring of the entire recruitment flow.  
-* **Audit Logs:** Detailed security tracking of administrative actions.  
-* **System Settings:** Real-time branding control and backup management.  
-* **Support Help Desk:** Management of internal support tickets.
+* **System Settings:** Branding control and placement drive management.
 
 #### **3.3 Recruiter Module**
 
@@ -89,17 +84,7 @@ The PMS is an independent, self-contained web platform. It interacts with cloud 
 * **Shortlisting Workflow:** Multi-stage workflow from screening to final result.  
 * **Interview Scheduling:** Tools to coordinate and broadcast interview dates.
 
-#### **3.4 Alumni & Mentor Module**
 
-* **Mentor Portal:** Access to mentorship tools and student lists.  
-* **Direct Messaging:** Real-time chat integration for student guidance.  
-* **Career Resources:** Ability to share professional insights and resources.
-
-#### **3.5 Messaging & Notifications**
-
-* **Internal Chat:** Persistent messaging between relevant stakeholders.  
-* **Live Toasts:** Instant UI notifications using Socket.io.  
-* **Global Broadcasts:** Administrative announcements sent to all users.
 
 ### **4\. Non-Functional Requirements**
 
@@ -112,7 +97,7 @@ The PMS is an independent, self-contained web platform. It interacts with cloud 
 
 * **Authentication:** JWT-based stateless authentication with password hashing (bcrypt).  
 * **RBAC:** Strict role-based permissions preventing cross-role access.  
-* **Middleware:** Implementation of `helmet`, `mongo-sanitize`, `xss-clean`, and `express-rate-limit` for enterprise security.
+* **Middleware:** Implementation of `helmet`, `xss-clean`, and `express-rate-limit` for enterprise security.
 
 #### **4.3 Usability**
 
@@ -121,7 +106,6 @@ The PMS is an independent, self-contained web platform. It interacts with cloud 
 
 #### **4.4 Reliability**
 
-* **Backups:** Regular automated database backups managed by the Admin.  
 * **Uptime:** Targeted 99.5% service availability.
 
 ### **5\. System Features**
@@ -138,9 +122,8 @@ Real-time modification of system logos and color palettes via the Admin panel.
 Built with **React, TypeScript, and Tailwind CSS** for a type-safe, premium aesthetic.
 
 #### **6.2 Cloud & Database Interfaces**
-* **Mongoose ODM:** For structured MongoDB interaction.  
-* **Cloudinary API:** For secure image and document hosting.  
-* **Gemini AI API:** Integrated for upcoming resume parsing and smart-matching enhancements.
+* **Prisma ORM:** For structured PostgreSQL database interaction.  
+* **Cloudinary API:** For secure image and document hosting.
 
 ### **7\. Future Enhancements**
 

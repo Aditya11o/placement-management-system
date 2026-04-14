@@ -19,28 +19,28 @@ const Terms = React.lazy(() => import('./pages/Terms'));
 const Help = React.lazy(() => import('./pages/Help'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Support = React.lazy(() => import('./pages/student/Support'));
-const AlumniPortal = React.lazy(() => import('./pages/alumni/AlumniPortal'));
+// const AlumniPortal = React.lazy(() => import('./pages/alumni/AlumniPortal'));
 const JobFeed = React.lazy(() => import('./pages/student/JobFeed'));
 const MyApplications = React.lazy(() => import('./pages/student/MyApplications'));
-const Watchlist = React.lazy(() => import('./pages/student/Watchlist'));
+// const Watchlist = React.lazy(() => import('./pages/student/Watchlist'));
 const InterviewSchedule = React.lazy(() => import('./pages/student/InterviewSchedule'));
 const Notifications = React.lazy(() => import('./pages/student/Notifications'));
-const CareerResources = React.lazy(() => import('./pages/student/CareerResources'));
+// const CareerResources = React.lazy(() => import('./pages/student/CareerResources'));
 const Settings = React.lazy(() => import('./pages/student/Settings'));
 const StudentProfile = React.lazy(() => import('./pages/student/Profile'));
 const ResumeBuilder = React.lazy(() => import('./pages/student/ResumeBuilder'));
 const ExploreCompanies = React.lazy(() => import('./pages/student/ExploreCompanies'));
-const InterviewToolkit = React.lazy(() => import('./pages/student/InterviewToolkit'));
-const Mentorship = React.lazy(() => import('./pages/student/Mentorship'));
+// const InterviewToolkit = React.lazy(() => import('./pages/student/InterviewToolkit'));
+// const Mentorship = React.lazy(() => import('./pages/student/Mentorship'));
 
-const MockInterviews = React.lazy(() => import('./pages/student/MockInterviews'));
+// const MockInterviews = React.lazy(() => import('./pages/student/MockInterviews'));
 const HelpSupport = React.lazy(() => import('./pages/student/HelpSupport'));
 const Announcements = React.lazy(() => import('./pages/student/Announcements'));
 const ResourceCategory = React.lazy(() => import('./pages/student/ResourceCategory'));
 const InterviewHistory = React.lazy(() => import('./pages/student/InterviewHistory'));
-const ExperienceForum = React.lazy(() => import('./pages/student/ExperienceForum'));
-const CreateExperience = React.lazy(() => import('./pages/student/CreateExperience'));
-const ExperienceDetail = React.lazy(() => import('./pages/student/ExperienceDetail'));
+// const ExperienceForum = React.lazy(() => import('./pages/student/ExperienceForum'));
+// const CreateExperience = React.lazy(() => import('./pages/student/CreateExperience'));
+// const ExperienceDetail = React.lazy(() => import('./pages/student/ExperienceDetail'));
 const ManageJobs = React.lazy(() => import('./pages/recruiter/ManageJobs'));
 const AdminManageJobs = React.lazy(() => import('./pages/admin/ManageJobs'));
 const InterviewPipeline = React.lazy(() => import('./pages/recruiter/InterviewPipeline'));
@@ -53,7 +53,7 @@ const RecruiterInterviews = React.lazy(() => import('./pages/recruiter/Interview
 const RecruiterNotifications = React.lazy(() => import('./pages/recruiter/Notifications'));
 const RecruiterSettings = React.lazy(() => import('./pages/recruiter/Settings'));
 const RecruiterHelpSupport = React.lazy(() => import('./pages/recruiter/HelpSupport'));
-const ROIDashboard = React.lazy(() => import('./pages/recruiter/ROIDashboard'));
+// const ROIDashboard = React.lazy(() => import('./pages/recruiter/ROIDashboard'));
 const ManageStudents = React.lazy(() => import('./pages/admin/ManageStudents'));
 const ManageRecruiters = React.lazy(() => import('./pages/admin/ManageRecruiters'));
 const AdminManageApplications = React.lazy(() => import('./pages/admin/ManageApplications'));
@@ -62,16 +62,16 @@ const AdminReports = React.lazy(() => import('./pages/admin/Reports'));
 const AdminManageNotifications = React.lazy(() => import('./pages/admin/ManageNotifications'));
 const AdminSettings = React.lazy(() => import('./pages/admin/Settings'));
 const AdminProfile = React.lazy(() => import('./pages/admin/Profile'));
-const Chat = React.lazy(() => import('./pages/Chat'));
-const ManageVerifications = React.lazy(() => import('./pages/admin/ManageVerifications'));
-const AuditLogs = React.lazy(() => import('./pages/admin/AuditLogs'));
-const AdminManageExperiences = React.lazy(() => import('./pages/admin/ManageExperiences'));
+// const Chat = React.lazy(() => import('./pages/Chat'));
+// const ManageVerifications = React.lazy(() => import('./pages/admin/ManageVerifications'));
+// const AuditLogs = React.lazy(() => import('./pages/admin/AuditLogs'));
+// const AdminManageExperiences = React.lazy(() => import('./pages/admin/ManageExperiences'));
 const AdminManageDrives = React.lazy(() => import('./pages/admin/ManageDrives'));
-const SystemHealth = React.lazy(() => import('./pages/admin/SystemHealth'));
-const AdminTeam = React.lazy(() => import('./pages/admin/AdminTeam'));
+// const SystemHealth = React.lazy(() => import('./pages/admin/SystemHealth'));
+// const AdminTeam = React.lazy(() => import('./pages/admin/AdminTeam'));
 const StudentDriveDetail = React.lazy(() => import('./pages/student/DriveDetail'));
 const PlacementDrives = React.lazy(() => import('./pages/student/PlacementDrives'));
-const Calendar = React.lazy(() => import('./pages/Calendar'));
+// const Calendar = React.lazy(() => import('./pages/Calendar'));
 
 const App: React.FC = () => {
   const [isShortcutsOpen, setIsShortcutsOpen] = React.useState(false);
@@ -116,29 +116,29 @@ const App: React.FC = () => {
             <Route path="drives" element={<PlacementDrives />} />
             <Route path="drives/:id" element={<StudentDriveDetail />} />
             <Route path="jobs" element={<JobFeed />} />
-            <Route path="watchlist" element={<Watchlist />} />
+            {/* <Route path="watchlist" element={<Watchlist />} /> */}
             <Route path="applications" element={<MyApplications />} />
             <Route path="interviews" element={<InterviewSchedule />} />
             <Route path="interview-history" element={<InterviewHistory />} />
-            <Route path="resources" element={<CareerResources />} />
-            <Route path="prep-toolkit" element={<InterviewToolkit />} />
+            {/* <Route path="resources" element={<CareerResources />} /> */}
+            {/* <Route path="prep-toolkit" element={<InterviewToolkit />} /> */}
             <Route path="companies" element={<ExploreCompanies />} />
 
-            <Route path="mock-interviews" element={<MockInterviews />} />
+            {/* <Route path="mock-interviews" element={<MockInterviews />} /> */}
             <Route path="notifications" element={<Notifications />} />
             <Route path="announcements" element={<Announcements />} />
             <Route path="resources/:category" element={<ResourceCategory />} />
-            <Route path="alumni" element={<Mentorship />} />
+            {/* <Route path="alumni" element={<Mentorship />} /> */}
             <Route path="support" element={<Support />} />
             <Route path="help-support" element={<HelpSupport />} />
             <Route path="settings" element={<Settings />} />
             <Route path="resumes" element={<Navigate to="/student/settings?tab=resumes" replace />} />
             <Route path="resume-builder" element={<ResumeBuilder />} />
-            <Route path="experiences" element={<ExperienceForum />} />
-            <Route path="experiences/create" element={<CreateExperience />} />
-            <Route path="experiences/:id" element={<ExperienceDetail />} />
-            <Route path="chat" element={<Chat />} />
-            <Route path="calendar" element={<Calendar />} />
+            {/* <Route path="experiences" element={<ExperienceForum />} /> */}
+            {/* <Route path="experiences/create" element={<CreateExperience />} /> */}
+            {/* <Route path="experiences/:id" element={<ExperienceDetail />} /> */}
+            {/* <Route path="chat" element={<Chat />} /> */}
+            {/* <Route path="calendar" element={<Calendar />} /> */}
           </Route>
 
           <Route path="/recruiter" element={<DashboardLayout role="recruiter" />}>
@@ -153,10 +153,10 @@ const App: React.FC = () => {
             <Route path="interviews" element={<RecruiterInterviews />} />
             <Route path="notifications" element={<RecruiterNotifications />} />
             <Route path="settings" element={<RecruiterSettings />} />
-            <Route path="roi" element={<ROIDashboard />} />
+            {/* <Route path="roi" element={<ROIDashboard />} /> */}
             <Route path="help-support" element={<RecruiterHelpSupport />} />
-            <Route path="chat" element={<Chat />} />
-            <Route path="calendar" element={<Calendar />} />
+            {/* <Route path="chat" element={<Chat />} /> */}
+            {/* <Route path="calendar" element={<Calendar />} /> */}
           </Route>
 
           {/* Protected Dashboard Routes - Admin */}
@@ -164,7 +164,7 @@ const App: React.FC = () => {
             <Route path="dashboard" element={<Dashboard role="admin" />} />
             <Route path="profile" element={<AdminProfile />} />
             <Route path="students" element={<ManageStudents />} />
-            <Route path="verifications" element={<ManageVerifications />} />
+            {/* <Route path="verifications" element={<ManageVerifications />} /> */}
             <Route path="recruiters" element={<ManageRecruiters />} />
             <Route path="drives" element={<AdminManageDrives />} />
             <Route path="jobs" element={<AdminManageJobs />} />
@@ -172,16 +172,16 @@ const App: React.FC = () => {
             <Route path="interviews" element={<AdminManageInterviews />} />
             <Route path="reports" element={<AdminReports />} />
             <Route path="notifications" element={<AdminManageNotifications />} />
-            <Route path="audit" element={<AuditLogs />} />
-            <Route path="experiences" element={<AdminManageExperiences />} />
+            {/* <Route path="audit" element={<AuditLogs />} /> */}
+            {/* <Route path="experiences" element={<AdminManageExperiences />} /> */}
             <Route path="settings" element={<AdminSettings />} />
-            <Route path="health" element={<SystemHealth />} />
-            <Route path="team" element={<AdminTeam />} />
-            <Route path="calendar" element={<Calendar />} />
-            <Route path="chat" element={<Chat />} />
+            {/* <Route path="health" element={<SystemHealth />} /> */}
+            {/* <Route path="team" element={<AdminTeam />} /> */}
+            {/* <Route path="calendar" element={<Calendar />} /> */}
+            {/* <Route path="chat" element={<Chat />} /> */}
           </Route>
 
-          {/* Protected Dashboard Routes - Alumni & Mentor */}
+          {/* Protected Dashboard Routes - Alumni & Mentor 
           <Route path="/alumni" element={<DashboardLayout role="alumni" />}>
             <Route path="dashboard" element={<AlumniPortal />} />
             <Route path="settings" element={<Settings />} />
@@ -195,6 +195,7 @@ const App: React.FC = () => {
             <Route path="chat" element={<Chat />} />
             <Route path="calendar" element={<Calendar />} />
           </Route>
+          */}
         </Routes>
       </Suspense>
     </>

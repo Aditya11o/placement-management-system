@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, BookOpen, Shield, MessageSquare, X, Sparkles, Bookmark, Building2, TrendingUp, Activity } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, X, Sparkles, Building2, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from './ConfirmModal';
 
@@ -24,14 +24,14 @@ interface SidebarProps {
           { name: 'Jobs', icon: Briefcase, path: '/student/jobs' },
           { name: 'Placement Drives', icon: Activity, path: '/student/drives' },
           { name: 'Explore Companies', icon: Building2, path: '/student/companies' },
-          { name: 'Watchlist', icon: Bookmark, path: '/student/watchlist' },
+          // { name: 'Watchlist', icon: Bookmark, path: '/student/watchlist' },
           { name: 'My Applications', icon: FileText, path: '/student/applications' },
           { name: 'Interview Schedule', icon: Calendar, path: '/student/interviews' },
-          { name: 'Academic Calendar', icon: Calendar, path: '/student/calendar' },
-          { name: 'Prep Toolkit', icon: Sparkles, path: '/student/prep-toolkit' },
-          { name: 'Career Prep', icon: BookOpen, path: '/student/resources' },
-          { name: 'Knowledge Hub', icon: Sparkles, path: '/student/experiences' },
-          { name: 'Mock Interviews', icon: MessageSquare, path: '/student/mock-interviews' },
+          // { name: 'Academic Calendar', icon: Calendar, path: '/student/calendar' },
+          // { name: 'Prep Toolkit', icon: Sparkles, path: '/student/prep-toolkit' },
+          // { name: 'Career Prep', icon: BookOpen, path: '/student/resources' },
+          // { name: 'Knowledge Hub', icon: Sparkles, path: '/student/experiences' },
+          // { name: 'Mock Interviews', icon: MessageSquare, path: '/student/mock-interviews' },
           { name: 'Notifications', icon: Bell, path: '/student/notifications' },
         ];
       case 'recruiter':
@@ -43,33 +43,33 @@ interface SidebarProps {
           { name: 'Applicants', icon: FileText, path: '/recruiter/applicants' },
           { name: 'Shortlisted Candidates', icon: Users, path: '/recruiter/shortlisted' },
           { name: 'Interview Schedule', icon: Calendar, path: '/recruiter/interviews' },
-          { name: 'Academic Calendar', icon: Calendar, path: '/recruiter/calendar' },
-          { name: 'ROI Analytics', icon: TrendingUp, path: '/recruiter/roi' },
+          // { name: 'Academic Calendar', icon: Calendar, path: '/recruiter/calendar' },
+          // { name: 'ROI Analytics', icon: TrendingUp, path: '/recruiter/roi' },
           { name: 'Notifications', icon: Bell, path: '/recruiter/notifications' },
         ];
       case 'admin':
         const adminLinks = [
           { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
           { name: 'Manage Students', icon: Users, path: '/admin/students' },
-          { name: 'Skill Verification', icon: Shield, path: '/admin/verifications' },
+          // { name: 'Skill Verification', icon: Shield, path: '/admin/verifications' },
           { name: 'Manage Recruiters', icon: Briefcase, path: '/admin/recruiters' },
           { name: 'Placement Drives', icon: Calendar, path: '/admin/drives' },
           { name: 'Manage Jobs', icon: FileText, path: '/admin/jobs' },
           { name: 'Applications', icon: FileText, path: '/admin/applications' },
           { name: 'Interviews', icon: Calendar, path: '/admin/interviews' },
-          { name: 'Academic Calendar', icon: Calendar, path: '/admin/calendar' },
+          // { name: 'Academic Calendar', icon: Calendar, path: '/admin/calendar' },
           { name: 'Reports', icon: FileText, path: '/admin/reports' },
         ];
 
         // Super Admin Only Links
         const adminLevel = (profile as any)?.level || 'SUPER_ADMIN';
         if (adminLevel === 'SUPER_ADMIN') {
-          adminLinks.push({ name: 'Admin Team', icon: Shield, path: '/admin/team' });
-          adminLinks.push({ name: 'System Health', icon: Activity, path: '/admin/health' });
+          // adminLinks.push({ name: 'Admin Team', icon: Shield, path: '/admin/team' });
+          // adminLinks.push({ name: 'System Health', icon: Activity, path: '/admin/health' });
         }
 
         adminLinks.push(
-          { name: 'Peer Experiences', icon: Sparkles, path: '/admin/experiences' },
+          // { name: 'Peer Experiences', icon: Sparkles, path: '/admin/experiences' },
           { name: 'Notifications', icon: Bell, path: '/admin/notifications' }
         );
         return adminLinks;
@@ -140,6 +140,7 @@ interface SidebarProps {
         })}
       </nav>
       <div className={`p-4 space-y-2 border-t border-outline-variant ${isCollapsed ? 'p-2' : ''}`}>
+        {/* 
         <NavLink
           to={`/${role}/chat`}
           title={isCollapsed ? "Messages" : ""}
@@ -156,7 +157,8 @@ interface SidebarProps {
         >
           <MessageSquare size={18} aria-hidden="true" />
           <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>Messages</span>
-        </NavLink>
+        </NavLink> 
+        */}
         <NavLink
           to={`/${role}/settings`}
           title={isCollapsed ? "Settings" : ""}
