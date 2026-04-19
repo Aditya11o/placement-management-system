@@ -9,12 +9,65 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { generateResumePDF, ResumeTemplate } from '../../utils/pdfGenerator';
+import { Lightbulb, CheckCircle2, X } from 'lucide-react';
+
+const ResumeTipsPanel = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[80vh] overflow-y-auto custom-scrollbar p-8">
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500">
+              <Lightbulb size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Resume Insights</h2>
+              <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">Expert tips to get shortlisted</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-xl">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="space-y-6">
+          <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100">
+            <h3 className="text-sm font-black text-blue-900 uppercase tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={16} className="text-blue-600"/> ATS Optimization</h3>
+            <p className="text-xs font-medium text-blue-800 leading-relaxed">
+              Ensure your resume uses standard section headings (Education, Experience, Skills). Avoid tables, columns, or graphics that might confuse an Applicant Tracking System (ATS).
+            </p>
+          </div>
+          <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-100">
+            <h3 className="text-sm font-black text-emerald-900 uppercase tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-600"/> Quantify Achievements</h3>
+            <p className="text-xs font-medium text-emerald-800 leading-relaxed">
+              Use numbers and metrics everywhere. Instead of "Improved performance", write "Improved query performance by 40% reducing load times by 2s".
+            </p>
+          </div>
+          <div className="p-5 rounded-2xl bg-purple-50 border border-purple-100">
+            <h3 className="text-sm font-black text-purple-900 uppercase tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={16} className="text-purple-600"/> Tailor Your Content</h3>
+            <p className="text-xs font-medium text-purple-800 leading-relaxed">
+              Align your skills and summary with the job description. If applying for frontend, emphasize React over Python. Highlight exactly what the Recruiter is looking for.
+            </p>
+          </div>
+          <div className="p-5 rounded-2xl bg-orange-50 border border-orange-100">
+            <h3 className="text-sm font-black text-orange-900 uppercase tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={16} className="text-orange-600"/> Action Verbs</h3>
+            <p className="text-xs font-medium text-orange-800 leading-relaxed">
+              Start bullet points with strong action verbs: "Developed", "Led", "Architected", "Spearheaded". Avoid weak phrases like "Worked on" or "Responsible for".
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ResumeBuilder: React.FC = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0); // Step 0 is Template Selection
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const [template, setTemplate] = useState<ResumeTemplate>('modern');
 
   const [formData, setFormData] = useState({
@@ -248,6 +301,16 @@ const ResumeBuilder: React.FC = () => {
                 {step > s.id && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
               </button>
             ))}
+            
+            <button
+              onClick={() => setShowTips(true)}
+              className="mt-6 w-full flex items-center justify-between px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all bg-amber-50 text-amber-600 hover:bg-amber-100"
+            >
+              <div className="flex items-center gap-3">
+                <Lightbulb size={16} />
+                Expert Tips
+              </div>
+            </button>
           </div>
         </div>
 
@@ -453,6 +516,8 @@ const ResumeBuilder: React.FC = () => {
         </div>
 
       </div>
+
+      <ResumeTipsPanel isOpen={showTips} onClose={() => setShowTips(false)} />
 
     </div>
   );

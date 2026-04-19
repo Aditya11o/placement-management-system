@@ -66,6 +66,7 @@ enum ApplicationStatus {
   Accepted
   Declined
   Draft
+  Withdrawn
 }
 
 enum PlacementStatus {
@@ -106,6 +107,7 @@ model User {
   otpExpires         DateTime?
   loginAttempts      Int       @default(0)
   lockUntil          BigInt?
+  reset_token        String?
   reset_token_expiry DateTime?
 
   // Invitation related
@@ -177,6 +179,9 @@ model StudentProfile {
   profilePhoto      String?
   profileCompletion Int     @default(0)
   readinessScore    Int     @default(0)
+
+  preferredLocations String[]
+  preferredRoles     String[]
 
   academicVerified Boolean   @default(false)
   verificationAt   DateTime?
@@ -378,6 +383,9 @@ model Interview {
   type     String?
   status   String?  @default("scheduled")
   feedback String?
+  
+  availableSlots Json?
+  selectedSlot   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

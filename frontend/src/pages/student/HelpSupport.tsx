@@ -42,7 +42,7 @@ const HelpSupport: React.FC = () => {
   const categories = [
     { title: 'Account Management', icon: User, desc: 'Update your profile, change passwords, and manage notification settings.' },
     { title: 'Job Applications', icon: Briefcase, desc: 'Guidelines on applying for positions and tracking your application flow.' },
-    { title: 'Interview Support', icon: Users, desc: 'Preparation tips, mock interviews, and virtual technical setup guides.' },
+    { title: 'Interview Support', icon: Users, desc: 'Preparation tips, resource recommendations, and virtual technical setup guides.' },
     { title: 'Resume & Profile', icon: FileText, desc: 'Manage your professional identity, upload resumes, and optimize your student profile.' },
     { title: 'Technical Issues', icon: Monitor, desc: 'Help with platform glitches, login errors, or system compatibility.' },
     { title: 'Other Queries', icon: MoreHorizontal, desc: "Anything else that doesn't fit the categories above? We're here." },
@@ -208,7 +208,7 @@ const HelpSupport: React.FC = () => {
                       value={ticketType}
                       onChange={(val) => setTicketType(val)}
                       options={[
-                        'Account Management', 'Job Applications', 'Interview Support',
+                        'Account Management', 'Job Applications', 'Interview Preparation',
                         'Resume & Profile', 'Technical Issues', 'Other Queries'
                       ]}
                     />

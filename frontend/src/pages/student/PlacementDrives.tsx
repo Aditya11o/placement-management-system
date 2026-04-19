@@ -6,13 +6,11 @@ import {
   ChevronRight, 
   Building, 
   Search, 
-  Filter, 
   ArrowRight,
   Loader2,
   Sparkles,
   MapPin,
   TrendingUp,
-  Files,
   Clock,
   Zap,
   CheckCircle2,
@@ -263,7 +261,7 @@ const PlacementDrives: React.FC = () => {
           <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant/30 shadow-sm relative overflow-hidden">
              <div className="absolute top-0 right-0 w-24 h-24 bg-surface-tint/5 rounded-bl-[4rem] group" />
              <h3 className="text-[11px] font-black text-on-surface tracking-widest flex items-center gap-2 uppercase italic mb-6">
-                <zap size={16} className="text-surface-tint" />
+                <Zap size={16} className="text-surface-tint" />
                 Participation Protocol
              </h3>
              <div className="space-y-4">
@@ -285,25 +283,7 @@ const PlacementDrives: React.FC = () => {
                       <p className="text-[10px] text-on-surface-variant/60 font-medium leading-tight mt-1">Drives have a unified deadline. Missing it blocks all companies in the set.</p>
                    </div>
                 </div>
-             </div>
-          </div>
-
-          {/* Prep Shortcut Widget */}
-          <div className="bg-on-surface rounded-2xl p-6 border border-on-surface/10 shadow-xl relative overflow-hidden group">
-             <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-surface-container-lowest/10 rounded-full blur-2xl group-hover:bg-surface-tint/20 transition-all duration-500" />
-             <h3 className="text-[11px] font-black text-surface-container-lowest tracking-widest flex items-center gap-2 uppercase italic mb-4">
-                <Sparkles size={16} className="text-surface-tint" />
-                Prep Toolkit
-             </h3>
-             <p className="text-[10px] text-surface-container-lowest/60 font-black uppercase tracking-widest leading-relaxed mb-6">
-                Boost your clearance rate with AI-driven mock tests.
-             </p>
-             <Link 
-               to="/student/prep-toolkit"
-               className="w-full py-3 bg-surface-container-lowest text-on-surface rounded-xl text-[9px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-surface-tint hover:text-white transition-all shadow-lg"
-             >
-                Enter Toolkit <ChevronRight size={14} />
-             </Link>
+            </div>
           </div>
 
           {/* FAQ Mini Widget */}

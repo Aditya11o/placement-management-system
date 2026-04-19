@@ -1,6 +1,7 @@
 const prisma = require('../utils/prisma');
 const { cloudinary, uploadToCloudinary } = require('../utils/cloudinary');
 const { createAuditLog } = require('./auditLogController');
+const crypto = require('crypto');
 
 
 
@@ -100,8 +101,13 @@ const updateProfile = async (req, res, next) => {
       updateData = { ...req.body };
     }
 
-    // Clean up fields that shouldn't be in the profile update
-    const { id, _id, userId, user, createdAt, updatedAt, ...cleanUpdateData } = updateData;
+    // Clean up fields that shouldn't be in the profile update (especially relations)
+    const { 
+      id, _id, userId, user_id, user, createdAt, updatedAt, 
+      resumes, applications, settings, skillVerifications, readinessHistory, watchlist,
+      jobs, recruiterProfile, studentProfile, adminProfile, mentorProfile, alumniProfile,
+      ...cleanUpdateData 
+    } = updateData;
 
     // Handle profile photo upload
     if (req.file) {
@@ -171,6 +177,7 @@ const addProject = async (req, res, next) => {
 
   try {
     const projectData = {
+      id: crypto.randomUUID(),
       title,
       description,
       technologies: Array.isArray(technologies) ? technologies : technologies?.split(',').map(s => s.trim()),
@@ -307,23 +314,25 @@ const requestSkillVerification = async (req, res, next) => {
 const updateResume = async (req, res, next) => {
     const { url } = req.body;
     try {
-      const profile = await StudentProfile.findOne({ user: req.user.id });
+      const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
       if (!profile) return res.status(404).json({ message: 'Profile not found' });
   
-      if (!profile.resumes) profile.resumes = [];
-      profile.resumes.unshift({
-        name: 'Primary Resume',
-        url,
-        isDefault: true,
-        uploadedAt: new Date()
+      await prisma.studentResume.updateMany({
+        where: { studentId: profile.id },
+        data: { isDefault: false }
       });
       
-      profile.resumes.forEach((r, idx) => {
-        if (idx !== 0) r.isDefault = false;
+      await prisma.studentResume.create({
+        data: {
+          name: 'Primary Resume',
+          url,
+          isDefault: true,
+          studentId: profile.id
+        }
       });
   
-      await profile.save();
-      res.json(profile);
+      const resumes = await prisma.studentResume.findMany({ where: { studentId: profile.id } });
+      res.json({ resumes });
     } catch (error) {
       next(error);
     }
@@ -401,10 +410,26 @@ const getStudentProfileById = async (req, res, next) => {
   try {
     const profile = await prisma.studentProfile.findUnique({
       where: { userId: req.params.id },
-      select: { full_name: true, phone: true, address: true, city: true, state: true, linkedin: true, github: true, portfolio: true, dob: true, gender: true, profilePhoto: true }
+      include: { user: { select: { name: true } } }
     });
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
-    res.json({ ...profile, _id: req.params.id });
+    
+    const formatted = {
+      id: profile.id,
+      _id: profile.userId,
+      name: profile.user.name,
+      phone: profile.phone,
+      address: profile.address,
+      city: profile.city,
+      state: profile.state,
+      linkedin: profile.linkedin,
+      github: profile.github,
+      portfolio: profile.portfolio,
+      dob: profile.dob,
+      gender: profile.gender,
+      profilePhoto: profile.profilePhoto
+    };
+    res.json(formatted);
   } catch (error) {
     next(error);
   }
@@ -440,7 +465,7 @@ const getStudentAcademicById = async (req, res, next) => {
   try {
     const profile = await prisma.studentProfile.findUnique({
       where: { userId: req.params.id },
-      select: { course: true, department: true, passingYear: true, current_cgpa: true, tenthPercentage: true, twelfthPercentage: true }
+      select: { course: true, department: true, passingYear: true, cgpa: true, tenthPercentage: true, twelfthPercentage: true }
     });
     if (!profile) return res.status(404).json({ message: 'Profile not found' });
     res.json(profile);

@@ -13,7 +13,8 @@ const {
   uploadOfferLetter,
   bulkUpdateStatus,
   getExportData,
-  applyForJob
+  applyForJob,
+  withdrawApplication
 } = require('../controllers/applicationController');
 const { 
   advanceApplication, 
@@ -44,6 +45,7 @@ router.get('/export/:jobId', protect, authorize('recruiter'), getExportData);
 router.patch('/:id/status', protect, authorize('recruiter', 'admin'), validateUpdateApplicationStatus, updateApplicationStatus);
 router.patch('/:id/offer', protect, authorize('student'), validateRespondToOffer, respondToOffer);
 router.patch('/:id/offer-letter', protect, authorize('student', 'recruiter'), offerUpload.single('offerLetter'), uploadOfferLetter);
+router.patch('/:id/withdraw', protect, authorize('student'), withdrawApplication);
 
 // Pipeline management
 router.get('/job/:jobId/pipeline', protect, authorize('recruiter', 'admin'), getJobPipeline);

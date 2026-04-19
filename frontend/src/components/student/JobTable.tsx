@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api';
-import { Loader2, Bookmark, BookmarkCheck } from 'lucide-react';
+import { Loader2, Bookmark, BookmarkCheck, Briefcase } from 'lucide-react';
 import { useNotification } from '../../context/NotificationContext';
 
 interface JobTableProps {
@@ -83,83 +83,88 @@ const JobTable: React.FC<JobTableProps> = ({ initialJobs = [] }) => {
         </button>
       </div>
 
-      <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden w-full transition-all hover:shadow-xl">
-        <div className="w-full overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse min-w-[700px]">
-            <thead>
-              <tr className="bg-surface-container text-on-surface-variant/50 text-[10px] font-black uppercase tracking-widest border-b border-outline-variant/30">
-                <th scope="col" className="px-6 py-4">Company</th>
-                <th scope="col" className="px-6 py-4">Position</th>
-                <th scope="col" className="px-6 py-4">Location</th>
-                <th scope="col" className="px-6 py-4">Deadline</th>
-                <th scope="col" className="px-6 py-4 text-center">Eligibility</th>
-                <th scope="col" className="px-6 py-4 text-center">Priority</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {jobs.map((job: any) => {
-                const jobId = job.id || job._id;
-                const isApplied = appliedJobIds.includes(jobId);
-                const isWatchlisted = watchlistIds.includes(jobId);
-                
-                return (
-                  <tr key={job._id} className="hover:bg-blue-50/30 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 rounded-2xl bg-surface-container group-hover:bg-surface-container-high transition-colors flex items-center justify-center font-black text-on-surface-variant/20 border border-outline-variant/30 shadow-sm overflow-hidden text-lg italic">
-                          {job.companyName?.[0] || 'J'}
-                        </div>
-                        <span className="font-black text-on-surface italic tracking-tight uppercase truncate max-w-[120px]">
+      <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden w-full transition-all hover:shadow-xl min-h-[450px] flex flex-col">
+        {jobs.length > 0 ? (
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {jobs.map((job: any) => {
+              const jobId = job.id || job._id;
+              const isApplied = appliedJobIds.includes(jobId);
+              const isWatchlisted = watchlistIds.includes(jobId);
+              
+              return (
+                <div key={jobId} className="bg-white rounded-2xl border border-outline-variant/30 p-4 flex flex-col hover:shadow-md transition-all group overflow-hidden relative">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center font-black text-on-surface-variant/30 border border-outline-variant/30 italic">
+                        {job.companyName?.[0] || 'J'}
+                      </div>
+                      <div>
+                        <h4 className="font-black text-[13px] text-on-surface italic uppercase tracking-tight truncate max-w-[140px]">
                           {job.companyName}
-                        </span>
+                        </h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                           <span className="text-[11px] font-bold text-slate-700 truncate max-w-[120px]">{job.title}</span>
+                        </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-sm text-slate-800 tracking-tight">{job.title}</span>
-                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter">{job.salary}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">{job.location}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-[11px] font-black text-on-surface border border-outline-variant/50 px-2 py-1 rounded-lg bg-surface-container-low">
+                    </div>
+                    <button 
+                      onClick={() => handleToggleWatchlist(jobId)}
+                      disabled={watchlistLoading === jobId}
+                      className={`p-2 rounded-xl transition-all ${
+                        isWatchlisted 
+                          ? 'bg-amber-50 text-amber-500 border border-amber-100' 
+                          : 'bg-slate-50 text-slate-300 hover:text-blue-500 hover:bg-blue-50 border border-transparent'
+                      }`}
+                    >
+                      {watchlistLoading === jobId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (isWatchlisted ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />)}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mb-4 p-3 bg-surface-container/30 rounded-xl">
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-black text-on-surface-variant/40 uppercase tracking-widest">Salary</span>
+                      <span className="text-[10px] font-black text-blue-600 truncate">{job.salary || 'Competitive'}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-black text-on-surface-variant/40 uppercase tracking-widest">Location</span>
+                      <span className="text-[10px] font-bold text-slate-500 truncate">{job.location}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto flex items-center justify-between pt-3 border-t border-outline-variant/10">
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-black text-on-surface-variant/40 uppercase tracking-widest">Deadline</span>
+                      <span className="text-[10px] font-black text-on-surface">
                         {new Date(job.deadline || job.last_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                       <button 
-                        onClick={() => handleToggleWatchlist(jobId)}
-                        disabled={watchlistLoading === jobId}
-                        className={`p-2 rounded-xl transition-all ${
-                          isWatchlisted 
-                            ? 'bg-amber-50 text-amber-500 border border-amber-100' 
-                            : 'bg-slate-50 text-slate-300 hover:text-blue-500 hover:bg-blue-50 border border-transparent'
-                        }`}
-                       >
-                         {watchlistLoading === jobId ? <Loader2 className="w-4 h-4 animate-spin" /> : (isWatchlisted ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />)}
-                       </button>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button 
-                        onClick={() => handleApply(jobId)}
-                        disabled={isApplied || loading}
-                        className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                          isApplied || loading
-                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed italic' 
-                            : 'bg-slate-900 text-white hover:bg-blue-600 shadow-md hover:shadow-blue-200 -rotate-2 hover:rotate-0'
-                        }`}
-                      >
-                        {loading && !isApplied ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : (isApplied ? 'Success' : 'Secure Role')}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                    <button 
+                      onClick={() => handleApply(jobId)}
+                      disabled={isApplied || loading}
+                      className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                        isApplied || loading
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed italic' 
+                          : 'bg-slate-900 text-white hover:bg-blue-600 shadow-sm'
+                      }`}
+                    >
+                      {loading && !isApplied ? <Loader2 className="w-3 h-3 animate-spin" /> : (isApplied ? 'Success' : 'Secure Role')}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+            <div className="w-16 h-16 bg-surface-container rounded-3xl flex items-center justify-center mb-4 border border-outline-variant/30">
+               <Briefcase className="w-8 h-8 text-on-surface-variant/20" />
+            </div>
+            <h4 className="text-sm font-black text-on-surface uppercase tracking-tight italic">No Active Openings</h4>
+            <p className="text-[11px] font-bold text-on-surface-variant/50 uppercase tracking-widest mt-1 max-w-[200px]">
+              We'll notify you when new opportunities match your profile.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

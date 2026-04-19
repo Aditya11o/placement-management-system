@@ -153,6 +153,26 @@ const MyApplications: React.FC = () => {
     });
   };
 
+  const handleWithdraw = (id: string, companyName: string) => {
+    setConfirmState({
+      isOpen: true,
+      type: 'danger',
+      title: 'Withdraw Application',
+      message: `Are you sure you want to withdraw your application for ${companyName}? This action cannot be undone.`,
+      icon: XCircle,
+      onConfirm: async () => {
+        try {
+          await api.patch(`/applications/${id}/withdraw`);
+          queryClient.invalidateQueries({ queryKey: ['applications'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+          showSuccess('Application withdrawn successfully', 'Success');
+        } catch (err: any) {
+          showError(err.response?.data?.message || 'Failed to withdraw application', 'Error');
+        }
+      }
+    });
+  };
+
   const stats = [
     { label: 'Total', value: apps.filter((a: any) => a.status !== 'Draft').length.toString().padStart(2, '0'), icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Reviewing', value: apps.filter((a: any) => a.status === 'Applied').length.toString().padStart(2, '0'), icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
@@ -404,6 +424,15 @@ const MyApplications: React.FC = () => {
                               className="px-4 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
                             >
                               <Calendar size={12} /> View Timeline
+                            </button>
+                          )}
+                          {['Applied', 'Shortlisted', 'Under_Review', 'Scheduled', 'Draft'].includes(app.status) && (
+                            <button
+                              onClick={() => handleWithdraw(app._id, app.job?.companyName)}
+                              className="px-3 py-1.5 border border-rose-200 text-rose-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all font-black"
+                              title="Withdraw Application"
+                            >
+                              Withdraw
                             </button>
                           )}
                        </div>

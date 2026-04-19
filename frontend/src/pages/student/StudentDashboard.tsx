@@ -15,7 +15,6 @@ import StatCard from '../../components/student/StatCard';
 import JobTable from '../../components/student/JobTable';
 import InterviewPanel from '../../components/student/InterviewPanel';
 import Pipeline from '../../components/student/Pipeline';
-import CareerResources from '../../components/student/CareerResources';
 import AnnouncementsBoard from '../../components/AnnouncementsBoard';
 import StudentDrivesWidget from '../../components/student/StudentDrivesWidget';
 import ActivityTimeline from '../../components/student/ActivityTimeline';
@@ -132,9 +131,8 @@ const StudentDashboard: React.FC = () => {
               
               <ActivityTimeline />
 
-              <div className="pt-6 border-t border-outline-variant/20 space-y-4">
+              <div className="pt-6 border-t border-outline-variant/20">
                 <StudentDrivesWidget />
-                <CareerResources />
               </div>
            </div>
         </aside>

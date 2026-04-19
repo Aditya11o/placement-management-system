@@ -85,8 +85,8 @@ const ResumeSection: React.FC<ResumeSectionProps> = ({ student, onUploadClick })
               className="w-full py-4 bg-[#000613] text-white rounded-[1.5rem] flex items-center justify-center gap-3 group/btn relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-              <Sparkles size={18} className="text-blue-400" />
-              <span className="text-[11px] font-black uppercase tracking-[0.15em] relative z-10">Elite AI Resume Builder</span>
+              <FileText size={18} className="text-blue-400" />
+              <span className="text-[11px] font-black uppercase tracking-[0.15em] relative z-10">Professional Resume Builder</span>
             </Link>
             <p className="text-[9px] text-gray-400 text-center mt-4 font-bold uppercase tracking-[0.2em] opacity-40 italic">
               Craft IRCC Compliant ATS Resumes in Minutes

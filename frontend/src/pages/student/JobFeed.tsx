@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Briefcase, Search, MapPin, DollarSign, 
-  Bookmark, CheckCircle, 
+  CheckCircle, 
   Sparkles, AlertCircle, FileText,
   X, ChevronRight, Loader2
 } from 'lucide-react';
@@ -16,7 +16,6 @@ import { useJobs } from '../../hooks/useJobs';
 import { useMyApplications, useSaveDraft } from '../../hooks/useApplications';
 import { useResumes } from '../../hooks/useResumes';
 import { useStudentDashboard } from '../../hooks/useDashboard';
-import { useWatchlist } from '../../hooks/useWatchlist';
 import EmptyState from '../../components/EmptyState';
 
 const JobFeed: React.FC = () => {
@@ -30,8 +29,6 @@ const JobFeed: React.FC = () => {
   const { data: myApps = [], isLoading: loadingApps } = useMyApplications();
   const { data: resumes = [], isLoading: loadingResumes } = useResumes();
   const { data: dashboardData, isLoading: loadingDash } = useStudentDashboard();
-  const { watchlist, toggleWatchlist } = useWatchlist();
-  const [watchlistOnly, setWatchlistOnly] = useState(false);
   const [applying, setApplying] = useState(false);
   
   const loading = loadingJobs || loadingApps || loadingResumes || loadingDash;
@@ -74,10 +71,8 @@ const JobFeed: React.FC = () => {
 
   const jobs = allJobs.map((job: any) => {
     const application = myApps.find((app: any) => app.job?._id === job._id || app.job === job._id);
-    const isWatched = watchlist?.some((w: any) => w.jobId === job._id || w._id === job._id);
     return {
       ...job,
-      isWatched,
       status: application ? 'Applied' : job.status || 'Open'
     };
   });
@@ -144,8 +139,7 @@ const JobFeed: React.FC = () => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          job.companyName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLocation = locationFilter === 'All Locations' || job.location === locationFilter;
-    const matchesWatchlist = !watchlistOnly || job.isWatched;
-    return matchesSearch && matchesLocation && matchesWatchlist;
+    return matchesSearch && matchesLocation;
   });
 
   return (
@@ -226,13 +220,6 @@ const JobFeed: React.FC = () => {
             />
           </div>
 
-          <div className="flex items-center gap-3 self-end mb-1 px-4 py-2 rounded-xl bg-gray-50 border border-gray-100 hover:border-blue-200 transition-all cursor-pointer group" onClick={() => setWatchlistOnly(!watchlistOnly)}>
-            <Bookmark size={16} className={watchlistOnly ? 'text-blue-600 fill-blue-600' : 'text-gray-400 group-hover:text-blue-400'} />
-            <span className={`text-[10px] font-black uppercase tracking-widest ${watchlistOnly ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-400'}`}>Watchlist Only</span>
-            <div className={`w-8 h-4 rounded-full relative transition-colors ${watchlistOnly ? 'bg-blue-600' : 'bg-gray-200'}`}>
-              <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${watchlistOnly ? 'left-4.5' : 'left-0.5'}`} />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -288,12 +275,6 @@ const JobFeed: React.FC = () => {
                     <p className="text-gray-400 text-xs font-bold leading-none">{job.companyName}</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => toggleWatchlist(job._id)}
-                  className={`p-2 rounded-lg transition-all ${job.isWatched ? 'text-blue-600 bg-blue-50' : 'text-gray-200 hover:text-blue-500'}`}
-                >
-                  <Bookmark size={20} fill={job.isWatched ? 'currentColor' : 'none'} />
-                </button>
               </div>
 
               <div className="grid grid-cols-2 gap-y-3 mb-6 bg-gray-50/50 rounded-xl p-4 border border-gray-50">

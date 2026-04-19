@@ -165,7 +165,7 @@ export const StrategicActionPlan: React.FC<{ data: any[] }> = ({ data }) => {
           <div className="p-2 bg-white/10 rounded-xl text-blue-400">
             <Sparkles size={20} />
           </div>
-          <h4 className="text-sm font-black uppercase tracking-tighter italic">Strategic <span className="text-blue-400">Action Plan</span></h4>
+          <h4 className="text-sm font-black uppercase tracking-tighter italic text-white">Strategic <span className="text-blue-400">Action Plan</span></h4>
         </div>
         
         <div className="space-y-6">
@@ -175,7 +175,7 @@ export const StrategicActionPlan: React.FC<{ data: any[] }> = ({ data }) => {
               {Array.from(new Set(data.flatMap(d => d.missing || []))).slice(0, 5).map((skill: any) => (
                 <div key={skill} className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2 group hover:bg-white/10 transition-all cursor-default">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                  <span className="text-xs font-black uppercase tracking-tight">{skill}</span>
+                  <span className="text-xs font-black uppercase tracking-tight text-white">{skill}</span>
                 </div>
               ))}
               {Array.from(new Set(data.flatMap(d => d.missing || []))).length === 0 && (
@@ -193,7 +193,7 @@ export const StrategicActionPlan: React.FC<{ data: any[] }> = ({ data }) => {
               </div>
               <button 
                 onClick={() => window.location.href = '/student/profile'}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-[10px] font-black text-white uppercase tracking-widest transition-all"
               >
                 Update Profile
               </button>

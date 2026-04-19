@@ -78,16 +78,20 @@ const getStudentResume = async (req, res, next) => {
 
 const updateStudentProfile = async (req, res, next) => {
   try {
-    const { name, phone, branch, course, cgpa } = req.body;
+    const { name, phone, branch, course, cgpa, preferredLocations, preferredRoles } = req.body;
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: { name }
     });
 
+    const updateData = { phone, branch, course, cgpa: parseFloat(cgpa) };
+    if (preferredLocations) updateData.preferredLocations = Array.isArray(preferredLocations) ? preferredLocations : [preferredLocations];
+    if (preferredRoles) updateData.preferredRoles = Array.isArray(preferredRoles) ? preferredRoles : [preferredRoles];
+
     const profile = await prisma.studentProfile.upsert({
       where: { userId: req.user.id },
-      update: { phone, branch, course, cgpa: parseFloat(cgpa) },
-      create: { userId: req.user.id, phone, branch, course, cgpa: parseFloat(cgpa) }
+      update: updateData,
+      create: { userId: req.user.id, ...updateData }
     });
 
     res.json({ success: true, message: 'Profile updated successfully', profile: { ...profile, _id: profile.id } });

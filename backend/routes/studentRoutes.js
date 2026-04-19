@@ -19,6 +19,7 @@ const {
   toggleWatchlist,
   getWatchlist
 } = require('../controllers/studentController');
+const { getArchives } = require('../controllers/archiveController');
 const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/resumeUploadMiddleware');
 const { 
@@ -48,6 +49,8 @@ router.put('/notification-settings', protect, validateNotificationSettings, upda
 
 router.get('/privacy-settings', protect, getPrivacySettings);
 router.put('/privacy-settings', protect, validatePrivacySettings, updatePrivacySettings);
+
+router.get('/archives', protect, getArchives);
 
 router.put('/deactivate', protect, deactivateAccount);
 router.delete('/delete-account', protect, deleteAccount);

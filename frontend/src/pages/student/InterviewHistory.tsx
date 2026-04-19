@@ -43,29 +43,33 @@ const InterviewHistory: React.FC = () => {
     let result = interviews;
 
     if (searchCompany) {
-      result = result.filter(inv => 
-        inv.company_name.toLowerCase().includes(searchCompany.toLowerCase()) ||
-        inv.role.toLowerCase().includes(searchCompany.toLowerCase())
-      );
+      result = result.filter(inv => {
+        const company = inv.application?.job?.companyName || '';
+        const role = inv.application?.job?.title || '';
+        return company.toLowerCase().includes(searchCompany.toLowerCase()) ||
+               role.toLowerCase().includes(searchCompany.toLowerCase());
+      });
     }
 
     if (statusFilter !== 'All Status') {
-      result = result.filter(inv => inv.status === statusFilter);
+      result = result.filter(inv => (inv.status || 'scheduled') === statusFilter);
     }
 
     if (dateFilter) {
-      result = result.filter(inv => inv.interview_date.startsWith(dateFilter));
+      result = result.filter(inv => new Date(inv.date).toISOString().startsWith(dateFilter));
     }
 
     setFilteredInterviews(result);
   }, [searchCompany, statusFilter, dateFilter, interviews]);
 
   const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'Upcoming': return 'bg-blue-50 text-blue-600 border-blue-100';
-      case 'Completed': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-      case 'Missed': return 'bg-rose-50 text-rose-600 border-rose-100';
-      case 'Rejected': return 'bg-gray-50 text-gray-500 border-gray-100';
+    const s = (status || 'scheduled').toLowerCase();
+    switch (s) {
+      case 'scheduled': return 'bg-blue-50 text-blue-600 border-blue-100';
+      case 'completed': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+      case 'missed': return 'bg-rose-50 text-rose-600 border-rose-100';
+      case 'rejected': return 'bg-gray-50 text-gray-500 border-gray-100';
+      case 'selected': return 'bg-purple-50 text-purple-600 border-purple-100';
       case 'Selected': return 'bg-purple-50 text-purple-600 border-purple-100';
       default: return 'bg-gray-50 text-gray-600 border-gray-100';
     }
@@ -121,7 +125,7 @@ const InterviewHistory: React.FC = () => {
               label="Status"
               value={statusFilter}
               onChange={(val) => setStatusFilter(val)}
-              options={['All Status', 'Upcoming', 'Completed', 'Missed', 'Rejected', 'Selected']}
+              options={['All Status', 'scheduled', 'completed', 'missed', 'rejected', 'selected']}
             />
           </div>
 
@@ -170,41 +174,54 @@ const InterviewHistory: React.FC = () => {
                         <Building2 className="text-gray-400" size={24} />
                       </div>
                       <div>
-                        <h4 className="text-[14px] font-black text-gray-900 leading-tight tracking-tight uppercase">{inv.company_name}</h4>
-                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{inv.role}</span>
+                        <h4 className="text-[14px] font-black text-gray-900 leading-tight tracking-tight uppercase">{inv.application?.job?.companyName || 'Company'}</h4>
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{inv.application?.job?.title || 'Role'}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-6">
                     <span className="px-3 py-1 bg-gray-100 text-[10px] font-black text-gray-600 uppercase tracking-widest rounded-lg">
-                      {inv.round}
+                      {inv.type || 'Round'}
                     </span>
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex flex-col">
                       <span className="text-xs font-black text-gray-900 uppercase">
-                        {new Date(inv.interview_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {inv.date ? new Date(inv.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD'}
                       </span>
                       <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase italic">
-                        {inv.interview_time}
+                        {inv.date ? new Date(inv.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      {inv.interview_mode === 'Online' ? <Video size={14} className="text-gray-400" /> : <MapPin size={14} className="text-gray-400" />}
-                      <span className="text-[10px] font-black uppercase tracking-widest">{inv.interview_mode}</span>
+                    <div className="flex flex-col items-start gap-1 text-gray-600">
+                      <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest">
+                        {inv.link ? <Video size={14} className="text-gray-400" /> : <MapPin size={14} className="text-gray-400" />}
+                        {inv.link ? 'Online' : 'Offline'}
+                      </div>
+                      {inv.feedback && (
+                        <div className="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded leading-tight max-w-[150px] truncate" title={inv.feedback}>
+                          Feedback: {inv.feedback}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-8 py-6 text-center">
                     <span className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-full italic border ${getStatusStyle(inv.status)}`}>
-                      {inv.status}
+                      {inv.status || 'Scheduled'}
                     </span>
                   </td>
                   <td className="px-8 py-6 text-center">
-                    <button className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-gray-100 hover:text-black transition-all">
-                      <ExternalLink size={16} />
-                    </button>
+                    {inv.link ? (
+                      <a href={inv.link} target="_blank" rel="noreferrer" className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-gray-100 hover:text-black transition-all inline-block">
+                        <ExternalLink size={16} />
+                      </a>
+                    ) : (
+                      <button disabled className="p-2.5 bg-gray-50 text-gray-300 rounded-xl cursor-not-allowed inline-block">
+                        <ExternalLink size={16} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

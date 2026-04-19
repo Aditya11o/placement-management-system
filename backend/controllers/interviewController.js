@@ -7,8 +7,8 @@ const getStudentInterviews = async (req, res, next) => {
   try {
     const profile = await prisma.studentProfile.findUnique({ where: { userId: req.params.studentId } });
     const interviews = await prisma.interview.findMany({
-      where: { studentId: profile.id },
-      include: { job: { select: { title: true, companyName: true } } },
+      where: { application: { studentId: profile.id } },
+      include: { application: { include: { job: { select: { title: true, companyName: true } } } } },
       orderBy: { date: 'asc' }
     });
 
@@ -25,8 +25,8 @@ const exportInterviewsICS = async (req, res, next) => {
   try {
     const profile = await prisma.studentProfile.findUnique({ where: { userId: req.params.studentId } });
     const interviews = await prisma.interview.findMany({
-      where: { studentId: profile.id },
-      include: { job: { select: { title: true, companyName: true } } }
+      where: { application: { studentId: profile.id } },
+      include: { application: { include: { job: { select: { title: true, companyName: true } } } } }
     });
 
     if (interviews.length === 0) {
@@ -47,9 +47,10 @@ const exportInterviewsICS = async (req, res, next) => {
       icsContent.push(`DTSTAMP:${formatDate(new Date())}`);
       icsContent.push(`DTSTART:${formatDate(start)}`);
       icsContent.push(`DTEND:${formatDate(end)}`);
-      icsContent.push(`SUMMARY:Interview: ${i.job?.title || 'Job'} @ ${i.job?.companyName || 'Company'}`);
-      icsContent.push(`DESCRIPTION:Round: ${i.round}. Mode: ${i.mode}`);
-      icsContent.push(`LOCATION:${i.mode === 'Online' ? 'Remote Link' : 'On Campus'}`);
+      const job = i.application?.job;
+      icsContent.push(`SUMMARY:Interview: ${job?.title || 'Job'} @ ${job?.companyName || 'Company'}`);
+      icsContent.push(`DESCRIPTION:Round: ${i.type || 'Interview'}. Link: ${i.link || 'TBD'}`);
+      icsContent.push(`LOCATION:${i.link ? i.link : 'On Campus'}`);
       icsContent.push('END:VEVENT');
     });
 
@@ -69,8 +70,8 @@ const getInterviewHistory = async (req, res, next) => {
   try {
     const profile = await prisma.studentProfile.findUnique({ where: { userId: req.params.studentId } });
     const interviews = await prisma.interview.findMany({
-      where: { studentId: profile.id },
-      include: { job: { select: { title: true, companyName: true } } },
+      where: { application: { studentId: profile.id } },
+      include: { application: { include: { job: { select: { title: true, companyName: true } } } } },
       orderBy: { date: 'desc' }
     });
     res.json(interviews.map(i => ({ ...i, _id: i.id })));
@@ -79,8 +80,59 @@ const getInterviewHistory = async (req, res, next) => {
   }
 };
 
+// @desc    Select an interview slot
+// @route   PATCH /api/interviews/:id/select-slot
+// @access  Private (Student)
+const selectInterviewSlot = async (req, res, next) => {
+  try {
+    const { slotId } = req.body;
+    const interview = await prisma.interview.findUnique({
+      where: { id: req.params.id },
+      include: { application: true }
+    });
+
+    if (!interview) return res.status(404).json({ message: 'Interview not found' });
+    
+    // Check authorization: must be the student
+    const profile = await prisma.studentProfile.findUnique({ where: { userId: req.user.id } });
+    if (!profile || interview.application.studentId !== profile.id) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+
+    if (interview.selectedSlot) {
+      return res.status(400).json({ message: 'A slot has already been selected.' });
+    }
+
+    // Validate slotId exists in availableSlots
+    let slots = [];
+    if (typeof interview.availableSlots === 'string') {
+        slots = JSON.parse(interview.availableSlots);
+    } else if (Array.isArray(interview.availableSlots)) {
+        slots = interview.availableSlots;
+    }
+    
+    const selectedSlot = slots.find(s => s.id === slotId);
+    if (!selectedSlot) {
+      return res.status(400).json({ message: 'Invalid slot selected.' });
+    }
+
+    const updatedInterview = await prisma.interview.update({
+      where: { id: req.params.id },
+      data: {
+        selectedSlot: slotId,
+        date: new Date(selectedSlot.time) // Assuming available slots have a `time` field
+      }
+    });
+
+    res.json({ ...updatedInterview, _id: updatedInterview.id });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getStudentInterviews,
   exportInterviewsICS,
-  getInterviewHistory
+  getInterviewHistory,
+  selectInterviewSlot
 };
