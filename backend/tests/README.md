@@ -5,7 +5,7 @@ This directory contains integration tests for the Placement Management System ba
 ## Infrastructure
 - **Jest**: Test runner and assertion library.
 - **Supertest**: HTTP assertions for Express.
-- **MongoDB Memory Server**: In-memory database for isolated test environments.
+- **Prisma & PostgreSQL**: Relational database for integration testing.
 
 ## Test Suites
 1. **`auth.test.js`**: Registration, Login, 2FA/OTP, Account Lockout, Token Refresh.
