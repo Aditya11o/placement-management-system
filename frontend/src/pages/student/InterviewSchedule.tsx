@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, List, CheckCircle, XCircle, Video, Download, Plus, MapPin, Building2, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Dropdown from '../../components/Dropdown';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
@@ -10,6 +11,7 @@ import ReminderModal from '../../components/interviews/ReminderModal';
 const InterviewSchedule: React.FC = () => {
   const { showSuccess, showError } = useNotification();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
   const [interviews, setInterviews] = useState<any[]>([]);
   const [selectedRound, setSelectedRound] = useState('All Rounds');
   const [viewDate, setViewDate] = useState(new Date());
@@ -25,7 +27,6 @@ const InterviewSchedule: React.FC = () => {
   const fetchInterviews = async () => {
     try {
       const { data: response } = await api.get('/applications/interviews');
-      // Handle both paginated { data, pagination } and flat array responses
       const data = Array.isArray(response) ? response : (response.data || []);
       setInterviews(data);
       const now = new Date();
@@ -42,6 +43,11 @@ const InterviewSchedule: React.FC = () => {
   };
 
   useEffect(() => { fetchInterviews(); }, []);
+
+  const filteredInterviews = interviews.filter(inv => {
+    const isUpcoming = new Date(inv.interviewDate) > new Date();
+    return activeTab === 'upcoming' ? isUpcoming : !isUpcoming;
+  });
 
   const handleExportCalendar = () => {
     if (interviews.length === 0) return;
@@ -73,8 +79,8 @@ const InterviewSchedule: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="flex items-center gap-3 text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-3"><div className="w-8 h-px bg-blue-600" /><span>Success Roadmap</span></div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight leading-none uppercase">Interview <span className="text-blue-600">Schedule</span></h1>
-          <p className="text-gray-500 text-[14px] mt-3 font-medium">Keep track of your interview pipeline and upcoming screenings.</p>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight leading-none uppercase">Your <span className="text-blue-600">Interviews</span></h1>
+          <p className="text-gray-500 text-[14px] mt-3 font-medium">Keep track of your interview pipeline and past performance.</p>
         </div>
         <div className="flex gap-3">
           <button disabled={interviews.length === 0} onClick={handleExportCalendar} title={interviews.length === 0 ? "No interviews available to export" : "Download as .ics file"} className={`px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-2 active:scale-95 ${interviews.length === 0 ? 'bg-gray-100 text-gray-400 opacity-60 cursor-not-allowed' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}><Download size={16} strokeWidth={3} />Export Calendar</button>
@@ -97,12 +103,31 @@ const InterviewSchedule: React.FC = () => {
 
       {/* Main Grid */}
       <div className="grid grid-cols-12 gap-6">
-        {/* Interview Table */}
-        <div className="col-span-12 lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col h-full">
+        {/* Interview Table Area */}
+        <div className="col-span-12 lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col h-full overflow-hidden">
+          {/* Tabs */}
+          <div className="flex items-center gap-8 mb-8 border-b border-gray-50">
+            <button 
+              onClick={() => setActiveTab('upcoming')}
+              className={`pb-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === 'upcoming' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Upcoming
+              {activeTab === 'upcoming' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full" />}
+            </button>
+            <button 
+              onClick={() => setActiveTab('past')}
+              className={`pb-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === 'past' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Past History
+              {activeTab === 'past' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full" />}
+            </button>
+          </div>
+
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-lg font-black text-gray-900 tracking-tight capitalize">Upcoming & Recent</h2>
+            <h2 className="text-lg font-black text-gray-900 tracking-tight capitalize">{activeTab === 'upcoming' ? 'Next Screenings' : 'Completed Rounds'}</h2>
             <div className="w-32"><Dropdown label="Filter by" value={selectedRound} onChange={(val) => setSelectedRound(val)} options={['All Rounds', 'Technical', 'HR']} /></div>
           </div>
+
           <ResponsiveTable>
             <table className="w-full">
               <thead><tr className="border-b border-gray-50">
@@ -113,7 +138,7 @@ const InterviewSchedule: React.FC = () => {
                 <th className="pb-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Status</th>
               </tr></thead>
               <tbody className="divide-y divide-gray-50">
-                {interviews.map((interview, i) => {
+                {filteredInterviews.map((interview, i) => {
                   const date = new Date(interview.interviewDate);
                   const isUpcoming = date > new Date();
                   return (
@@ -126,11 +151,17 @@ const InterviewSchedule: React.FC = () => {
                     </tr>
                   );
                 })}
-                {interviews.length === 0 && <tr><td colSpan={5} className="py-20 text-center text-gray-400 italic text-sm">No interviews scheduled yet. Once interviews are scheduled, you can export them to your calendar.</td></tr>}
+                {filteredInterviews.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-20 text-center text-gray-400 italic text-sm">
+                      No {activeTab} interviews found. 
+                      {activeTab === 'upcoming' ? ' Stay tuned for schedule updates!' : ''}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </ResponsiveTable>
-          <button onClick={() => window.location.href = '/student/interview-history'} className="mt-auto pt-6 border-t border-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] hover:text-black transition-all flex items-center justify-center gap-2 italic"><span>View All Interview History</span></button>
         </div>
 
         {/* Sidebar */}

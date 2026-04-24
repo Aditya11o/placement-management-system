@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, X, Sparkles, Building2, Activity, Archive } from 'lucide-react';
+import { LayoutDashboard, Briefcase, FileText, Settings, Users, Bell, Calendar, LogOut, X, Sparkles, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from './ConfirmModal';
 
@@ -12,7 +12,7 @@ interface SidebarProps {
 }
 
  const Sidebar: React.FC<SidebarProps> = ({ role, isOpen, isCollapsed, onClose }) => {
-  const { logout, profile } = useAuth();
+  const { logout } = useAuth();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const getLinks = () => {
@@ -22,11 +22,11 @@ interface SidebarProps {
           { name: 'Dashboard', icon: LayoutDashboard, path: '/student/dashboard' },
           { name: 'My Profile', icon: Users, path: '/student/profile' },
           { name: 'Jobs', icon: Briefcase, path: '/student/jobs' },
-          { name: 'Placement Drives', icon: Activity, path: '/student/drives' },
-          { name: 'Explore Companies', icon: Building2, path: '/student/companies' },
+          // { name: 'Placement Drives', icon: Activity, path: '/student/drives' }, // Disabled for V1
+          // { name: 'Explore Companies', icon: Building2, path: '/student/companies' }, // Disabled for V1
           { name: 'My Applications', icon: FileText, path: '/student/applications' },
-          { name: 'Past Placements', icon: Archive, path: '/student/past-placements' },
-          { name: 'Interview Schedule', icon: Calendar, path: '/student/interviews' },
+          // { name: 'Past Placements', icon: Archive, path: '/student/past-placements' }, // Disabled for V1
+          { name: 'Interviews', icon: Calendar, path: '/student/interviews' },
           { name: 'Notifications', icon: Bell, path: '/student/notifications' },
         ];
       case 'recruiter':
@@ -121,6 +121,23 @@ interface SidebarProps {
         })}
       </nav>
       <div className={`p-4 space-y-2 border-t border-outline-variant ${isCollapsed ? 'p-2' : ''}`}>
+        <NavLink
+          to={`/${role}/support`}
+          title={isCollapsed ? "Help & Support" : ""}
+          aria-label="Navigate to Help & Support"
+          className={({ isActive }) =>
+            `flex items-center gap-3 rounded-xl font-bold text-[13px] transition-all duration-300 ${
+              isCollapsed ? 'justify-center p-3.5' : 'px-5 py-3.5'
+            } ${
+              isActive
+                ? 'bg-primary text-on-primary'
+                : 'text-on-surface-variant hover:bg-surface-container-high'
+            }`
+          }
+        >
+          <HelpCircle size={18} aria-hidden="true" />
+          <span className={`${isCollapsed ? 'hidden' : 'lg:block md:hidden block'}`}>Help & Support</span>
+        </NavLink>
         <NavLink
           to={`/${role}/settings`}
           title={isCollapsed ? "Settings" : ""}

@@ -104,7 +104,7 @@ const Navbar: React.FC<NavbarProps> = ({ role, onToggleSidebar, onHelpOpen }) =>
         
         <div className="flex items-center gap-1 md:gap-4">
           <Link 
-            to={role === 'student' ? "/student/help-support" : role === 'recruiter' ? "/recruiter/help-support" : "#"}
+            to={role === 'student' ? "/student/support" : role === 'recruiter' ? "/recruiter/help-support" : "#"}
             onClick={role !== 'student' && role !== 'recruiter' ? onHelpOpen : undefined}
             className="p-2 md:p-2.5 text-on-surface-variant hover:bg-surface-container hover:text-surface-tint rounded-xl transition-all"
             title="Help & Support"

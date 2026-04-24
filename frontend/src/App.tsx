@@ -18,20 +18,20 @@ const Privacy = React.lazy(() => import('./pages/Privacy'));
 const Terms = React.lazy(() => import('./pages/Terms'));
 const Help = React.lazy(() => import('./pages/Help'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
-const Support = React.lazy(() => import('./pages/student/Support'));
+// const Support = React.lazy(() => import('./pages/student/Support'));
 const JobFeed = React.lazy(() => import('./pages/student/JobFeed'));
 const MyApplications = React.lazy(() => import('./pages/student/MyApplications'));
-const InterviewSchedule = React.lazy(() => import('./pages/student/InterviewSchedule'));
+const Interviews = React.lazy(() => import('./pages/student/InterviewSchedule'));
 const Notifications = React.lazy(() => import('./pages/student/Notifications'));
 const Settings = React.lazy(() => import('./pages/student/Settings'));
 const StudentProfile = React.lazy(() => import('./pages/student/Profile'));
-const ResumeBuilder = React.lazy(() => import('./pages/student/ResumeBuilder'));
-const ExploreCompanies = React.lazy(() => import('./pages/student/ExploreCompanies'));
+// const ResumeBuilder = React.lazy(() => import('./pages/student/ResumeBuilder'));
+// const ExploreCompanies = React.lazy(() => import('./pages/student/ExploreCompanies'));
 const HelpSupport = React.lazy(() => import('./pages/student/HelpSupport'));
 const Announcements = React.lazy(() => import('./pages/student/Announcements'));
-const ResourceCategory = React.lazy(() => import('./pages/student/ResourceCategory'));
-const PastPlacements = React.lazy(() => import('./pages/student/PastPlacements'));
-const InterviewHistory = React.lazy(() => import('./pages/student/InterviewHistory'));
+// const ResourceCategory = React.lazy(() => import('./pages/student/ResourceCategory'));
+// const PastPlacements = React.lazy(() => import('./pages/student/PastPlacements'));
+// const InterviewHistory = React.lazy(() => import('./pages/student/InterviewHistory'));
 const ManageJobs = React.lazy(() => import('./pages/recruiter/ManageJobs'));
 const AdminManageJobs = React.lazy(() => import('./pages/admin/ManageJobs'));
 const InterviewPipeline = React.lazy(() => import('./pages/recruiter/InterviewPipeline'));
@@ -53,8 +53,8 @@ const AdminManageNotifications = React.lazy(() => import('./pages/admin/ManageNo
 const AdminSettings = React.lazy(() => import('./pages/admin/Settings'));
 const AdminProfile = React.lazy(() => import('./pages/admin/Profile'));
 const AdminManageDrives = React.lazy(() => import('./pages/admin/ManageDrives'));
-const StudentDriveDetail = React.lazy(() => import('./pages/student/DriveDetail'));
-const PlacementDrives = React.lazy(() => import('./pages/student/PlacementDrives'));
+// const StudentDriveDetail = React.lazy(() => import('./pages/student/DriveDetail'));
+// const PlacementDrives = React.lazy(() => import('./pages/student/PlacementDrives'));
 
 const App: React.FC = () => {
   const [isShortcutsOpen, setIsShortcutsOpen] = React.useState(false);
@@ -96,22 +96,22 @@ const App: React.FC = () => {
           <Route path="/student" element={<DashboardLayout role="student" />}>
             <Route path="dashboard" element={<Dashboard role="student" />} />
             <Route path="profile" element={<StudentProfile />} />
-            <Route path="drives" element={<PlacementDrives />} />
-            <Route path="drives/:id" element={<StudentDriveDetail />} />
+            {/* <Route path="drives" element={<PlacementDrives />} />
+            <Route path="drives/:id" element={<StudentDriveDetail />} /> */}
             <Route path="jobs" element={<JobFeed />} />
             <Route path="applications" element={<MyApplications />} />
-            <Route path="interviews" element={<InterviewSchedule />} />
-            <Route path="interview-history" element={<InterviewHistory />} />
-            <Route path="past-placements" element={<PastPlacements />} />
-            <Route path="companies" element={<ExploreCompanies />} />
+            <Route path="interviews" element={<Interviews />} />
+            <Route path="interview-history" element={<Navigate to="/student/interviews" replace />} />
+            {/* <Route path="past-placements" element={<PastPlacements />} /> */}
+            {/* <Route path="companies" element={<ExploreCompanies />} /> */}
             <Route path="notifications" element={<Notifications />} />
             <Route path="announcements" element={<Announcements />} />
-            <Route path="resources/:category" element={<ResourceCategory />} />
-            <Route path="support" element={<Support />} />
-            <Route path="help-support" element={<HelpSupport />} />
+            {/* <Route path="resources/:category" element={<ResourceCategory />} /> */}
+            <Route path="support" element={<HelpSupport />} />
+            <Route path="help-support" element={<Navigate to="/student/support" replace />} />
             <Route path="settings" element={<Settings />} />
             <Route path="resumes" element={<Navigate to="/student/settings?tab=resumes" replace />} />
-            <Route path="resume-builder" element={<ResumeBuilder />} />
+            {/* <Route path="resume-builder" element={<ResumeBuilder />} /> */}
           </Route>
 
           <Route path="/recruiter" element={<DashboardLayout role="recruiter" />}>

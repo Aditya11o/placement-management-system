@@ -6,30 +6,30 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useStudentDashboard, useSkillGap } from '../../hooks/useDashboard';
+import { useStudentDashboard } from '../../hooks/useDashboard';
 import DashboardSkeleton from '../../components/skeletons/DashboardSkeleton';
 
-import ReadinessGauge from '../../components/student/ReadinessGauge';
-import SkillGapRadar, { StrategicActionPlan } from '../../components/student/SkillGapRadar';
+// import ReadinessGauge from '../../components/student/ReadinessGauge';
+// import SkillGapRadar, { StrategicActionPlan } from '../../components/student/SkillGapRadar';
 import StatCard from '../../components/student/StatCard';
 import JobTable from '../../components/student/JobTable';
 import InterviewPanel from '../../components/student/InterviewPanel';
 import Pipeline from '../../components/student/Pipeline';
 import AnnouncementsBoard from '../../components/AnnouncementsBoard';
-import StudentDrivesWidget from '../../components/student/StudentDrivesWidget';
+// import StudentDrivesWidget from '../../components/student/StudentDrivesWidget';
 import ActivityTimeline from '../../components/student/ActivityTimeline';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   
   const { data, isLoading: loading, error } = useStudentDashboard();
-  const { data: skillGapData } = useSkillGap();
+  // const { data: skillGapData } = useSkillGap();
 
   const stats = data?.stats || {
     totalJobs: 0, applied: 0, underReview: 0, 
     shortlisted: 0, selected: 0, rejected: 0
   };
-  const readiness = data?.readiness || {
+  /* const readiness = data?.readiness || {
     score: 0,
     breakdown: {
       profile: { score: 0, max: 25 },
@@ -38,7 +38,7 @@ const StudentDashboard: React.FC = () => {
       activity: { score: 0, max: 15 },
       placement: { score: 0, max: 20 }
     }
-  };
+  }; */
   const jobs = data?.jobs || [];
   const interviews = data?.interviews || [];
   const notifications = data?.notifications || [];
@@ -85,8 +85,8 @@ const StudentDashboard: React.FC = () => {
          <StatCard label="Selected" value={stats.selected.toString()} icon={CheckCircle} color="text-emerald-600" />
       </section>
 
-      {/* 3. Analytics Hero: Full Width side-by-side to prevent overlap */}
-      <section className="space-y-4" id="pms-tour-analytics">
+      {/* 3. Analytics Hero: Disabled for V1 (Needs Data Maturity) */}
+      {/* <section className="space-y-4" id="pms-tour-analytics">
         <div className="flex flex-col min-[1400px]:flex-row gap-6 lg:gap-8 items-stretch">
           <div className="flex-1 min-w-0 relative">
             <ReadinessGauge 
@@ -100,11 +100,10 @@ const StudentDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Strategic Action Plan: Integrated but full width */}
         <div id="pms-tour-action-plan">
            <StrategicActionPlan data={skillGapData || []} />
         </div>
-      </section>
+      </section> */}
 
       {/* 4. Operational Split: 8 (Main Data) / 4 (Sidebar) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -131,9 +130,9 @@ const StudentDashboard: React.FC = () => {
               
               <ActivityTimeline />
 
-              <div className="pt-6 border-t border-outline-variant/20">
+              {/* <div className="pt-6 border-t border-outline-variant/20">
                 <StudentDrivesWidget />
-              </div>
+              </div> */}
            </div>
         </aside>
       </div>

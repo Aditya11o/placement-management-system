@@ -79,6 +79,7 @@ const ResumeSection: React.FC<ResumeSectionProps> = ({ student, onUploadClick })
             </div>
           )}
 
+          {/* Disable for V1 - Resume Builder
           <div className="pt-4 border-t border-gray-50">
             <Link 
               to="/student/resume-builder"
@@ -92,6 +93,7 @@ const ResumeSection: React.FC<ResumeSectionProps> = ({ student, onUploadClick })
               Craft IRCC Compliant ATS Resumes in Minutes
             </p>
           </div>
+          */}
         </div>
       </div>
     </div>

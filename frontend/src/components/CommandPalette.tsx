@@ -48,7 +48,7 @@ const CommandPalette: React.FC = () => {
     { id: 'jobs', label: 'Job Feed', category: 'Placement', roles: ['student'], icon: <Briefcase className="w-4 h-4" />, action: () => navigate('/student/jobs') },
     { id: 'applications', label: 'My Applications', category: 'Placement', roles: ['student'], icon: <ClipboardList className="w-4 h-4" />, action: () => navigate('/student/applications') },
     { id: 'interview-schedule', label: 'Interview Schedule', category: 'Placement', roles: ['student'], icon: <Calendar className="w-4 h-4" />, action: () => navigate('/student/interviews') },
-    { id: 'resume-builder', label: 'Resume Builder', category: 'Tools', roles: ['student'], icon: <FileText className="w-4 h-4" />, action: () => navigate('/student/resume-builder') },
+    // { id: 'resume-builder', label: 'Resume Builder', category: 'Tools', roles: ['student'], icon: <FileText className="w-4 h-4" />, action: () => navigate('/student/resume-builder') },
 
     // Recruiter Commands
     { id: 'post-job', label: 'Post New Job', category: 'Hiring', roles: ['recruiter'], icon: <Briefcase className="w-4 h-4" />, action: () => navigate('/recruiter/post-job') },
