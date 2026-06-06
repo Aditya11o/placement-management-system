@@ -1,11 +1,13 @@
 # System & Technical Architecture Document
 
 ## 1. Overview
-This document outlines the technical architecture, database schema, and data flow of the **Placement Management System (PMS)**. The system is built using a modern full-stack architecture (MERN/PERN stack variation using PostgreSQL and Prisma ORM) and is designed to handle interactions between Students, Recruiters, Administrators, Mentors, and Alumni.
+
+This document outlines the technical architecture, database schema, and data flow of the **Placement Management System (PMS)**. The system is built using a modern full-stack architecture (PERN stack using PostgreSQL, Express, React, and Node.js) and is designed to coordinate operations between five primary user classes: Students, Recruiters, Administrators, Mentors, and Alumni.
 
 ---
 
-## 2. Entity-Relationship (ER) Diagram
+## 2. Entity-Relationship () Diagram
+
 The following diagram represents the core database entities and their relationships based on the Prisma schema.
 
 ```mermaid
@@ -61,6 +63,7 @@ erDiagram
 ## 3. Data Flow Diagrams (DFD)
 
 ### 3.1 DFD Level 0 (Context Diagram)
+
 This diagram illustrates the macro-level interaction between the external entities and the Placement Management System.
 
 ```mermaid
@@ -89,6 +92,7 @@ graph LR
 ```
 
 ### 3.2 DFD Level 1 (Core Processes)
+
 This diagram details the primary internal processes of the system.
 
 ```mermaid
@@ -140,14 +144,14 @@ graph TD
 ```mermaid
 graph LR
     subgraph Client [Client Side / Frontend]
-        UI[React 18 / Vite UI]
-        State[Tailwind UI & Context API]
+        UI[React 19 / Vite UI]
+        State[Context API & TanStack Query]
         SktC[Socket.io Client]
     end
 
     subgraph Server [Backend Server]
         API[Express.js API Routes]
-        Auth[JWT & Bcrypt Middleware]
+        Auth[JWT & CSRF Middleware]
         SktS[Socket.io Server]
         ORM[Prisma ORM]
     end
@@ -174,7 +178,17 @@ graph LR
     API --> |Send Alerts| Email
 ```
 
+---
+
 ## 5. Security Architecture
-- **Auth Layer:** JWT based authentication with strict OTP-based verification for critical actions.
-- **Middleware Protections:** `Helmet` for HTTP headers, `Express-Rate-Limit` for protecting endpoints against brute force, and XSS cleaning.
-- **Role-Based Access Control (RBAC):** Distinct controller paths for Student, Recruiter, Admin, and Alumni roles. Database relationships ensure a user can only edit their specific profile type.
+
+The application employs deep enterprise-grade security protocols:
+
+* **Auth & Sessions Layer:** Stateless authentication via JSON Web Tokens (JWT) stored in HTTP-only, secure cookies with access and rotating refresh tokens.
+* **CSRF Protection:** Implements cross-site request forgery protection via a double-submit cookie scheme, verified using custom CSRF validation middleware on all mutation requests.
+* **API Middleware Protections:**
+  * `Helmet` for setting critical HTTP security headers (e.g. X-Content-Type-Options, X-Frame-Options).
+  * `Express-Rate-Limit` to mitigate brute force logins (5 attempts per window) and global server DOS (10,000 requests per 15 minutes).
+  * `xss-clean` for input sanitization to filter out malicious script tags.
+  * `hpp` to prevent HTTP parameter pollution attacks.
+* **Role-Based Access Control (RBAC):** Strict controller-level middlewares restrict endpoint accessibility. Users are validated against five distinct roles (Student, Recruiter, Admin, Mentor, Alumni). Under the hood, database constraints restrict mutations of profiles to the record owner.
