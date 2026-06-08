@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Calendar, Clock, MapPin, AlignLeft, AlertCircle } from 'lucide-react';
-import api from '../../utils/api';
+import api from '../../api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface AddAcademicEventModalProps {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api';
 import { useNotification } from '../../context/NotificationContext';
-import { Loader2, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronRight, ExternalLink } from 'lucide-react';
 
 interface InterviewPanelProps {
   initialInterviews?: any[];

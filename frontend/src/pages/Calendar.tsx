@@ -24,7 +24,7 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
-import api from '../utils/api';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import AddAcademicEventModal from '../components/admin/AddAcademicEventModal';

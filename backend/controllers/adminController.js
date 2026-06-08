@@ -50,14 +50,13 @@ const bulkVerifySkills = async (req, res, next) => {
     const updatedCount = requests.length;
 
     // Audit Log
-    await createAuditLog(
-      req.user.id,
-      'BULK_VERIFY_SKILLS',
-      'Profile',
-      null,
-      `Bulk ${status.toLowerCase()}ed ${updatedCount} skill verifications`,
-      req.ip
-    );
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'BULK_VERIFY_SKILLS',
+      type: 'Profile',
+      details: `Bulk ${status.toLowerCase()}ed ${updatedCount} skill verifications`,
+      ipAddress: req.ip
+    });
 
     res.json({ message: `Successfully ${status.toLowerCase()}ed ${updatedCount} skills` });
   } catch (error) {
@@ -82,14 +81,15 @@ const verifySkill = async (req, res, next) => {
     });
 
     // Audit Log
-    await createAuditLog(
-      req.user.id,
-      'VERIFY_SKILL',
-      'SkillVerification',
-      req.params.verificationId,
-      `Verified skill: ${verification.skill} as ${status}`,
-      req.ip
-    );
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'VERIFY_SKILL',
+      type: 'SkillVerification',
+      targetId: req.params.verificationId,
+      targetType: 'SkillVerification',
+      details: `Verified skill: ${verification.skill} as ${status}`,
+      ipAddress: req.ip
+    });
 
     res.json({ message: `Skill ${status.toLowerCase()} successfully` });
   } catch (error) {
@@ -234,14 +234,15 @@ const approveRecruiter = async (req, res, next) => {
     });
 
     // Audit Log
-    await createAuditLog(
-      req.user.id,
-      'APPROVE_RECRUITER',
-      'User',
-      updatedUser.id,
-      `Recruiter ${updatedUser.email} status set to ${status}`,
-      req.ip
-    );
+    await createAuditLog({
+      userId: req.user.id,
+      action: 'APPROVE_RECRUITER',
+      type: 'User',
+      targetId: updatedUser.id,
+      targetType: 'User',
+      details: `Recruiter ${updatedUser.email} status set to ${status}`,
+      ipAddress: req.ip
+    });
 
     // Send notification email
     // Notify recruiter
@@ -612,14 +613,15 @@ const verifyOfferLetter = async (req, res, next) => {
       });
 
       // Update Audit Log
-      await createAuditLog(
-        req.user.id,
-        'VERIFY_OFFER',
-        'Application',
-        application.id,
-        `Offer verified for student ${application.studentId} at ${application.job.companyName}`,
-        req.ip
-      );
+      await createAuditLog({
+        userId: req.user.id,
+        action: 'VERIFY_OFFER',
+        type: 'Application',
+        targetId: application.id,
+        targetType: 'Application',
+        details: `Offer verified for student ${application.studentId} at ${application.job.companyName}`,
+        ipAddress: req.ip
+      });
     }
 
     res.json({ message: `Offer letter ${status.toLowerCase()} successfully`, application: updatedApp });
